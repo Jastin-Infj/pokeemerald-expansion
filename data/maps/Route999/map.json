@@ -1,0 +1,51 @@
+{
+  "id": "MAP_ROUTE999",
+  "name": "Route999",
+  "layout": "LAYOUT_ROUTE999",
+  "music": "MUS_ROUTE110",
+  "region_map_section": "MAPSEC_ROUTE_999",
+  "requires_flash": false,
+  "weather": "WEATHER_SUNNY",
+  "map_type": "MAP_TYPE_ROUTE",
+  "allow_cycling": true,
+  "allow_escaping": false,
+  "allow_running": true,
+  "show_map_name": true,
+  "battle_scene": "MAP_BATTLE_SCENE_NORMAL",
+  "connections": [
+    {
+      "map": "MAP_LITTLEROOT_TOWN",
+      "offset": 0,
+      "direction": "left"
+    },
+    {
+      "map": "MAP_LITTLEROOT_TOWN",
+      "offset": 0,
+      "direction": "emerge"
+    },
+    {
+      "map": "MAP_LITTLEROOT_TOWN",
+      "offset": 0,
+      "direction": "dive"
+    }
+  ],
+  "object_events": [
+
+  ],
+  "warp_events": [
+
+  ],
+  "coord_events": [
+
+  ],
+  "bg_events": [
+    {
+      "type": "sign",
+      "x": 7,
+      "y": 9,
+      "elevation": 0,
+      "player_facing_dir": "BG_EVENT_PLAYER_FACING_ANY",
+      "script": "Route999_EventScript_Route999Sign"
+    }
+  ]
+}

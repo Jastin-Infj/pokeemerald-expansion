@@ -1710,6 +1710,14 @@
       "y": 4,
       "width": 1,
       "height": 1
+    },
+    {
+      "map_section": "MAPSEC_ROUTE_999",
+      "name": "ROUTE 999",
+      "x": 6,
+      "y": 10,
+      "width": 1,
+      "height": 1
     }
   ]
 }

@@ -1,0 +1,12 @@
+raw `
+Route999_MapScripts::
+	.byte 0
+
+Route999_EventScript_Route999Sign::
+	msgbox Route999_Text_Route999Sign, MSGBOX_SIGN
+	end
+
+Route999_Text_Route999Sign:
+	.string "ROUTE 99\n"
+	.string "{LEFT_ARROW} ROUTE 999$"
+`
