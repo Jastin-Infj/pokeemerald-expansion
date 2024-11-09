@@ -166,6 +166,7 @@ void ClearContinueGameWarpStatus2(void)
     gSaveBlock2Ptr->specialSaveWarpFlags &= ~CONTINUE_GAME_WARP;
 }
 
+// 現在のポケモンの情報をsavに保存する
 void SavePlayerParty(void)
 {
     int i;

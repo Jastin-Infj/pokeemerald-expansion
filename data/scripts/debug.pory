@@ -139,8 +139,6 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
-	setvar VAR_0x8004, BATTLE_FACTORY_FUNC_INIT
-	special CallBattleFactoryFunction
 	call FactoryTest
 	release
 	end
@@ -457,10 +455,72 @@ Debug_EventScript_EWRAMCounters_Text::
 `
 
 script FactoryTest {
-	msgbox("Factory Test")
+	//* NPUに話しかけるとバトルモードを選択
+	setvar(VAR_FRONTIER_FACILITY, FRONTIER_FACILITY_FACTORY)
+	setvar(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_DOUBLES)
+	special(SavePlayerParty)
+	//* メッセージ関連
+	// call_if_eq(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_SINGLES, BattleFrontier_BattleFactoryLobby_EventScript_WelcomeForSingleBattle)
+	// call_if_eq(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_DOUBLES, BattleFrontier_BattleFactoryLobby_EventScript_WelcomeForDoubleBattle)
+
+	// call_if_eq(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_SINGLES, BattleFrontier_BattleFactoryLobby_EventScript_TakeSinglesChallenge)
+	// call_if_eq(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_DOUBLES, BattleFrontier_BattleFactoryLobby_EventScript_TakeDoublesChallenge)
+
+	waitmessage
+	//* 参加するかどうか
+	multichoice(17, 6, MULTI_CHALLENGEINFO, FALSE)
+	//* 選択肢の回答
+	switch(var(VAR_RESULT)){
+		case 0:
+			goto(FactoryTest1)
+		case 1:
+			goto(BattleFrontier_BattleFactoryLobby_EventScript_ExplainChallenge) 
+		case 2:
+			//* キャンセル処理
+			goto(BattleFrontier_BattleFactoryLobby_EventScript_CancelChallenge)			
+		case MULTI_B_PRESSED:
+			//* キャンセル処理
+			goto(BattleFrontier_BattleFactoryLobby_EventScript_CancelChallenge)
+	}
+
+	// setvar(VAR_0x8004, BATTLE_FACTORY_FUNC_INIT)
+	// special(CallBattleFactoryFunction)
+	// msgbox("Factory Test")
+	// msgbox(SearchVar)
+}
+
+script FactoryTest1 {
+	message(BattleFrontier_BattleFactoryLobby_Text_WhichLevelMode)
+	waitmessage
+	//* レベルモードの選択肢 結果をVAR_RESULTに格納
+	//* Lv50 , 100 
+	//* MSGBOX_DEFAULT 選択肢の表示が出る？
+
+	// キャンセルの選択肢が 2なるので global.h の 2 であるオープンに行く感じ
+	multichoice(17, 6, MULTI_LEVEL_MODE, FALSE)
+	//*　結果反映でテキスト表示
+	// switch(var(VAR_RESULT)) {
+	// 	case FRONTIER_LVL_TENT:
+	// 		msgbox(BattleFrontier_BattleFactoryLobby_Text_LookForwardToNextVisit, MSGBOX_DEFAULT)
+	// 	case MULTI_B_PRESSED:
+	// 		//* キャンセル処理
+	// 		goto(BattleFrontier_BattleFactoryLobby_EventScript_CancelChallenge)
+	// }
+	frontier_set(FRONTIER_DATA_LVL_MODE, VAR_RESULT)
+	msgbox(BattleFrontier_BattleFactoryLobby_Text_OkayToSaveBeforeChallenge, MSGBOX_YESNO)
+	//* 再度参加するかどうか確認
+	switch(var(VAR_RESULT)) {
+		case NO:
+			goto(BattleFrontier_BattleFactoryLobby_EventScript_LoadPartyAndCancelChallenge)
+		case YES:
+			goto(BattleFrontier_BattleFactoryLobby_EventScript_SaveBeforeChallenge)
+		case MULTI_B_PRESSED:
+			goto(BattleFrontier_BattleFactoryLobby_EventScript_LoadPartyAndCancelChallenge)
+	}
 	msgbox(SearchVar)
 }
 
 text SearchVar {
 	"test"
+	// "{FRONTIER_LVL_TENT}"
 }
