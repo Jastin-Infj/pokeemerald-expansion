@@ -121,8 +121,6 @@ static const u16 *const sMoveStyles[FACTORY_NUM_STYLES - 1] =
     [FACTORY_STYLE_WEATHER - 1]       = sMoves_DependsOnTheBattlesFlow,
 };
 
-
-// inc to imrpot method
 static void (* const sBattleFactoryFunctions[])(void) =
 {
     [BATTLE_FACTORY_FUNC_INIT]                   = InitFactoryChallenge,
