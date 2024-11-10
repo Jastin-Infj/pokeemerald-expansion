@@ -315,6 +315,7 @@ SECTIONS {
         src/frontier_util.o(.text);
         src/battle_arena.o(.text);
         src/battle_factory.o(.text);
+        test/test.o(.text);
         src/battle_pike.o(.text);
         src/rotating_tile_puzzle.o(.text);
         src/battle_pyramid.o(.text);

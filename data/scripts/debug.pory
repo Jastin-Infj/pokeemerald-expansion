@@ -588,14 +588,14 @@ script FactoryTest3 {
 		special(CallBattleFactoryFunction)
 
 		//* 相手のタイプを把握しておく
-		factory_getopponentmontype
+		// factory_getopponentmontype
 		//* 結果を 0x8005 に格納
-		setorcopyvar(VAR_0x8005, VAR_RESULT)
+		// setorcopyvar(VAR_0x8005, VAR_RESULT)
 
 		//* NPC のAIスタイルを取得
-		factory_getopponentstyle
+		// factory_getopponentstyle
 		//* 結果を 0x8006 に格納
-		setorcopyvar(VAR_0x8006, VAR_RESULT)
+		// setorcopyvar(VAR_0x8006, VAR_RESULT)
 
 		//* NPC Hint
 		// call(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_CommentOnOpponentType)
@@ -610,8 +610,8 @@ script FactoryTest3 {
 		//* 上記の処理が終わるまで待機
 		waitstate
 
-		msgbox(BattleFrontier_BattleFactoryPreBattleRoom_Text_RightThisWay, MSGBOX_DEFAULT)
-		closemessage
+		// msgbox(BattleFrontier_BattleFactoryPreBattleRoom_Text_RightThisWay, MSGBOX_DEFAULT)
+		// closemessage
 
 		//* 歩行に必要な処理
 		// call(BattleFrontier_EventScript_GetLvlMode)
@@ -623,10 +623,27 @@ script FactoryTest3 {
 		// }
 		// waitmovement(0)
 
-		warp(MAP_BATTLE_FRONTIER_BATTLE_FACTORY_BATTLE_ROOM, 6, 11)
+		// warp(MAP_BATTLE_FRONTIER_BATTLE_FACTORY_BATTLE_ROOM, 6, 11)
+		goto(FactoryTest4)
 		waitstate
 		end
 	}
+}
+
+script FactoryTest4 {
+	// goto(BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoom)
+	goto_if_ne(VAR_TEMP_F, FRONTIER_BRAIN_NOT_READY, BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoomFactoryHeadBattle)
+	applymovement(LOCALID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom)
+	applymovement(OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom)
+	waitmovement(0)
+	call(BattleFrontier_BattleFactoryBattleRoom_EventScript_ScientistsFaceBattle)
+	factory_setopponentgfx
+	removeobject(LOCALID_OPPONENT)
+	setobjectxyperm(LOCALID_OPPONENT, 7, 1)
+	addobject(LOCALID_OPPONENT)
+	applymovement(LOCALID_OPPONENT, BattleFrontier_BattleFactoryBattleRoom_Movement_OpponentEnter)
+	waitmovement(0)
+	end
 }
 
 text SearchVar {

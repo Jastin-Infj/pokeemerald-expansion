@@ -1064,14 +1064,6 @@ FactoryTest3_6:
 	setvar VAR_0x8004, BATTLE_FACTORY_FUNC_GENERATE_OPPONENT_MONS
 # 588 "data/scripts/debug.pory"
 	special CallBattleFactoryFunction
-# 591 "data/scripts/debug.pory"
-	factory_getopponentmontype
-# 593 "data/scripts/debug.pory"
-	setorcopyvar VAR_0x8005, VAR_RESULT
-# 596 "data/scripts/debug.pory"
-	factory_getopponentstyle
-# 598 "data/scripts/debug.pory"
-	setorcopyvar VAR_0x8006, VAR_RESULT
 # 605 "data/scripts/debug.pory"
 	fadescreen FADE_TO_BLACK
 # 606 "data/scripts/debug.pory"
@@ -1080,13 +1072,9 @@ FactoryTest3_6:
 	factory_rentmons
 # 611 "data/scripts/debug.pory"
 	waitstate
-# 613 "data/scripts/debug.pory"
-	msgbox BattleFrontier_BattleFactoryPreBattleRoom_Text_RightThisWay, MSGBOX_DEFAULT
-# 614 "data/scripts/debug.pory"
-	closemessage
-# 626 "data/scripts/debug.pory"
-	warp MAP_BATTLE_FRONTIER_BATTLE_FACTORY_BATTLE_ROOM, 6, 11
 # 627 "data/scripts/debug.pory"
+	goto FactoryTest4
+# 628 "data/scripts/debug.pory"
 	waitstate
 	end
 
@@ -1101,6 +1089,32 @@ FactoryTest3_7:
 	goto FactoryTest3_6
 
 
+FactoryTest4::
+# 635 "data/scripts/debug.pory"
+	goto_if_ne VAR_TEMP_F, FRONTIER_BRAIN_NOT_READY, BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoomFactoryHeadBattle
+# 636 "data/scripts/debug.pory"
+	applymovement LOCALID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom
+# 637 "data/scripts/debug.pory"
+	applymovement OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom
+# 638 "data/scripts/debug.pory"
+	waitmovement 0
+# 639 "data/scripts/debug.pory"
+	call BattleFrontier_BattleFactoryBattleRoom_EventScript_ScientistsFaceBattle
+# 640 "data/scripts/debug.pory"
+	factory_setopponentgfx
+# 641 "data/scripts/debug.pory"
+	removeobject LOCALID_OPPONENT
+# 642 "data/scripts/debug.pory"
+	setobjectxyperm LOCALID_OPPONENT, 7, 1
+# 643 "data/scripts/debug.pory"
+	addobject LOCALID_OPPONENT
+# 644 "data/scripts/debug.pory"
+	applymovement LOCALID_OPPONENT, BattleFrontier_BattleFactoryBattleRoom_Movement_OpponentEnter
+# 645 "data/scripts/debug.pory"
+	waitmovement 0
+	end
+
+
 SearchVar::
-# 632 "data/scripts/debug.pory"
+# 649 "data/scripts/debug.pory"
 	.string "test$"
