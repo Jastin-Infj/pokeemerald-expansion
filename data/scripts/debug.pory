@@ -483,8 +483,9 @@ script FactoryTest {
 			goto(BattleFrontier_BattleFactoryLobby_EventScript_CancelChallenge)
 	}
 
-	// setvar(VAR_0x8004, BATTLE_FACTORY_FUNC_INIT)
-	// special(CallBattleFactoryFunction)
+	//* 何のためにあるのかわからない
+	setvar(VAR_0x8004, BATTLE_FACTORY_FUNC_INIT)
+	special(CallBattleFactoryFunction)
 	// msgbox("Factory Test")
 	// msgbox(SearchVar)
 }
@@ -564,7 +565,68 @@ script FactoryTest2 {
 
 // ロビーフロアまで
 script FactoryTest3 {
-	goto(BattleFrontier_BattleFactoryPreBattleRoom_OnFrame)
+	if(var(VAR_TEMP_0) == 0) {
+		if(var(VAR_0x8006) == 1) {
+			goto(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_ReturnToRoomFromBattle)
+		}
+		//* state 1 に変更
+		setvar(VAR_TEMP_0, 1)
+
+		// applymovement(LOCALID_ATTENDANT, BattleFrontier_BattleFactoryPreBattleRoom_Movement_AttendantEnterRoom)
+		// applymovement(OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryPreBattleRoom_Movement_PlayerEnterRoom)
+		// waitmovement(0)
+
+		if(var(VAR_0x8006) == 2) {
+			goto(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_ResumeChallenge)
+		}
+
+		//* ポケモンの生成
+		factory_generaterentalmons
+
+		//* 相手の手持ちポケモンを生成
+		setvar(VAR_0x8004, BATTLE_FACTORY_FUNC_GENERATE_OPPONENT_MONS)
+		special(CallBattleFactoryFunction)
+
+		//* 相手のタイプを把握しておく
+		factory_getopponentmontype
+		//* 結果を 0x8005 に格納
+		setorcopyvar(VAR_0x8005, VAR_RESULT)
+
+		//* NPC のAIスタイルを取得
+		factory_getopponentstyle
+		//* 結果を 0x8006 に格納
+		setorcopyvar(VAR_0x8006, VAR_RESULT)
+
+		//* NPC Hint
+		// call(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_CommentOnOpponentType)
+		// call(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_CommentOnOpponentStyle)
+
+		// msgbox(BattleFrontier_BattleFactoryPreBattleRoom_Text_HoldMonsChooseFromSelection, MSGBOX_DEFAULT)
+		fadescreen(FADE_TO_BLACK)
+		factory_setswapped
+
+		//* レンタルポケモンを選択画面へ
+		factory_rentmons
+		//* 上記の処理が終わるまで待機
+		waitstate
+
+		msgbox(BattleFrontier_BattleFactoryPreBattleRoom_Text_RightThisWay, MSGBOX_DEFAULT)
+		closemessage
+
+		//* 歩行に必要な処理
+		// call(BattleFrontier_EventScript_GetLvlMode)
+		// switch(var(VAR_RESULT)) {
+		// 	case FRONTIER_LVL_50:
+		// 		call(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_WalkToBattleRoomLv50)
+		// 	case FRONTIER_LVL_OPEN:
+		// 		call(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_WalkToBattleRoomLvOpen)
+		// }
+		// waitmovement(0)
+
+		warp(MAP_BATTLE_FRONTIER_BATTLE_FACTORY_BATTLE_ROOM, 6, 11)
+		waitstate
+		end
+	}
 }
 
 text SearchVar {
