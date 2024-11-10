@@ -8,5 +8,3 @@ void FillFactoryBrainParty(void);
 u8 GetNumPastRentalsRank(u8 battleMode, u8 lvlMode);
 u32 GetAiScriptsInBattleFactory(void);
 void SetMonMoveAvoidReturn(struct Pokemon *mon, u16 moveArg, u8 moveSlot);
-
-#endif // GUARD_BATTLE_FACTORY_H
