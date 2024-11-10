@@ -513,11 +513,58 @@ script FactoryTest1 {
 		case NO:
 			goto(BattleFrontier_BattleFactoryLobby_EventScript_LoadPartyAndCancelChallenge)
 		case YES:
-			goto(BattleFrontier_BattleFactoryLobby_EventScript_SaveBeforeChallenge)
+			goto(FactoryTest2)
 		case MULTI_B_PRESSED:
 			goto(BattleFrontier_BattleFactoryLobby_EventScript_LoadPartyAndCancelChallenge)
 	}
 	msgbox(SearchVar)
+}
+
+script FactoryTest2 {
+	setvar(VAR_TEMP_CHALLENGE_STATUS,0)
+	//* 初期化処理
+	factory_init
+	//* 過去の実績データを読み込む
+	frontier_set(FRONTIER_DATA_CHALLENGE_STATUS, CHALLENGE_STATUS_SAVING)
+	factory_set(FACTORY_DATA_WIN_STREAK_ACTIVE, TRUE)
+	frontier_set(FRONTIER_DATA_PAUSED, FALSE)
+	closemessage
+	delay(2)
+	//* レポートの保存
+	call(Common_EventScript_SaveGame)
+	//* 使用したら 255 元に戻す
+	setvar(VAR_TEMP_CHALLENGE_STATUS, 255)
+	
+	// NO または キャンセル を選択した場合
+	if(var(VAR_RESULT) == 0) {
+		goto(BattleFrontier_BattleFactoryLobby_EventScript_CancelChallengeSaveFailed)
+	}
+	//* 汎用性ありすぎる変数の初期化
+	setvar(VAR_0x8006, 0)
+
+	//* 再度パーティーメンバーを保存
+	special(SavePlayerParty)
+	// msgbox(BattleFrontier_BattleFactoryLobby_Text_StepThisWay, MSGBOX_DEFAULT)
+	closemessage
+	//* ロビーへ歩行処理
+	// call_if_eq(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_SINGLES, BattleFrontier_BattleFactoryLobby_EventScript_TalkedToSinglesAttendant)
+	// call_if_eq(VAR_FRONTIER_BATTLE_MODE, FRONTIER_MODE_DOUBLES, BattleFrontier_BattleFactoryLobby_EventScript_TalkedToDoublesAttendant)
+	// applymovement(VAR_LAST_TALKED, BattleFrontier_BattleFactoryLobby_Movement_AttendantEnterDoor)
+	// applymovement(OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryLobby_Movement_PlayerEnterDoor)
+	waitmovement(0)
+	closemessage
+	//* ロビー座標へ移動
+	// warp(MAP_BATTLE_FRONTIER_BATTLE_FACTORY_PRE_BATTLE_ROOM, 8, 13)
+	setvar(VAR_TEMP_CHALLENGE_STATUS, 0)
+	goto(FactoryTest3)
+	//* 待機処理
+	// waitstate
+	end
+}
+
+// ロビーフロアまで
+script FactoryTest3 {
+	goto(BattleFrontier_BattleFactoryPreBattleRoom_OnFrame)
 }
 
 text SearchVar {

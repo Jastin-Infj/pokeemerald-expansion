@@ -960,11 +960,88 @@ FactoryTest1::
 	multichoice 17, 6, MULTI_LEVEL_MODE, FALSE
 # 509 "data/scripts/debug.pory"
 	frontier_set FRONTIER_DATA_LVL_MODE, VAR_RESULT
-# 519 "data/scripts/debug.pory"
+# 510 "data/scripts/debug.pory"
+	msgbox BattleFrontier_BattleFactoryLobby_Text_OkayToSaveBeforeChallenge, MSGBOX_YESNO
+# 512 "data/scripts/debug.pory"
+	switch VAR_RESULT
+# 513 "data/scripts/debug.pory"
+	case NO, FactoryTest1_3
+# 515 "data/scripts/debug.pory"
+	case YES, FactoryTest1_4
+# 517 "data/scripts/debug.pory"
+	case MULTI_B_PRESSED, FactoryTest1_5
+FactoryTest1_1:
+# 520 "data/scripts/debug.pory"
 	msgbox SearchVar
+	return
+
+FactoryTest1_3:
+# 514 "data/scripts/debug.pory"
+	goto BattleFrontier_BattleFactoryLobby_EventScript_LoadPartyAndCancelChallenge
+	goto FactoryTest1_1
+
+FactoryTest1_4:
+# 516 "data/scripts/debug.pory"
+	goto FactoryTest2
+	goto FactoryTest1_1
+
+FactoryTest1_5:
+# 518 "data/scripts/debug.pory"
+	goto BattleFrontier_BattleFactoryLobby_EventScript_LoadPartyAndCancelChallenge
+	goto FactoryTest1_1
+
+
+FactoryTest2::
+# 524 "data/scripts/debug.pory"
+	setvar VAR_TEMP_CHALLENGE_STATUS, 0
+# 526 "data/scripts/debug.pory"
+	factory_init
+# 528 "data/scripts/debug.pory"
+	frontier_set FRONTIER_DATA_CHALLENGE_STATUS, CHALLENGE_STATUS_SAVING
+# 529 "data/scripts/debug.pory"
+	factory_set FACTORY_DATA_WIN_STREAK_ACTIVE, TRUE
+# 530 "data/scripts/debug.pory"
+	frontier_set FRONTIER_DATA_PAUSED, FALSE
+# 531 "data/scripts/debug.pory"
+	closemessage
+# 532 "data/scripts/debug.pory"
+	delay 2
+# 534 "data/scripts/debug.pory"
+	call Common_EventScript_SaveGame
+# 536 "data/scripts/debug.pory"
+	setvar VAR_TEMP_CHALLENGE_STATUS, 255
+# 539 "data/scripts/debug.pory"
+	compare VAR_RESULT, 0
+	goto_if_eq FactoryTest2_2
+FactoryTest2_1:
+# 543 "data/scripts/debug.pory"
+	setvar VAR_0x8006, 0
+# 546 "data/scripts/debug.pory"
+	special SavePlayerParty
+# 548 "data/scripts/debug.pory"
+	closemessage
+# 554 "data/scripts/debug.pory"
+	waitmovement 0
+# 555 "data/scripts/debug.pory"
+	closemessage
+# 558 "data/scripts/debug.pory"
+	setvar VAR_TEMP_CHALLENGE_STATUS, 0
+# 559 "data/scripts/debug.pory"
+	goto FactoryTest3
+	end
+
+FactoryTest2_2:
+# 540 "data/scripts/debug.pory"
+	goto BattleFrontier_BattleFactoryLobby_EventScript_CancelChallengeSaveFailed
+	goto FactoryTest2_1
+
+
+FactoryTest3::
+# 567 "data/scripts/debug.pory"
+	goto BattleFrontier_BattleFactoryPreBattleRoom_OnFrame
 	return
 
 
 SearchVar::
-# 522 "data/scripts/debug.pory"
+# 570 "data/scripts/debug.pory"
 	.string "test$"
