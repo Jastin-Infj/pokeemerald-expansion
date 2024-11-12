@@ -580,7 +580,7 @@ script FactoryTest3 {
 			goto(BattleFrontier_BattleFactoryPreBattleRoom_EventScript_ResumeChallenge)
 		}
 
-		//* ポケモンの生成
+		//* レンタルポケモンの生成
 		factory_generaterentalmons
 
 		//* 相手の手持ちポケモンを生成
@@ -631,18 +631,53 @@ script FactoryTest3 {
 }
 
 script FactoryTest4 {
-	// goto(BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoom)
-	goto_if_ne(VAR_TEMP_F, FRONTIER_BRAIN_NOT_READY, BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoomFactoryHeadBattle)
-	applymovement(LOCALID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom)
-	applymovement(OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom)
-	waitmovement(0)
+	//* 銀や金のバッジを所持している
+	if(var(VAR_TEMP_F) != FRONTIER_BRAIN_NOT_READY) {
+		goto(BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoomFactoryHeadBattle)
+	}
+
+	//* プレイヤー移動処理
+	// applymovement(LOCALID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom)
+	// applymovement(OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom)
+	// waitmovement(0)
+
+	//* NPCの移動処理？
 	call(BattleFrontier_BattleFactoryBattleRoom_EventScript_ScientistsFaceBattle)
 	factory_setopponentgfx
 	removeobject(LOCALID_OPPONENT)
+	//* NPC 生成処理
 	setobjectxyperm(LOCALID_OPPONENT, 7, 1)
 	addobject(LOCALID_OPPONENT)
 	applymovement(LOCALID_OPPONENT, BattleFrontier_BattleFactoryBattleRoom_Movement_OpponentEnter)
 	waitmovement(0)
+
+	//* 銀や金のバッジを所持している
+	if(var(VAR_TEMP_F) != FRONTIER_BRAIN_NOT_READY) {
+		goto(BattleFrontier_BattleFactoryBattleRoom_EventScript_BattleNoland)
+	}
+	palace_getopponentintro
+	lockall
+	
+	//* NPC会話
+	// msgbox(gStringVar4, MSGBOX_DEFAULT)
+	// waitmessage
+	// closemessage
+
+	//* バトル初期化
+	frontier_set(FRONTIER_DATA_RECORD_DISABLED, FALSE)
+	special(HealPlayerParty)
+	//* バトル施設 設定
+	setvar(VAR_0x8004, SPECIAL_BATTLE_FACTORY)
+	setvar(VAR_0x8005, 0)
+	//* バトル開始
+	special(DoSpecialTrainerBattle)
+	waitstate
+
+	//* バトル終了後 処理
+	switch(var(VAR_RESULT)){
+		case 1:
+			goto(BattleFrontier_BattleFactoryBattleRoom_EventScript_DefeatedOpponent)
+	}
 	end
 }
 

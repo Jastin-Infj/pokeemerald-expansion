@@ -304,85 +304,83 @@ static void SetPerformedRentalSwap(void)
     sPerformedRentalSwap = TRUE;
 }
 
+//* ファクトリー専用のポケモンを中身生成する 手持ち数はここでは操作不可
 static void GenerateOpponentMons(void)
 {
-    // int i, j, k;
-    // u16 species[4];
-    // u16 heldItems[4];
-    // int firstMonId = 0;
-    // u16 trainerId = 0;
+    int i, j, k;
+    u16 species[4];
+    u16 heldItems[4];
+    int firstMonId = 0;
+    u16 trainerId = 0;
     u32 lvlMode = gSaveBlock2Ptr->frontier.lvlMode;
-    // u32 battleMode = VarGet(VAR_FRONTIER_BATTLE_MODE);
-    // u32 winStreak = gSaveBlock2Ptr->frontier.factoryWinStreaks[battleMode][lvlMode];
-    // u32 challengeNum = winStreak / FRONTIER_STAGES_PER_CHALLENGE;
-    // gFacilityTrainers = gBattleFrontierTrainers;
-    
-    // DebugPrintf("GenerateOpponentMons: lvlMode %lu, battleMode %lu, winStreak %lu, challengeNum %lu\n", lvlMode, battleMode, winStreak, challengeNum);
-    // AGBPrintf("test%d",1000);
-    MgbaPrintf(MGBA_LOG_WARN, "My value: %lu", lvlMode);
-    // do
-    // {
-    //     // Choose a random trainer, ensuring no repeats in this challenge
-    //     trainerId = GetRandomScaledFrontierTrainerId(challengeNum, gSaveBlock2Ptr->frontier.curChallengeBattleNum);
+    u32 battleMode = VarGet(VAR_FRONTIER_BATTLE_MODE);
+    u32 winStreak = gSaveBlock2Ptr->frontier.factoryWinStreaks[battleMode][lvlMode];
+    u32 challengeNum = winStreak / FRONTIER_STAGES_PER_CHALLENGE;
+    gFacilityTrainers = gBattleFrontierTrainers;
 
-    //     for (i = 0; i < gSaveBlock2Ptr->frontier.curChallengeBattleNum; i++)
-    //     {
-    //         if (gSaveBlock2Ptr->frontier.trainerIds[i] == trainerId)
-    //             break;
-    //     }
-    // } while (i != gSaveBlock2Ptr->frontier.curChallengeBattleNum);
+    do
+    {
+        // Choose a random trainer, ensuring no repeats in this challenge
+        trainerId = GetRandomScaledFrontierTrainerId(challengeNum, gSaveBlock2Ptr->frontier.curChallengeBattleNum);
 
-    // gTrainerBattleOpponent_A = trainerId;
-    // if (gSaveBlock2Ptr->frontier.curChallengeBattleNum < FRONTIER_STAGES_PER_CHALLENGE - 1)
-    //     gSaveBlock2Ptr->frontier.trainerIds[gSaveBlock2Ptr->frontier.curChallengeBattleNum] = trainerId;
+        for (i = 0; i < gSaveBlock2Ptr->frontier.curChallengeBattleNum; i++)
+        {
+            if (gSaveBlock2Ptr->frontier.trainerIds[i] == trainerId)
+                break;
+        }
+    } while (i != gSaveBlock2Ptr->frontier.curChallengeBattleNum);
 
-    // i = 0;
+    gTrainerBattleOpponent_A = trainerId;
+    if (gSaveBlock2Ptr->frontier.curChallengeBattleNum < FRONTIER_STAGES_PER_CHALLENGE - 1)
+        gSaveBlock2Ptr->frontier.trainerIds[gSaveBlock2Ptr->frontier.curChallengeBattleNum] = trainerId;
 
-    // while (i != FRONTIER_PARTY_SIZE)
-    // {
-    //     u16 monId = GetFactoryMonId(lvlMode, challengeNum, FALSE);
+    i = 0;
 
-    //     // Unown (FRONTIER_MON_UNOWN) is forbidden on opponent Factory teams.
-    //     if (gFacilityTrainerMons[monId].species == SPECIES_UNOWN)
-    //         continue;
+    while (i != FRONTIER_PARTY_SIZE)
+    {
+        u16 monId = GetFactoryMonId(lvlMode, challengeNum, FALSE);
 
-    //     // Ensure none of the opponent's Pokémon are the same as the potential rental Pokémon for the player
-    //     for (j = 0; j < (int)ARRAY_COUNT(gSaveBlock2Ptr->frontier.rentalMons); j++)
-    //     {
-    //         if (gFacilityTrainerMons[monId].species == gFacilityTrainerMons[gSaveBlock2Ptr->frontier.rentalMons[j].monId].species)
-    //             break;
-    //     }
-    //     if (j != (int)ARRAY_COUNT(gSaveBlock2Ptr->frontier.rentalMons))
-    //         continue;
+        // Unown (FRONTIER_MON_UNOWN) is forbidden on opponent Factory teams.
+        if (gFacilityTrainerMons[monId].species == SPECIES_UNOWN)
+            continue;
 
-    //     // "High tier" Pokémon are only allowed on open level mode
-    //     if (lvlMode == FRONTIER_LVL_50 && monId > FRONTIER_MONS_HIGH_TIER)
-    //         continue;
+        // Ensure none of the opponent's Pokémon are the same as the potential rental Pokémon for the player
+        for (j = 0; j < (int)ARRAY_COUNT(gSaveBlock2Ptr->frontier.rentalMons); j++)
+        {
+            if (gFacilityTrainerMons[monId].species == gFacilityTrainerMons[gSaveBlock2Ptr->frontier.rentalMons[j].monId].species)
+                break;
+        }
+        if (j != (int)ARRAY_COUNT(gSaveBlock2Ptr->frontier.rentalMons))
+            continue;
 
-    //     // Ensure this species hasn't already been chosen for the opponent
-    //     for (k = firstMonId; k < firstMonId + i; k++)
-    //     {
-    //         if (species[k] == gFacilityTrainerMons[monId].species)
-    //             break;
-    //     }
-    //     if (k != firstMonId + i)
-    //         continue;
+        // "High tier" Pokémon are only allowed on open level mode
+        if (lvlMode == FRONTIER_LVL_50 && monId > FRONTIER_MONS_HIGH_TIER)
+            continue;
 
-    //     // Ensure held items don't repeat on the opponent's team
-    //     for (k = firstMonId; k < firstMonId + i; k++)
-    //     {
-    //         if (heldItems[k] != ITEM_NONE && heldItems[k] == gFacilityTrainerMons[monId].heldItem)
-    //             break;
-    //     }
-    //     if (k != firstMonId + i)
-    //         continue;
+        // Ensure this species hasn't already been chosen for the opponent
+        for (k = firstMonId; k < firstMonId + i; k++)
+        {
+            if (species[k] == gFacilityTrainerMons[monId].species)
+                break;
+        }
+        if (k != firstMonId + i)
+            continue;
 
-    //     // Successful selection
-    //     species[i] = gFacilityTrainerMons[monId].species;
-    //     heldItems[i] = gFacilityTrainerMons[monId].heldItem;
-    //     gFrontierTempParty[i] = monId;
-    //     i++;
-    // }
+        // Ensure held items don't repeat on the opponent's team
+        for (k = firstMonId; k < firstMonId + i; k++)
+        {
+            if (heldItems[k] != ITEM_NONE && heldItems[k] == gFacilityTrainerMons[monId].heldItem)
+                break;
+        }
+        if (k != firstMonId + i)
+            continue;
+
+        // Successful selection
+        species[i] = gFacilityTrainerMons[monId].species;
+        heldItems[i] = gFacilityTrainerMons[monId].heldItem;
+        gFrontierTempParty[i] = monId;
+        i++;
+    }
 }
 
 static void SetOpponentGfxVar(void)

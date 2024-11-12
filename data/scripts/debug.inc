@@ -1052,69 +1052,99 @@ FactoryTest3_1:
 	compare VAR_0x8006, 1
 	goto_if_eq FactoryTest3_4
 FactoryTest3_3:
-# 573 "data/scripts/debug.pory"
+# 575 "data/scripts/debug.pory"
 	setvar VAR_TEMP_0, 1
-# 579 "data/scripts/debug.pory"
+# 581 "data/scripts/debug.pory"
 	compare VAR_0x8006, 2
 	goto_if_eq FactoryTest3_7
 FactoryTest3_6:
-# 584 "data/scripts/debug.pory"
-	factory_generaterentalmons
-# 587 "data/scripts/debug.pory"
-	setvar VAR_0x8004, BATTLE_FACTORY_FUNC_GENERATE_OPPONENT_MONS
 # 588 "data/scripts/debug.pory"
+	factory_generaterentalmons
+# 591 "data/scripts/debug.pory"
+	setvar VAR_0x8004, BATTLE_FACTORY_FUNC_GENERATE_OPPONENT_MONS
+# 592 "data/scripts/debug.pory"
 	special CallBattleFactoryFunction
-# 605 "data/scripts/debug.pory"
-	fadescreen FADE_TO_BLACK
-# 606 "data/scripts/debug.pory"
-	factory_setswapped
 # 609 "data/scripts/debug.pory"
+	fadescreen FADE_TO_BLACK
+# 610 "data/scripts/debug.pory"
+	factory_setswapped
+# 613 "data/scripts/debug.pory"
 	factory_rentmons
-# 611 "data/scripts/debug.pory"
+# 615 "data/scripts/debug.pory"
 	waitstate
-# 627 "data/scripts/debug.pory"
+# 631 "data/scripts/debug.pory"
 	goto FactoryTest4
-# 628 "data/scripts/debug.pory"
+# 632 "data/scripts/debug.pory"
 	waitstate
 	end
 
 FactoryTest3_4:
 # 570 "data/scripts/debug.pory"
-	goto BattleFrontier_BattleFactoryPreBattleRoom_EventScript_ReturnToRoomFromBattle
+	walk_up
+# 571 "data/scripts/debug.pory"
+	walk_up
 	goto FactoryTest3_3
 
 FactoryTest3_7:
-# 580 "data/scripts/debug.pory"
-	goto BattleFrontier_BattleFactoryPreBattleRoom_EventScript_ResumeChallenge
+# 582 "data/scripts/debug.pory"
+	walk_right
+# 583 "data/scripts/debug.pory"
+	walk_right
 	goto FactoryTest3_6
 
 
 FactoryTest4::
-# 635 "data/scripts/debug.pory"
-	goto_if_ne VAR_TEMP_F, FRONTIER_BRAIN_NOT_READY, BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoomFactoryHeadBattle
-# 636 "data/scripts/debug.pory"
-	applymovement LOCALID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom
-# 637 "data/scripts/debug.pory"
-	applymovement OBJ_EVENT_ID_PLAYER, BattleFrontier_BattleFactoryBattleRoom_Movement_PlayerEnterRoom
-# 638 "data/scripts/debug.pory"
-	waitmovement 0
 # 639 "data/scripts/debug.pory"
+	compare VAR_TEMP_F, FRONTIER_BRAIN_NOT_READY
+	goto_if_ne FactoryTest4_2
+FactoryTest4_1:
+# 649 "data/scripts/debug.pory"
 	call BattleFrontier_BattleFactoryBattleRoom_EventScript_ScientistsFaceBattle
-# 640 "data/scripts/debug.pory"
+# 650 "data/scripts/debug.pory"
 	factory_setopponentgfx
-# 641 "data/scripts/debug.pory"
+# 651 "data/scripts/debug.pory"
 	removeobject LOCALID_OPPONENT
-# 642 "data/scripts/debug.pory"
+# 653 "data/scripts/debug.pory"
 	setobjectxyperm LOCALID_OPPONENT, 7, 1
-# 643 "data/scripts/debug.pory"
+# 654 "data/scripts/debug.pory"
 	addobject LOCALID_OPPONENT
-# 644 "data/scripts/debug.pory"
+# 655 "data/scripts/debug.pory"
 	applymovement LOCALID_OPPONENT, BattleFrontier_BattleFactoryBattleRoom_Movement_OpponentEnter
-# 645 "data/scripts/debug.pory"
+# 656 "data/scripts/debug.pory"
 	waitmovement 0
+# 659 "data/scripts/debug.pory"
+	compare VAR_TEMP_F, FRONTIER_BRAIN_NOT_READY
+	goto_if_ne FactoryTest4_5
+FactoryTest4_4:
+# 662 "data/scripts/debug.pory"
+	palace_getopponentintro
+# 663 "data/scripts/debug.pory"
+	lockall
+# 671 "data/scripts/debug.pory"
+	frontier_set FRONTIER_DATA_RECORD_DISABLED, FALSE
+# 672 "data/scripts/debug.pory"
+	special HealPlayerParty
+# 674 "data/scripts/debug.pory"
+	setvar VAR_0x8004, SPECIAL_BATTLE_FACTORY
+# 675 "data/scripts/debug.pory"
+	setvar VAR_0x8005, 0
+# 677 "data/scripts/debug.pory"
+	special DoSpecialTrainerBattle
+# 678 "data/scripts/debug.pory"
+	waitstate
 	end
+
+FactoryTest4_2:
+# 640 "data/scripts/debug.pory"
+	goto BattleFrontier_BattleFactoryBattleRoom_EventScript_EnterRoomFactoryHeadBattle
+	goto FactoryTest4_1
+
+FactoryTest4_5:
+# 660 "data/scripts/debug.pory"
+	goto BattleFrontier_BattleFactoryBattleRoom_EventScript_BattleNoland
+	goto FactoryTest4_4
 
 
 SearchVar::
-# 649 "data/scripts/debug.pory"
+# 688 "data/scripts/debug.pory"
 	.string "test$"

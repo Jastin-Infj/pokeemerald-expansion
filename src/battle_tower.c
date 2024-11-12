@@ -72,7 +72,7 @@ static void CopyEReaderTrainerFarewellMessage(void);
 static void ClearBattleTowerRecord(struct EmeraldBattleTowerRecord *record);
 static void FillTrainerParty(u16 trainerId, u8 firstMonId, u8 monCount);
 static void FillTentTrainerParty_(u16 trainerId, u8 firstMonId, u8 monCount);
-static void FillFactoryFrontierTrainerParty(u16 trainerId, u8 firstMonId);
+static void FillFactoryFrontierTrainerParty(u16 trainerId, u8 firstMonId , u8 isDouble);
 static void FillFactoryTentTrainerParty(u16 trainerId, u8 firstMonId);
 static u8 GetFrontierTrainerFixedIvs(u16 trainerId);
 static void FillPartnerParty(u16 trainerId);
@@ -1816,17 +1816,26 @@ u16 GetRandomFrontierMonFromSet(u16 trainerId)
     return monId;
 }
 
-static void FillFactoryTrainerParty(void)
+static void FillFactoryTrainerParty(u8 mode)
 {
     ZeroEnemyPartyMons();
-    if (gSaveBlock2Ptr->frontier.lvlMode != FRONTIER_LVL_TENT)
-        FillFactoryFrontierTrainerParty(gTrainerBattleOpponent_A, 0);
-    else
+    if (gSaveBlock2Ptr->frontier.lvlMode != FRONTIER_LVL_TENT) {
+        switch (mode){
+            case FRONTIER_MODE_SINGLES:
+                FillFactoryFrontierTrainerParty(gTrainerBattleOpponent_A,0,FRONTIER_MODE_SINGLES);
+            break;
+            case FRONTIER_MODE_DOUBLES:
+                FillFactoryFrontierTrainerParty(gTrainerBattleOpponent_A,0,FRONTIER_MODE_DOUBLES);
+            break;
+        }
+    } else {
         FillFactoryTentTrainerParty(gTrainerBattleOpponent_A, 0);
+    }
 }
 
-static void FillFactoryFrontierTrainerParty(u16 trainerId, u8 firstMonId)
-{
+//* ファクトリーとテントのパーティを作成する
+static void FillFactoryFrontierTrainerParty(u16 trainerId, u8 firstMonId , u8 isDouble)
+{ 
     u8 i;
     u8 level;
     u8 fixedIV;
@@ -1852,7 +1861,7 @@ static void FillFactoryFrontierTrainerParty(u16 trainerId, u8 firstMonId)
     else if (trainerId == TRAINER_EREADER)
     {
     #if FREE_BATTLE_TOWER_E_READER == FALSE
-        for (i = firstMonId; i < firstMonId + FRONTIER_PARTY_SIZE; i++)
+        for (i = firstMonId; i < firstMonId + FRONTIER_PARTY_SIZE + isDouble; i++)
             CreateBattleTowerMon(&gEnemyParty[i], &gSaveBlock2Ptr->frontier.ereaderTrainer.party[i - firstMonId]);
     #endif //FREE_BATTLE_TOWER_E_READER
         return;
@@ -1869,7 +1878,7 @@ static void FillFactoryFrontierTrainerParty(u16 trainerId, u8 firstMonId)
 
     level = SetFacilityPtrsGetLevel();
     otID = T1_READ_32(gSaveBlock2Ptr->playerTrainerId);
-    for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+    for (i = 0; i < FRONTIER_PARTY_SIZE + isDouble; i++)
     {
         u16 monId = gFrontierTempParty[i];
         CreateFacilityMon(&gFacilityTrainerMons[monId],
@@ -2082,9 +2091,12 @@ void DoSpecialTrainerBattle(void)
         break;
     case SPECIAL_BATTLE_FACTORY:
         gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_FACTORY;
-        if (VarGet(VAR_FRONTIER_BATTLE_MODE) == FRONTIER_MODE_DOUBLES)
+        if (VarGet(VAR_FRONTIER_BATTLE_MODE) == FRONTIER_MODE_DOUBLES){
             gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
-        FillFactoryTrainerParty();
+            FillFactoryTrainerParty(FRONTIER_MODE_DOUBLES);
+        } else{
+            FillFactoryTrainerParty(FRONTIER_MODE_SINGLES);
+        }
         CreateTask(Task_StartBattleAfterTransition, 1);
         PlayMapChosenOrBattleBGM(0);
         BattleTransition_StartOnField(GetSpecialBattleTransition(B_TRANSITION_GROUP_B_FACTORY));
@@ -2098,7 +2110,7 @@ void DoSpecialTrainerBattle(void)
         break;
     case SPECIAL_BATTLE_PYRAMID:
         gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_PYRAMID;
-        FillFrontierTrainerParty(FRONTIER_PARTY_SIZE);
+        FillFrontierTrainerParty(FRONTIER_DOUBLES_PARTY_SIZE);
         CreateTask(Task_StartBattleAfterTransition, 1);
         PlayMapChosenOrBattleBGM(0);
         BattleTransition_StartOnField(GetSpecialBattleTransition(B_TRANSITION_GROUP_B_PYRAMID));
