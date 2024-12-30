@@ -285,6 +285,7 @@ static void FactoryDummy2(void)
 
 }
 
+//* レンタルポケモンの選択画面
 static void SelectInitialRentalMons(void)
 {
     ZeroPlayerPartyMons();
