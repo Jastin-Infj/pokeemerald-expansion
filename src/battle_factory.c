@@ -217,7 +217,7 @@ static void InitFactoryChallenge(void)
     sPerformedRentalSwap = FALSE;
     for (i = 0; i < ARRAY_COUNT(gSaveBlock2Ptr->frontier.rentalMons); i++)
         gSaveBlock2Ptr->frontier.rentalMons[i].monId = 0xFFFF;
-    for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+    for (i = 0; i < FACTORY_DOUBLE; i++)
         gFrontierTempParty[i] = 0xFFFF;
 
     SetDynamicWarp(0, gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, WARP_ID_NONE);
@@ -308,8 +308,8 @@ static void SetPerformedRentalSwap(void)
 static void GenerateOpponentMons(void)
 {
     int i, j, k;
-    u16 species[4];
-    u16 heldItems[4];
+    u16 species[FACTORY_DOUBLE];
+    u16 heldItems[FACTORY_DOUBLE];
     int firstMonId = 0;
     u16 trainerId = 0;
     u32 lvlMode = gSaveBlock2Ptr->frontier.lvlMode;
@@ -335,8 +335,7 @@ static void GenerateOpponentMons(void)
         gSaveBlock2Ptr->frontier.trainerIds[gSaveBlock2Ptr->frontier.curChallengeBattleNum] = trainerId;
 
     i = 0;
-
-    while (i != FRONTIER_PARTY_SIZE)
+    while (i != FACTORY_DOUBLE)
     {
         u16 monId = GetFactoryMonId(lvlMode, challengeNum, FALSE);
 
@@ -397,12 +396,12 @@ static void SetRentalsToOpponentParty(void)
     else
         gFacilityTrainerMons = gSlateportBattleTentMons;
 
-    for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+    for (i = 0; i < FACTORY_DOUBLE; i++)
     {
-        gSaveBlock2Ptr->frontier.rentalMons[i + FRONTIER_PARTY_SIZE].monId = gFrontierTempParty[i];
-        gSaveBlock2Ptr->frontier.rentalMons[i + FRONTIER_PARTY_SIZE].ivs = GetBoxMonData(&gEnemyParty[i].box, MON_DATA_ATK_IV, NULL);
-        gSaveBlock2Ptr->frontier.rentalMons[i + FRONTIER_PARTY_SIZE].personality = GetMonData(&gEnemyParty[i], MON_DATA_PERSONALITY, NULL);
-        gSaveBlock2Ptr->frontier.rentalMons[i + FRONTIER_PARTY_SIZE].abilityNum = GetBoxMonData(&gEnemyParty[i].box, MON_DATA_ABILITY_NUM, NULL);
+        gSaveBlock2Ptr->frontier.rentalMons[i].monId = gFrontierTempParty[i];
+        gSaveBlock2Ptr->frontier.rentalMons[i].ivs = GetBoxMonData(&gEnemyParty[i].box, MON_DATA_ATK_IV, NULL);
+        gSaveBlock2Ptr->frontier.rentalMons[i].personality = GetMonData(&gEnemyParty[i], MON_DATA_PERSONALITY, NULL);
+        gSaveBlock2Ptr->frontier.rentalMons[i].abilityNum = GetBoxMonData(&gEnemyParty[i].box, MON_DATA_ABILITY_NUM, NULL);
         SetMonData(&gEnemyParty[i], MON_DATA_HELD_ITEM, &gFacilityTrainerMons[gFrontierTempParty[i]].heldItem);
     }
 }
@@ -431,7 +430,7 @@ static void SetPlayerAndOpponentParties(void)
     if (gSpecialVar_0x8005 < 2)
     {
         ZeroPlayerPartyMons();
-        for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+        for (i = 0; i < FACTORY_DOUBLE; i++)
         {
             monId = gSaveBlock2Ptr->frontier.rentalMons[i].monId;
             ivs = gSaveBlock2Ptr->frontier.rentalMons[i].ivs;
@@ -444,10 +443,10 @@ static void SetPlayerAndOpponentParties(void)
     {
     case 0:
     case 2:
-        for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+        for (i = 0; i < FACTORY_DOUBLE; i++)
         {
-            monId = gSaveBlock2Ptr->frontier.rentalMons[i + FRONTIER_PARTY_SIZE].monId;
-            ivs = gSaveBlock2Ptr->frontier.rentalMons[i + FRONTIER_PARTY_SIZE].ivs;
+            monId = gSaveBlock2Ptr->frontier.rentalMons[i].monId;
+            ivs = gSaveBlock2Ptr->frontier.rentalMons[i].ivs;
             CreateFacilityMon(&gFacilityTrainerMons[monId], monLevel, ivs, OT_ID_PLAYER_ID, FLAG_FRONTIER_MON_FACTORY, &gEnemyParty[i]);
         }
         break;
@@ -563,7 +562,7 @@ static void GetOpponentMostCommonMonType(void)
     // Count the number of times each type occurs in the opponent's party.
     for (i = TYPE_NORMAL; i < NUMBER_OF_MON_TYPES; i++)
         typeCounts[i] = 0;
-    for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+    for (i = 0; i < FACTORY_DOUBLE; i++)
     {
         u32 species = gFacilityTrainerMons[gFrontierTempParty[i]].species;
         typeCounts[gSpeciesInfo[species].types[0]]++;
@@ -612,7 +611,7 @@ static void GetOpponentBattleStyle(void)
     for (i = 0; i < FACTORY_NUM_STYLES; i++)
         stylePoints[i] = 0;
 
-    for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+    for (i = 0; i < FACTORY_DOUBLE; i++)
     {
         u16 monId = gFrontierTempParty[i];
         for (j = 0; j < MAX_MON_MOVES; j++)
@@ -668,7 +667,7 @@ static void RestorePlayerPartyHeldItems(void)
     else
         gFacilityTrainerMons = gSlateportBattleTentMons;
 
-    for (i = 0; i < FRONTIER_PARTY_SIZE; i++)
+    for (i = 0; i < FACTORY_DOUBLE; i++)
     {
         SetMonData(&gPlayerParty[i],
                    MON_DATA_HELD_ITEM,
@@ -707,8 +706,8 @@ u8 GetFactoryMonFixedIV(u8 challengeNum, bool8 isLastBattle)
 void FillFactoryBrainParty(void)
 {
     int i, j, k;
-    u16 species[FRONTIER_PARTY_SIZE];
-    u16 heldItems[FRONTIER_PARTY_SIZE];
+    u16 species[FACTORY_DOUBLE];
+    u16 heldItems[FACTORY_DOUBLE];
     int monLevel;
     u8 fixedIV;
     u32 otId;
@@ -721,7 +720,7 @@ void FillFactoryBrainParty(void)
     i = 0;
     otId = T1_READ_32(gSaveBlock2Ptr->playerTrainerId);
 
-    while (i != FRONTIER_PARTY_SIZE)
+    while (i != FACTORY_DOUBLE)
     {
         u16 monId = GetFactoryMonId(lvlMode, challengeNum, FALSE);
 

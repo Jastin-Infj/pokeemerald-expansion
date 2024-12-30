@@ -44,6 +44,8 @@
 #define PARTY_SIZE 6
 #define MULTI_PARTY_SIZE (PARTY_SIZE / 2)
 #define FRONTIER_PARTY_SIZE         3
+#define FACTORY_SINGLE              3
+#define FACTORY_DOUBLE              4
 #define FRONTIER_DOUBLES_PARTY_SIZE 4
 #define FRONTIER_MULTI_PARTY_SIZE   2
 #define MAX_FRONTIER_PARTY_SIZE    (max(FRONTIER_PARTY_SIZE,        \
