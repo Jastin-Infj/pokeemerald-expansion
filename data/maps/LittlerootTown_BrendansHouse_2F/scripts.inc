@@ -269,7 +269,10 @@ PlayersHouse_2F_EventScript_Notebook::
 	end
 
 PlayersHouse_2F_EventScript_GameCube::
-	msgbox PlayersHouse_2F_Text_ItsAGameCube, MSGBOX_SIGN
+	msgbox PlayersHouse_2F_Text_ItsAGameCube,MSGBOX_DEFAULT
+	callnative StartNewPokeballCaseUI
+  waitstate
+	releaseall
 	end
 
 PlayersHouse_2F_Text_ClockIsStopped:
