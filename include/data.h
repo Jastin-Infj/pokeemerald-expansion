@@ -14,6 +14,7 @@
 
 // Red and Leaf's back pics have 5 frames, but this is presumably irrelevant in the places this is used.
 #define MAX_TRAINER_PIC_FRAMES 4
+#define RANDOM_FORMAT_LEVEL 50
 
 enum {
     BATTLER_AFFINE_NORMAL,
@@ -99,6 +100,14 @@ struct Trainer
     /*0x22*/ u8 poolRuleIndex;
     /*0x23*/ u8 poolPickIndex;
     /*0x24*/ u8 poolPruneIndex;
+};
+
+EWRAM_DATA static struct TrainerMon sCustomTrainerParty[6];
+struct TrainerPartyOverride
+{
+    const struct Trainer *origTrainer;
+    /*0x04*/ struct TrainerMon *overriddenParty;
+    u8 overriddenPartySize;
 };
 
 struct TrainerClass
@@ -189,6 +198,9 @@ extern const struct FollowerMsgInfo gFollowerSurpriseMessages[];
 extern const struct FollowerMsgInfo gFollowerCuriousMessages[];
 extern const struct FollowerMsgInfo gFollowerMusicMessages[];
 extern const struct FollowerMsgInfo gFollowerPoisonedMessages[];
+
+// プロトタイプ宣言
+extern void OverrideTrainerPartyMons(struct TrainerMon *party, u8 *partySize);
 
 static inline u16 SanitizeTrainerId(u16 trainerId)
 {
@@ -295,7 +307,33 @@ static inline const bool32 GetTrainerAIFlagsFromId(u16 trainerId)
     u32 sanitizedTrainerId = SanitizeTrainerId(trainerId);
     enum DifficultyLevel difficulty = GetTrainerDifficultyLevel(sanitizedTrainerId);
 
+    // aiflag 変化させるならここ
+    // MgbaPrintf(MGBA_LOG_WARN, "test: %u" , 30);
+
     return gTrainers[difficulty][sanitizedTrainerId].aiFlags;
+}
+
+static inline struct TrainerPartyOverride CreateTrainerOverrideFromTrainer(const struct Trainer *trainer)
+{
+    struct TrainerPartyOverride result;
+
+    result.origTrainer = trainer;
+    result.overriddenParty = NULL;
+    result.overriddenPartySize = 0;
+
+    return result;
+}
+
+static inline void toOverrideTrainerParty(struct TrainerPartyOverride *override)
+{
+    const struct Trainer *trainer = override->origTrainer;
+
+    // メモリ確保している静的領域へアクセス
+    memcpy(sCustomTrainerParty, trainer->party, sizeof(struct TrainerMon) * trainer->partySize);
+
+    // ここでランダマイズ or 差し替え処理を行う
+    OverrideTrainerPartyMons(sCustomTrainerParty , &override->overriddenPartySize);
+    override->overriddenParty = sCustomTrainerParty;
 }
 
 #endif // GUARD_DATA_H

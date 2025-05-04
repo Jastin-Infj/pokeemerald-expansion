@@ -244,6 +244,34 @@ COMMON_DATA u8 gHealthboxSpriteIds[MAX_BATTLERS_COUNT] = {0};
 COMMON_DATA u8 gMultiUsePlayerCursor = 0;
 COMMON_DATA u8 gNumberOfMovesToChoose = 0;
 
+struct TrainerMon CreateRandomizerTrainerMonInit(void)
+{
+    struct TrainerMon mon;
+    mon.gender = TRAINER_MON_RANDOM_GENDER;
+    mon.lvl = RANDOM_FORMAT_LEVEL;
+    mon.iv = TRAINER_PARTY_IVS(31, 31, 31, 31, 31, 31);
+    mon.friendship = 0;
+    mon.dynamaxLevel = 10;
+    return mon; 
+}
+
+void OverrideTrainerPartyMons(struct TrainerMon *party , u8 *patrysize)
+{
+    struct TrainerMon mon = CreateRandomizerTrainerMonInit();
+    party[0] = mon;
+
+    // 例：1匹目をミュウツーに変える
+    party[0].species =  (Random() % 9) + 1;
+    party[0].lvl = 13;
+
+    party[1] = party[0];  // まず全部コピー
+
+    party[1].species = SPECIES_TERAPAGOS_NORMAL;
+    party[1].moves[0] = MOVE_TERA_STARSTORM;
+    
+    *patrysize = 2;
+}
+
 static const struct ScanlineEffectParams sIntroScanlineParams16Bit =
 {
     &REG_BG3HOFS, SCANLINE_EFFECT_DMACNT_16BIT, 1
@@ -1858,6 +1886,15 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
     u32 personalityValue;
     s32 i;
     u8 monsCount;
+
+    struct TrainerPartyOverride override = CreateTrainerOverrideFromTrainer(trainer);
+    // ポケモンの手持ち変更
+    toOverrideTrainerParty(&override);
+
+    // MgbaPrintf(MGBA_LOG_WARN, "spec: %u" , override.origTrainer->party[0].species);
+    // MgbaPrintf(MGBA_LOG_WARN, "spec: %u" , override.overriddenParty[0].species);
+    // MgbaPrintf(MGBA_LOG_WARN, "num: %u" , override.overriddenPartySize);
+
     if (battleTypeFlags & BATTLE_TYPE_TRAINER && !(battleTypeFlags & (BATTLE_TYPE_FRONTIER
                                                                         | BATTLE_TYPE_EREADER_TRAINER
                                                                         | BATTLE_TYPE_TRAINER_HILL)))
@@ -1867,14 +1904,14 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
 
         if (battleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS)
         {
-            if (trainer->partySize > PARTY_SIZE / 2)
+            if (override.overriddenPartySize > PARTY_SIZE / 2)
                 monsCount = PARTY_SIZE / 2;
             else
-                monsCount = trainer->partySize;
+                monsCount = override.overriddenPartySize;
         }
         else
         {
-            monsCount = trainer->partySize;
+            monsCount = override.overriddenPartySize;
         }
 
         u32 monIndices[monsCount];
@@ -1885,7 +1922,7 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             u32 monIndex = monIndices[i];
             s32 ball = -1;
             u32 personalityHash = GeneratePartyHash(trainer, i);
-            const struct TrainerMon *partyData = trainer->party;
+            struct TrainerMon *partyData = override.overriddenParty;
             u32 otIdType = OT_ID_RANDOM_NO_SHINY;
             u32 fixedOtId = 0;
             u32 ability = 0;

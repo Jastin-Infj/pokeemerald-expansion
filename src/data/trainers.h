@@ -14736,7 +14736,7 @@ F_TRAINER_FEMALE |
 #line 5949
         .doubleBattle = FALSE,
 #line 5950
-        .aiFlags = AI_FLAG_CHECK_BAD_MOVE,
+        .aiFlags = AI_FLAG_PREDICTION,
         .partySize = 1,
         .party = (const struct TrainerMon[])
         {
