@@ -51,6 +51,8 @@
 #include "constants/weather.h"
 #include "wild_encounter.h"
 
+#include "pokemon_release_mon.h"
+
 enum {
     TRANSITION_TYPE_NORMAL,
     TRANSITION_TYPE_CAVE,
@@ -573,6 +575,12 @@ static void CB2_EndWildBattle(void)
 {
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
+
+    // 勝敗で分けるのもありかも
+    if(IsPlayerDefeated(gBattleOutcome) != TRUE)
+    {
+        Battle_EndTrainerBattle();
+    }
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE && !InBattlePyramid() && !InBattlePike())
     {
@@ -1251,6 +1259,12 @@ static void HandleBattleVariantEndParty(void)
 static void CB2_EndTrainerBattle(void)
 {
     HandleBattleVariantEndParty();
+
+    // 勝敗で分けるのもありかも
+    if(IsPlayerDefeated(gBattleOutcome) != TRUE)
+    {
+        Battle_EndTrainerBattle();
+    }
 
     if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
     {
