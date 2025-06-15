@@ -35,3 +35,7 @@ gText_ObtainedTheItems::
 
 gText_PlayerFoundItems::
 	.string "{PLAYER} found {STR_VAR_1} {STR_VAR_2}!$"
+
+gText_UsePicnicBasket::
+	.string "{PLAYER} had a picnic with the patry.\n"
+	.string "All Pokémon were fully restored!$"

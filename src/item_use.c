@@ -60,6 +60,7 @@ static void PlayerFaceHiddenItem(u8);
 static void CheckForHiddenItemsInMapConnection(u8);
 static void Task_OpenRegisteredPokeblockCase(u8);
 static void Task_AccessPokemonBoxLink(u8);
+static void Task_PicnicBasket(u8);
 static void ItemUseOnFieldCB_Bike(u8);
 static void ItemUseOnFieldCB_Rod(u8);
 static void ItemUseOnFieldCB_Itemfinder(u8);
@@ -1612,6 +1613,18 @@ void ItemUseOutOfBattle_TownMap(u8 taskId)
         // TODO: handle key items with callbacks to menus allow to be used by registering them.
         DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
     }
+}
+
+void ItemUseOutOfBattle_PicnicBasket(u8 taskId)
+{
+    sItemUseOnFieldCB = Task_PicnicBasket;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+static void Task_PicnicBasket(u8 taskId)
+{
+    ScriptContext_SetupScript(EventScript_PicnicBasket);
+    DestroyTask(taskId);
 }
 
 #undef tUsingRegisteredKeyItem
