@@ -1870,6 +1870,9 @@ const u16 gItemIconPalette_FameChecker[] = INCBIN_U16("graphics/items/icon_palet
 const u32 gItemIcon_TeachyTV[] = INCBIN_U32("graphics/items/icons/teachy_tv.4bpp.lz");
 const u16 gItemIconPalette_TeachyTV[] = INCBIN_U16("graphics/items/icon_palettes/teachy_tv.gbapal");
 
+const u32 gItemIcon_Flying[] = INCBIN_U32("graphics/items/icons/flying.4bpp.lz");
+const u16 gItemIconPalette_Flying[] = INCBIN_U16("graphics/items/icon_palettes/flying.gbapal");;
+
 // Story Key Items
 
 const u32 gItemIcon_SSTicket[] = INCBIN_U32("graphics/items/icons/ss_ticket.4bpp.lz");
