@@ -14141,4 +14141,20 @@ const struct Item gItemsInfo[] =
         .iconPic = gItemIcon_PokeshiDoll,
         .iconPalette = gItemIconPalette_PokeshiDoll,
     },
+
+    [ITEM_CLOCK] =
+    {
+        .name = _("Clock"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "A charm that will\n"
+            "raise the chance\n"
+            "of Shiny Pokémon."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_Clock,
+        .iconPic = gItemIcon_Clock,
+        .iconPalette = gItemIconPalette_Clock,
+    },
 };

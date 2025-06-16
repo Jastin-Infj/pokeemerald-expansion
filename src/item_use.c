@@ -76,6 +76,7 @@ static void Task_StartUseLure(u8 taskId);
 static void Task_UseRepel(u8);
 static void Task_UseLure(u8 taskId);
 static void Task_CloseCantUseKeyItemMessage(u8);
+static void Task_UseClock(u8);
 static void SetDistanceOfClosestHiddenItem(u8, s16, s16);
 static void CB2_OpenPokeblockFromBag(void);
 static void ItemUseOnFieldCB_Honey(u8 taskId);
@@ -1612,6 +1613,18 @@ void ItemUseOutOfBattle_TownMap(u8 taskId)
         // TODO: handle key items with callbacks to menus allow to be used by registering them.
         DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
     }
+}
+
+void ItemUseOutOfBattle_Clock(u8 taskId)
+{
+    sItemUseOnFieldCB = Task_UseClock;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+static void Task_UseClock(u8 taskId)
+{
+    ScriptContext_SetupScript(EventScript_Clock);
+    DestroyTask(taskId);
 }
 
 #undef tUsingRegisteredKeyItem
