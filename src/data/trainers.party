@@ -228,12 +228,30 @@ Class: Team Aqua
 Pic: Aqua Grunt M
 Gender: Male
 Music: Aqua
+Items: Z-Power Ring
 Double Battle: No
 AI: Check Bad Move
 
-Poochyena
-Level: 9
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Scyther
+Level: 15
+Ability: Technician
+- Fury Cutter
+- Wing Attack
+- Swords Dance
+- U-turn
+
+Poliwhirl
+Level: 15
+- Liquidation
+- Hypnosis
+- Wake-Up Slap
+
+Pangoro @ Fightinium Z
+Level: 15
+- Wicked Blow
+- Close Combat
+- Bullet Punch
+- Thrash
 
 === TRAINER_MARCEL ===
 Name: MARCEL
@@ -2123,9 +2141,16 @@ Items: Full Restore
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon @ Nugget
-Level: 7
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Zigzagoon @ Leftovers
+Level: 12
+
+Spheal
+Level: 12
+
+Glaceon
+Level: 15
+- Ice Beam
+- Trump Card
 
 === TRAINER_DAPHNE ===
 Name: DAPHNE
@@ -2527,9 +2552,18 @@ Items: Full Restore
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon @ Nugget
-Level: 7
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Pawniard
+Level: 12
+
+Gourgeist
+Level: 12
+
+Leafeon
+Level: 15
+- Leaf Blade
+- X-Scissor
+- Quick Attack
+- Swords Dance
 
 === TRAINER_MOLLIE ===
 Name: MOLLIE
@@ -5950,8 +5984,13 @@ Double Battle: No
 AI: Check Bad Move
 
 Poochyena
-Level: 5
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Level: 12
+
+Bidoof
+Level: 12
+
+Surskit
+Level: 12
 
 === TRAINER_BILLY ===
 Name: BILLY
@@ -5962,13 +6001,14 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon
-Level: 5
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Wooper
+Level: 12
 
-Seedot
-Level: 7
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Basculin
+Level: 12
+
+Mareanie
+Level: 12
 
 === TRAINER_JOSH ===
 Name: JOSH
@@ -6215,13 +6255,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon
-Level: 4
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Chikorita
+Level: 12
 
-Taillow
-Level: 3
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Cyndaquil
+Level: 12
+
+Totodile
+Level: 12
+
+Snubbull
+Level: 12
 
 === TRAINER_TIMMY ===
 Name: TIMMY
@@ -6329,17 +6373,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Magikarp
-Level: 5
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Tentacruel
+Level: 15
 
-Magikarp
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Kingler
+Level: 15
 
-Magikarp
-Level: 7
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Slowbro
+Level: 15
+
+Croconaw
+Level: 15
 
 === TRAINER_CLAUDE ===
 Name: CLAUDE
@@ -8806,13 +8850,30 @@ Music: Twins
 Double Battle: Yes
 AI: Check Bad Move
 
-Seedot
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Plusle
+Level: 12
+- Thunderbolt
+- Thunder Wave
+- Helping Hand
 
-Lotad
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Minun
+Level: 12
+- Thunderbolt
+- Thunder Wave
+- Helping Hand
+
+Flaaffy
+Level: 12
+Ability: Plus
+- Thunder
+
+Dedenne
+Level: 12
+Ability: Plus
+- Thunderbolt
+- Baby-Doll Eyes
+- Helping Hand
+- Play Rough
 
 === TRAINER_MIU_AND_YUKI ===
 Name: MIU & YUKI
@@ -11053,13 +11114,18 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon
-Level: 4
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Gligar
+Level: 12
 
-Shroomish
-Level: 4
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Torchic
+Level: 12
+
+Staryu
+Level: 15
+- Surf
+- Recover
+- Confuse Ray
+- Ice Beam
 
 === TRAINER_HALEY_1 ===
 Name: HALEY
@@ -11070,13 +11136,14 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Lotad
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Drizzile
+Level: 12
 
-Shroomish
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Zebstrika
+Level: 12
+
+Gabite
+Level: 12
 
 === TRAINER_JANICE ===
 Name: JANICE
@@ -11257,13 +11324,18 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wurmple
-Level: 4
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Tarountula
+Level: 12
 
-Wurmple
-Level: 4
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Bramblin
+Level: 12
+
+Dewpider
+Level: 12
+Ability: Water Bubble
+
+Sewaddle
+Level: 12
 
 === TRAINER_LYLE ===
 Name: LYLE
@@ -11274,21 +11346,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wurmple
-Level: 3
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Beautifly
+Level: 12
 
-Wurmple
-Level: 3
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Dustox
+Level: 12
 
-Wurmple
-Level: 3
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Ledian
+Level: 12
 
-Wurmple
-Level: 3
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Ariados
+Level: 12 
 
 === TRAINER_JOSE ===
 Name: JOSE
@@ -11363,13 +11431,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Nincada
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Accelgor
+Level: 12
 
-Nincada
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Wormadam
+Level: 12
+
+Stantler
+Level: 12
+
+Golbat
+Level: 12
 
 === TRAINER_JAMES_2 ===
 Name: JAMES
@@ -12977,8 +13049,20 @@ Double Battle: No
 AI: Check Bad Move
 
 Magikarp
-Level: 9
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Level: 15
+- Tackle
+- Thrash
+- Hydro Pump
+- Bounce
+
+Feebas
+Level: 15
+- Surf
+- Ice Beam
+- Mirror Coat
+
+Luvdisc
+Level: 12
 
 === TRAINER_HAILEY ===
 Name: HAILEY
