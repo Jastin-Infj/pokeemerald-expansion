@@ -52,7 +52,7 @@ OldaleTown_Mart_EventScript_Boy::
 	msgbox OldaleTown_Mart_Text_RestoreHPWithPotion, MSGBOX_NPC
 	end
 
-OldaleTown_EventScript_EvolutionShop::
+OldaleTown_EventScript_PokemartEvolution::
 	lock
 	faceplayer
 	message gText_HowMayIServeYou
@@ -61,6 +61,27 @@ OldaleTown_EventScript_EvolutionShop::
 	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
 	release
 	end
+
+OldaleTown_EventScript_PokemartStatus::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_Status
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleTown_EventScript_PokemartGimmick::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_Gimmick
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
 
 OldaleTown_Mart_Text_PokeBallsAreSoldOut:
 	.string "The clerk says they're all sold out.\n"
