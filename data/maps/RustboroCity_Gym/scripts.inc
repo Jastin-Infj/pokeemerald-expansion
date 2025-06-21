@@ -1,15 +1,16 @@
 RustboroCity_Gym_MapScripts::
 	.byte 0
 
+@ specialvar VAR_RESULT, ShouldTryRematchBattle
+@ goto_if_eq VAR_RESULT, TRUE, RustboroCity_Gym_EventScript_RoxanneRematch
 RustboroCity_Gym_EventScript_Roxanne::
-	trainerbattle_single TRAINER_ROXANNE_1, RustboroCity_Gym_Text_RoxanneIntro, RustboroCity_Gym_Text_RoxanneDefeat, RustboroCity_Gym_EventScript_RoxanneDefeated, NO_MUSIC
-	specialvar VAR_RESULT, ShouldTryRematchBattle
-	goto_if_eq VAR_RESULT, TRUE, RustboroCity_Gym_EventScript_RoxanneRematch
+	trainerbattle_double TRAINER_ROXANNE_1, RustboroCity_Gym_Text_RoxanneIntro, RustboroCity_Gym_Text_RoxanneDefeat, RustboroCity_Gym_Text_RoxanneIntro, RustboroCity_Gym_EventScript_RoxanneDefeated, NO_MUSIC
 	goto_if_unset FLAG_RECEIVED_TM_ROCK_TOMB, RustboroCity_Gym_EventScript_GiveRockTomb
 	msgbox RustboroCity_Gym_Text_RoxannePostBattle, MSGBOX_DEFAULT
 	release
 	end
 
+@ VAR_0x8008 -> Use Common_EventScript_SetGymTrainers check temp var
 RustboroCity_Gym_EventScript_RoxanneDefeated::
 	message RustboroCity_Gym_Text_ReceivedStoneBadge
 	waitmessage

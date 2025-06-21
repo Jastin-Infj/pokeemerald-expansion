@@ -4828,33 +4828,48 @@ Class: Leader
 Pic: Leader Roxanne
 Gender: Female
 Music: Female
-Items: Potion / Potion
-Double Battle: No
-AI: Basic Trainer
+Double Battle: Yes
+AI: Prediction
 
-Geodude
-Level: 12
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Tackle
-- Defense Curl
-- Rock Throw
-- Rock Tomb
-
-Geodude
-Level: 12
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Tackle
-- Defense Curl
-- Rock Throw
-- Rock Tomb
-
-Nosepass @ Oran Berry
+Nidoqueen @ Life Orb
 Level: 15
-IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
-- Block
-- Harden
-- Tackle
-- Rock Tomb
+Ability: Sheer Force
+Nature: Modest
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 0 SpD / 0 Spe
+- Sludge Bomb
+- Earth Power
+- Thunderbolt
+- Protect
+
+Nidoking @ Sitrus Berry
+Level: 15
+Ability: Sheer Force
+Nature: Modest
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 0 SpD / 0 Spe
+- Sludge Bomb
+- Earth Power
+- Ice Beam
+- Protect
+
+Kabutops @ Rindo Berry
+Level: 15
+Ability: Swift Swim
+Nature: Adamant
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 252 Spe
+- Liquidation
+- Rock Slide
+- Leech Life
+- Aqua Jet
+
+Golem @ Quick Claw
+Level: 15
+Ability: Sturdy
+Nature: Adamant
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- Rock Slide
+- Earthquake
+- Fire Punch
+- Wide Guard
 
 === TRAINER_BRAWLY_1 ===
 Name: BRAWLY
@@ -6019,10 +6034,28 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Geodude
-Level: 10
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Tackle
+Dugtrio
+Level: 15
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 252 Spe
+- Bulldoze
+- Fissure
+- Endure
+- Reversal
+
+Donphan
+Level: 15
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- Earthquake
+- Rock Slide
+- Ice Shard
+
+Cacturne
+Level: 15
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- Needle Arm
+- Sucker Punch
+- Encore
+- Spiky Shield
 
 === TRAINER_TOMMY ===
 Name: TOMMY
@@ -6033,13 +6066,29 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Geodude
-Level: 8
-IVs: 13 HP / 13 Atk / 13 Def / 13 SpA / 13 SpD / 13 Spe
+Rhydon
+Level: 15
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- High Horsepower
+- Rock Slide
+- Megahorn
+- Protect
 
-Geodude
-Level: 8
-IVs: 14 HP / 14 Atk / 14 Def / 14 SpA / 14 SpD / 14 Spe
+Ursaring
+Level: 15
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 252 Spe
+- Facade
+- High Horsepower
+- Play Rough 
+- Protect
+
+Magmar
+Level: 15
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 0 SpD / 252 Spe
+- Lava Plume
+- Thunderbolt
+- Follow Me
+- Protect
 
 === TRAINER_JOEY ===
 Name: JOEY
@@ -10621,13 +10670,30 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Geodude
-Level: 8
-IVs: 14 HP / 14 Atk / 14 Def / 14 SpA / 14 SpD / 14 Spe
+Tropius @ Sitrus Berry
+Level: 15
+Ability: Harvest
+EVs: 252 HP / 0 Atk / 252 Def / 0 SpA / 0 SpD / 0 Spe
+- Leech Seed
+- Synthesis
+- Protect
+- Body Press
 
-Geodude
-Level: 8
-IVs: 15 HP / 15 Atk / 15 Def / 15 SpA / 15 SpD / 15 Spe
+Mothim
+Level: 15
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 0 SpD / 252 Spe
+- Bug Buzz
+- Air Slash
+- Protect
+- Quiver Dance
+
+Stunfisk
+Level: 15
+EVs: 252 HP / 0 Atk / 252 Def / 0 SpA / 0 SpD / 0 Spe
+- Bounce
+- Foul Play
+- Infestation
+- Protect
 
 === TRAINER_BRENDEN ===
 Name: BRENDEN

@@ -21,7 +21,7 @@ OldaleTown_Mart_Pokemart_Basic:
 	pokemartlistend
 
 OldaleTown_Mart_ExpandedItems::
-	pokemart OldaleTown_Mart_Pokemart_Expanded
+	pokemart Common_Shop_Pokeball
 	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
 	release
 	end
@@ -52,6 +52,16 @@ OldaleTown_Mart_EventScript_Boy::
 	msgbox OldaleTown_Mart_Text_RestoreHPWithPotion, MSGBOX_NPC
 	end
 
+OldaleTown_EventScript_EvolutionShop::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_Evolution
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
 OldaleTown_Mart_Text_PokeBallsAreSoldOut:
 	.string "The clerk says they're all sold out.\n"
 	.string "I can't buy any POKé BALLS.$"
@@ -65,4 +75,3 @@ OldaleTown_Mart_Text_RestoreHPWithPotion:
 	.string "and faints, it won't be able to battle.\p"
 	.string "To prevent your POKéMON from fainting,\n"
 	.string "restore its HP with a POTION.$"
-
