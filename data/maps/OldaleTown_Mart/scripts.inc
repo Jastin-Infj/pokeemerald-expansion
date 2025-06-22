@@ -72,6 +72,16 @@ OldaleTown_EventScript_PokemartStatus::
 	release
 	end
 
+OldaleTown_EventScript_PokemartStatus1::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_Status1
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
 OldaleTown_EventScript_PokemartGimmick::
 	lock
 	faceplayer
@@ -81,7 +91,6 @@ OldaleTown_EventScript_PokemartGimmick::
 	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
 	release
 	end
-
 
 OldaleTown_Mart_Text_PokeBallsAreSoldOut:
 	.string "The clerk says they're all sold out.\n"

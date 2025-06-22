@@ -26,6 +26,9 @@ OldaleTown_EventScript_MoveMartEmployee::
 	return
 
 OldaleTown_EventScript_TownSign::
+	setflag FLAG_DYNAMAX_BATTLE
+	setflag FLAG_TERA_ORB_NO_COST
+	setflag DN_FLAG_DEXNAV_GET
 	msgbox OldaleTown_Text_TownSign, MSGBOX_SIGN
 	end
 

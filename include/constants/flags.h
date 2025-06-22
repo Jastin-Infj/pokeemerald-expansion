@@ -656,11 +656,11 @@
 #define FLAG_HIDDEN_ITEM_ROUTE_123_RARE_CANDY                (FLAG_HIDDEN_ITEMS_START + 0x6E)
 #define FLAG_HIDDEN_ITEM_ROUTE_105_BIG_PEARL                 (FLAG_HIDDEN_ITEMS_START + 0x6F)
 
-#define FLAG_UNUSED_0x264  0x264 // Unused Flag
-#define FLAG_UNUSED_0x265  0x265 // Unused Flag
-#define FLAG_UNUSED_0x266  0x266 // Unused Flag
-#define FLAG_UNUSED_0x267  0x267 // Unused Flag
-#define FLAG_UNUSED_0x268  0x268 // Unused Flag
+#define FLAG_DYNAMAX_BATTLE      0x264 // Dynamax Battle ON/OFF
+#define FLAG_TERA_ORB_NO_COST    0x265 // Tera Battle ON/OFF
+#define FLAG_DN_FLAG_SEARCHING   0x266 // Devnav search mode
+#define FLAG_DN_FLAG_DEXNAV_GET  0x267 // Devnav menu
+#define FLAG_DETECTOR_MODE       0x268 // Hidden wind mons
 #define FLAG_UNUSED_0x269  0x269 // Unused Flag
 #define FLAG_UNUSED_0x26A  0x26A // Unused Flag
 #define FLAG_UNUSED_0x26B  0x26B // Unused Flag

@@ -1289,6 +1289,7 @@ Common_Shop_Status1:
 	.2byte ITEM_SWIFT_FEATHER
 	.2byte ITEM_PP_UP
 	.2byte ITEM_PP_MAX
+	.2byte ITEM_DYNAMAX_CANDY
 	pokemartlistend
 
 	.align 2
