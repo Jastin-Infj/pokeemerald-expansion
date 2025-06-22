@@ -92,6 +92,36 @@ OldaleTown_EventScript_PokemartGimmick::
 	release
 	end
 
+OldaleTown_EventScript_PokemartForms::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_FormItems
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleTown_EventScript_PokemartHeldItems::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_HeldItems
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleTown_EventScript_PokemartBerry::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_Berry
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
 OldaleTown_Mart_Text_PokeBallsAreSoldOut:
 	.string "The clerk says they're all sold out.\n"
 	.string "I can't buy any POKé BALLS.$"
