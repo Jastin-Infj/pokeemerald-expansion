@@ -2,11 +2,11 @@
 #define GUARD_CONSTANTS_TMS_HMS_H
 
 #define FOREACH_TM(F) \
-    F(FOCUS_PUNCH) \
-    F(DRAGON_CLAW) \
-    F(WATER_PULSE) \
-    F(CALM_MIND) \
-    F(ROAR) \
+    F(TAKE_DOWN) \
+    F(CHARM) \
+    F(FAKE_TEARS) \
+    F(AGILITY) \
+    F(MUD_SLAP) \
     F(TOXIC) \
     F(HAIL) \
     F(BULK_UP) \

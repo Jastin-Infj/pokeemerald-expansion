@@ -122,6 +122,16 @@ OldaleTown_EventScript_PokemartBerry::
 	release
 	end
 
+OldaleTown_EventScript_PokemartTMs::
+	lock
+	faceplayer
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Common_Shop_TMs
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
 OldaleTown_Mart_Text_PokeBallsAreSoldOut:
 	.string "The clerk says they're all sold out.\n"
 	.string "I can't buy any POKé BALLS.$"
