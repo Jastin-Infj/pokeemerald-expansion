@@ -17,41 +17,41 @@
     F(ACID_SPRAY) \
     F(ACROBATICS) \
     F(STRUGGLE_BUG) \
-    F(LIGHT_SCREEN) \
-    F(TACKLE) \
-    F(RAIN_DANCE) \
-    F(GIGA_DRAIN) \
-    F(SAFEGUARD) \
-    F(FRUSTRATION) \
-    F(SOLAR_BEAM) \
-    F(IRON_TAIL) \
-    F(THUNDERBOLT) \
-    F(THUNDER) \
-    F(EARTHQUAKE) \
-    F(RETURN) \
-    F(DIG) \
-    F(PSYCHIC) \
-    F(SHADOW_BALL) \
-    F(BRICK_BREAK) \
-    F(DOUBLE_TEAM) \
-    F(REFLECT) \
-    F(SHOCK_WAVE) \
-    F(FLAMETHROWER) \
-    F(SLUDGE_BOMB) \
-    F(SANDSTORM) \
-    F(FIRE_BLAST) \
-    F(ROCK_TOMB) \
-    F(AERIAL_ACE) \
-    F(TORMENT) \
-    F(FACADE) \
-    F(SECRET_POWER) \
-    F(REST) \
-    F(ATTRACT) \
+    F(PSYBEAM) \
+    F(CONFUSE_RAY) \
     F(THIEF) \
-    F(STEEL_WING) \
-    F(SKILL_SWAP) \
-    F(SNATCH) \
-    F(OVERHEAT)
+    F(DISARMING_VOICE) \
+    F(TRAILBLAZE) \
+    F(POUNCE) \
+    F(CHILLING_WATER) \
+    F(CHARGE_BEAM) \
+    F(FIRE_SPIN) \
+    F(FACADE) \
+    F(POISON_TAIL) \
+    F(AERIAL_ACE) \
+    F(BULLDOZE) \
+    F(HEX) \
+    F(SNARL) \
+    F(METAL_CLAW) \
+    F(SWIFT) \
+    F(MAGICAL_LEAF) \
+    F(ICY_WIND) \
+    F(MUD_SHOT) \
+    F(ROCK_TOMB) \
+    F(DRAINING_KISS) \
+    F(FLAME_CHARGE) \
+    F(LOW_SWEEP) \
+    F(AIR_CUTTER) \
+    F(STORED_POWER) \
+    F(NIGHT_SHADE) \
+    F(FLING) \
+    F(DRAGON_TAIL) \
+    F(VENOSHOCK) \
+    F(AVALANCHE) \
+    F(ENDURE) \
+    F(VOLT_SWITCH) \
+    F(SUNNY_DAY) \
+    F(RAIN_DANCE)
 
 #define FOREACH_HM(F) \
     F(CUT) \
