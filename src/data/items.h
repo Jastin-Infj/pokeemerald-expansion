@@ -15523,4 +15523,19 @@ const struct Item gItemsInfo[] =
         .iconPalette = gItemIconPalette_PokeshiDoll,
     },
 
+    [ITEM_POFFIN_CASE] =
+    {
+        .name = _("Picnic Basket"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "Fully heals all\n"
+            "patry Pokemon."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_PicnicBasket,
+        .iconPic = gItemIcon_PoffinCase,
+        .iconPalette = gItemIconPalette_PoffinCase,
+    },
+
 };

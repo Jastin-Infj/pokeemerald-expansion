@@ -1,0 +1,15 @@
+// PicnicBasket
+script EventScript_PicnicBasket
+{
+  playse(SE_USE_ITEM)
+  msgbox(gText_UsePicnicBasket,MSGBOX_DEFAULT)
+  special(HealPlayerParty)
+  release
+  end
+}
+
+text gText_UsePicnicBasket
+{
+  format("{PLAYER} had a picnic with the patry. 
+  All Pokémon were fully restored!")
+}

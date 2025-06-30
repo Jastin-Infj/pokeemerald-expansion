@@ -1160,6 +1160,7 @@ EventScript_VsSeekerChargingDone::
 	.include "data/text/save.inc"
 	.include "data/text/birch_speech.inc"
 	.include "data/scripts/dexnav.inc"
+	.include "data/scripts/custom.inc"
 
 	.align 2
 Common_Shop_Pokeball:
