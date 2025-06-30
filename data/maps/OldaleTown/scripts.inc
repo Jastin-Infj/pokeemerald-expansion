@@ -29,6 +29,7 @@ OldaleTown_EventScript_TownSign::
 	setflag FLAG_DYNAMAX_BATTLE
 	setflag FLAG_TERA_ORB_NO_COST
 	setflag DN_FLAG_DEXNAV_GET
+	goto EventScript_BirchCase
 	msgbox OldaleTown_Text_TownSign, MSGBOX_SIGN
 	end
 

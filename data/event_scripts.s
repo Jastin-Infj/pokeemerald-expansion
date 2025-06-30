@@ -1845,6 +1845,9 @@ EventScript_MultichoiceTests_Text_3:
 EventScript_MultichoiceTests_Text_4:
 	.string "Option 4$"
 
-@ test
-@ test
-@ test
+EventScript_BirchCase::
+	msgbox PlayersHouse_2F_Text_ItsAGameCube,MSGBOX_DEFAULT
+	callnative StartNewPokeballCaseUI
+  waitstate
+	releaseall
+	end
