@@ -1578,6 +1578,8 @@ extern const u32 gItemIcon_PoffinCase[];
 extern const u16 gItemIconPalette_PoffinCase[];
 extern const u32 gItemIcon_Flying[];
 extern const u16 gItemIconPalette_Flying[];
+extern const u32 gItemIcon_Clock[];
+extern const u16 gItemIconPalette_Clock[];
 // Story Key Items
 extern const u32 gItemIcon_SSTicket[];
 extern const u16 gItemIconPalette_SSTicket[];

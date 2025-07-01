@@ -79,6 +79,7 @@ static void Task_UseRepel(u8);
 static void Task_UseLure(u8 taskId);
 static void Task_CloseCantUseKeyItemMessage(u8);
 static void Task_UseFlying(u8 taskId);
+static void Task_UseClock(u8);
 static void SetDistanceOfClosestHiddenItem(u8, s16, s16);
 static void CB2_OpenPokeblockFromBag(void);
 static void ItemUseOnFieldCB_Honey(u8 taskId);
@@ -1638,6 +1639,18 @@ void ItemUseOutOfBattle_Flying(u8 taskId)
 static void Task_UseFlying(u8 taskId)
 {
     SetMainCallback2(CB2_OpenFlyMap);
+    DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_Clock(u8 taskId)
+{
+    sItemUseOnFieldCB = Task_UseClock;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+static void Task_UseClock(u8 taskId)
+{
+    ScriptContext_SetupScript(EventScript_Clock);
     DestroyTask(taskId);
 }
 

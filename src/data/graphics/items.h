@@ -2105,3 +2105,6 @@ const u16 gItemIconPalette_TwiceSpicedRadish[] = INCBIN_U16("graphics/items/icon
 
 const u32 gItemIcon_PoffinCase[] = INCBIN_U32("graphics/items/icons/poffin_case.4bpp.lz");
 const u16 gItemIconPalette_PoffinCase[] = INCBIN_U16("graphics/items/icon_palettes/poffin_case.gbapal");
+
+	const u32 gItemIcon_Clock[] = INCBIN_U32("graphics/items/icons/clock.4bpp.lz");
+const u16 gItemIconPalette_Clock[] = INCBIN_U16("graphics/items/icon_palettes/clock.gbapal");

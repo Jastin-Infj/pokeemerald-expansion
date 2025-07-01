@@ -10,6 +10,14 @@ EventScript_PicnicBasket::
 	end
 
 
+EventScript_Clock::
+# 19 "data/scripts/custom.pory"
+	call PlayersHouse_2F_EventScript_SetWallClock
+# 20 "data/scripts/custom.pory"
+	goto Debug_EventScript_TellTheTime
+	end
+
+
 gText_UsePicnicBasket::
 # 11 "data/scripts/custom.pory"
 	.string "{PLAYER} had a picnic with the patry.\n"

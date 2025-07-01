@@ -13,3 +13,10 @@ text gText_UsePicnicBasket
   format("{PLAYER} had a picnic with the patry. 
   All Pokémon were fully restored!")
 }
+
+script EventScript_Clock
+{
+  call(PlayersHouse_2F_EventScript_SetWallClock)
+  goto(Debug_EventScript_TellTheTime)
+  end
+}
