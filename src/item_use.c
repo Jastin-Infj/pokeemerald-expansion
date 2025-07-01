@@ -46,6 +46,7 @@
 #include "constants/items.h"
 #include "constants/songs.h"
 #include "constants/map_types.h"
+#include "region_map.h"
 
 static void SetUpItemUseCallback(u8);
 static void FieldCB_UseItemOnField(void);
@@ -77,6 +78,7 @@ static void Task_StartUseLure(u8 taskId);
 static void Task_UseRepel(u8);
 static void Task_UseLure(u8 taskId);
 static void Task_CloseCantUseKeyItemMessage(u8);
+static void Task_UseFlying(u8 taskId);
 static void SetDistanceOfClosestHiddenItem(u8, s16, s16);
 static void CB2_OpenPokeblockFromBag(void);
 static void ItemUseOnFieldCB_Honey(u8 taskId);
@@ -1624,6 +1626,18 @@ void ItemUseOutOfBattle_PicnicBasket(u8 taskId)
 static void Task_PicnicBasket(u8 taskId)
 {
     ScriptContext_SetupScript(EventScript_PicnicBasket);
+    DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_Flying(u8 taskId)
+{
+    sItemUseOnFieldCB = Task_UseFlying;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+static void Task_UseFlying(u8 taskId)
+{
+    SetMainCallback2(CB2_OpenFlyMap);
     DestroyTask(taskId);
 }
 

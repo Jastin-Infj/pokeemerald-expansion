@@ -15538,4 +15538,20 @@ const struct Item gItemsInfo[] =
         .iconPalette = gItemIconPalette_PoffinCase,
     },
 
+    [ITEM_FLYING] =
+    {
+        .name = _("Flying Key"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "A charm that will\n"
+            "raise the chance\n"
+            "of Shiny Pokémon."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_Flying,
+        .iconPic = gItemIcon_Flying,
+        .iconPalette = gItemIconPalette_Flying,
+    },
+
 };
