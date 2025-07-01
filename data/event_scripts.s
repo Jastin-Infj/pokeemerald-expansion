@@ -1249,7 +1249,7 @@ Common_Shop_Evolution:
 	pokemartlistend
 
 	.align 2
-Common_Shop_Status:
+Common_Shop_Spec:
 	.2byte ITEM_ABILITY_CAPSULE
 	.2byte ITEM_ABILITY_PATCH
 	.2byte ITEM_LONELY_MINT
@@ -1276,7 +1276,7 @@ Common_Shop_Status:
 	pokemartlistend
 
 	.align 2
-Common_Shop_Status1:
+Common_Shop_Levelup:
 	.2byte ITEM_RARE_CANDY
 	.2byte ITEM_EXP_CANDY_XS
 	.2byte ITEM_EXP_CANDY_S
@@ -1798,53 +1798,6 @@ Script_DisplaySpriteDemo::
 
 Text_DisplaySpriteDemo:
 	.string "Have you seen this Pokémon?$"
-
-EventScript_MultichoiceTests::
-	lock
-	faceplayer
-	msgbox EventScript_MultichoiceTests_Text_0, MSGBOX_DEFAULT
-	dynmultichoice 0, 0, TRUE, 3, 0, DYN_MULTICHOICE_CB_NONE, EventScript_MultichoiceTests_Text_1, EventScript_MultichoiceTests_Text_2, EventScript_MultichoiceTests_Text_3, EventScript_MultichoiceTests_Text_4
-	switch VAR_RESULT
-	case 0, EventScript_MultichoiceTests_3
-	case 1, EventScript_MultichoiceTests_4
-	case 2, EventScript_MultichoiceTests_5
-	case 3, EventScript_MultichoiceTests_6
-EventScript_MultichoiceTests_1:
-	closemessage
-	release
-	end
-
-EventScript_MultichoiceTests_3:
-	goto OldaleTown_EventScript_PokemartGimmick
-	goto EventScript_MultichoiceTests_1
-
-EventScript_MultichoiceTests_4:
-	goto OldaleTown_EventScript_PokemartEvolution
-	goto EventScript_MultichoiceTests_1
-
-EventScript_MultichoiceTests_5:
-	goto OldaleTown_EventScript_PokemartHeldItems
-	goto EventScript_MultichoiceTests_1
-
-EventScript_MultichoiceTests_6:
-	goto OldaleTown_EventScript_PokemartTMs
-	goto EventScript_MultichoiceTests_1
-
-
-EventScript_MultichoiceTests_Text_0:
-	.string "test$"
-
-EventScript_MultichoiceTests_Text_1:
-	.string "Option 1$"
-
-EventScript_MultichoiceTests_Text_2:
-	.string "Option 2$"
-
-EventScript_MultichoiceTests_Text_3:
-	.string "Option 3$"
-
-EventScript_MultichoiceTests_Text_4:
-	.string "Option 4$"
 
 EventScript_BirchCase::
 	msgbox PlayersHouse_2F_Text_ItsAGameCube,MSGBOX_DEFAULT

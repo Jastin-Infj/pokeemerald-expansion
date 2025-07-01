@@ -20,3 +20,60 @@ script EventScript_Clock
   goto(Debug_EventScript_TellTheTime)
   end
 }
+
+script Common_EventScript_Pokemart
+{
+  lock
+  faceplayer
+  message(gText_HowMayIServeYou)
+  waitmessage
+  dynmultichoice(0,0, TRUE, 5, 0, DYN_MULTICHOICE_CB_NONE,
+    gText_ShopSpec, 
+    gText_ShopLevelUp,
+    gText_ShopPokeball,
+    gText_ShopTMHMs,
+    gText_ShopGimmick,
+    gText_ShopHeldItems,
+    gText_ShopEvolution,
+    gText_ShopFormItems,
+    gText_ShopBerry,
+    gText_ShopCansel
+  )
+
+  switch(var(VAR_RESULT))
+  {
+    case 0:
+      pokemart(Common_Shop_Spec)
+    case 1:
+      pokemart(Common_Shop_Levelup)
+    case 2:
+      pokemart(Common_Shop_Pokeball)
+    case 3:
+      pokemart(Common_Shop_TMs)
+    case 4:
+      pokemart(Common_Shop_Gimmick)
+    case 5:
+      pokemart(Common_Shop_HeldItems)
+    case 6:
+      pokemart(Common_Shop_Evolution)
+    case 7:
+      pokemart(Common_Shop_FormItems)
+    case 8:
+      pokemart(Common_Shop_Berry)
+    default:
+  }
+  msgbox(gText_PleaseComeAgain,MSGBOX_DEFAULT)
+  release
+  end
+}
+
+text gText_ShopSpec         { "Ability/Nature"}
+text gText_ShopLevelUp      { "Level up"      }
+text gText_ShopPokeball     { "Poke ball"     }
+text gText_ShopTMHMs        { "TM / HMs"      }
+text gText_ShopGimmick      { "Gimmicks"      }
+text gText_ShopHeldItems    { "Held Items"    }
+text gText_ShopEvolution    { "Evolution"     }
+text gText_ShopFormItems    { "Form items"    }
+text gText_ShopBerry        { "Berry"         }
+text gText_ShopCansel       { "   Cansel"     }
