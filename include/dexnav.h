@@ -20,7 +20,7 @@ enum RowGUIInfo
 #define ROW_LAND_TOP_ICON_Y     72
 #define ROW_LAND_BOT_ICON_Y     (ROW_LAND_TOP_ICON_Y + 28)
 
-#define ROW_HIDDEN_ICON_X       52
+#define ROW_HIDDEN_ICON_X       30
 #define ROW_HIDDEN_ICON_Y       138
 
 enum EncounterType
@@ -32,7 +32,7 @@ enum EncounterType
 
 #define COL_WATER_COUNT         5
 #define COL_LAND_COUNT          6
-#define COL_HIDDEN_COUNT        3
+#define COL_HIDDEN_COUNT        5
 
 #define COL_WATER_MAX           (COL_WATER_COUNT - 1)
 #define COL_LAND_MAX            (COL_LAND_COUNT - 1)

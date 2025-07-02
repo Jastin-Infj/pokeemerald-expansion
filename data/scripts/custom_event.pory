@@ -1,0 +1,8 @@
+script EventScript_BirchCase
+{
+  msgbox(PlayersHouse_2F_Text_ItsAGameCube,MSGBOX_DEFAULT)
+  callnative(StartNewPokeballCaseUI)
+  waitstate
+  releaseall
+  end
+}
