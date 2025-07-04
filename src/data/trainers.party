@@ -6206,36 +6206,6 @@ Aron
 Level: 19
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_CALVIN_2 ===
-Name: CALVIN
-Class: Youngster
-Pic: Youngster
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Mightyena
-Level: 27
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-
-=== TRAINER_CALVIN_3 ===
-Name: CALVIN
-Class: Youngster
-Pic: Youngster
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Swellow
-Level: 28
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-Mightyena
-Level: 30
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
 === TRAINER_CALVIN_4 ===
 Name: CALVIN
 Class: Youngster
@@ -17023,3 +16993,105 @@ Double Battle: No
 Kyogre
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+=== TRAINER_COLISEUM_1 ===
+Name: Kebin
+Class: Cooltrainer
+Pic: Cooltrainer M
+Music: Cool
+Double Battle: Yes
+AI: AI_FLAG_DOUBLE_BATTLE
+
+Exploud @ Assault Vest  
+Ability: Soundproof  
+Level: 15
+EVs: 108 HP / 116 Def / 252 SpA / 32 SpD  
+Modest Nature  
+IVs: 0 Atk  
+- Boomburst  
+- Blizzard  
+- Fire Blast  
+- Focus Blast  
+
+Talonflame @ Flying Gem  
+Ability: Gale Wings  
+Level: 15 
+EVs: 248 HP / 8 Atk / 252 Spe  
+Adamant Nature  
+- Acrobatics  
+- Flare Blitz  
+- Tailwind  
+- Protect  
+
+Meganium @ Leftovers  
+Ability: Leaf Guard  
+Level: 15  
+EVs: 252 HP / 76 Def / 180 SpD  
+Bold Nature  
+IVs: 0 Atk  
+- Energy Ball  
+- Heal Pulse  
+- Protect  
+- Encore  
+
+Gastrodon @ Sitrus Berry  
+Ability: Storm Drain  
+Level: 15  
+EVs: 140 HP / 96 Def / 252 SpA / 20 SpD  
+Quiet Nature  
+IVs: 0 Atk / 0 Spe  
+- Earth Power  
+- Muddy Water  
+- Yawn  
+- Protect  
+
+=== TRAINER_COLISEUM_2 ===
+Name: Kebin
+Class: Cooltrainer
+Pic: Cooltrainer M
+Music: Cool
+Double Battle: Yes
+AI: AI_FLAG_DOUBLE_BATTLE
+
+Unfezant @ Scope Lens  
+Ability: Super Luck  
+Level: 15
+Tera Type: Flying  
+EVs: 252 Atk / 4 SpD / 252 Spe  
+Jolly Nature  
+- Brave Bird  
+- Hypnosis  
+- Giga Impact  
+- Protect  
+
+Clefairy @ Eviolite  
+Ability: Friend Guard  
+Level: 15
+EVs: 252 HP / 228 Def / 28 SpD  
+Calm Nature  
+IVs: 0 Atk  
+- Follow Me  
+- Icy Wind  
+- Heal Pulse  
+- Protect  
+
+Arcanine @ Assault Vest  
+Ability: Intimidate  
+Level: 15 
+EVs: 252 HP / 252 Atk / 6 Def  
+Adamant Nature  
+- Flare Blitz  
+- Extreme Speed  
+- Snarl  
+- Play Rough  
+
+Keldeo @ Focus Sash  
+Ability: Justified  
+Level: 15
+EVs: 6 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Hydro Pump  
+- Aura Sphere  
+- Taunt  
+- Protect

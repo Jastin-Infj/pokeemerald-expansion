@@ -98,7 +98,7 @@
 #define FLAG_RESCUED_BIRCH                       0x52
 #define FLAG_LEGENDARIES_IN_SOOTOPOLIS           0x53
 
-#define FLAG_UNUSED_0x054                    0x54  // Unused Flag
+#define FLAG_USE_EXP_SHARE                   0x54  // Exp.Share Use Enable
 #define FLAG_UNUSED_0x055                    0x55  // Unused Flag
 
 #define FLAG_HIDE_CONTEST_POKE_BALL          0x56  // Always set after new game, object it hides is added directly
@@ -657,7 +657,7 @@
 #define FLAG_HIDDEN_ITEM_ROUTE_105_BIG_PEARL                 (FLAG_HIDDEN_ITEMS_START + 0x6F)
 
 #define FLAG_DYNAMAX_BATTLE      0x264 // Dynamax Battle ON/OFF
-#define FLAG_TERA_ORB_NO_COST    0x265 // Tera Battle ON/OFF
+#define FLAG_TERA_ORB_CHARGED    0x265 // Tera Battle ON/OFF
 #define FLAG_DN_FLAG_SEARCHING   0x266 // Devnav search mode
 #define FLAG_DN_FLAG_DEXNAV_GET  0x267 // Devnav menu
 #define FLAG_DETECTOR_MODE       0x268 // Hidden wind mons

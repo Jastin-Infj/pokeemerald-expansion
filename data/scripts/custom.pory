@@ -28,6 +28,7 @@ script Common_EventScript_Pokemart
   message(gText_HowMayIServeYou)
   waitmessage
   dynmultichoice(0,0, TRUE, 5, 0, DYN_MULTICHOICE_CB_NONE,
+		gText_Shop_Medicine,
     gText_ShopSpec, 
     gText_ShopLevelUp,
     gText_ShopPokeball,
@@ -42,23 +43,25 @@ script Common_EventScript_Pokemart
 
   switch(var(VAR_RESULT))
   {
-    case 0:
-      pokemart(Common_Shop_Spec)
+		case 0:
+			pokemart(Common_Shop_Medicine)
     case 1:
-      pokemart(Common_Shop_Levelup)
+      pokemart(Common_Shop_Spec)
     case 2:
-      pokemart(Common_Shop_Pokeball)
+      pokemart(Common_Shop_Levelup)
     case 3:
-      pokemart(Common_Shop_TMs)
+      pokemart(Common_Shop_Pokeball)
     case 4:
-      pokemart(Common_Shop_Gimmick)
+      pokemart(Common_Shop_TMs)
     case 5:
-      pokemart(Common_Shop_HeldItems)
+      pokemart(Common_Shop_Gimmick)
     case 6:
-      pokemart(Common_Shop_Evolution)
+      pokemart(Common_Shop_HeldItems)
     case 7:
-      pokemart(Common_Shop_FormItems)
+      pokemart(Common_Shop_Evolution)
     case 8:
+      pokemart(Common_Shop_FormItems)
+    case 9:
       pokemart(Common_Shop_Berry)
     default:
   }
@@ -67,6 +70,7 @@ script Common_EventScript_Pokemart
   end
 }
 
+text gText_Shop_Medicine    { "Medicine"      }
 text gText_ShopSpec         { "Ability/Nature"}
 text gText_ShopLevelUp      { "Level up"      }
 text gText_ShopPokeball     { "Poke ball"     }
@@ -77,6 +81,40 @@ text gText_ShopEvolution    { "Evolution"     }
 text gText_ShopFormItems    { "Form Items"    }
 text gText_ShopBerry        { "Berry"         }
 text gText_ShopCansel       { "   Cansel"     }
+
+
+mart Common_Shop_Medicine
+{
+	ITEM_POTION
+	ITEM_SUPER_POTION
+	ITEM_HYPER_POTION
+	ITEM_MAX_POTION
+	ITEM_FULL_RESTORE
+	ITEM_REVIVE
+	ITEM_MAX_REVIVE
+	ITEM_FRESH_WATER
+	ITEM_SODA_POP
+	ITEM_LEMONADE
+	ITEM_MOOMOO_MILK
+	ITEM_ENERGY_POWDER
+	ITEM_ENERGY_ROOT
+	ITEM_HEAL_POWDER
+	ITEM_REVIVAL_HERB
+	ITEM_ANTIDOTE
+	ITEM_PARALYZE_HEAL
+	ITEM_BURN_HEAL
+	ITEM_ICE_HEAL
+	ITEM_AWAKENING
+	ITEM_FULL_HEAL
+	ITEM_ETHER
+	ITEM_MAX_ETHER
+	ITEM_ELIXIR
+	ITEM_MAX_ELIXIR
+	ITEM_BERRY_JUICE
+	ITEM_SACRED_ASH
+	ITEM_SWEET_HEART
+	ITEM_MAX_HONEY
+}
 
 mart Common_Shop_Pokeball
 {

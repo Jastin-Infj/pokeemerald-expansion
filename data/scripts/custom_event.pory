@@ -1,3 +1,20 @@
+script EventScript_AdventureSetup
+{
+  setflag(FLAG_DYNAMAX_BATTLE)
+  setflag(FLAG_TERA_ORB_CHARGED)
+  setflag(FLAG_USE_EXP_SHARE)
+
+  setflag(DN_FLAG_DEXNAV_GET)
+  giveitem(ITEM_CLOCK)
+  giveitem(ITEM_POFFIN_CASE)
+  giveitem(ITEM_FLYING)
+  giveitem(ITEM_EXP_SHARE)
+  // goto(EventScript_BirchCase)
+
+  release
+	end
+}
+
 script EventScript_BirchCase
 {
   msgbox(PlayersHouse_2F_Text_ItsAGameCube,MSGBOX_DEFAULT)
