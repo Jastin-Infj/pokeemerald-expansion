@@ -3219,6 +3219,87 @@ static inline u32 SetStartingSideStatus(u32 flag, u32 side, u32 message, u32 ani
     return 0;
 }
 
+static void TryFieldStatusChange(void)
+{
+    switch (VarGet(VAR_BATTLE_FIELD_WEATHER))
+    {
+        case 0:
+            gBattleWeather = B_WEATHER_NONE;
+            break;
+        case 1:
+            gBattleWeather |= B_WEATHER_RAIN;
+            break;
+        case 2:
+            gBattleWeather |= B_WEATHER_SUN;
+            break;
+        case 3:
+            gBattleWeather |= B_WEATHER_SANDSTORM;
+            gBattleScripting.animArg1 = B_ANIM_SANDSTORM_CONTINUES;
+            break;
+        case 4:
+            gBattleWeather |= B_WEATHER_HAIL;
+            break;
+        case 5:
+            gBattleWeather |= B_WEATHER_SNOW;
+            break;
+        case 6:
+            gBattleWeather |= B_WEATHER_FOG;
+            break;
+        case 7:
+            gBattleWeather |= B_WEATHER_RAIN_PRIMAL;
+            break;
+        case 8:
+            gBattleWeather |= B_WEATHER_SUN_PRIMAL;
+            break;
+        case 9:
+            gBattleWeather |= B_WEATHER_STRONG_WINDS;
+            break;
+    }
+
+    switch(VarGet(VAR_BATTLE_FIELD_STATUS))
+    {
+        case 0:
+            gFieldStatuses = 0;
+            break;
+        case 1:
+            gFieldStatuses |= STATUS_FIELD_MAGIC_ROOM;
+            break;
+        case 2:
+            gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+            break;
+        case 3:
+            gFieldStatuses |= STATUS_FIELD_WONDER_ROOM;
+            break;
+        case 4:
+            gFieldStatuses |= STATUS_FIELD_MUDSPORT;
+            break;
+        case 5:
+            gFieldStatuses |= STATUS_FIELD_WATERSPORT;
+            break;
+        case 6:
+            gFieldStatuses |= STATUS_FIELD_GRAVITY;
+            break;
+        case 7:
+            gFieldStatuses |= STATUS_FIELD_GRASSY_TERRAIN;
+            break;
+        case 8:
+            gFieldStatuses |= STATUS_FIELD_MISTY_TERRAIN;
+            break;
+        case 9:
+            gFieldStatuses |= STATUS_FIELD_ELECTRIC_TERRAIN;
+            break;
+        case 10:
+            gFieldStatuses |= STATUS_FIELD_PSYCHIC_TERRAIN;
+            break;
+        case 11:
+            gFieldStatuses |= STATUS_FIELD_ION_DELUGE;
+            break;
+        case 12:
+            gFieldStatuses |= STATUS_FIELD_FAIRY_LOCK;
+            break;
+    }
+}
+
 u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 moveArg)
 {
     u32 effect = 0;
@@ -3253,6 +3334,7 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
     case ABILITYEFFECT_SWITCH_IN_STATUSES:  // starting field/side/etc statuses with a variable
         {
             gBattleScripting.battler = battler;
+
             switch (gBattleStruct->startingStatus)
             {
             case STARTING_STATUS_ELECTRIC_TERRAIN:
@@ -3387,6 +3469,21 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
             BattleScriptPushCursorAndCallback(BattleScript_OverworldTerrain);
             effect++;
         }
+        else 
+        {
+            // gFieldStatuses = STATUS_FIELD_ELECTRIC_TERRAIN;
+            // gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_TERRAIN_SET_ELECTRIC;
+            // gFieldTimers.terrainTimer = 0;
+            // BattleScriptPushCursorAndCallback(BattleScript_OverworldTerrain);
+            // effect++;
+
+            gFieldStatuses = STATUS_FIELD_TRICK_ROOM;
+            gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SET_TRICK_ROOM;
+            gFieldTimers.trickRoomTimer = 0;
+            gBattleScripting.animArg1 = B_ANIM_TRICK_ROOM;
+            BattleScriptPushCursorAndCallback(BattleScript_OverworldStatusStarts);
+            effect++;
+        }
         break;
     case ABILITYEFFECT_SWITCH_IN_WEATHER:
         gBattleScripting.battler = battler;
@@ -3450,6 +3547,11 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
                 }
             }
         }
+        
+        gBattleWeather = B_WEATHER_SNOW;
+        gBattleScripting.animArg1 = B_ANIM_SNOW_CONTINUES;
+        effect++;
+
         if (effect != 0)
         {
             gBattleCommunication[MULTISTRING_CHOOSER] = GetCurrentWeather();

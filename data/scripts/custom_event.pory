@@ -15,6 +15,34 @@ script EventScript_AdventureSetup
 	end
 }
 
+script EventScript_Mega
+{
+  giveitem(ITEM_MEGA_RING)
+  release
+  end
+}
+
+script EventScript_ZMove
+{
+  giveitem(ITEM_Z_POWER_RING)
+  release
+  end
+}
+
+script EventScript_Dynamax
+{
+  giveitem(ITEM_DYNAMAX_BAND)
+  release
+  end
+}
+
+script EventScript_TeraOrb
+{
+  giveitem(ITEM_TERA_ORB)
+  release
+  end
+}
+
 script EventScript_BirchCase
 {
   msgbox(PlayersHouse_2F_Text_ItsAGameCube,MSGBOX_DEFAULT)

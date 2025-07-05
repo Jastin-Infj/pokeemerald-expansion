@@ -4829,47 +4829,50 @@ Pic: Leader Roxanne
 Gender: Female
 Music: Female
 Double Battle: Yes
-AI: Prediction
+Items: ITEM_Z_POWER_RING
+AI: AI_FLAG_DOUBLE_BATTLE
 
-Nidoqueen @ Life Orb
+Probopass @ Leftovers  
+Ability: Sturdy  
 Level: 15
-Ability: Sheer Force
-Nature: Modest
-EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 0 SpD / 0 Spe
-- Sludge Bomb
-- Earth Power
-- Thunderbolt
-- Protect
+EVs: 252 HP / 180 Def / 76 SpD  
+Calm Nature  
+IVs: 0 Atk  
+- Body Press  
+- Thunder Wave  
+- Wide Guard  
+- Ally Switch  
 
-Nidoking @ Sitrus Berry
+Dugtrio-Alola @ Focus Sash  
+Ability: Sand Force  
 Level: 15
-Ability: Sheer Force
-Nature: Modest
-EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 0 SpD / 0 Spe
-- Sludge Bomb
-- Earth Power
-- Ice Beam
-- Protect
+EVs: 252 Atk / 6 Def / 252 Spe  
+Jolly Nature  
+- Earthquake  
+- Iron Head  
+- Endeavor  
+- Sandstorm  
 
-Kabutops @ Rindo Berry
+Wugtrio @ Bright Powder  
+Ability: Sand Veil  
 Level: 15
-Ability: Swift Swim
-Nature: Adamant
-EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 252 Spe
-- Liquidation
-- Rock Slide
-- Leech Life
-- Aqua Jet
+EVs: 252 Atk / 252 Spe  
+Adamant Nature  
+IVs: 0 HP  
+- Triple Dive  
+- Aqua Jet  
+- Helping Hand  
+- Pain Split  
 
-Golem @ Quick Claw
+Golem @ Groundium Z  
+Ability: Sand Veil  
 Level: 15
-Ability: Sturdy
-Nature: Adamant
-EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Rock Slide
-- Earthquake
-- Fire Punch
-- Wide Guard
+EVs: 124 HP / 252 Atk / 132 SpD  
+Adamant Nature  
+- Earthquake  
+- Rock Slide  
+- Sandstorm  
+- Fire Punch  
 
 === TRAINER_BRAWLY_1 ===
 Name: BRAWLY

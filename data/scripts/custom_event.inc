@@ -20,14 +20,46 @@ EventScript_AdventureSetup::
 	end
 
 
-EventScript_BirchCase::
+EventScript_Mega::
 # 20 "data/scripts/custom_event.pory"
-	msgbox PlayersHouse_2F_Text_ItsAGameCube, MSGBOX_DEFAULT
+	giveitem ITEM_MEGA_RING
 # 21 "data/scripts/custom_event.pory"
+	release
+	end
+
+
+EventScript_ZMove::
+# 27 "data/scripts/custom_event.pory"
+	giveitem ITEM_Z_POWER_RING
+# 28 "data/scripts/custom_event.pory"
+	release
+	end
+
+
+EventScript_Dynamax::
+# 34 "data/scripts/custom_event.pory"
+	giveitem ITEM_DYNAMAX_BAND
+# 35 "data/scripts/custom_event.pory"
+	release
+	end
+
+
+EventScript_TeraOrb::
+# 41 "data/scripts/custom_event.pory"
+	giveitem ITEM_TERA_ORB
+# 42 "data/scripts/custom_event.pory"
+	release
+	end
+
+
+EventScript_BirchCase::
+# 48 "data/scripts/custom_event.pory"
+	msgbox PlayersHouse_2F_Text_ItsAGameCube, MSGBOX_DEFAULT
+# 49 "data/scripts/custom_event.pory"
 	callnative StartNewPokeballCaseUI
-# 22 "data/scripts/custom_event.pory"
+# 50 "data/scripts/custom_event.pory"
 	waitstate
-# 23 "data/scripts/custom_event.pory"
+# 51 "data/scripts/custom_event.pory"
 	releaseall
 	end
 
