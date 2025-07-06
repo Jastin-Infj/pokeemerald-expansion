@@ -298,12 +298,17 @@ RustboroCity_Test1::
 
 RustbroCity_Battle::
 	setvar VAR_BATTLE_FIELD_WEATHER,0
+	setvar VAR_BATTLE_FIELD_STATUS ,0
+
 	setvar VAR_BATTLE_FIELD_WEATHER,3
+	setvar VAR_BATTLE_FIELD_STATUS,1
 	trainerbattle_no_intro TRAINER_VICTOR, Route111_Text_VictorDefeat
 	playse SE_USE_ITEM
 	special HealPlayerParty
 	
 	setvar VAR_BATTLE_FIELD_WEATHER,2
+	setvar VAR_BATTLE_FIELD_STATUS ,0
+	setvar VAR_BATTLE_FIELD_STATUS,6
 	trainerbattle_no_intro TRAINER_VIVI, Route111_Text_ViviDefeat
 	playse SE_USE_ITEM
 	special HealPlayerParty
@@ -312,6 +317,9 @@ RustbroCity_Battle::
 	trainerbattle_no_intro TRAINER_VICTORIA, Route111_Text_VictoriaDefeat
 	playse SE_USE_ITEM
 	special HealPlayerParty
+
+	setvar VAR_BATTLE_FIELD_WEATHER,0
+	setvar VAR_BATTLE_FIELD_STATUS,0
 	release
 	end
 `

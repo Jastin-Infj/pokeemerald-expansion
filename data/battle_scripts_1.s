@@ -5660,6 +5660,23 @@ BattleScript_OverworldStatusStarts::
 	call BattleScript_OverworldStatusStarts_TryActivations
 	end3
 
+BattleScript_WeatherOther::
+	printfromtable gWeatherTurnStringIds
+	waitmessage B_WAIT_TIME_LONG
+	playanimation_var BS_ATTACKER, sB_ANIM_ARG1
+	call BattleScript_OverworldStatusStarts_TryActivations
+	end3
+
+BattleScript_OverworldStatusOther::
+	printfromtable gSportsUsedStringIds
+	waitmessage B_WAIT_TIME_LONG
+	end3
+
+BattleScript_GravityStartUp::
+	printstring STRINGID_GRAVITYINTENSIFIED
+	waitmessage B_WAIT_TIME_LONG
+	end3
+
 BattleScript_OverworldStatusStarts_TryActivations:
 	jumpifbyte CMP_EQUAL, cMULTISTRING_CHOOSER, B_MSG_SET_TRICK_ROOM, BattleScript_TryRoomServiceLoop
 	jumpifbyte CMP_EQUAL, cMULTISTRING_CHOOSER, B_MSG_SET_TAILWIND, BattleScript_TryTailwindAbilitiesLoop

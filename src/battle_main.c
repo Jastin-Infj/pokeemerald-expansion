@@ -3801,6 +3801,15 @@ static void TryDoEventsBeforeFirstTurn(void)
         }
         gBattleStruct->eventsBeforeFirstTurnState++;
         break;
+    case FIRST_TURN_EVENTS_STATUS:
+        if (!gBattleStruct->startingStatusDone
+         && AbilityBattleEffects(ABILITYEFFECT_SWITCH_IN_STATUSES, 0, 0, ABILITYEFFECT_SWITCH_IN_TERRAIN, 0) != 0)
+        {
+            gBattleStruct->startingStatusDone = TRUE;
+            return;
+        }
+        gBattleStruct->eventsBeforeFirstTurnState++;
+        break;
     case FIRST_TURN_EVENTS_STARTING_STATUS:
         if (!gBattleStruct->startingStatusDone
          && gBattleStruct->startingStatus

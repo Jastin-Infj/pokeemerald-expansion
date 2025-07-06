@@ -599,34 +599,50 @@ RustbroCity_Battle::
 # 300 "data/maps/RustboroCity_Gym/scripts.pory"
 	setvar VAR_BATTLE_FIELD_WEATHER,0
 # 301 "data/maps/RustboroCity_Gym/scripts.pory"
-	setvar VAR_BATTLE_FIELD_WEATHER,3
+	setvar VAR_BATTLE_FIELD_STATUS ,0
 # 302 "data/maps/RustboroCity_Gym/scripts.pory"
-	trainerbattle_no_intro TRAINER_VICTOR, Route111_Text_VictorDefeat
+
 # 303 "data/maps/RustboroCity_Gym/scripts.pory"
-	playse SE_USE_ITEM
+	setvar VAR_BATTLE_FIELD_WEATHER,3
 # 304 "data/maps/RustboroCity_Gym/scripts.pory"
-	special HealPlayerParty
+	setvar VAR_BATTLE_FIELD_STATUS,1
 # 305 "data/maps/RustboroCity_Gym/scripts.pory"
-	
+	trainerbattle_no_intro TRAINER_VICTOR, Route111_Text_VictorDefeat
 # 306 "data/maps/RustboroCity_Gym/scripts.pory"
-	setvar VAR_BATTLE_FIELD_WEATHER,2
-# 307 "data/maps/RustboroCity_Gym/scripts.pory"
-	trainerbattle_no_intro TRAINER_VIVI, Route111_Text_ViviDefeat
-# 308 "data/maps/RustboroCity_Gym/scripts.pory"
 	playse SE_USE_ITEM
-# 309 "data/maps/RustboroCity_Gym/scripts.pory"
+# 307 "data/maps/RustboroCity_Gym/scripts.pory"
 	special HealPlayerParty
-# 310 "data/maps/RustboroCity_Gym/scripts.pory"
+# 308 "data/maps/RustboroCity_Gym/scripts.pory"
 	
+# 309 "data/maps/RustboroCity_Gym/scripts.pory"
+	setvar VAR_BATTLE_FIELD_WEATHER,2
+# 310 "data/maps/RustboroCity_Gym/scripts.pory"
+	setvar VAR_BATTLE_FIELD_STATUS ,0
 # 311 "data/maps/RustboroCity_Gym/scripts.pory"
-	setvar VAR_BATTLE_FIELD_WEATHER,5
+	setvar VAR_BATTLE_FIELD_STATUS,6
 # 312 "data/maps/RustboroCity_Gym/scripts.pory"
-	trainerbattle_no_intro TRAINER_VICTORIA, Route111_Text_VictoriaDefeat
+	trainerbattle_no_intro TRAINER_VIVI, Route111_Text_ViviDefeat
 # 313 "data/maps/RustboroCity_Gym/scripts.pory"
 	playse SE_USE_ITEM
 # 314 "data/maps/RustboroCity_Gym/scripts.pory"
 	special HealPlayerParty
 # 315 "data/maps/RustboroCity_Gym/scripts.pory"
-	release
+	
 # 316 "data/maps/RustboroCity_Gym/scripts.pory"
+	setvar VAR_BATTLE_FIELD_WEATHER,5
+# 317 "data/maps/RustboroCity_Gym/scripts.pory"
+	trainerbattle_no_intro TRAINER_VICTORIA, Route111_Text_VictoriaDefeat
+# 318 "data/maps/RustboroCity_Gym/scripts.pory"
+	playse SE_USE_ITEM
+# 319 "data/maps/RustboroCity_Gym/scripts.pory"
+	special HealPlayerParty
+# 320 "data/maps/RustboroCity_Gym/scripts.pory"
+
+# 321 "data/maps/RustboroCity_Gym/scripts.pory"
+	setvar VAR_BATTLE_FIELD_WEATHER,0
+# 322 "data/maps/RustboroCity_Gym/scripts.pory"
+	setvar VAR_BATTLE_FIELD_STATUS,0
+# 323 "data/maps/RustboroCity_Gym/scripts.pory"
+	release
+# 324 "data/maps/RustboroCity_Gym/scripts.pory"
 	end
