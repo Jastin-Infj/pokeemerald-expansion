@@ -3251,7 +3251,7 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
     switch (caseID)
     {
     case ABILITYEFFECT_SWITCH_IN_STATUSES:  // starting field/side/etc statuses with a variable
-        MgbaPrintf(MGBA_LOG_WARN, "test: %u" , 30);
+        // MgbaPrintf(MGBA_LOG_WARN, "test: %u" , 30);
         {
             gBattleScripting.battler = battler;
 
@@ -3404,10 +3404,19 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
 
             }
 
-            if (effect == 1)
-                BattleScriptPushCursorAndCallback(BattleScript_OverworldStatusStarts);
-            else if (effect == 2)
-                BattleScriptPushCursorAndCallback(BattleScript_OverworldTerrain);
+            switch (VarGet(VAR_BATTLE_FIELD_STATUS))
+            {
+                case 0:
+                    if (effect == 1)
+                        BattleScriptPushCursorAndCallback(BattleScript_OverworldStatusStarts);
+                    else if (effect == 2)
+                        BattleScriptPushCursorAndCallback(BattleScript_OverworldTerrain);
+                    break;
+                default:    
+                    effect++;
+                    break;
+            }
+
         }
         break;
     case ABILITYEFFECT_SWITCH_IN_TERRAIN:   // terrain starting from overworld weather
@@ -3596,7 +3605,7 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
 
         if (effect != 0)
         {
-            switch(VarGet(VAR_BATTLE_FIELD_STATUS))
+            switch(VarGet(VAR_BATTLE_FIELD_WEATHER))
             {
                 case 7:
                 case 8:

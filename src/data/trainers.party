@@ -1093,74 +1093,6 @@ Marill
 Level: 26
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_LOLA_2 ===
-Name: LOLA
-Class: Tuber F
-Pic: Tuber F
-Gender: Female
-Music: Girl
-Double Battle: No
-AI: Check Bad Move
-
-Marill
-Level: 26
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-
-Marill
-Level: 26
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-
-=== TRAINER_LOLA_3 ===
-Name: LOLA
-Class: Tuber F
-Pic: Tuber F
-Gender: Female
-Music: Girl
-Double Battle: No
-AI: Check Bad Move
-
-Marill
-Level: 29
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-Marill
-Level: 29
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-=== TRAINER_LOLA_4 ===
-Name: LOLA
-Class: Tuber F
-Pic: Tuber F
-Gender: Female
-Music: Girl
-Double Battle: No
-AI: Check Bad Move
-
-Marill
-Level: 32
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-Marill
-Level: 32
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-=== TRAINER_LOLA_5 ===
-Name: LOLA
-Class: Tuber F
-Pic: Tuber F
-Gender: Female
-Music: Girl
-Double Battle: No
-AI: Check Bad Move
-
-Azumarill
-Level: 35
-IVs: 4 HP / 4 Atk / 4 Def / 4 SpA / 4 SpD / 4 Spe
-
-Azumarill
-Level: 35
-IVs: 4 HP / 4 Atk / 4 Def / 4 SpA / 4 SpD / 4 Spe
-
 === TRAINER_RICKY_1 ===
 Name: RICKY
 Class: Tuber M
@@ -17098,3 +17030,206 @@ IVs: 0 Atk
 - Aura Sphere  
 - Taunt  
 - Protect
+
+=== TRAINER_CHALLENGE1_PRO1 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer F
+Gender: Female
+Music: Cool
+Double Battle: Yes
+AI: AI_FLAG_DOUBLE_BATTLE
+
+Emolga @ Focus Sash  
+Ability: Motor Drive  
+Level: 15  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+- Nuzzle  
+- Air Slash  
+- Encore  
+- Eerie Impulse  
+
+Klinklang @ Electric Seed  
+Ability: Clear Body  
+Level: 15  
+EVs: 248 HP / 252 Atk / 4 Def / 4 SpD  
+Adamant Nature  
+- Shift Gear  
+- Gear Grind  
+- Ally Switch  
+- Protect  
+
+Swanna @ Waterium Z  
+Ability: Keen Eye  
+Level: 15  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Hydro Pump  
+- Hurricane  
+- Tailwind  
+- Protect  
+
+Electrode @ Choice Specs  
+Ability: Aftermath  
+Level: 15   
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Thunder  
+- Electroweb  
+- Volt Switch  
+- Foul Play  
+
+
+=== TRAINER_CHALLENGE1_PRO2 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Cool
+Double Battle: Yes
+AI: AI_FLAG_DOUBLE_BATTLE
+
+Gogoat @ Sitrus Berry  
+Ability: Grass Pelt  
+Level: 15  
+EVs: 80 HP / 252 Atk / 164 Def / 12 SpD  
+Adamant Nature  
+- Horn Leech  
+- Bulk Up  
+- Leech Seed  
+- High Horsepower  
+
+Mightyena @ Grassy Seed  
+Ability: Intimidate  
+Level: 15  
+EVs: 244 HP / 252 Atk / 4 Def / 8 SpD  
+Jolly Nature  
+- Crunch  
+- Snarl  
+- Howl  
+- Taunt  
+
+Florges @ Leftovers  
+Ability: Flower Veil  
+Level: 15  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Dazzling Gleam  
+- Energy Ball  
+- Pollen Puff  
+- Protect  
+
+Silvally-Poison @ Poison Memory  
+Ability: RKS System  
+Level: 15  
+EVs: 6 HP / 252 Atk / 252 Spe  
+Adamant Nature  
+- Multi-Attack  
+- Zen Headbutt  
+- Iron Head  
+- Protect 
+
+=== TRAINER_CHALLENGE1_PRO3 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer F
+Gender: Female
+Music: Cool
+Double Battle: Yes
+AI: AI_FLAG_DOUBLE_BATTLE
+
+Araquanid @ Mystic Water  
+Ability: Water Bubble  
+Level: 15
+EVs: 252 HP / 252 Atk / 4 Def  
+- Liquidation  
+- Leech Life  
+- Sticky Web  
+- Protect  
+
+Luvdisc @ Focus Sash  
+Ability: Swift Swim  
+Level: 15
+EVs: 252 HP / 204 Def / 52 SpD  
+Calm Nature  
+IVs: 0 Atk  
+- Icy Wind  
+- Charm  
+- Endeavor  
+- Soak  
+
+Phione @ Rocky Helmet  
+Ability: Hydration  
+Level: 15
+EVs: 252 HP / 132 Def / 124 SpD  
+Modest Nature  
+IVs: 0 Atk  
+- Weather Ball  
+- Rest  
+- Whirlpool  
+- Protect  
+
+Jolteon @ Choice Specs  
+Ability: Volt Absorb  
+Level: 15
+EVs: 4 HP / 252 Def / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Thunder  
+- Volt Switch  
+- Weather Ball  
+- Electroweb  
+
+=== TRAINER_CHALLENGE1_PRO4 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Cool
+Double Battle: Yes
+AI: AI_FLAG_DOUBLE_BATTLE
+
+Jynx @ Focus Sash  
+Ability: Dry Skin  
+Level: 15
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+- Blizzard  
+- Psychic  
+- Fake Out  
+- Protect  
+
+Kyurem @ Choice Scarf  
+Ability: Pressure  
+Level: 15
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Blizzard  
+- Draco Meteor  
+- Weather Ball  
+- Earth Power  
+
+Gyarados @ Rocky Helmet  
+Ability: Intimidate  
+Level: 15  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Aqua Tail  
+- Earthquake  
+- Dragon Dance  
+- Ice Fang  
+
+Iron Hands @ Assault Vest  
+Ability: Quark Drive  
+Level: 15
+EVs: 252 Atk / 4 Def / 252 SpD  
+Adamant Nature  
+- Drain Punch  
+- Low Kick  
+- Wild Charge  
+- Fake Out  

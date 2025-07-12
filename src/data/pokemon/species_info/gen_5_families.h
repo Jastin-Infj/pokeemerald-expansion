@@ -7392,11 +7392,11 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
     [SPECIES_SWANNA] =
     {
         .baseHP        = 75,
-        .baseAttack    = 87,
-        .baseDefense   = 63,
-        .baseSpeed     = 98,
-        .baseSpAttack  = 87,
-        .baseSpDefense = 63,
+        .baseAttack    = 57,
+        .baseDefense   = 73,
+        .baseSpeed     = 118,
+        .baseSpAttack  = 117,
+        .baseSpDefense = 73,
         .types = MON_TYPES(TYPE_WATER, TYPE_FLYING),
         .catchRate = 45,
         .expYield = 166,
@@ -8205,12 +8205,12 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
 #if P_FAMILY_EMOLGA
     [SPECIES_EMOLGA] =
     {
-        .baseHP        = 55,
-        .baseAttack    = 75,
-        .baseDefense   = 60,
-        .baseSpeed     = 103,
-        .baseSpAttack  = 75,
-        .baseSpDefense = 60,
+        .baseHP        = 75,
+        .baseAttack    = 65,
+        .baseDefense   = 75,
+        .baseSpeed     = 123,
+        .baseSpAttack  = 95,
+        .baseSpDefense = 75,
         .types = MON_TYPES(TYPE_ELECTRIC, TYPE_FLYING),
         .catchRate = 200,
         .expYield = 150,
@@ -9247,9 +9247,9 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
 
     [SPECIES_KLINKLANG] =
     {
-        .baseHP        = 60,
-        .baseAttack    = 100,
-        .baseDefense   = 115,
+        .baseHP        = 85,
+        .baseAttack    = 120,
+        .baseDefense   = 135,
         .baseSpeed     = 90,
         .baseSpAttack  = 70,
         .baseSpDefense = 85,
