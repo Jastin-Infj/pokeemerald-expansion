@@ -230,28 +230,38 @@ Gender: Male
 Music: Aqua
 Items: Z-Power Ring
 Double Battle: No
-AI: Check Bad Move
+AI: SINGLE_BOSS_MODE
 
-Scyther
+Scyther @ Eviolite  
+Ability: Technician  
 Level: 15
-Ability: Technician
-- Fury Cutter
-- Wing Attack
-- Swords Dance
-- U-turn
+EVs: 4 HP / 252 Atk / 252 Spe  
+Adamant Nature  
+- Fury Cutter  
+- Dual Wingbeat  
+- Swords Dance  
+- U-turn  
 
-Poliwhirl
-Level: 15
-- Liquidation
-- Hypnosis
-- Wake-Up Slap
+Poliwrath @ Sitrus Berry  
+Ability: Water Absorb  
+Level: 15    
+EVs: 252 Atk / 252 Def  
+Adamant Nature  
+IVs: 29 HP  
+- Drain Punch  
+- Belly Drum  
+- Aqua Jet  
+- Earthquake  
 
-Pangoro @ Fightinium Z
+Pangoro @ Fightinium Z  
+Ability: Iron Fist  
 Level: 15
-- Wicked Blow
-- Close Combat
-- Bullet Punch
-- Thrash
+EVs: 252 HP / 252 Atk / 4 Def  
+Adamant Nature  
+- Wicked Blow  
+- Close Combat  
+- Bullet Punch  
+- Thrash  
 
 === TRAINER_MARCEL ===
 Name: MARCEL
@@ -4762,7 +4772,7 @@ Gender: Female
 Music: Female
 Double Battle: Yes
 Items: ITEM_Z_POWER_RING
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Probopass @ Leftovers  
 Ability: Sturdy  
@@ -16935,7 +16945,7 @@ Class: Cooltrainer
 Pic: Cooltrainer M
 Music: Cool
 Double Battle: Yes
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Exploud @ Assault Vest  
 Ability: Soundproof  
@@ -16986,7 +16996,7 @@ Class: Cooltrainer
 Pic: Cooltrainer M
 Music: Cool
 Double Battle: Yes
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Unfezant @ Scope Lens  
 Ability: Super Luck  
@@ -17038,7 +17048,7 @@ Pic: Cooltrainer F
 Gender: Female
 Music: Cool
 Double Battle: Yes
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Emolga @ Focus Sash  
 Ability: Motor Drive  
@@ -17090,7 +17100,7 @@ Pic: Cooltrainer M
 Gender: Male
 Music: Cool
 Double Battle: Yes
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Gogoat @ Sitrus Berry  
 Ability: Grass Pelt  
@@ -17140,7 +17150,7 @@ Pic: Cooltrainer F
 Gender: Female
 Music: Cool
 Double Battle: Yes
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Araquanid @ Mystic Water  
 Ability: Water Bubble  
@@ -17191,7 +17201,7 @@ Pic: Cooltrainer M
 Gender: Male
 Music: Cool
 Double Battle: Yes
-AI: AI_FLAG_DOUBLE_BATTLE
+AI: DOUBLES_BOSS_MODE
 
 Jynx @ Focus Sash  
 Ability: Dry Skin  

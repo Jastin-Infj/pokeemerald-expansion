@@ -4274,6 +4274,10 @@ static const struct LevelUpMove sMismagiusLevelUpLearnset[] = {
 #if P_FAMILY_UNOWN
 static const struct LevelUpMove sUnownLevelUpLearnset[] = {
     LEVEL_UP_MOVE( 1, MOVE_HIDDEN_POWER),
+    LEVEL_UP_MOVE( 1, MOVE_POWER_SWAP),
+    LEVEL_UP_MOVE( 1, MOVE_GUARD_SWAP),
+    LEVEL_UP_MOVE( 1, MOVE_SKILL_SWAP),
+    LEVEL_UP_MOVE( 1, MOVE_SPPED_SWAP),
     LEVEL_UP_END
 };
 #endif //P_FAMILY_UNOWN

@@ -582,6 +582,10 @@ static void CB2_EndWildBattle(void)
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
 
+    // battle end
+    VarSet(VAR_BATTLE_FIELD_WEATHER,0);
+    VarSet(VAR_BATTLE_FIELD_STATUS,0);
+
     if (IsNPCFollowerWildBattle())
     {
         RestorePartyAfterFollowerNPCBattle();
@@ -1297,6 +1301,9 @@ static void CB2_EndTrainerBattle(void)
          || FlagGet(FNPC_FLAG_HEAL_AFTER_FOLLOWER_BATTLE)))
             HealPlayerParty();
     }
+
+    VarSet(VAR_BATTLE_FIELD_WEATHER,0);
+    VarSet(VAR_BATTLE_FIELD_STATUS,0);
 
     if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
     {

@@ -7,7 +7,6 @@ RustboroCity_Gym_MapScripts::
 RustboroCity_Gym_EventScript_Roxanne::
 	setvar VAR_BATTLE_FIELD_WEATHER, 3
 	trainerbattle_double TRAINER_ROXANNE_1, RustboroCity_Gym_Text_RoxanneIntro, RustboroCity_Gym_Text_RoxanneDefeat, RustboroCity_Gym_Text_RoxanneIntro, RustboroCity_Gym_EventScript_RoxanneDefeated, NO_MUSIC
-	setvar VAR_BATTLE_FIELD_WEATHER, 0
   @ goto_if_unset FLAG_RECEIVED_TM_ROCK_TOMB, RustboroCity_Gym_EventScript_GiveRockTomb
 	msgbox RustboroCity_Gym_Text_RoxannePostBattle, MSGBOX_DEFAULT
 	release
@@ -297,9 +296,6 @@ RustboroCity_Challenge1::
 	end
 
 RustbroCity_Battle::
-	setvar VAR_BATTLE_FIELD_WEATHER,0
-	setvar VAR_BATTLE_FIELD_STATUS,0
-
 	@ rain
 	setvar VAR_BATTLE_FIELD_WEATHER,1
 	@ ele
@@ -315,8 +311,6 @@ RustbroCity_Battle::
 	playse SE_USE_ITEM
 	special HealPlayerParty
 
-	setvar VAR_BATTLE_FIELD_WEATHER,0
-	setvar VAR_BATTLE_FIELD_STATUS,0
 	@ rain
 	setvar VAR_BATTLE_FIELD_WEATHER,1
 	trainerbattle_no_intro TRAINER_CHALLENGE1_PRO3, Route111_Text_VictorDefeat
@@ -324,17 +318,11 @@ RustbroCity_Battle::
 	special HealPlayerParty
 	
 	@ snow
-	setvar VAR_BATTLE_FIELD_WEATHER,0
-	setvar VAR_BATTLE_FIELD_STATUS,0
-
 	setvar VAR_BATTLE_FIELD_WEATHER,5
 	trainerbattle_no_intro TRAINER_CHALLENGE1_PRO4, Route111_Text_VictorDefeat
 	playse SE_USE_ITEM
 	special HealPlayerParty
-
-	setvar VAR_BATTLE_FIELD_WEATHER,0
-	setvar VAR_BATTLE_FIELD_STATUS,0
-
+	
 	giveitem ITEM_RELIC_SILVER,5
 	setflag FLAG_CHALLENGE1_CLEAR
 	release
