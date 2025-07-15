@@ -13351,9 +13351,9 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
     [SPECIES_MELOETTA_ARIA] =
     {
         .baseHP        = 100,
-        .baseAttack    = 77,
+        .baseAttack    = 57,
         .baseDefense   = 77,
-        .baseSpeed     = 90,
+        .baseSpeed     = 110,
         .baseSpAttack  = 128,
         .baseSpDefense = 128,
         .types = MON_TYPES(TYPE_NORMAL, TYPE_PSYCHIC),
@@ -13433,10 +13433,10 @@ const struct SpeciesInfo gSpeciesInfoGen5[] =
     [SPECIES_MELOETTA_PIROUETTE] =
     {
         .baseHP        = 100,
-        .baseAttack    = 128,
+        .baseAttack    = 148,
         .baseDefense   = 90,
         .baseSpeed     = 128,
-        .baseSpAttack  = 77,
+        .baseSpAttack  = 57,
         .baseSpDefense = 77,
         .types = MON_TYPES(TYPE_NORMAL, TYPE_FIGHTING),
         .catchRate = 3,

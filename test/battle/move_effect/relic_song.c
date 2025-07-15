@@ -7,6 +7,37 @@ ASSUMPTIONS
     ASSUME(MoveHasAdditionalEffect(MOVE_RELIC_SONG, MOVE_EFFECT_SLEEP) == TRUE);
 }
 
+SINGLE_BATTLE_TEST("Relic Song can be mirror coated if it is a special move")
+{
+    GIVEN {
+        ASSUME(GetMoveCategory(MOVE_RELIC_SONG) == DAMAGE_CATEGORY_SPECIAL);
+        PLAYER(SPECIES_WOBBUFFET) { Attack(100); SpAttack(110); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_RELIC_SONG); MOVE(opponent, MOVE_MIRROR_COAT); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_RELIC_SONG, player);
+        HP_BAR(opponent);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_MIRROR_COAT, opponent);
+        HP_BAR(player);
+    }
+}
+
+SINGLE_BATTLE_TEST("Relic Song can be countered if it is a physical move")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Attack(110); SpAttack(100); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_RELIC_SONG); MOVE(opponent, MOVE_COUNTER); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_RELIC_SONG, player);
+        HP_BAR(opponent);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_COUNTER, opponent);
+        HP_BAR(player);
+    }
+}
+
 SINGLE_BATTLE_TEST("Relic Song has a 10% chance to put the target to sleep")
 {
     PASSES_RANDOMLY(10, 100, RNG_SECONDARY_EFFECT);

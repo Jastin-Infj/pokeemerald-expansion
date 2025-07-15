@@ -63,10 +63,10 @@
 #define TRAINER_LOLA_1                       57
 #define TRAINER_AUSTINA                      58
 #define TRAINER_GWEN                         59
-#define TRAINER_CHALLENGE1_PRO1              60
-#define TRAINER_CHALLENGE1_PRO2              61
-#define TRAINER_CHALLENGE1_PRO3              62
-#define TRAINER_CHALLENGE1_PRO4              63
+#define TRAINER_CHALLENGE1_PRO1              60 // Custom
+#define TRAINER_CHALLENGE1_PRO2              61 // Custom
+#define TRAINER_CHALLENGE1_PRO3              62 // Custom
+#define TRAINER_CHALLENGE1_PRO4              63 // Custom
 #define TRAINER_RICKY_1                      64
 #define TRAINER_SIMON                        65
 #define TRAINER_CHARLIE                      66
@@ -276,13 +276,13 @@
 #define TRAINER_WINONA_1                    270
 #define TRAINER_TATE_AND_LIZA_1             271
 #define TRAINER_JUAN_1                      272
-#define TRAINER_JERRY_1                     273
+#define TRAINER_JERRY                       273
 #define TRAINER_TED                         274
 #define TRAINER_PAUL                        275
-#define TRAINER_JERRY_2                     276
-#define TRAINER_JERRY_3                     277
-#define TRAINER_JERRY_4                     278
-#define TRAINER_JERRY_5                     279
+#define TRAINER_JERRY_2                     276 //todo not Used
+#define TRAINER_JERRY_3                     277 //todo not Used
+#define TRAINER_JERRY_4                     278 //todo not Used
+#define TRAINER_JERRY_5                     279 //todo not Used
 #define TRAINER_KAREN_1                     280
 #define TRAINER_GEORGIA                     281
 #define TRAINER_KAREN_2                     282
@@ -331,8 +331,8 @@
 #define TRAINER_KATELYNN                    325
 #define TRAINER_JAYLEN                      326
 #define TRAINER_DILLON                      327
-#define TRAINER_COLISEUM_1                  328
-#define TRAINER_COLISEUM_2                  329
+#define TRAINER_COLISEUM_1                  328 // Custom
+#define TRAINER_COLISEUM_2                  329 // Custom
 #define TRAINER_CALVIN_4                    330
 #define TRAINER_CALVIN_5                    331
 #define TRAINER_EDDIE                       332
@@ -595,14 +595,14 @@
 #define TRAINER_GRUNT_SPACE_CENTER_6        589
 #define TRAINER_GRUNT_SPACE_CENTER_7        590
 #define TRAINER_MACEY                       591
-#define TRAINER_BRENDAN_RUSTBORO_TREECKO    592
+#define TRAINER_BRENDAN_RUSTBORO_TREECKO    592 // not used
 #define TRAINER_BRENDAN_RUSTBORO_MUDKIP     593
 #define TRAINER_PAXTON                      594
 #define TRAINER_ISABELLA                    595
 #define TRAINER_GRUNT_WEATHER_INST_5        596
 #define TRAINER_TABITHA_MT_CHIMNEY          597
 #define TRAINER_JONATHAN                    598
-#define TRAINER_BRENDAN_RUSTBORO_TORCHIC    599
+#define TRAINER_BRENDAN_RUSTBORO_TORCHIC    599 // not used
 #define TRAINER_MAY_RUSTBORO_MUDKIP         600
 #define TRAINER_MAXIE_MAGMA_HIDEOUT         601
 #define TRAINER_MAXIE_MT_CHIMNEY            602

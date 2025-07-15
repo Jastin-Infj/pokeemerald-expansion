@@ -50,48 +50,41 @@
 #define AI_FLAG_SAFARI                ((u64)1 << 62)
 #define AI_FLAG_FIRST_BATTLE          ((u64)1 << 63)
 
-#define AI_FLAG_SINGLES_SMART_COMBO ( \
-    AI_FLAG_CHECK_BAD_MOVE           | \
-    AI_FLAG_CHECK_VIABILITY          | \
-    AI_FLAG_HP_AWARE                 | \
-    AI_FLAG_TRY_TO_FAINT             | \
-    AI_FLAG_PREFER_STATUS_MOVES      | \
-    AI_FLAG_PREFER_HIGHEST_DAMAGE_MOVE| \
-    AI_FLAG_SMART_SWITCHING          | \
-    AI_FLAG_SMART_MON_CHOICES        | \
-    AI_FLAG_OMNISCIENT               | \
-    AI_FLAG_PREDICT_MOVE             | \
-    AI_FLAG_PP_STALL_PREVENTION      | \
-    AI_FLAG_POWERFUL_STATUS          | \
-    AI_FLAG_RISKY                    | \
-    AI_FLAG_CONSERVATIVE             \
-)
-
-#define AI_FLAG_DOUBLES_SMART_COMBO ( \
-  AI_FLAG_DOUBLE_BATTLE            | \
-  AI_FLAG_SMART_SWITCHING          | \
-  AI_FLAG_SMART_MON_CHOICES        | \
-  AI_FLAG_OMNISCIENT               | \
-  AI_FLAG_PREDICT_SWITCH           | \
-  AI_FLAG_PREDICT_INCOMING_MON     | \
-  AI_FLAG_PREDICT_MOVE             | \
-  AI_FLAG_WEIGH_ABILITY_PREDICTION | \
-  AI_FLAG_HP_AWARE                 | \
-  AI_FLAG_CHECK_VIABILITY          | \
-  AI_FLAG_PREFER_BATON_PASS        | \
-  AI_FLAG_PREFER_STATUS_MOVES      | \
-  AI_FLAG_PREFER_HIGHEST_DAMAGE_MOVE \
-)
 
 #define AI_FLAG_SINGLE_BOSS_MODE ( \
-    AI_FLAG_SINGLES_SMART_COMBO      | \
-    AI_FLAG_OMNISCIENT               | \
-    AI_FLAG_ACE_POKEMON              | \
-    AI_FLAG_CONSERVATIVE             | \
-    AI_FLAG_PP_STALL_PREVENTION     \
+    AI_FLAG_CHECK_BAD_MOVE              | \
+    AI_FLAG_OMNISCIENT                  | \
+    AI_FLAG_TRY_TO_FAINT                | \
+    AI_FLAG_SMART_SWITCHING             | \
+    AI_FLAG_PREDICT_MOVE                | \
+    AI_FLAG_CHECK_VIABILITY             | \
+    AI_FLAG_HP_AWARE                    | \
+    AI_FLAG_PREDICT_SWITCH              | \
+    AI_FLAG_PP_STALL_PREVENTION         | \
+    AI_FLAG_PREDICT_INCOMING_MON        | \
+    AI_FLAG_WEIGH_ABILITY_PREDICTION    | \
+    AI_FLAG_PREFER_HIGHEST_DAMAGE_MOVE  | \
+    AI_FLAG_SMART_MON_CHOICES           \
 )
 
 #define AI_FLAG_DOUBLES_BOSS_MODE ( \
+    AI_FLAG_CHECK_BAD_MOVE              | \
+    AI_FLAG_OMNISCIENT                  | \
+    AI_FLAG_TRY_TO_FAINT                | \
+    AI_FLAG_SMART_SWITCHING             | \
+    AI_FLAG_DOUBLE_BATTLE               | \
+    AI_FLAG_PREDICT_MOVE                | \
+    AI_FLAG_CHECK_VIABILITY             | \
+    AI_FLAG_HP_AWARE                    | \
+    AI_FLAG_PREDICT_SWITCH              | \
+    AI_FLAG_PP_STALL_PREVENTION         | \
+    AI_FLAG_PREDICT_INCOMING_MON        | \
+    AI_FLAG_WEIGH_ABILITY_PREDICTION    | \
+    AI_FLAG_PREFER_HIGHEST_DAMAGE_MOVE  | \
+    AI_FLAG_SMART_MON_CHOICES           \
+)
+
+#define AI_FLAG_DOUBLES_BOSS_MODE_TEST ( \
     AI_FLAG_CHECK_BAD_MOVE              | \
     AI_FLAG_OMNISCIENT                  | \
     AI_FLAG_TRY_TO_FAINT                | \

@@ -348,11 +348,49 @@ Pic: Aqua Grunt M
 Gender: Male
 Music: Aqua
 Double Battle: No
-AI: Check Bad Move
+AI: SINGLE_BOSS_MODE
 
-Poochyena
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Druddigon @ Rocky Helmet  
+Ability: Rough Skin  
+Level: 25  
+Shiny: Yes  
+EVs: 252 HP / 252 Def / 4 SpD  
+Impish Nature  
+- Outrage  
+- Dragon Tail  
+- Stealth Rock  
+- Bulk Up  
+
+Luxray @ Flame Orb  
+Ability: Guts  
+Level: 25  
+EVs: 252 HP / 252 Atk / 4 Spe  
+Adamant Nature  
+- Wild Charge  
+- Facade  
+- Psychic Fangs  
+- Protect  
+
+Honchkrow @ Scope Lens  
+Ability: Super Luck  
+Level: 25  
+EVs: 252 Atk / 252 Spe  
+Jolly Nature  
+- Night Slash  
+- U-turn  
+- Dual Wingbeat  
+- Taunt  
+
+Ceruledge @ Focus Sash  
+Ability: Weak Armor  
+Level: 25  
+EVs: 6 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Bitter Blade  
+- Shadow Sneak  
+- Poltergeist  
+- Swords Dance  
+
 
 === TRAINER_GRUNT_WEATHER_INST_1 ===
 Name: GRUNT
@@ -5118,7 +5156,7 @@ IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
 - Ice Beam
 - Rest
 
-=== TRAINER_JERRY_1 ===
+=== TRAINER_JERRY ===
 Name: JERRY
 Class: School Kid
 Pic: School Kid M
@@ -5127,9 +5165,14 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Ralts
-Level: 9
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Bisharp
+Level: 25
+
+Braviary
+Level: 25
+
+Type: Null
+Level: 25
 
 === TRAINER_TED ===
 Name: TED
@@ -5165,78 +5208,6 @@ Wingull
 Level: 15
 IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
 
-=== TRAINER_JERRY_2 ===
-Name: JERRY
-Class: School Kid
-Pic: School Kid M
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Ralts
-Level: 26
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-Meditite
-Level: 26
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-=== TRAINER_JERRY_3 ===
-Name: JERRY
-Class: School Kid
-Pic: School Kid M
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Kirlia
-Level: 29
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-Meditite
-Level: 29
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-=== TRAINER_JERRY_4 ===
-Name: JERRY
-Class: School Kid
-Pic: School Kid M
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Kirlia
-Level: 32
-IVs: 4 HP / 4 Atk / 4 Def / 4 SpA / 4 SpD / 4 Spe
-
-Medicham
-Level: 32
-IVs: 4 HP / 4 Atk / 4 Def / 4 SpA / 4 SpD / 4 Spe
-
-=== TRAINER_JERRY_5 ===
-Name: JERRY
-Class: School Kid
-Pic: School Kid M
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Kirlia
-Level: 34
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Banette
-Level: 34
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Medicham
-Level: 34
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
 === TRAINER_KAREN_1 ===
 Name: KAREN
 Class: School Kid
@@ -5246,9 +5217,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Shroomish
-Level: 9
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Sawsbuck
+Level: 25
+
+Sylveon
+Level: 25
+
+Tsareena
+Level: 25
+
+Eldegoss
+Level: 25
 
 === TRAINER_GEORGIA ===
 Name: GEORGIA
@@ -6044,9 +6023,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Machop
-Level: 9
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Girafarig
+Level: 25
+
+Sunflora
+Level: 25
+
+Jumpluff
+Level: 25
+
+Dragalge
+Level: 25
 
 === TRAINER_BEN ===
 Name: BEN
@@ -10884,23 +10871,6 @@ Natu
 Level: 36
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_BRENDAN_RUSTBORO_TREECKO ===
-Name: BRENDAN
-Class: Rival
-Pic: Brendan
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Check Bad Move
-
-Lotad
-Level: 13
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-Torchic
-Level: 15
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
 === TRAINER_BRENDAN_RUSTBORO_MUDKIP ===
 Name: BRENDAN
 Class: Rival
@@ -10910,13 +10880,11 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wingull
-Level: 13
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
+Lotad
+Level: 25
 
-Treecko
-Level: 15
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Torchic
+Level: 25
 
 === TRAINER_PAXTON ===
 Name: PAXTON
@@ -11007,40 +10975,6 @@ IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 Loudred
 Level: 33
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-
-=== TRAINER_BRENDAN_RUSTBORO_TORCHIC ===
-Name: BRENDAN
-Class: Rival
-Pic: Brendan
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Basic Trainer
-
-Slugma
-Level: 13
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-Mudkip
-Level: 15
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-=== TRAINER_MAY_RUSTBORO_MUDKIP ===
-Name: MAY
-Class: Rival
-Pic: May
-Gender: Female
-Music: Female
-Double Battle: No
-AI: Check Bad Move / Try To Faint / Force Setup First Turn
-
-Wingull
-Level: 13
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-Treecko
-Level: 15
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
 
 === TRAINER_MAXIE_MAGMA_HIDEOUT ===
 Name: MAXIE
@@ -11135,9 +11069,14 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Marill
-Level: 9
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Bruxish
+Level: 25
+
+Tinkaton
+Level: 25
+
+Gardevoir
+Level: 25
 
 === TRAINER_VIVI ===
 Name: VIVI
@@ -11348,13 +11287,14 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wurmple
-Level: 8
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Mr. Mime
+Level: 25
 
-Nincada
-Level: 8
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Accelgor
+Level: 25
+
+Galvantula
+Level: 25
 
 === TRAINER_DOUG ===
 Name: DOUG
@@ -11602,9 +11542,14 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Geodude
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Sandaconda
+Level: 25
+
+Steelix
+Level: 25
+
+Clodsire
+Level: 25
 
 === TRAINER_ERIC ===
 Name: ERIC
@@ -12994,13 +12939,17 @@ Music: Rich
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon @ Nugget
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Staraptor
+Level: 25
 
-Poochyena
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Lucario
+Level: 25
+
+Scolipede
+Level: 25
+
+Thievul
+Level: 25
 
 === TRAINER_SARAH ===
 Name: SARAH
@@ -13012,13 +12961,14 @@ Items: Full Restore
 Double Battle: No
 AI: Check Bad Move
 
-Lotad
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Gorebyss
+Level: 25
 
-Zigzagoon @ Nugget
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Lopunny
+Level: 25
+
+Gothitelle
+Level: 25
 
 === TRAINER_DARIAN ===
 Name: DARIAN
@@ -13924,13 +13874,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Geodude
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Magcargo
+Level: 25
 
-Geodude
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Corsola
+Level: 25
+
+Donphan
+Level: 25
+
+Tyranitar
+Level: 25
 
 === TRAINER_JOHNSON ===
 Name: JOHNSON
@@ -13941,13 +13895,14 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Shroomish
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Ludicolo
+Level: 25
 
-Lotad
-Level: 8
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Gardevoir
+Level: 25
+
+Excadrill
+Level: 25
 
 === TRAINER_MELINA ===
 Name: MELINA
@@ -14184,39 +14139,79 @@ Vigoroth
 Level: 29
 IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
 
-=== TRAINER_MAY_RUSTBORO_TREECKO ===
-Name: MAY
-Class: Rival
-Pic: May
-Gender: Female
-Music: Female
-Double Battle: No
-AI: Basic Trainer
-
-Lotad
-Level: 13
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
-
-Torchic
-Level: 15
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
 === TRAINER_MAY_RUSTBORO_TORCHIC ===
 Name: MAY
 Class: Rival
 Pic: May
 Gender: Female
+Items: ITEM_Z_POWER_RING
 Music: Female
-Double Battle: No
-AI: Basic Trainer
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
 
-Torkoal
-Level: 13
-IVs: 3 HP / 3 Atk / 3 Def / 3 SpA / 3 SpD / 3 Spe
+Ledian @ Leftovers  
+Ability: Early Bird  
+Level: 25  
+EVs: 252 HP / 4 SpA / 252 SpD  
+Calm Nature  
+IVs: 0 Atk  
+- Tailwind  
+- Reflect  
+- Light Screen  
+- Struggle Bug  
 
-Mudkip
-Level: 15
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Flygon @ Choice Specs  
+Ability: Levitate  
+Level: 25  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Dragon Pulse  
+- Earth Power  
+- Heat Wave  
+- Air Slash  
+
+Toxicroak @ Focus Sash  
+Ability: Dry Skin  
+Level: 25  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Sludge Bomb  
+- Focus Blast  
+- Sludge Wave  
+- Protect  
+
+Milotic @ Waterium Z  
+Ability: Cute Charm  
+Level: 25  
+EVs: 252 HP / 108 Def / 148 SpA  
+Modest Nature  
+IVs: 0 Atk  
+- Scald  
+- Ice Beam  
+- Draining Kiss  
+- Protect  
+
+Meloetta @ Expert Belt  
+Ability: Serene Grace  
+Level: 25  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Relic Song  
+- Close Combat  
+- Play Rough  
+- Protect  
+
+Rapidash @ Choice Scarf  
+Ability: Flame Body  
+Level: 25    
+EVs: 4 HP / 252 Atk / 252 Spe  
+Adamant Nature  
+- Flare Blitz  
+- Megahorn  
+- Drill Run  
+- Horn Drill  
 
 === TRAINER_ROXANNE_2 ===
 Name: ROXANNE
@@ -16998,20 +16993,9 @@ Music: Cool
 Double Battle: Yes
 AI: DOUBLES_BOSS_MODE
 
-Unfezant @ Scope Lens  
-Ability: Super Luck  
-Level: 15
-Tera Type: Flying  
-EVs: 252 Atk / 4 SpD / 252 Spe  
-Jolly Nature  
-- Brave Bird  
-- Hypnosis  
-- Giga Impact  
-- Protect  
-
 Clefairy @ Eviolite  
 Ability: Friend Guard  
-Level: 15
+Level: 25
 EVs: 252 HP / 228 Def / 28 SpD  
 Calm Nature  
 IVs: 0 Atk  
@@ -17020,9 +17004,19 @@ IVs: 0 Atk
 - Heal Pulse  
 - Protect  
 
+Unfezant @ Scope Lens  
+Ability: Super Luck  
+Level: 25
+EVs: 252 Atk / 4 SpD / 252 Spe  
+Jolly Nature  
+- Brave Bird  
+- Hypnosis  
+- Giga Impact  
+- Protect  
+
 Arcanine @ Assault Vest  
 Ability: Intimidate  
-Level: 15 
+Level: 25 
 EVs: 252 HP / 252 Atk / 6 Def  
 Adamant Nature  
 - Flare Blitz  
@@ -17032,7 +17026,7 @@ Adamant Nature
 
 Keldeo @ Focus Sash  
 Ability: Justified  
-Level: 15
+Level: 25
 EVs: 6 HP / 252 SpA / 252 Spe  
 Timid Nature  
 IVs: 0 Atk  

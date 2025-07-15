@@ -13993,7 +13993,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
             "Attacks with an ancient\n"
             "song. May induce sleep."),
         .effect = EFFECT_RELIC_SONG,
-        .power = 75,
+        .power = 95,
         .type = TYPE_NORMAL,
         .accuracy = 100,
         .pp = 10,

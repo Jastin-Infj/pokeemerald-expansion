@@ -867,3 +867,60 @@ mart Common_Shop_TMs
 	ITEM_HM07
 	ITEM_HM08
 }
+
+script Common_EventScript_Money
+{
+	lock
+	faceplayer
+	showmoneybox(0,0)
+
+	msgbox(Common_Text_MoneyStart,MSGBOX_YESNO)
+	if(var(VAR_RESULT))
+	{	
+		// item held
+		if(checkitem(ITEM_RELIC_SILVER) == TRUE)
+		{
+			addmoney(5000)
+			updatemoneybox
+			playse(SE_SHOP)
+			removeitem(ITEM_RELIC_SILVER,1)
+
+			msgbox(Common_Text_MoneyChange,MSGBOX_AUTOCLOSE)
+		}
+		// item 0 
+		else
+		{
+			msgbox(Common_Text_MoneyHasNone,MSGBOX_DEFAULT)
+			closemessage
+		}
+	}
+	else
+	{
+		msgbox(Common_Text_MoneyCansel,MSGBOX_DEFAULT)
+		closemessage
+	}
+	hidemoneybox
+	waitmovement(0)
+	releaseall
+	end
+}
+
+text Common_Text_MoneyStart
+{
+	format("If you have RELIC_SILVER I will buy it from you for 5,000$.")
+}
+
+text Common_Text_MoneyHasNone
+{
+	format("Don't lie to me.")
+}
+
+text Common_Text_MoneyChange
+{
+	format("Negotiations were concluded! If I see it again, I'll buy it.")
+}
+
+text Common_Text_MoneyCansel
+{
+	format("Okay. Let me know if you need anything else.")
+}

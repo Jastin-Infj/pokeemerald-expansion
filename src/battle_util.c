@@ -3453,8 +3453,8 @@ u32 AbilityBattleEffects(u32 caseID, u32 battler, u32 ability, u32 special, u32 
                     effect++;
                     break;
                 case 8:
-                    gFieldStatuses = STATUS_FIELD_GRASSY_TERRAIN;
-                    gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_TERRAIN_SET_GRASSY;
+                    gFieldStatuses = STATUS_FIELD_MISTY_TERRAIN;
+                    gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_TERRAIN_END_MISTY;
                     gFieldTimers.terrainTimer = 0;
                     BattleScriptPushCursorAndCallback(BattleScript_OverworldTerrain);
                     effect++;

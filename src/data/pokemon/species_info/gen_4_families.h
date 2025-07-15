@@ -5055,11 +5055,11 @@ const struct SpeciesInfo gSpeciesInfoGen4[] =
     [SPECIES_TOXICROAK] =
     {
         .baseHP        = 83,
-        .baseAttack    = 106,
-        .baseDefense   = 65,
-        .baseSpeed     = 85,
-        .baseSpAttack  = 86,
-        .baseSpDefense = 65,
+        .baseAttack    = 96,
+        .baseDefense   = 75,
+        .baseSpeed     = 125,
+        .baseSpAttack  = 126,
+        .baseSpDefense = 75,
         .types = MON_TYPES(TYPE_POISON, TYPE_FIGHTING),
         .catchRate = 75,
         .expYield = (P_UPDATED_EXP_YIELDS >= GEN_5) ? 172 : 181,

@@ -1649,6 +1649,56 @@ Common_Shop_TMs:
 	.2byte ITEM_HM08
 	.2byte ITEM_NONE
 
+Common_EventScript_Money::
+# 873 "data/scripts/custom.pory"
+	lock
+# 874 "data/scripts/custom.pory"
+	faceplayer
+# 875 "data/scripts/custom.pory"
+	showmoneybox 0, 0
+# 877 "data/scripts/custom.pory"
+	msgbox Common_Text_MoneyStart, MSGBOX_YESNO
+# 878 "data/scripts/custom.pory"
+	compare VAR_RESULT, 0
+	goto_if_ne Common_EventScript_Money_2
+# 899 "data/scripts/custom.pory"
+	msgbox Common_Text_MoneyCansel, MSGBOX_DEFAULT
+# 900 "data/scripts/custom.pory"
+	closemessage
+Common_EventScript_Money_1:
+# 902 "data/scripts/custom.pory"
+	hidemoneybox
+# 903 "data/scripts/custom.pory"
+	waitmovement 0
+# 904 "data/scripts/custom.pory"
+	releaseall
+	end
+
+Common_EventScript_Money_2:
+	checkitem ITEM_RELIC_SILVER
+# 0 "data/scripts/custom.pory"
+	compare VAR_RESULT, TRUE
+	goto_if_eq Common_EventScript_Money_5
+# 893 "data/scripts/custom.pory"
+	msgbox Common_Text_MoneyHasNone, MSGBOX_DEFAULT
+# 894 "data/scripts/custom.pory"
+	closemessage
+	goto Common_EventScript_Money_1
+
+Common_EventScript_Money_5:
+# 883 "data/scripts/custom.pory"
+	addmoney 5000
+# 884 "data/scripts/custom.pory"
+	updatemoneybox
+# 885 "data/scripts/custom.pory"
+	playse SE_SHOP
+# 886 "data/scripts/custom.pory"
+	removeitem ITEM_RELIC_SILVER, 1
+# 888 "data/scripts/custom.pory"
+	msgbox Common_Text_MoneyChange, MSGBOX_AUTOCLOSE
+	goto Common_EventScript_Money_1
+
+
 gText_UsePicnicBasket::
 # 11 "data/scripts/custom.pory"
 	.string "{PLAYER} had a picnic with the patry.\n"
@@ -1697,3 +1747,22 @@ gText_ShopBerry::
 gText_ShopCansel::
 # 83 "data/scripts/custom.pory"
 	.string "   Cansel$"
+
+Common_Text_MoneyStart::
+# 908 "data/scripts/custom.pory"
+	.string "If you have RELIC_SILVER I will buy it\n"
+	.string "from you for 5,000$.$"
+
+Common_Text_MoneyHasNone::
+# 913 "data/scripts/custom.pory"
+	.string "Don't lie to me.$"
+
+Common_Text_MoneyChange::
+# 918 "data/scripts/custom.pory"
+	.string "Negotiations were concluded! If I see\n"
+	.string "it again, I'll buy it.$"
+
+Common_Text_MoneyCansel::
+# 923 "data/scripts/custom.pory"
+	.string "Okay. Let me know if you need anything\n"
+	.string "else.$"
