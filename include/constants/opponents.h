@@ -279,10 +279,10 @@
 #define TRAINER_JERRY                       273
 #define TRAINER_TED                         274
 #define TRAINER_PAUL                        275
-#define TRAINER_JERRY_2                     276 //todo not Used
-#define TRAINER_JERRY_3                     277 //todo not Used
-#define TRAINER_JERRY_4                     278 //todo not Used
-#define TRAINER_JERRY_5                     279 //todo not Used
+#define TRAINER_CHALLENGE2_PRO1             276 // Custom
+#define TRAINER_CHALLENGE2_PRO2             277 // Custom
+#define TRAINER_CHALLENGE2_PRO3             278 // Custom
+#define TRAINER_CHALLENGE2_PRO4             279 // Custom
 #define TRAINER_KAREN_1                     280
 #define TRAINER_GEORGIA                     281
 #define TRAINER_KAREN_2                     282
@@ -331,8 +331,8 @@
 #define TRAINER_KATELYNN                    325
 #define TRAINER_JAYLEN                      326
 #define TRAINER_DILLON                      327
-#define TRAINER_COLISEUM_1                  328 // Custom
-#define TRAINER_COLISEUM_2                  329 // Custom
+#define TRAINER_COLISEUM_1                  328 //* Custom
+#define TRAINER_COLISEUM_2                  329 //* Custom
 #define TRAINER_CALVIN_4                    330
 #define TRAINER_CALVIN_5                    331
 #define TRAINER_EDDIE                       332
@@ -349,7 +349,7 @@
 #define TRAINER_BARNY                       343
 #define TRAINER_WADE                        344
 #define TRAINER_CARTER                      345
-#define TRAINER_ELLIOT_2                    346
+#define TRAINER_COLISEUM_3                  346 //* Custom
 #define TRAINER_ELLIOT_3                    347
 #define TRAINER_ELLIOT_4                    348
 #define TRAINER_ELLIOT_5                    349

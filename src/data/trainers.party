@@ -3185,9 +3185,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Machop
-Level: 13
-IVs: 15 HP / 15 Atk / 15 Def / 15 SpA / 15 SpD / 15 Spe
+Kingambit
+Level: 25
+
+Aggron
+Level: 25
+
+Sudowoodo
+Level: 25
+
+Metagross
+Level: 25
 
 === TRAINER_HITOSHI ===
 Name: HITOSHI
@@ -4814,7 +4822,7 @@ AI: DOUBLES_BOSS_MODE
 
 Probopass @ Leftovers  
 Ability: Sturdy  
-Level: 15
+Level: 18
 EVs: 252 HP / 180 Def / 76 SpD  
 Calm Nature  
 IVs: 0 Atk  
@@ -4825,7 +4833,7 @@ IVs: 0 Atk
 
 Dugtrio-Alola @ Focus Sash  
 Ability: Sand Force  
-Level: 15
+Level: 18
 EVs: 252 Atk / 6 Def / 252 Spe  
 Jolly Nature  
 - Earthquake  
@@ -4835,7 +4843,7 @@ Jolly Nature
 
 Wugtrio @ Bright Powder  
 Ability: Sand Veil  
-Level: 15
+Level: 18
 EVs: 252 Atk / 252 Spe  
 Adamant Nature  
 IVs: 0 HP  
@@ -4846,7 +4854,7 @@ IVs: 0 HP
 
 Golem @ Groundium Z  
 Ability: Sand Veil  
-Level: 15
+Level: 18
 EVs: 124 HP / 252 Atk / 132 SpD  
 Adamant Nature  
 - Earthquake  
@@ -4860,33 +4868,50 @@ Class: Leader
 Pic: Leader Brawly
 Gender: Male
 Music: Male
-Items: Super Potion / Super Potion
-Double Battle: No
-AI: Basic Trainer
+Items: ITEM_Z_POWER_RING
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
 
-Machop
-Level: 16
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Karate Chop
-- Low Kick
-- Seismic Toss
-- Bulk Up
+Mesprit @ Assault Vest  
+Ability: Levitate  
+Level: 28
+EVs: 252 HP / 252 SpA / 4 SpD  
+Modest Nature  
+IVs: 0 Atk  
+- Psychic  
+- Energy Ball  
+- Ice Beam  
+- Dazzling Gleam  
 
-Meditite
-Level: 16
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Focus Punch
-- Light Screen
-- Reflect
-- Bulk Up
+Salamence @ Flyinium Z  
+Ability: Moxie  
+Level: 28  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Dragon Claw  
+- Fly  
+- Psychic Fangs  
+- Protect  
 
-Makuhita @ Sitrus Berry
-Level: 19
-IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
-- Arm Thrust
-- Vital Throw
-- Reversal
-- Bulk Up
+Revavroom @ Black Sludge  
+Ability: Filter  
+Level: 28  
+EVs: 252 HP / 252 Def  
+Impish Nature  
+- Iron Head  
+- Taunt  
+- Parting Shot  
+- Protect  
+
+Decidueye-Hisui @ Coba Berry  
+Ability: Scrappy  
+Level: 28  
+EVs: 252 HP / 252 Atk  
+Adamant Nature  
+- Close Combat  
+- Leaf Blade  
+- Shadow Sneak  
+- Bulk Up  
 
 === TRAINER_WATTSON_1 ===
 Name: WATTSON
@@ -6366,17 +6391,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Magikarp
-Level: 10
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Muk-Alola
+Level: 25
 
-Tentacool
-Level: 7
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Gyarados
+Level: 25
 
-Magikarp
-Level: 10
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Phione
+Level: 25
+
+Seismitoad
+Level: 25
 
 === TRAINER_NED ===
 Name: NED
@@ -6387,9 +6412,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Tentacool
-Level: 11
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Jellicent
+Level: 25
+
+Arctovish
+Level: 25
+
+Lumineon
+Level: 25
+
+Lapras
+Level: 25
 
 === TRAINER_DALE ===
 Name: DALE
@@ -6474,27 +6507,6 @@ IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
 
 Tentacruel
 Level: 25
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-
-=== TRAINER_ELLIOT_2 ===
-Name: ELLIOT
-Class: Fisherman
-Pic: Fisherman
-Gender: Male
-Music: Hiker
-Double Battle: No
-AI: Check Bad Move
-
-Tentacool
-Level: 24
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-
-Gyarados
-Level: 27
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-
-Gyarados
-Level: 27
 IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
 
 === TRAINER_ELLIOT_3 ===
@@ -7835,9 +7847,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Meditite
-Level: 13
-IVs: 15 HP / 15 Atk / 15 Def / 15 SpA / 15 SpD / 15 Spe
+Mudsdale
+Level: 25
+
+Mimikyu
+Level: 25
+
+Miltank
+Level: 25
+
+Espeon
+Level: 25
 
 === TRAINER_LAURA ===
 Name: LAURA
@@ -7848,9 +7868,14 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Meditite
-Level: 13
-IVs: 18 HP / 18 Atk / 18 Def / 18 SpA / 18 SpD / 18 Spe
+Floatzel
+Level: 25
+
+Lopunny
+Level: 25
+
+Reuniclus
+Level: 25
 
 === TRAINER_CYNDY_1 ===
 Name: CYNDY
@@ -10606,9 +10631,14 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Machop
-Level: 13
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
+Infernape
+Level: 25
+
+Stonjourner
+Level: 25
+
+Pawmot
+Level: 25
 
 === TRAINER_LILITH ===
 Name: LILITH
@@ -10619,9 +10649,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Meditite
-Level: 13
-IVs: 18 HP / 18 Atk / 18 Def / 18 SpA / 18 SpD / 18 Spe
+Furfrou
+Level: 25
+
+Slurpuff
+Level: 25
+
+Masquerain
+Level: 25
+
+Ampharos
+Level: 25
 
 === TRAINER_CRISTIAN ===
 Name: CRISTIAN
@@ -10632,9 +10670,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Makuhita
-Level: 13
-IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
+Kingler
+Level: 25
+
+Hitmonlee
+Level: 25
+
+Hitmonchan
+Level: 25
+
+Crabominable
+Level: 25
 
 === TRAINER_SYLVIA ===
 Name: SYLVIA
@@ -17035,6 +17081,55 @@ IVs: 0 Atk
 - Taunt  
 - Protect
 
+=== TRAINER_COLISEUM_3 ===
+Name: Alie
+Class: Cooltrainer
+Pic: Cooltrainer M
+Music: Cool
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
+
+Hitmonchan (M) @ Leftovers  
+Ability: Inner Focus  
+Level: 25  
+EVs: 252 HP / 252 Def / 4 SpD  
+Careful Nature  
+- Fake Out  
+- Drain Punch  
+- Upper Hand  
+- Coaching  
+
+Dodrio @ Choice Band  
+Ability: Tangled Feet  
+Level: 25    
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Thrash  
+- Throat Chop  
+- Drill Run  
+- Brave Bird  
+
+Landorus-Therian (M)  
+Ability: Intimidate  
+Level: 25    
+EVs: 252 HP / 92 Def / 164 SpD  
+Adamant Nature  
+- U-turn  
+- Earthquake  
+- Stomping Tantrum  
+- Fly  
+
+Toxapex @ Black Sludge  
+Ability: Regenerator  
+Level: 25  
+EVs: 252 HP / 20 Def / 236 SpD  
+Bold Nature  
+IVs: 0 Atk  
+- Baneful Bunker  
+- Wide Guard  
+- Recover  
+- Chilling Water  
+
 === TRAINER_CHALLENGE1_PRO1 ===
 Name: LOLA
 Class: Cooltrainer
@@ -17237,3 +17332,206 @@ Adamant Nature
 - Low Kick  
 - Wild Charge  
 - Fake Out  
+
+
+=== TRAINER_CHALLENGE2_PRO1 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer F
+Gender: Female
+Music: Cool
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
+
+Hypno @ Big Root  
+Ability: Inner Focus  
+Level: 25  
+EVs: 252 HP / 252 Def / 4 SpD  
+Calm Nature  
+IVs: 0 Atk  
+- Hypnosis  
+- Dream Eater  
+- Psychic Terrain  
+- Nasty Plot  
+
+Persian @ Covert Cloak  
+Ability: Unnerve  
+Level: 25  
+EVs: 252 HP / 4 Def / 252 Spe  
+- Fake Out  
+- Hypnosis  
+- Last Resort  
+- Snarl  
+
+Granbull @ Choice Band  
+Ability: Rattled  
+Level: 25  
+EVs: 252 HP / 252 Atk / 4 SpD  
+Adamant Nature  
+- Play Rough  
+- Psychic Fangs  
+- Close Combat  
+- Lash Out  
+
+Moltres-Galar @ Black Glasses  
+Ability: Berserk  
+Level: 25  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+- Fiery Wrath  
+- Tailwind  
+- Hurricane  
+- Protect  
+
+=== TRAINER_CHALLENGE2_PRO2 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Cool
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
+
+Chandelure @ Choice Scarf  
+Ability: Flash Fire  
+Level: 25  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Heat Wave  
+- Solar Beam  
+- Inferno  
+- Hex  
+
+Furret @ Sitrus Berry  
+Ability: Frisk  
+Level: 25  
+EVs: 252 HP / 132 Def / 124 SpD  
+Careful Nature  
+- Follow Me  
+- Super Fang  
+- Baby-Doll Eyes  
+- Fire Punch  
+
+Arbok @ Choice Band  
+Ability: Intimidate  
+Level: 25  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Gunk Shot  
+- Sucker Punch  
+- Switcheroo  
+- Seed Bomb  
+
+Volcanion @ Utility Umbrella  
+Ability: Water Absorb  
+Level: 25  
+EVs: 20 HP / 252 SpA / 236 SpD  
+Modest Nature  
+IVs: 0 Atk  
+- Steam Eruption  
+- Scorching Sands  
+- Heat Wave  
+- Protect  
+
+=== TRAINER_CHALLENGE2_PRO3 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer F
+Gender: Female
+Music: Cool
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
+
+Iron Treads @ Life Orb  
+Ability: Quark Drive  
+Level: 25  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Adamant Nature  
+- Iron Head  
+- High Horsepower  
+- Protect  
+- Earthquake  
+
+Beautifly @ Focus Sash  
+Ability: Swarm  
+Level: 25  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Bug Buzz  
+- Air Slash  
+- Protect  
+- Quiver Dance  
+
+Tauros-Paldea-Aqua (M) @ Choice Band  
+Ability: Intimidate  
+Level: 25  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Raging Bull  
+- Close Combat  
+- Wave Crash  
+- Drill Run  
+
+Blastoise @ Leftovers  
+Ability: Rain Dish  
+Level: 25  
+EVs: 252 HP / 204 Def / 52 SpD  
+Calm Nature  
+IVs: 0 Atk  
+- Fake Out  
+- Muddy Water  
+- Aqua Ring  
+- Whirlpool  
+
+=== TRAINER_CHALLENGE2_PRO4 ===
+Name: LOLA
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Cool
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
+
+Forretress @ Custap Berry  
+Ability: Sturdy  
+Level: 25  
+EVs: 252 HP / 252 Def  
+Relaxed Nature  
+IVs: 0 Spe  
+- Explosion  
+- Hard Press  
+- Power Trick  
+- Lunge  
+
+Rampardos @ Choice Band  
+Ability: Sheer Force  
+Level: 25  
+EVs: 252 HP / 252 Atk / 4 Def  
+IVs: 0 Spe  
+- Head Smash  
+- Hammer Arm  
+- Breaking Swipe  
+- Supercell Slam  
+
+Camerupt  
+Ability: Solid Rock  
+Level: 25  
+EVs: 252 HP / 4 Def / 252 SpA  
+Quiet Nature  
+IVs: 0 Atk / 0 Spe  
+- Eruption  
+- Howl  
+- Earth Power  
+- Protect  
+
+Regirock @ Leftovers  
+Ability: Clear Body  
+Level: 25  
+EVs: 252 HP / 252 Def / 4 SpD  
+Relaxed Nature  
+- Body Press  
+- Rock Slide  
+- Zap Cannon  
+- Protect  

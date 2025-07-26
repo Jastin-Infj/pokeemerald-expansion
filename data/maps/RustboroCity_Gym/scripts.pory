@@ -304,9 +304,8 @@ RustbroCity_Battle::
 	playse SE_USE_ITEM
 	special HealPlayerParty
 	
-	setvar VAR_BATTLE_FIELD_WEATHER,0
 	@ grass
-	setvar VAR_BATTLE_FIELD_STATUS,8
+	setvar VAR_BATTLE_FIELD_STATUS,7
 	trainerbattle_no_intro TRAINER_CHALLENGE1_PRO2, Route111_Text_VictorDefeat
 	playse SE_USE_ITEM
 	special HealPlayerParty

@@ -6174,10 +6174,10 @@ const struct SpeciesInfo gSpeciesInfoGen4[] =
     [SPECIES_MESPRIT] =
     {
         .baseHP        = 80,
-        .baseAttack    = 105,
+        .baseAttack    = 75,
         .baseDefense   = 105,
         .baseSpeed     = 80,
-        .baseSpAttack  = 105,
+        .baseSpAttack  = 135,
         .baseSpDefense = 105,
         .types = MON_TYPES(TYPE_PSYCHIC),
         .catchRate = 3,
@@ -6258,12 +6258,12 @@ const struct SpeciesInfo gSpeciesInfoGen4[] =
 #if P_FAMILY_AZELF
     [SPECIES_AZELF] =
     {
-        .baseHP        = 75,
+        .baseHP        = 65,
         .baseAttack    = 125,
-        .baseDefense   = 70,
-        .baseSpeed     = 115,
-        .baseSpAttack  = 125,
-        .baseSpDefense = 70,
+        .baseDefense   = 45,
+        .baseSpeed     = 135,
+        .baseSpAttack  = 145,
+        .baseSpDefense = 55,
         .types = MON_TYPES(TYPE_PSYCHIC),
         .catchRate = 3,
     #if P_UPDATED_EXP_YIELDS >= GEN_8

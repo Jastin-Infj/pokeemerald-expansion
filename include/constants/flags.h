@@ -184,7 +184,7 @@
 #define FLAG_CUTE_PAINTING_MADE              0xA2
 #define FLAG_SMART_PAINTING_MADE             0xA3
 #define FLAG_TOUGH_PAINTING_MADE             0xA4
-#define FLAG_RECEIVED_TM_ROCK_TOMB           0xA5 // Unused
+#define FLAG_UNUSED_0x0A5                    0xA5 // Unused
 #define FLAG_RECEIVED_TM_BULK_UP             0xA6 // Unused
 #define FLAG_RECEIVED_TM_SHOCK_WAVE          0xA7 // Unused
 #define FLAG_RECEIVED_TM_OVERHEAT            0xA8 // Unused
@@ -662,7 +662,7 @@
 #define FLAG_DN_FLAG_DEXNAV_GET  0x267 // Devnav menu
 #define FLAG_DETECTOR_MODE       0x268 // Hidden wind mons
 #define FLAG_CHALLENGE1_CLEAR    0x269 // Gem Challenge 1
-#define FLAG_UNUSED_0x26A  0x26A // Unused Flag
+#define FLAG_CHALLENGE2_CLEAR    0x26A // Gem Challenge 2
 #define FLAG_UNUSED_0x26B  0x26B // Unused Flag
 #define FLAG_UNUSED_0x26C  0x26C // Unused Flag
 #define FLAG_UNUSED_0x26D  0x26D // Unused Flag

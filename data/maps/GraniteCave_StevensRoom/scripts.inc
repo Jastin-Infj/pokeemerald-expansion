@@ -10,7 +10,7 @@ GraniteCave_StevensRoom_EventScript_Steven::
 	setflag FLAG_DELIVERED_STEVEN_LETTER
 	msgbox GraniteCave_StevensRoom_Text_ThankYouTakeThis, MSGBOX_DEFAULT
 	@ giveitem ITEM_TM_STEEL_WING
-	call_if_eq VAR_RESULT, FALSE, GraniteCave_StevensRoom_EventScript_BagFull
+	@ call_if_eq VAR_RESULT, FALSE, GraniteCave_StevensRoom_EventScript_BagFull
 	msgbox GraniteCave_StevensRoom_Text_CouldBecomeChampionLetsRegister, MSGBOX_DEFAULT
 	closemessage
 	delay 30

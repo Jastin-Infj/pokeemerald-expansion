@@ -134,8 +134,8 @@ DewfordTown_Gym_EventScript_StopCountingTrainers::
 
 DewfordTown_Gym_EventScript_Brawly::
 	trainerbattle_single TRAINER_BRAWLY_1, DewfordTown_Gym_Text_BrawlyIntro, DewfordTown_Gym_Text_BrawlyDefeat, DewfordTown_Gym_EventScript_BrawlyDefeated, NO_MUSIC
-	specialvar VAR_RESULT, ShouldTryRematchBattle
-	goto_if_eq VAR_RESULT, TRUE, DewfordTown_Gym_EventScript_BrawlyRematch
+	@ specialvar VAR_RESULT, ShouldTryRematchBattle
+	@ goto_if_eq VAR_RESULT, TRUE, DewfordTown_Gym_EventScript_BrawlyRematch
 	@ goto_if_unset FLAG_RECEIVED_TM_BULK_UP, DewfordTown_Gym_EventScript_GiveBulkUp2
 	msgbox DewfordTown_Gym_Text_BrawlyPostBattle, MSGBOX_DEFAULT
 	release
@@ -154,6 +154,7 @@ DewfordTown_Gym_EventScript_BrawlyDefeated::
 	setvar VAR_0x8008, 2
 	call Common_EventScript_SetGymTrainers
 	call DewfordTown_Gym_EventScript_GiveBulkUp
+	giveitem ITEM_Z_POWER_RING
 	closemessage
 	delay 30
 	playfanfare MUS_REGISTER_MATCH_CALL

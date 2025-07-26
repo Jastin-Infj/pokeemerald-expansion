@@ -1574,17 +1574,17 @@ const struct SpeciesInfo gSpeciesInfoGen3[] =
         .tmIlliterate = TRUE,
         .levelUpLearnset = sSilcoonLevelUpLearnset,
         .teachableLearnset = sSilcoonTeachableLearnset,
-        .evolutions = EVOLUTION({EVO_LEVEL, 10, SPECIES_BEAUTIFLY}),
+        .evolutions = EVOLUTION({EVO_LEVEL, 16, SPECIES_BEAUTIFLY}),
     },
 
     [SPECIES_BEAUTIFLY] =
     {
-        .baseHP        = 60,
-        .baseAttack    = 70,
-        .baseDefense   = 50,
-        .baseSpeed     = 65,
-        .baseSpAttack  = P_UPDATED_STATS >= GEN_6 ? 100 : 90,
-        .baseSpDefense = 50,
+        .baseHP        = 65,
+        .baseAttack    = 60,
+        .baseDefense   = 60,
+        .baseSpeed     = 105,
+        .baseSpAttack  = P_UPDATED_STATS >= GEN_6 ? 120 : 90,
+        .baseSpDefense = 90,
         .types = MON_TYPES(TYPE_BUG, TYPE_FLYING),
         .catchRate = 45,
     #if P_UPDATED_EXP_YIELDS >= GEN_8
