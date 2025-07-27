@@ -15219,11 +15219,11 @@ const struct SpeciesInfo gSpeciesInfoGen1[] =
     [SPECIES_SEAKING] =
     {
         .baseHP        = 80,
-        .baseAttack    = 92,
+        .baseAttack    = 132,
         .baseDefense   = 65,
-        .baseSpeed     = 68,
-        .baseSpAttack  = P_UPDATED_STATS >= GEN_2 ? 65 : 80,
-        .baseSpDefense = 80,
+        .baseSpeed     = 98,
+        .baseSpAttack  = P_UPDATED_STATS >= GEN_2 ? 95 : 80,
+        .baseSpDefense = 90,
         .types = MON_TYPES(TYPE_WATER),
         .catchRate = 60,
         .expYield = (P_UPDATED_EXP_YIELDS >= GEN_5) ? 158 : 170,

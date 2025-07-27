@@ -3647,11 +3647,11 @@ const struct SpeciesInfo gSpeciesInfoGen6[] =
 
     [SPECIES_CLAWITZER] =
     {
-        .baseHP        = 71,
+        .baseHP        = 91,
         .baseAttack    = 73,
-        .baseDefense   = 88,
-        .baseSpeed     = 59,
-        .baseSpAttack  = 120,
+        .baseDefense   = 98,
+        .baseSpeed     = 69,
+        .baseSpAttack  = 135,
         .baseSpDefense = 89,
         .types = MON_TYPES(TYPE_WATER),
         .catchRate = 55,

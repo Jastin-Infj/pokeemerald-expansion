@@ -454,11 +454,49 @@ Pic: Aqua Grunt M
 Gender: Male
 Music: Aqua
 Double Battle: No
-AI: Check Bad Move
+AI: SINGLE_BOSS_MODE_TEST
+Items: Z-Power Ring / Mega Ring
 
-Carvanha
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Zeraora @ Choice Band  
+Ability: Volt Absorb  
+Level: 40  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Plasma Fists
+- Close Combat  
+- Fire Punch
+- Play Rough
+
+Lycanroc-Midnight @ Lycanium Z  
+Ability: No Guard  
+Level: 40  
+Shiny: Yes  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Stone Edge  
+- Close Combat  
+- Sucker Punch  
+- Stone Axe  
+
+Uxie @ Leftovers  
+Ability: Levitate  
+Level: 40  
+EVs: 252 HP / 252 Def  
+Impish Nature  
+- Yawn  
+- U-turn  
+- Foul Play  
+- Thunder Wave  
+
+Beedrill @ Beedrillite  
+Ability: Adaptability  
+Level: 40  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- U-turn  
+- Poison Jab  
+- Drill Run  
+- Endeavor  
 
 === TRAINER_GRUNT_MUSEUM_2 ===
 Name: GRUNT
@@ -467,15 +505,50 @@ Pic: Aqua Grunt M
 Gender: Male
 Music: Aqua
 Double Battle: No
-AI: Check Bad Move
+AI: SINGLE_BOSS_MODE
+Items: ITEM_Z_POWER_RING / ITEM_MEGA_RING
 
-Zubat
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Archeops @ Flying Gem  
+Ability: Defeatist  
+Level: 40  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Jolly Nature  
+- Acrobatics  
+- Stone Edge  
+- Outrage  
+- U-turn  
 
-Carvanha
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Buzzwole @ Fightinium Z  
+Ability: Beast Boost  
+Level: 40  
+EVs: 252 HP / 252 Atk / 4 Def  
+Adamant Nature  
+- Close Combat  
+- Leech Life  
+- Poison Jab  
+- Bulk Up  
+
+Clawitzer @ Choice Scarf  
+Ability: Mega Launcher  
+Level: 40  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Water Pulse  
+- Dark Pulse  
+- Aura Sphere  
+- Flash Cannon  
+
+Scizor @ Scizorite  
+Ability: Technician  
+Level: 40  
+Shiny: Yes  
+EVs: 252 HP / 252 Atk / 4 Def  
+Adamant Nature  
+- Bullet Punch  
+- Bug Bite  
+- Dual Wingbeat  
+- Shift Gear  
 
 === TRAINER_GRUNT_SPACE_CENTER_1 ===
 Name: GRUNT
@@ -1107,13 +1180,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Azurill
-Level: 12
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Mothim
+Level: 35
 
-Azurill
-Level: 12
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Walrein
+Level: 35
+
+Blissey
+Level: 35
+
+Bellossom
+Level: 35
 
 === TRAINER_AUSTINA ===
 Name: AUSTINA
@@ -1124,9 +1201,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Marill
-Level: 26
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Chimecho
+Level: 35
+
+Gorebyss
+Level: 35
+
+Huntail
+Level: 35
+
+Gastrodon
+Level: 35
 
 === TRAINER_GWEN ===
 Name: GWEN
@@ -1137,9 +1222,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Marill
-Level: 26
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Mantine
+Level: 35
+
+Starmie
+Level: 35
+
+Dragonite
+Level: 35
+
+Raichu
+Level: 35
 
 === TRAINER_RICKY_1 ===
 Name: RICKY
@@ -1150,13 +1243,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon
-Level: 13
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
-- Sand Attack
-- Headbutt
-- Tail Whip
-- Surf
+Palafin
+Level: 35
+
+Veluza
+Level: 35
+
+Hydreigon
+Level: 35
+
+Naganadel
+Level: 35
 
 === TRAINER_SIMON ===
 Name: SIMON
@@ -1167,13 +1264,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Azurill
-Level: 12
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Dragonite
+Level: 40
 
-Marill
-Level: 12
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Meganium
+Level: 40
+
+Vaporeon
+Level: 40
+
+Persian
+Level: 40
 
 === TRAINER_CHARLIE ===
 Name: CHARLIE
@@ -1184,9 +1285,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Marill
-Level: 26
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Meowstic-F (F)  
+Level: 35
+
+Volcarona
+Level: 35
+
+Jellicent
+Level: 35
+
+Leavanny
+Level: 35
 
 === TRAINER_RICKY_2 ===
 Name: RICKY
@@ -2658,13 +2767,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Wailmer
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Tsareena
+Level: 35
 
-Horsea
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Comfey
+Level: 35
+
+Audino
+Level: 35
+
+Musharna
+Level: 35
 
 === TRAINER_MARK ===
 Name: MARK
@@ -6501,38 +6614,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Wailmer
-Level: 25
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Hariyama
+Level: 35
 
-Tentacruel
-Level: 25
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Armaldo
+Level: 35
 
-=== TRAINER_ELLIOT_3 ===
-Name: ELLIOT
-Class: Fisherman
-Pic: Fisherman
-Gender: Male
-Music: Hiker
-Double Battle: No
-AI: Check Bad Move
+Absol
+Level: 35
 
-Gyarados
-Level: 29
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-Carvanha
-Level: 26
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-Tentacool
-Level: 26
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
-
-Gyarados
-Level: 29
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
+Lucario
+Level: 35
 
 === TRAINER_ELLIOT_4 ===
 Name: ELLIOT
@@ -6962,13 +7054,20 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Durant
+Level: 35
 
-Electrike
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Honchkrow
+Level: 35
+
+Skuntank
+Level: 35
+
+Mightyena
+Level: 35
+
+Swampert
+Level: 35
 
 === TRAINER_ISAIAH_1 ===
 Name: ISAIAH
@@ -7640,9 +7739,17 @@ Gender: Female
 Music: Girl
 Double Battle: No
 
-Marill
-Level: 26
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Sawsbuck
+Level: 35
+
+Glaceon
+Level: 35
+
+Froslass
+Level: 35
+
+Togekiss
+Level: 35
 
 === TRAINER_LAO_1 ===
 Name: LAO
@@ -8982,13 +9089,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wingull
-Level: 12
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Eiscue
+Level: 35
 
-Machop
-Level: 12
-IVs: 1 HP / 1 Atk / 1 Def / 1 SpA / 1 SpD / 1 Spe
+Annihilape
+Level: 35
+
+Gliscor
+Level: 35
+
+Floatzel
+Level: 35
 
 === TRAINER_EDMOND ===
 Name: EDMOND
@@ -8999,9 +9110,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wingull
-Level: 13
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Feraligatr
+Level: 35
+
+Samurott
+Level: 35
+
+Greninja
+Level: 35
+
+Quaquaval
+Level: 35
 
 === TRAINER_ERNEST_1 ===
 Name: ERNEST
@@ -9029,17 +9148,20 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Wingull
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Roaring Moon
+Level: 40
 
-Machop
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Iron Thorns
+Level: 40
 
-Tentacool
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+ZYGARDE_10_AURA_BREAK
+Level: 40
+
+Urshifu
+Level: 40
+
+Deoxys
+Level: 40
 
 === TRAINER_PHILLIP ===
 Name: PHILLIP
@@ -9088,13 +9210,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Spheal
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Magnezone
+Level: 35
 
-Machoke
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Magmortar
+Level: 35
+
+Duraludon
+Level: 35
+
+Goodra
+Level: 35
 
 === TRAINER_ERNEST_2 ===
 Name: ERNEST
@@ -10131,9 +10257,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Sandslash
-Level: 26
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Flygon
+Level: 35
+
+Lunatone
+Level: 35
+
+Bastiodon
+Level: 35
+
+Shedinja
+Level: 35
 
 === TRAINER_LYDIA_2 ===
 Name: LYDIA
@@ -11814,13 +11948,23 @@ Music: Girl
 Double Battle: Yes
 AI: Check Bad Move
 
-Volbeat
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Weavile
+Level: 35
 
-Illumise
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Dusknoir
+Level: 35
+
+Gallade
+Level: 35
+
+Golurk
+Level: 35
+
+Primarina
+Level: 35
+
+Cinderace
+Level: 35
 
 === TRAINER_KIRA_AND_DAN_2 ===
 Name: KIRA & DAN
@@ -11899,9 +12043,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Goldeen
-Level: 13
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Arcanine
+Level: 40
+
+Cresselia
+Level: 40
+
+Vivillon
+Level: 40
+
+Floette-Eternal (F)  
+Level: 40
 
 === TRAINER_GERALD ===
 Name: GERALD
@@ -12691,21 +12843,23 @@ Music: Girl
 Double Battle: Yes
 AI: Check Bad Move
 
-Dustox
-Level: 27
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Gust
-- Psybeam
-- Toxic
-- Protect
+Arctovish
+Level: 35
 
-Beautifly
-Level: 27
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Gust
-- Mega Drain
-- Attract
-- Stun Spore
+Bruxish
+Level: 35
+
+Cinccino
+Level: 35
+
+Zebstrika
+Level: 35
+
+Vespiquen
+Level: 35
+
+Milotic
+Level: 35
 
 === TRAINER_JOHN_AND_JAY_1 ===
 Name: JOHN & JAY
@@ -13050,9 +13204,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Marill
-Level: 13
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Delibird
+Level: 35
+
+Octillery
+Level: 35
+
+Sunflora
+Level: 35
+
+Eevee-Starter
+Level: 35
 
 === TRAINER_CHANDLER ===
 Name: CHANDLER
@@ -13063,13 +13225,17 @@ Music: Girl
 Double Battle: No
 AI: Check Bad Move
 
-Tentacool
-Level: 12
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Jumpluff
+Level: 35
 
-Tentacool
-Level: 12
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Jynx
+Level: 35
+
+Seaking
+Level: 35
+
+Rapidash
+Level: 35
 
 === TRAINER_KALEB ===
 Name: KALEB
@@ -13733,13 +13899,20 @@ Music: Cool
 Double Battle: No
 AI: Check Bad Move
 
-Skarmory
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Lickilicky
+Level: 35
 
-Skarmory
-Level: 25
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Drapion
+Level: 35
+
+Swellow
+Level: 35
+
+Aerodactyl
+Level: 35
+
+Dragapult
+Level: 35
 
 === TRAINER_CELIA ===
 Name: CELIA
@@ -17129,6 +17302,58 @@ IVs: 0 Atk
 - Wide Guard  
 - Recover  
 - Chilling Water  
+
+=== TRAINER_COLISEUM_4 ===
+Name: Max
+Class: Cooltrainer
+Pic: Cooltrainer M
+Music: Cool
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
+Items: ITEM_Z_POWER_RING
+
+Zoroark @ Focus Sash  
+Ability: Illusion  
+Level: 35  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Night Daze  
+- Flamethrower  
+- Focus Blast  
+- Encore  
+
+Yveltal @ Life Orb  
+Ability: Dark Aura  
+Level: 35   
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+- Dark Pulse  
+- Sucker Punch  
+- Oblivion Wing  
+- Protect  
+
+Swalot @ Ganlon Berry  
+Ability: Gluttony  
+Level: 35  
+EVs: 252 HP / 252 Def / 4 SpD  
+Bold Nature  
+IVs: 0 Atk  
+- Belch  
+- Stuff Cheeks  
+- Body Press  
+- Encore  
+
+Raikou @ Electrium Z  
+Ability: Pressure  
+Level: 35  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Thunderbolt  
+- Scald  
+- Aura Sphere  
+- Protect  
 
 === TRAINER_CHALLENGE1_PRO1 ===
 Name: LOLA

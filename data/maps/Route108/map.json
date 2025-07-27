@@ -53,8 +53,8 @@
     },
     {
       "graphics_id": "OBJ_EVENT_GFX_SWIMMER_M",
-      "x": 13,
-      "y": 13,
+      "x": 20,
+      "y": 6,
       "elevation": 1,
       "movement_type": "MOVEMENT_TYPE_ROTATE_CLOCKWISE",
       "movement_range_x": 0,
@@ -66,8 +66,8 @@
     },
     {
       "graphics_id": "OBJ_EVENT_GFX_SWIMMER_F",
-      "x": 8,
-      "y": 7,
+      "x": -1,
+      "y": 5,
       "elevation": 1,
       "movement_type": "MOVEMENT_TYPE_FACE_DOWN_UP_AND_RIGHT",
       "movement_range_x": 6,

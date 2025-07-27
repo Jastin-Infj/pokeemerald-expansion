@@ -461,6 +461,7 @@ void HandleInputChooseTarget(u32 battler)
     {
         PlaySE(SE_SELECT);
         gSprites[gBattlerSpriteIds[gMultiUsePlayerCursor]].callback = SpriteCB_HideAsMoveTarget;
+        MgbaPrintf(MGBA_LOG_WARN,"HandleInputChooseTarget");
         gBattlerControllerFuncs[battler] = HandleInputChooseMove;
         DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
         DoBounceEffect(battler, BOUNCE_MON, 7, 1);
@@ -619,6 +620,7 @@ void HandleInputShowEntireFieldTargets(u32 battler)
     {
         PlaySE(SE_SELECT);
         HideAllTargets();
+        MgbaPrintf(MGBA_LOG_WARN,"HandleInputSHowEntireFieldTargets");
         gBattlerControllerFuncs[battler] = HandleInputChooseMove;
         DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
         DoBounceEffect(battler, BOUNCE_MON, 7, 1);
@@ -676,6 +678,8 @@ void HandleInputChooseMove(u32 battler)
 
     if (JOY_NEW(A_BUTTON) && !gBattleStruct->descriptionSubmenu)
     {
+        MgbaPrintf(MGBA_LOG_WARN,"test");
+
         TryToHideMoveInfoWindow();
         PlaySE(SE_SELECT);
 
@@ -736,6 +740,8 @@ void HandleInputChooseMove(u32 battler)
             }
         }
 
+        MgbaPrintf(MGBA_LOG_WARN,"test2");
+
         switch (canSelectTarget)
         {
         case 0:
@@ -747,6 +753,7 @@ void HandleInputChooseMove(u32 battler)
             HideGimmickTriggerSprite();
             TryHideLastUsedBall();
             PlayerBufferExecCompleted(battler);
+            MgbaPrintf(MGBA_LOG_WARN,"test3 case 0");
             break;
         case 1:
             gBattlerControllerFuncs[battler] = HandleInputChooseTarget;
@@ -761,14 +768,18 @@ void HandleInputChooseMove(u32 battler)
                 MoveSelectionDisplayMoveEffectiveness(CheckTypeEffectiveness(GetBattlerPosition(gMultiUsePlayerCursor), battler), battler);
 
             gSprites[gBattlerSpriteIds[gMultiUsePlayerCursor]].callback = SpriteCB_ShowAsMoveTarget;
+            MgbaPrintf(MGBA_LOG_WARN,"test3 case 1");
             break;
         case 2:
             gBattlerControllerFuncs[battler] = HandleInputShowTargets;
+            MgbaPrintf(MGBA_LOG_WARN,"test3 case 2");
             break;
         case 3: // Entire field
             gBattlerControllerFuncs[battler] = HandleInputShowEntireFieldTargets;
+            MgbaPrintf(MGBA_LOG_WARN,"test3 case 3");
             break;
         }
+        MgbaPrintf(MGBA_LOG_WARN,"test2 2");
     }
     else if ((JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)  && !gBattleStruct->descriptionSubmenu)
     {
@@ -905,6 +916,7 @@ void HandleInputChooseMove(u32 battler)
             PlaySE(SE_SELECT);
         }
     }
+    // MgbaPrintf(MGBA_LOG_WARN,"test3");
 }
 
 static void ReloadMoveNames(u32 battler)
@@ -1071,6 +1083,7 @@ void HandleMoveSwitching(u32 battler)
             }
         }
 
+        MgbaPrintf(MGBA_LOG_WARN,"HandleMoveSwithing1");
         gBattlerControllerFuncs[battler] = HandleInputChooseMove;
         gMoveSelectionCursor[battler] = gMultiUsePlayerCursor;
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
@@ -1087,6 +1100,7 @@ void HandleMoveSwitching(u32 battler)
         PlaySE(SE_SELECT);
         MoveSelectionDestroyCursorAt(gMultiUsePlayerCursor);
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
+        MgbaPrintf(MGBA_LOG_WARN,"HandleMoveSwiching2");
         gBattlerControllerFuncs[battler] = HandleInputChooseMove;
         if (B_SHOW_EFFECTIVENESS)
             MoveSelectionDisplayMoveEffectiveness(CheckTargetTypeEffectiveness(battler), battler);
@@ -2127,7 +2141,9 @@ void HandleChooseMoveAfterDma3(u32 battler)
     {
         gBattle_BG0_X = 0;
         gBattle_BG0_Y = DISPLAY_HEIGHT * 2;
+        MgbaPrintf(MGBA_LOG_WARN,"AfterDma3");
         gBattlerControllerFuncs[battler] = HandleInputChooseMove;
+        MgbaPrintf(MGBA_LOG_WARN,"toHandleInputChooseMove");
     }
 }
 
@@ -2166,6 +2182,7 @@ void PlayerHandleChooseMove(u32 battler)
         if (!(gBattleStruct->gimmick.usableGimmick[battler] == GIMMICK_Z_MOVE && !gBattleStruct->zmove.viable))
             CreateGimmickTriggerSprite(battler);
 
+        MgbaPrintf(MGBA_LOG_WARN,"PlayerHandleChooseMove");
         gBattlerControllerFuncs[battler] = HandleChooseMoveAfterDma3;
     }
 }

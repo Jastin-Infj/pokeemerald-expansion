@@ -67,6 +67,16 @@
     AI_FLAG_SMART_MON_CHOICES           \
 )
 
+#define AI_FLAG_SINGLE_BOSS_MODE_TEST ( \
+    AI_FLAG_CHECK_BAD_MOVE              | \
+    AI_FLAG_CHECK_VIABILITY             | \
+    AI_FLAG_PREDICT_INCOMING_MON        | \
+    AI_FLAG_OMNISCIENT                  | \
+    AI_FLAG_SMART_SWITCHING             | \
+    AI_FLAG_PREDICT_MOVE                | \
+    AI_FLAG_PREDICT_SWITCH              \
+)
+
 #define AI_FLAG_DOUBLES_BOSS_MODE ( \
     AI_FLAG_CHECK_BAD_MOVE              | \
     AI_FLAG_OMNISCIENT                  | \

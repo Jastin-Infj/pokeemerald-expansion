@@ -142,6 +142,8 @@
 // gTileset_Dewford
 #define METATILE_Dewford_Door              0x225
 #define METATILE_Dewford_Door_BattleTower  0x25D
+//* Add
+#define METATILE_Dewford_SandRockOne       0x0E2
 
 // gTileset_EliteFour
 #define METATILE_EliteFour_EntryDoor_ClosedBottom    0x20E

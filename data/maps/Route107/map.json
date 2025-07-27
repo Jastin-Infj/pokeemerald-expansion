@@ -27,8 +27,8 @@
   "object_events": [
     {
       "graphics_id": "OBJ_EVENT_GFX_SWIMMER_M",
-      "x": 41,
-      "y": 10,
+      "x": 39,
+      "y": 5,
       "elevation": 1,
       "movement_type": "MOVEMENT_TYPE_ROTATE_CLOCKWISE",
       "movement_range_x": 1,
@@ -40,8 +40,8 @@
     },
     {
       "graphics_id": "OBJ_EVENT_GFX_SWIMMER_M",
-      "x": 23,
-      "y": 11,
+      "x": 54,
+      "y": 6,
       "elevation": 1,
       "movement_type": "MOVEMENT_TYPE_WALK_SEQUENCE_RIGHT_DOWN_LEFT_UP",
       "movement_range_x": 6,
@@ -53,8 +53,8 @@
     },
     {
       "graphics_id": "OBJ_EVENT_GFX_SWIMMER_F",
-      "x": 16,
-      "y": 7,
+      "x": 28,
+      "y": 5,
       "elevation": 1,
       "movement_type": "MOVEMENT_TYPE_FACE_DOWN_AND_UP",
       "movement_range_x": 0,
@@ -66,10 +66,10 @@
     },
     {
       "graphics_id": "OBJ_EVENT_GFX_SWIMMER_F",
-      "x": 50,
-      "y": 11,
+      "x": 45,
+      "y": 4,
       "elevation": 1,
-      "movement_type": "MOVEMENT_TYPE_WALK_IN_PLACE_UP",
+      "movement_type": "MOVEMENT_TYPE_JOG_IN_PLACE_DOWN",
       "movement_range_x": 1,
       "movement_range_y": 1,
       "trainer_type": "TRAINER_TYPE_NORMAL",

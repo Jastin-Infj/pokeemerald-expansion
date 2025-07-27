@@ -350,7 +350,7 @@
 #define TRAINER_WADE                        344
 #define TRAINER_CARTER                      345
 #define TRAINER_COLISEUM_3                  346 //* Custom
-#define TRAINER_ELLIOT_3                    347
+#define TRAINER_COLISEUM_4                  347 //* Custom
 #define TRAINER_ELLIOT_4                    348
 #define TRAINER_ELLIOT_5                    349
 #define TRAINER_RONALD                      350
