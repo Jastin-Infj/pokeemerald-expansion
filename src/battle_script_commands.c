@@ -16122,7 +16122,8 @@ static void Cmd_givecaughtmon(void)
         if (B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9)
         {
             u16 lostItem = gBattleStruct->itemLost[B_SIDE_OPPONENT][gBattlerPartyIndexes[GetCatchingBattler()]].originalItem;
-            if (lostItem != ITEM_NONE && GetItemPocket(lostItem) != POCKET_BERRIES)
+            // if (lostItem != ITEM_NONE && GetItemPocket(lostItem) != POCKET_BERRIES)
+            if(lostItem != ITEM_NONE)
                 SetMonData(GetBattlerMon(GetCatchingBattler()), MON_DATA_HELD_ITEM, &lostItem);  // Restore non-berry items
         }
 
