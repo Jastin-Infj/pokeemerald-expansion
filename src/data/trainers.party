@@ -771,13 +771,20 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Shroomish
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Houndstone
+Level: 35
 
-Roselia
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Musharna
+Level: 35
+
+Maractus
+Level: 35
+
+Plusle
+Level: 35
+
+Minun
+Level: 35
 
 === TRAINER_ROSE_1 ===
 Name: ROSE
@@ -788,17 +795,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Roselia
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Dachsbun
+Level: 35
 
-Shroomish
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Sylveon
+Level: 35
 
-Roselia
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Boltund
+Level: 35
+
+Roserade
+Level: 40
 
 === TRAINER_FELIX ===
 Name: FELIX
@@ -3586,13 +3593,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Magnemite
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Annihilape
+Level: 35
 
-Whismur
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Bisharp
+Level: 35
+
+Toxicroak
+Level: 35
+
+Exploud
+Level: 40
 
 === TRAINER_DALTON_2 ===
 Name: DALTON
@@ -4129,13 +4140,17 @@ Music: Suspicious
 Double Battle: No
 AI: Check Bad Move
 
-Dustox
-Level: 16
-IVs: 18 HP / 18 Atk / 18 Def / 18 SpA / 18 SpD / 18 Spe
+Ninjask
+Level: 35
 
-Beautifly
-Level: 16
-IVs: 18 HP / 18 Atk / 18 Def / 18 SpA / 18 SpD / 18 Spe
+Galvantula
+Level: 35
+
+Appletun
+Level: 35
+
+Spidops
+Level: 35
 
 === TRAINER_JEFFREY_2 ===
 Name: JEFFREY
@@ -4242,10 +4257,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Abra
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Hidden Power
+Gothitelle
+Level: 35
+
+Reuniclus
+Level: 35
+
+Meloetta
+Level: 35
+
+Komala
+Level: 35
 
 === TRAINER_PRESTON ===
 Name: PRESTON
@@ -4414,10 +4436,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Abra
-Level: 16
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Hidden Power
+Malamar
+Level: 40
+
+Solrock
+Level: 40
+
+Claydol
+Level: 40
+
+Alakazam
+Level: 40
 
 === TRAINER_HANNAH ===
 Name: HANNAH
@@ -5486,20 +5515,17 @@ Music: Twins
 Double Battle: Yes
 AI: Check Bad Move
 
-Zigzagoon
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Growl
-- Tail Whip
-- Headbutt
-- Odor Sleuth
+Volbeat
+Level: 35
 
-Makuhita
-Level: 17
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- Tackle
-- Focus Energy
-- Arm Thrust
+Illumise
+Level: 35
+
+Flygon
+Level: 35
+
+Hydreigon
+Level: 35
 
 === TRAINER_ANNA_AND_MEG_2 ===
 Name: ANNA & MEG
@@ -5623,9 +5649,17 @@ Music: Twins
 Double Battle: No
 AI: Check Bad Move
 
-Skitty @ Oran Berry
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Krookodile
+Level: 35
+
+Darmanitan
+Level: 35
+
+Spidops
+Level: 35
+
+Lokix
+Level: 35
 
 === TRAINER_COLTON ===
 Name: COLTON
@@ -5792,13 +5826,17 @@ Music: Twins
 Double Battle: No
 AI: Check Bad Move
 
-Plusle @ Oran Berry
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Delphox
+Level: 35
 
-Minun @ Oran Berry
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Aromatisse
+Level: 35
+
+Tsareena
+Level: 35
+
+Lurantis
+Level: 35
 
 === TRAINER_ISABEL_2 ===
 Name: ISABEL
@@ -6365,13 +6403,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Aron
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Garbodor
+Level: 35
 
-Electrike
-Level: 13
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Simisear
+Level: 35
+
+Simisage
+Level: 35
+
+Simipour
+Level: 35
 
 === TRAINER_WALLACE ===
 Name: WALLACE
@@ -6441,17 +6483,20 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Magikarp
-Level: 5
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Pyukumuku
+Level: 35
 
-Tentacool
-Level: 10
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Whiscash
+Level: 35
 
-Magikarp
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Crawdaunt
+Level: 35
+
+Tentacruel
+Level: 35
+
+Blastoise
+Level: 35
 
 === TRAINER_IVAN ===
 Name: IVAN
@@ -6546,21 +6591,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Tentacool
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Bruxish
+Level: 35
 
-Wailmer
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Inteleon
+Level: 35
 
-Tentacool
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Palafin
+Level: 35
 
-Wailmer
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Dondozo
+Level: 35
 
 === TRAINER_NOLAN ===
 Name: NOLAN
@@ -6601,9 +6642,17 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Tentacool
-Level: 16
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Sharpedo
+Level: 35
+
+Clawitzer
+Level: 35
+
+Barraskewda
+Level: 35
+
+Veluza
+Level: 35
 
 === TRAINER_CARTER ===
 Name: CARTER
@@ -6718,17 +6767,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Voltorb
-Level: 6
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
+Heliolisk
+Level: 40
 
-Voltorb
-Level: 6
-IVs: 2 HP / 2 Atk / 2 Def / 2 SpA / 2 SpD / 2 Spe
+Toxtricity
+Level: 40
 
-Magnemite
-Level: 14
-IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
+Seismitoad
+Level: 40
+
+Yanmega
+Level: 40
 
 === TRAINER_ANTHONY ===
 Name: ANTHONY
@@ -6739,13 +6788,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Magnemite
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Trevenant
+Level: 40
 
-Magnemite
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Honchkrow
+Level: 40
+
+Ariados
+Level: 40
+
+Houndoom
+Level: 40
 
 === TRAINER_BENJAMIN_1 ===
 Name: BENJAMIN
@@ -6756,9 +6809,20 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Magnemite
-Level: 16
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Infernape
+Level: 40
+
+Garchomp
+Level: 40
+
+Lucario
+Level: 40
+
+Gyarados
+Level: 40
+
+Luxray
+Level: 40
 
 === TRAINER_BENJAMIN_2 ===
 Name: BENJAMIN
@@ -6821,9 +6885,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Magnemite
-Level: 16
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Altaria
+Level: 40
+
+Sawsbuck
+Level: 40
+
+Tornadus
+Level: 40
+
+Thundurus
+Level: 40
 
 === TRAINER_JASMINE ===
 Name: JASMINE
@@ -6834,17 +6906,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Magnemite
-Level: 14
-IVs: 9 HP / 9 Atk / 9 Def / 9 SpA / 9 SpD / 9 Spe
+Slaking
+Level: 40
 
-Magnemite
-Level: 14
-IVs: 9 HP / 9 Atk / 9 Def / 9 SpA / 9 SpD / 9 Spe
+Hippowdon
+Level: 40
 
-Voltorb
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Beartic
+Level: 40
+
+Golurk
+Level: 40
 
 === TRAINER_ABIGAIL_2 ===
 Name: ABIGAIL
@@ -6907,9 +6979,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Doduo
-Level: 17
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Braviary
+Level: 35
+
+Dodrio
+Level: 35
+
+Electrode
+Level: 35
+
+Pidgeot
+Level: 35
 
 === TRAINER_DYLAN_2 ===
 Name: DYLAN
@@ -6972,9 +7052,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Doduo
-Level: 17
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Decidueye
+Level: 35
+
+Corviknight
+Level: 35
+
+Vespiquen
+Level: 35
+
+Masquerain
+Level: 35
 
 === TRAINER_MARIA_2 ===
 Name: MARIA
@@ -8899,13 +8987,11 @@ Music: Twins
 Double Battle: Yes
 AI: Check Bad Move
 
-Plusle
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Latias
+Level: 38
 
-Minun
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Latios
+Level: 38
 
 === TRAINER_AMY_AND_LIV_2 ===
 Name: AMY & LIV
@@ -9500,13 +9586,17 @@ Music: Suspicious
 Double Battle: No
 AI: Check Bad Move
 
-Lombre
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Drednaw
+Level: 35
 
-Nuzleaf
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Kleavor
+Level: 35
+
+Weavile
+Level: 35
+
+Rampardos
+Level: 35
 
 === TRAINER_HECTOR ===
 Name: HECTOR
@@ -9683,20 +9773,72 @@ Class: Rival
 Pic: Brendan
 Gender: Male
 Music: Male
-Double Battle: No
-AI: Basic Trainer
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
 
-Slugma
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Starmie @ Choice Specs  
+Ability: Natural Cure  
+Level: 35  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Scald  
+- Psychic  
+- Power Gem  
+- Dazzling Gleam  
 
-Wingull
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Incineroar @ Assault Vest  
+Ability: Intimidate  
+Level: 35  
+EVs: 252 HP / 108 Atk / 148 SpD  
+Impish Nature  
+- Fake Out  
+- Knock Off  
+- Flare Blitz  
+- U-turn  
 
-Grovyle
-Level: 20
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
+Goodra @ Blunder Policy  
+Ability: Sap Sipper  
+Level: 35  
+EVs: 252 HP / 252 Atk  
+Adamant Nature  
+- Outrage  
+- Power Whip  
+- Fire Punch  
+- Protect  
+
+Audino-Mega @ Audinite  
+Ability: Healer  
+Level: 35  
+EVs: 252 HP / 68 Def / 188 SpD  
+Bold Nature  
+IVs: 0 Atk  
+- Draining Kiss  
+- Heal Pulse  
+- Encore  
+- Life Dew  
+
+Celebi @ Grassium Z  
+Ability: Natural Cure  
+Level: 35  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Leaf Storm  
+- Psychic  
+- Earth Power  
+- Thunder Wave  
+
+Mienshao @ Focus Sash  
+Ability: Inner Focus  
+Level: 35  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Adamant Nature  
+- Fake Out  
+- Close Combat  
+- Wide Guard  
+- Coaching  
+
 
 === TRAINER_BRENDAN_ROUTE_119_MUDKIP ===
 Name: BRENDAN
@@ -9732,26 +9874,6 @@ Torchic
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_BRENDAN_ROUTE_110_TREECKO ===
-Name: BRENDAN
-Class: Rival
-Pic: Brendan
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Basic Trainer
-
-Wingull
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Lombre
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Combusken
-Level: 20
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
 
 === TRAINER_BRENDAN_ROUTE_119_TREECKO ===
 Name: BRENDAN
@@ -9787,27 +9909,6 @@ Mudkip
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_BRENDAN_ROUTE_110_TORCHIC ===
-Name: BRENDAN
-Class: Rival
-Pic: Brendan
-Gender: Male
-Music: Male
-Double Battle: No
-AI: Basic Trainer
-
-Lombre
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Slugma
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Marshtomp
-Level: 20
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-
 === TRAINER_BRENDAN_ROUTE_119_TORCHIC ===
 Name: BRENDAN
 Class: Rival
@@ -9842,26 +9943,6 @@ Treecko
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_MAY_ROUTE_110_MUDKIP ===
-Name: MAY
-Class: Rival
-Pic: May
-Gender: Female
-Music: Female
-Double Battle: No
-AI: Basic Trainer
-
-Wingull
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Slugma
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Grovyle
-Level: 20
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
 
 === TRAINER_MAY_ROUTE_119_MUDKIP ===
 Name: MAY
@@ -9903,20 +9984,72 @@ Class: Rival
 Pic: May
 Gender: Female
 Music: Female
-Double Battle: No
-AI: Basic Trainer
+Items: ITEM_Z_POWER_RING / ITEM_MEGA_RING
+Double Battle: Yes
+AI: DOUBLES_BOSS_MODE
 
-Wingull
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Incineroar @ Assault Vest  
+Ability: Intimidate  
+Level: 35  
+EVs: 252 HP / 108 Atk / 148 SpD  
+Impish Nature  
+- Fake Out  
+- Knock Off  
+- Flare Blitz  
+- U-turn  
 
-Lombre
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
+Starmie @ Choice Specs  
+Ability: Natural Cure  
+Level: 35  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Timid Nature  
+IVs: 0 Atk  
+- Scald  
+- Psychic  
+- Power Gem  
+- Dazzling Gleam  
 
-Combusken
-Level: 20
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
+Goodra @ Blunder Policy  
+Ability: Sap Sipper  
+Level: 35  
+EVs: 252 HP / 252 Atk  
+Adamant Nature  
+- Outrage  
+- Power Whip  
+- Fire Punch  
+- Protect  
+
+Audino @ Audinite  
+Ability: Healer  
+Level: 35  
+EVs: 252 HP / 68 Def / 188 SpD  
+Bold Nature  
+IVs: 0 Atk  
+- Draining Kiss  
+- Heal Pulse  
+- Encore  
+- Life Dew  
+
+Celebi @ Grassium Z  
+Ability: Natural Cure  
+Level: 35  
+EVs: 4 HP / 252 SpA / 252 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Leaf Storm  
+- Psychic  
+- Earth Power  
+- Thunder Wave  
+
+Mienshao @ Focus Sash  
+Ability: Inner Focus  
+Level: 35  
+EVs: 4 HP / 252 Atk / 252 Spe  
+Adamant Nature  
+- Fake Out  
+- Close Combat  
+- Wide Guard  
+- Coaching  
 
 === TRAINER_MAY_ROUTE_119_TREECKO ===
 Name: MAY
@@ -9952,27 +10085,6 @@ Mudkip
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
-=== TRAINER_MAY_ROUTE_110_TORCHIC ===
-Name: MAY
-Class: Rival
-Pic: May
-Gender: Female
-Music: Female
-Double Battle: No
-AI: Basic Trainer
-
-Lombre
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Slugma
-Level: 18
-IVs: 6 HP / 6 Atk / 6 Def / 6 SpA / 6 SpD / 6 Spe
-
-Marshtomp
-Level: 20
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-
 === TRAINER_MAY_ROUTE_119_TORCHIC ===
 Name: MAY
 Class: Rival
@@ -10003,29 +10115,20 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Whismur
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Sceptile
+Level: 35
 
-Zigzagoon
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Lapras
+Level: 35
 
-Aron
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Espeon
+Level: 35
 
-Poochyena
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Bisharp
+Level: 35
 
-Taillow
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-
-Makuhita
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Greninja
+Level: 40
 
 === TRAINER_DAVIS ===
 Name: DAVIS
@@ -10206,29 +10309,20 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Wingull
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Audino
+Level: 35
 
-Shroomish
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Lilligant
+Level: 35
 
-Marill
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Vivillon
+Level: 35
 
-Roselia
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Delcatty
+Level: 35
 
-Skitty
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-
-Goldeen
-Level: 11
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Meowscarada
+Level: 40
 
 === TRAINER_HALLE ===
 Name: HALLE
@@ -13246,13 +13340,17 @@ Music: Twins
 Double Battle: No
 AI: Check Bad Move
 
-Minun @ Oran Berry
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Granbull
+Level: 35
 
-Plusle @ Oran Berry
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Miltank
+Level: 35
+
+Lumineon
+Level: 35
+
+Liepard
+Level: 35
 
 === TRAINER_JOSEPH ===
 Name: JOSEPH
@@ -13263,13 +13361,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Electrike
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Mudsdale
+Level: 35
 
-Voltorb
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Appletun
+Level: 35
+
+Boltund
+Level: 35
+
+Grapploct
+Level: 35
 
 === TRAINER_ALYSSA ===
 Name: ALYSSA
@@ -13280,9 +13382,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Magnemite
-Level: 15
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Dragonite
+Level: 35
+
+Aerodactyl
+Level: 35
+
+Gliscor
+Level: 35
+
+Froslass
+Level: 35
 
 === TRAINER_MARCOS ===
 Name: MARCOS
@@ -13293,9 +13403,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Voltorb
-Level: 15
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
+Iron Thorns
+Level: 35
+
+Revavroom
+Level: 35
+
+Houndstone
+Level: 35
+
+Diggersby
+Level: 35
 
 === TRAINER_RHETT ===
 Name: RHETT
@@ -13306,9 +13424,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Makuhita
-Level: 15
-IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
+Greninja
+Level: 35
+
+Watchog
+Level: 35
+
+Mienshao
+Level: 35
+
+Terrakion
+Level: 40
 
 === TRAINER_TYRON ===
 Name: TYRON
@@ -13482,17 +13608,17 @@ Music: Male
 Double Battle: No
 AI: Check Bad Move
 
-Zigzagoon
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Crawdaunt
+Level: 35
 
-Aron
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Tyrantrum
+Level: 35
 
-Electrike
-Level: 14
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Hawlucha
+Level: 35
+
+Haxorus
+Level: 40
 
 === TRAINER_GRUNT_MAGMA_HIDEOUT_1 ===
 Name: GRUNT
@@ -14132,9 +14258,17 @@ Music: Female
 Double Battle: No
 AI: Check Bad Move
 
-Doduo
-Level: 17
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Latias
+Level: 40
+
+Meloetta
+Level: 40
+
+Shaymin
+Level: 40
+
+Togekiss
+Level: 45
 
 === TRAINER_BRANDI ===
 Name: BRANDI
@@ -14145,9 +14279,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Ralts
-Level: 17
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Grumpig
+Level: 35
+
+Spinda
+Level: 35
+
+Milotic
+Level: 35
+
+Braviary-Hisui
+Level: 35
 
 === TRAINER_AISHA ===
 Name: AISHA
@@ -14158,9 +14300,17 @@ Music: Intense
 Double Battle: No
 AI: Check Bad Move
 
-Meditite
-Level: 17
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Chandelure
+Level: 35
+
+Mantine
+Level: 35
+
+Vaporeon
+Level: 35
+
+Phione
+Level: 40
 
 === TRAINER_MAKAYLA ===
 Name: MAKAYLA

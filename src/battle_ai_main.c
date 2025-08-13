@@ -288,7 +288,7 @@ void BattleAI_SetupAIData(u8 defaultScoreMoves, u32 battler)
     {
         if (moveLimitations & (1u << moveIndex))
             SET_SCORE(battler, moveIndex, 0);
-        if (defaultScoreMoves & 1)
+        else if (defaultScoreMoves & 1)
             SET_SCORE(battler, moveIndex, AI_SCORE_DEFAULT);
         else
             SET_SCORE(battler, moveIndex, 0);
@@ -680,6 +680,12 @@ static u32 ChooseMoveOrAction_Singles(u32 battler)
     u32 opposingBattler = GetOppositeBattler(battler);
 
     gAiLogicData->partnerMove = 0;   // no ally
+
+    if (gBattleTypeFlags & BATTLE_TYPE_PALACE)
+        BattleAI_SetupAIData(gBattleStruct->palaceFlags >> 4, battler);
+    else
+        BattleAI_SetupAIData(0xF, battler);
+    
     while (flags != 0)
     {
         if (flags & 1)
@@ -736,6 +742,11 @@ static u32 ChooseMoveOrAction_Doubles(u32 battler)
     u32 mostViableMovesNo;
     s32 mostMovePoints;
 
+    if (gBattleTypeFlags & BATTLE_TYPE_PALACE)
+        BattleAI_SetupAIData(gBattleStruct->palaceFlags >> 4, battler);
+    else
+        BattleAI_SetupAIData(0xF, battler);
+
     for (i = 0; i < MAX_BATTLERS_COUNT; i++)
     {
         if (i == battler || gBattleMons[i].hp == 0)
@@ -745,11 +756,6 @@ static u32 ChooseMoveOrAction_Doubles(u32 battler)
         }
         else
         {
-            if (gBattleTypeFlags & BATTLE_TYPE_PALACE)
-                BattleAI_SetupAIData(gBattleStruct->palaceFlags >> 4, battler);
-            else
-                BattleAI_SetupAIData(0xF, battler);
-
             gBattlerTarget = i;
 
             gAiLogicData->partnerMove = GetAllyChosenMove(battler);

@@ -848,12 +848,12 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
 
     [SPECIES_SPIDOPS] =
     {
-        .baseHP        = 60,
-        .baseAttack    = 79,
-        .baseDefense   = 92,
+        .baseHP        = 85,
+        .baseAttack    = 89,
+        .baseDefense   = 132,
         .baseSpeed     = 35,
         .baseSpAttack  = 52,
-        .baseSpDefense = 86,
+        .baseSpDefense = 106,
         .types = MON_TYPES(TYPE_BUG),
         .catchRate = 120,
         .expYield = 141,
@@ -4952,9 +4952,9 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
     [SPECIES_VELUZA] =
     {
         .baseHP        = 90,
-        .baseAttack    = 102,
+        .baseAttack    = 122,
         .baseDefense   = 73,
-        .baseSpeed     = 70,
+        .baseSpeed     = 110,
         .baseSpAttack  = 78,
         .baseSpDefense = 65,
         .types = MON_TYPES(TYPE_WATER, TYPE_PSYCHIC),

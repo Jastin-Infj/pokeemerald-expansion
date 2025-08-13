@@ -6416,6 +6416,7 @@ static const struct LevelUpMove sPlusleLevelUpLearnset[] = {
     LEVEL_UP_MOVE(37, MOVE_THUNDER),
     LEVEL_UP_MOVE(40, MOVE_BATON_PASS),
     LEVEL_UP_MOVE(47, MOVE_AGILITY),
+    LEVEL_UP_MOVE(54, MOVE_FOLLOW_ME),
     LEVEL_UP_END
 };
 #endif //P_FAMILY_PLUSLE
@@ -6433,6 +6434,7 @@ static const struct LevelUpMove sMinunLevelUpLearnset[] = {
     LEVEL_UP_MOVE(37, MOVE_THUNDER),
     LEVEL_UP_MOVE(40, MOVE_BATON_PASS),
     LEVEL_UP_MOVE(47, MOVE_AGILITY),
+    LEVEL_UP_MOVE(54, MOVE_FOLLOW_ME),
     LEVEL_UP_END
 };
 #endif //P_FAMILY_MINUN
