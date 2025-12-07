@@ -20,6 +20,49 @@
 - DNS/window colors: palette glitches tied to window template sizing; fix the window template width when applying DNS UI palettes.
 - Starting items: add key items in `data/scripts/new_game.inc` via the `additem` macro.
 - Teachable learnsets by gen: remove moves from `sv.json` (teachable data) to drop Gen 9-only moves; upcoming will ease removals.
+- Concrete examples from the export file (verify against your branch before using):
+  - 2023-07-16: When removing EVs from `CALC_STAT`, keep the macro signature and only drop the term in the body: change the line inside the macro to `s32 n = (((2 * baseStat + iv) * level) / 100) + 5;` without deleting the `ev` parameter or call sites.
+  - 2023-07-20: To make a Rare Candy-style key item not consumed, remove the `RemoveBagItem` call in `ItemUseCB_RareCandy` or guard it with `if (!ItemId_GetImportance(gSpecialVar_ItemId))` before removing the item after the out-of-battle effect runs.
+  - 2023-11-01: Species checks need full comparisons; e.g. for Deoxys forms use chained comparisons:
+    ```
+    if (gBattleMons[gBattlerAttacker].species == SPECIES_DEOXYS
+     || gBattleMons[gBattlerAttacker].species == SPECIES_DEOXYS_DEFENSE
+     || gBattleMons[gBattlerAttacker].species == SPECIES_DEOXYS_SPEED)
+        return TRUE;
+    ```
+  - 2023-11-01: The infinite repel item uses `OW_FLAG_NO_ENCOUNTER`; give the flag an ID in `include/overworld.h` (not just `flags.h`) or the toggle will no-op.
+  - 2023-03-08: `B_FLAG_NO_CATCHING` lives under `include/config/overworld.h` after the split; define the flag there and fix conditionals referencing `B_FLAG_NO_CATCHING_USE` by using `#if B_FLAG_NO_CATCHING == 0` (or defining the `_USE` macro) to avoid build errors.
+  - 2023-07-19: Adding the move relearner menu entry requires inserting `MENU_MOVES` into the `enum` in `src/party_menu.c` (include the trailing comma before it, and keep `MENU_FIELD_MOVES` as the last enumerator since field moves are appended by offset). Also add the `MENU_MOVES` entry to `sCursorOptions` and any preset arrays that display it.
+  - 2023-02-23: `MgbaPrintf_` links only in tests; for regular debug logs comment out `#define NDEBUG` in `include/config.h` and call `DebugPrintf(...)` instead to avoid `undefined reference to 'MgbaPrintf_'`.
+  - 2023-07-16 & 2023-08-19: If linking fails with `gItemIcon_*` or palette symbols (e.g. Lustrous Globe, Berserk Gene), ensure the icon/palette entries remain in `graphics/items.h` and `src/data/item_icon_table.h` (and corresponding gfx exist) when merging feature branches.
+  - 2023-11-01: `MoveSelectionDisplayMoveType` needs a local `typeColor` declared and initialized at the top of the function before use; missing that line triggers `typeColor undeclared` build errors.
+  - 2023-11-11: For a permanent Trick Room effect, set the timer to `-1` instead of a duration, e.g. `gFieldTimers.trickRoomTimer = -1;`.
+  - 2023-12-04: Script var comparisons need the `var()` macro closed on the var name, not the value; e.g. `if (var(VAR_GURU_TRAINER_ITEMS) == 0)` or `compare VAR_GURU_TRAINER_ITEMS, 0` (not `compare VAR_GURU_TRAINER_ITEMS == 0, 0`), which otherwise throws “confusion in formal parameters.”
+  - 2024-05-01: To drive dynamic level caps, set `B_LEVEL_CAP_VARIABLE` in `include/config/level_caps.h` (e.g. `#define B_LEVEL_CAP_VARIABLE VAR_UNUSED_0x404E`) and adjust caps in scripts with `setvar VAR_UNUSED_0x404E, <level>`.
+  - 2024-06-01: Expanding the Hoenn Dex past Deoxys requires bumping the count macro: `#define HOENN_DEX_COUNT (HOENN_DEX_DEOXYS + 1)` (or higher) so new species indices appear.
+  - 2024-06-01: When adding extra fishing slots (3/4/3 per rod) the selection logic works with chained `else if` blocks and updated thresholds; keep the lure swap logic consistent when mirroring slots.
+  - 2024-09-01: If `trainerproc` errors on `src/data/battle_partners.party` under MSYS2, disable the new party syntax via `#define COMPETITIVE_PARTY_SYNTAX FALSE` in `include/config/battle.h` (or update the party file to the new syntax) before rebuilding.
+  - 2024-12-30: Clearing lingering windows after switching pages in custom UIs: after removing a window, call `FillWindowPixelBuffer(windowId, 0)` or clear the tilemap so the old window’s tiles stop rendering when new templates are loaded.
+  - 2025-01-01: To cap quadruple effectiveness at ×3, apply the clamp in `MulByTypeEffectiveness` rather than `GetTypeEffectiveness` (the latter is overworld-only); add a post-calculation check that converts ×4 multipliers to ×3, accounting for third-type modifiers if present.
+  - 2025-01-01: Level caps driven by the flag list need `#define B_LEVEL_CAP_TYPE LEVEL_CAP_FLAG_LIST` in `include/config/level_caps.h`; then set the per-flag caps in the list and raise them via flags or scripts.
+  - 2025-01-01: Cave-style warps must use a tile with the level-change collision behavior (not a blocked tile); otherwise the warp won’t trigger even if the event is defined.
+  - 2025-01-01: Item icon palettes can be generated with the built-in converter: `tools/gbagfx/gbagfx <input>.png <output>.pal`; add the resulting palette alongside the icon in `graphics/items.h` and `src/data/item_icon_table.h`.
+  - 2025-01-01: Summary screen page tilemaps (e.g. `graphics/summary_screen/page_info.bin`) are authored in TilemapStudio using `tiles.png` as a GBA 4bpp tileset, then exported to `.bin` and referenced from the UI source.
+  - 2025-01-01: If `gbagfx` is not found on PATH, call it via its repo-local path `tools/gbagfx/gbagfx` for any palette/tileset conversions.
+  - 2025-02-01: Multi-battle gimmick selection bug—`ShouldTrainerBattlerUseGimmick` misread the partner’s trainer ID. Fix by selecting `trainerId`/`partyIndexes` based on `BATTLE_TYPE_INGAME_PARTNER` and `BATTLE_TYPE_TWO_OPPONENTS`, and subtract `MULTI_PARTY_SIZE` for right-side/partner battlers when indexing `GetTrainerPartyFromId(trainerId)[partyIndexes]`.
+  - 2025-02-01: `B_POSITION_LEFT_RIGHT` is not defined in some branches; use `B_POSITION_PLAYER_RIGHT` (or equivalent) in the above fix to compile.
+  - 2025-03-01: After merging 1.11, regenerate `trainers.h` by touching `trainers.party` (any edit) so `trainerproc` rebuilds; unresolved merges there lead to “million errors from trainers.party.”
+  - 2025-04-01: Overworlds missing post-migration often trace to a reverted custom `object_event` struct; reapply the project’s conditional-trainer additions or adopt the new built-in RHH solution instead of mixing both.
+  - 2025-06-01: Some tilesets (e.g. Rustboro/Mauville) shipped with incorrect byte sizes; opening/saving the tileset in Porymap (without TLM) rewrites to the correct size as a temporary fix until the tileset is reconverted.
+  - 2025-06-01: Party menu build error from `static` in `party_menu.h` presets—remove the `static` qualifier where the upstream header changed to non-static to match symbol visibility and unblock builds.
+  - 2025-02-01: Adding new glyphs (e.g. å/ä/ö) requires defining them in `charmap.txt`; unknown characters throw “unknown character U+E5” until mapped.
+  - 2025-03-01: Conflicts when merging ipatix audio changes with 1.11—keep the upstream deletions in `m4a_1.s`/`m4a.c` and reapply local tweaks after resolving; recompile to ensure the sound engine still builds.
+  - 2025-05-01: Shields Down custom species—extend `IsShieldsDownProtected` and form-change logic to include the new species/forms, and add the unleashed form to the form table so stats/appearance swap when HP drops.
+  - 2025-07-01: To lock a door until a variable/flag is set, either swap the door metatile to a non-door behavior via `setmetatile` or place an invisible NPC (see Team Aqua submarine door) to block until the condition clears.
+  - 2025-07-01: New map section setup—define a `MAPSEC_*` in `include/constants/region_map_sections.h` (or via Porymap 6 “Locations” tab) and place it on the region map with the Region Map Editor to avoid missing/incorrect mapsec IDs.
+  - 2025-08-01: AI sleep handling—`IsBattlerIncapacitated` only flagged Sleep Talk; add Snore (and similar) so AI scores support moves correctly in sleep (e.g. Follow Me/Helping Hand not treated as unusable).
+  - 2025-08-01: New TM/HM entries need adding to `include/constants/tms_hms.h` and associated data tables; missing constants cause “additional info” prompts or build errors when introducing custom TMs.
+  - 2025-08-01: Triple-layer metatile artifacts (roulette/gacha) stem from bad triple-layer definitions; verify the metatile behaviors/layers for those tiles and reconvert the tileset in Porymap to fix incorrect layer ordering.
 
 ## Reference Resources
 - https://github.com/pret/pokeemerald/wiki/Tutorials — vanilla Emerald decomp (non-expansion); good for locating original behaviors and small features that may already be upstreamed here.
