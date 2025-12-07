@@ -4,6 +4,30 @@
 - Fork of `rh-hideout/pokeemerald-expansion` (`master`). Base is the Japanese “Pocket Monsters Emerald” ROM, decompiled and extended to Gen 9 mechanics.
 - Upstream changes fast; names/constants/logic can differ per tag/branch. Cross-check your target branch/changelog and consult upstream issues/forks when behavior differs.
 
+## Upstream & Community
+- Primary source: https://github.com/rh-hideout/pokeemerald-expansion — treat as canonical; watch both `master` and `upcoming` (beta, high churn/issues daily).
+- Community hub: RHH Discord https://discord.gg/6CzjAG6GZk — active discussion, beta issues, and #pr-discussions threads.
+
+## Discord #expansion-get-help Notes
+- Export file (when present): `RH Hideout - ★ Expansion ★ - expansion-get-help [1077168246555430962].txt`; context spans many versions—double-check against your branch and prefer recent posts (older advice can be wrong as APIs change). File is a local reference only; do not commit.
+- High-signal responders: Alex (often posts fixes/diagnoses), rainonline, asparaguseduardo (Eduardo), and mgriffin frequently deliver reliable answers—prioritize their solutions when skimming.
+- Debug logging: `DebugPrintf` only works if you comment out `#define NDEBUG` in `include/config.h`; `MgbaPrintf_` is a test helper.
+- Toolchain mismatch: `__getreent`/libc undefined refs reported with older devkitARM/libc; use the supported devkitARM from INSTALL.md.
+- De-evolution logic: no reverse pointer in evo data; use a linear search like daycare `GetEggSpecies` rather than hacking extra evo entries.
+- Mega evolution items: if swapping required items, set the item’s `holdEffect` to `HOLD_EFFECT_MEGA_STONE` or ME won’t trigger.
+- Form-change sprites: multiple form changes (Minior/Cramorant/Castform) sticking on old sprite tracked in issue #8457 (seen on `upcoming`).
+- Ability info flags: Water Bubble missing `breakable` flag—add it to the breakable list and tests when auditing ability data.
+- DNS/window colors: palette glitches tied to window template sizing; fix the window template width when applying DNS UI palettes.
+- Starting items: add key items in `data/scripts/new_game.inc` via the `additem` macro.
+- Teachable learnsets by gen: remove moves from `sv.json` (teachable data) to drop Gen 9-only moves; upcoming will ease removals.
+
+## Reference Resources
+- https://github.com/pret/pokeemerald/wiki/Tutorials — vanilla Emerald decomp (non-expansion); good for locating original behaviors and small features that may already be upstreamed here.
+- https://github.com/TeamAquasHideout/Team-Aquas-Asset-Repo/wiki/Feature-Branches — “The Pit” feature branches with high-quality modules; many additions for v13 were adapted from here.
+- https://github.com/TeamAquasHideout/pokeemerald — Team Aquas base repo; browse branch diffs for self-contained features.
+- https://github.com/PCG06/pokeemerald/tree/move_relearner — reference for move relearner and related logic; some pieces are already in expansion.
+- Expansion-based game forks worth inspecting for ideas/diffs: https://github.com/resetes12/pokeemerald , https://github.com/Pokabbie/pokeemerald-rogue/ , https://www.pokecommunity.com/threads/the-pit-v2-roguelite-style-hack.528423/ , https://www.pokecommunity.com . FireRed and RPGXP projects can also be mined for portable logic.
+
 ## Project Structure & Module Organization
 - Core code in `src/` (C) and `include/`; shared constants in `constants/`; assembly overlays in `asm/`; data tables in `data/`.
 - Assets: `graphics/`, `sound/`, and rules files (`graphics_file_rules.mk`, `audio_rules.mk`, `map_data_rules.mk`, `trainer_rules.mk`). Outputs land in `build/<target>/` plus `pokeemerald.gba`/`.elf`.
