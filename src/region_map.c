@@ -51,6 +51,7 @@ enum {
     TAG_CURSOR,
     TAG_PLAYER_ICON,
     TAG_FLY_ICON,
+    TAG_FLY_ICON_BG,
 };
 
 // Window IDs for the fly map
@@ -110,6 +111,7 @@ static void SetFlyMapCallback(void callback(void));
 static void DrawFlyDestTextWindow(void);
 static void LoadFlyDestIcons(void);
 static void CreateFlyDestIcons(void);
+static void CreateFlyDestIconSprite(mapsec_u16_t mapSecId, bool32 visited);
 static void TryCreateRedOutlineFlyDestIcons(void);
 static void SpriteCB_FlyDestIcon(struct Sprite *sprite);
 static void CB_FadeInFlyMap(void);
@@ -285,6 +287,17 @@ static const u32 sRegionMapFrameGfxLZ[] = INCBIN_U32("graphics/pokenav/region_ma
 static const u32 sRegionMapFrameTilemapLZ[] = INCBIN_U32("graphics/pokenav/region_map/frame.bin.smolTM");
 static const u16 sFlyTargetIcons_Pal[] = INCBIN_U16("graphics/pokenav/region_map/fly_target_icons.gbapal");
 static const u32 sFlyTargetIcons_Gfx[] = INCBIN_U32("graphics/pokenav/region_map/fly_target_icons.4bpp.smol");
+static const u8 sFlyTargetCustomBgTiles[] =
+{
+    0x00, 0xFF, 0xFF, 0x00, // ..####..
+    0xF0, 0xFF, 0xFF, 0x0F, // .######.
+    0xFF, 0x0F, 0xF0, 0xFF, // ###..###
+    0xFF, 0x00, 0x00, 0xFF, // ##....##
+    0xFF, 0x00, 0x00, 0xFF, // ##....##
+    0xFF, 0x0F, 0xF0, 0xFF, // ###..###
+    0xF0, 0xFF, 0xFF, 0x0F, // .######.
+    0x00, 0xFF, 0xFF, 0x00, // ..####..
+};
 
 static const u8 sMapHealLocations[][3] =
 {
@@ -338,6 +351,7 @@ static const u8 sMapHealLocations[][3] =
     [MAPSEC_ROUTE_132] = {MAP_GROUP(MAP_ROUTE132), MAP_NUM(MAP_ROUTE132), HEAL_LOCATION_NONE},
     [MAPSEC_ROUTE_133] = {MAP_GROUP(MAP_ROUTE133), MAP_NUM(MAP_ROUTE133), HEAL_LOCATION_NONE},
     [MAPSEC_ROUTE_134] = {MAP_GROUP(MAP_ROUTE134), MAP_NUM(MAP_ROUTE134), HEAL_LOCATION_NONE},
+    [MAPSEC_CUSTOM]    = {MAP_GROUP(MAP_LOBBY1)  , MAP_NUM(MAP_LOBBY1)  , HEAL_LOCATION_NONE},
 };
 
 static const u8 *const sEverGrandeCityNames[] =
@@ -494,12 +508,41 @@ static const union AnimCmd *const sFlyDestIcon_Anims[] =
     [FLYDESTICON_RED_OUTLINE] = sFlyDestIcon_Anim_RedOutline
 };
 
+static const struct OamData sFlyDestIconBg_OamData =
+{
+    .shape = SPRITE_SHAPE(8x8),
+    .size = SPRITE_SIZE(8x8),
+    .priority = 2
+};
+
+static const union AnimCmd sFlyDestIconBg_Anim[] =
+{
+    ANIMCMD_FRAME(0, 5),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sFlyDestIconBg_Anims[] =
+{
+    sFlyDestIconBg_Anim
+};
+
 static const struct SpriteTemplate sFlyDestIconSpriteTemplate =
 {
     .tileTag = TAG_FLY_ICON,
     .paletteTag = TAG_FLY_ICON,
     .oam = &sFlyDestIcon_OamData,
     .anims = sFlyDestIcon_Anims,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy
+};
+
+static const struct SpriteTemplate sFlyDestIconBgSpriteTemplate =
+{
+    .tileTag = TAG_FLY_ICON_BG,
+    .paletteTag = TAG_FLY_ICON,
+    .oam = &sFlyDestIconBg_OamData,
+    .anims = sFlyDestIconBg_Anims,
     .images = NULL,
     .affineAnims = gDummySpriteAffineAnimTable,
     .callback = SpriteCallbackDummy
@@ -1218,6 +1261,8 @@ static u8 GetMapsecType(mapsec_u16_t mapSecId)
         return FlagGet(FLAG_VISITED_SOOTOPOLIS_CITY) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
     case MAPSEC_EVER_GRANDE_CITY:
         return FlagGet(FLAG_VISITED_EVER_GRANDE_CITY) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
+    case MAPSEC_CUSTOM:
+        return MAPSECTYPE_CITY_CANTFLY;
     case MAPSEC_BATTLE_FRONTIER:
         return FlagGet(FLAG_LANDMARK_BATTLE_FRONTIER) ? MAPSECTYPE_BATTLE_FRONTIER : MAPSECTYPE_NONE;
     case MAPSEC_SOUTHERN_ISLAND:
@@ -1829,12 +1874,17 @@ static void DrawFlyDestTextWindow(void)
 static void LoadFlyDestIcons(void)
 {
     struct SpriteSheet sheet;
+    struct SpriteSheet bgSheet;
 
     DecompressDataWithHeaderWram(sFlyTargetIcons_Gfx, sFlyMap->tileBuffer);
     sheet.data = sFlyMap->tileBuffer;
     sheet.size = sizeof(sFlyMap->tileBuffer);
     sheet.tag = TAG_FLY_ICON;
     LoadSpriteSheet(&sheet);
+    bgSheet.data = sFlyTargetCustomBgTiles;
+    bgSheet.size = sizeof(sFlyTargetCustomBgTiles);
+    bgSheet.tag = TAG_FLY_ICON_BG;
+    LoadSpriteSheet(&bgSheet);
     LoadSpritePalette(&sFlyTargetIconsSpritePalette);
     CreateFlyDestIcons();
     TryCreateRedOutlineFlyDestIcons();
@@ -1844,10 +1894,8 @@ static void LoadFlyDestIcons(void)
 #define sIconMapSec   data[0]
 #define sFlickerTimer data[1]
 
-static void CreateFlyDestIcons(void)
+static void CreateFlyDestIconSprite(mapsec_u16_t mapSecId, bool32 visited)
 {
-    u16 canFlyFlag;
-    mapsec_u16_t mapSecId;
     u16 x;
     u16 y;
     u16 width;
@@ -1855,35 +1903,52 @@ static void CreateFlyDestIcons(void)
     u16 shape;
     u8 spriteId;
 
-    canFlyFlag = FLAG_VISITED_LITTLEROOT_TOWN;
+    GetMapSecDimensions(mapSecId, &x, &y, &width, &height);
+    x = (x + MAPCURSOR_X_MIN) * 8 + 4;
+    y = (y + MAPCURSOR_Y_MIN) * 8 + 4;
+
+    if (width == 2)
+        shape = SPRITE_SHAPE(16x8);
+    else if (height == 2)
+        shape = SPRITE_SHAPE(8x16);
+    else
+        shape = SPRITE_SHAPE(8x8);
+
+    if (mapSecId == MAPSEC_CUSTOM)
+    {
+        u8 bgSpriteId = CreateSprite(&sFlyDestIconBgSpriteTemplate, x, y, 11);
+        if (bgSpriteId != MAX_SPRITES)
+            StartSpriteAnim(&gSprites[bgSpriteId], 0);
+    }
+
+    spriteId = CreateSprite(&sFlyDestIconSpriteTemplate, x, y, 10);
+    if (spriteId != MAX_SPRITES)
+    {
+        gSprites[spriteId].oam.shape = shape;
+
+        if (visited)
+            gSprites[spriteId].callback = SpriteCB_FlyDestIcon;
+        else
+            shape += 3;
+
+        StartSpriteAnim(&gSprites[spriteId], shape);
+        gSprites[spriteId].sIconMapSec = mapSecId;
+    }
+}
+
+static void CreateFlyDestIcons(void)
+{
+    u16 canFlyFlag = FLAG_VISITED_LITTLEROOT_TOWN;
+    mapsec_u16_t mapSecId;
+
     for (mapSecId = MAPSEC_LITTLEROOT_TOWN; mapSecId <= MAPSEC_EVER_GRANDE_CITY; mapSecId++)
     {
-        GetMapSecDimensions(mapSecId, &x, &y, &width, &height);
-        x = (x + MAPCURSOR_X_MIN) * 8 + 4;
-        y = (y + MAPCURSOR_Y_MIN) * 8 + 4;
-
-        if (width == 2)
-            shape = SPRITE_SHAPE(16x8);
-        else if (height == 2)
-            shape = SPRITE_SHAPE(8x16);
-        else
-            shape = SPRITE_SHAPE(8x8);
-
-        spriteId = CreateSprite(&sFlyDestIconSpriteTemplate, x, y, 10);
-        if (spriteId != MAX_SPRITES)
-        {
-            gSprites[spriteId].oam.shape = shape;
-
-            if (FlagGet(canFlyFlag))
-                gSprites[spriteId].callback = SpriteCB_FlyDestIcon;
-            else
-                shape += 3;
-
-            StartSpriteAnim(&gSprites[spriteId], shape);
-            gSprites[spriteId].sIconMapSec = mapSecId;
-        }
+        CreateFlyDestIconSprite(mapSecId, FlagGet(canFlyFlag));
         canFlyFlag++;
     }
+
+    // Show the custom Lobby 1 map section icon from the start (non-flyable).
+    CreateFlyDestIconSprite(MAPSEC_CUSTOM, FALSE);
 }
 
 // Draw a red outline box on the mapsec if its corresponding flag has been set

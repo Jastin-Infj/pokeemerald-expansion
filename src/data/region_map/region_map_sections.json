@@ -1224,6 +1224,14 @@
       "name": "NAVEL ROCK"
     },
     {
+      "id": "MAPSEC_CUSTOM",
+      "name": "LOBBY1",
+      "x": 19,
+      "y": 13,
+      "width": 1,
+      "height": 1
+    },
+    {
       "id": "MAPSEC_TRAINER_HILL",
       "name": "TRAINER HILL",
       "x": 8,
