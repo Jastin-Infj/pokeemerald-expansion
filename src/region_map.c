@@ -52,6 +52,7 @@ enum {
     TAG_PLAYER_ICON,
     TAG_FLY_ICON,
     TAG_FLY_ICON_BG,
+    TAG_FLY_ICON_CUSTOM,
 };
 
 // Window IDs for the fly map
@@ -78,6 +79,7 @@ static EWRAM_DATA struct {
     u8 tileBuffer[0x1c0];
     u8 nameBuffer[0x26]; // never read
     bool8 choseFlyLocation;
+    u8 customBgSpriteId;
 } *sFlyMap = NULL;
 
 static bool32 sDrawFlyDestTextWindow;
@@ -433,6 +435,33 @@ static const struct SpritePalette sFlyTargetIconsSpritePalette =
 {
     .data = sFlyTargetIcons_Pal,
     .tag = TAG_FLY_ICON
+};
+
+// Palette used only for the custom Lobby 1 fly icon (blue blink); base palette remains unchanged for all others.
+static const u16 sFlyTargetIconsCustomPal[] =
+{
+    [0]  = RGB(0, 0, 0),
+    [1]  = RGB(31, 0, 0),
+    [2]  = RGB(0, 0, 0),
+    [3]  = RGB(0, 0, 0),
+    [4]  = RGB(25, 25, 25),
+    [5]  = RGB(0, 0, 0),
+    [6]  = RGB(0, 0, 0),
+    [7]  = RGB(6, 22, 31),
+    [8]  = RGB(4, 16, 28),
+    [9]  = RGB(2, 9, 21),
+    [10] = RGB(16, 16, 15),
+    [11] = RGB(12, 11, 11),
+    [12] = RGB(6, 6, 8),
+    [13] = RGB(0, 0, 0),
+    [14] = RGB(0, 0, 0),
+    [15] = RGB(31, 31, 31),
+};
+
+static const struct SpritePalette sFlyTargetIconsCustomSpritePalette =
+{
+    .data = sFlyTargetIconsCustomPal,
+    .tag = TAG_FLY_ICON_CUSTOM
 };
 
 static const mapsec_u16_t sRedOutlineFlyDestinations[][2] =
@@ -1262,7 +1291,7 @@ static u8 GetMapsecType(mapsec_u16_t mapSecId)
     case MAPSEC_EVER_GRANDE_CITY:
         return FlagGet(FLAG_VISITED_EVER_GRANDE_CITY) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
     case MAPSEC_CUSTOM:
-        return MAPSECTYPE_CITY_CANTFLY;
+        return FlagGet(FLAG_VISITED_LOBBY1) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
     case MAPSEC_BATTLE_FRONTIER:
         return FlagGet(FLAG_LANDMARK_BATTLE_FRONTIER) ? MAPSECTYPE_BATTLE_FRONTIER : MAPSECTYPE_NONE;
     case MAPSEC_SOUTHERN_ISLAND:
@@ -1719,6 +1748,7 @@ void CB2_OpenFlyMap(void)
         }
         else
         {
+            sFlyMap->customBgSpriteId = MAX_SPRITES;
             ResetPaletteFade();
             ResetSpriteData();
             FreeSpriteTileRanges();
@@ -1886,6 +1916,7 @@ static void LoadFlyDestIcons(void)
     bgSheet.tag = TAG_FLY_ICON_BG;
     LoadSpriteSheet(&bgSheet);
     LoadSpritePalette(&sFlyTargetIconsSpritePalette);
+    LoadSpritePalette(&sFlyTargetIconsCustomSpritePalette);
     CreateFlyDestIcons();
     TryCreateRedOutlineFlyDestIcons();
 }
@@ -1893,6 +1924,7 @@ static void LoadFlyDestIcons(void)
 // Sprite data for SpriteCB_FlyDestIcon
 #define sIconMapSec   data[0]
 #define sFlickerTimer data[1]
+#define sCustomBlinkPhase data[2]
 
 static void CreateFlyDestIconSprite(mapsec_u16_t mapSecId, bool32 visited)
 {
@@ -1918,7 +1950,10 @@ static void CreateFlyDestIconSprite(mapsec_u16_t mapSecId, bool32 visited)
     {
         u8 bgSpriteId = CreateSprite(&sFlyDestIconBgSpriteTemplate, x, y, 11);
         if (bgSpriteId != MAX_SPRITES)
+        {
             StartSpriteAnim(&gSprites[bgSpriteId], 0);
+            sFlyMap->customBgSpriteId = bgSpriteId;
+        }
     }
 
     spriteId = CreateSprite(&sFlyDestIconSpriteTemplate, x, y, 10);
@@ -1933,6 +1968,7 @@ static void CreateFlyDestIconSprite(mapsec_u16_t mapSecId, bool32 visited)
 
         StartSpriteAnim(&gSprites[spriteId], shape);
         gSprites[spriteId].sIconMapSec = mapSecId;
+        gSprites[spriteId].sCustomBlinkPhase = 0;
     }
 }
 
@@ -1947,8 +1983,9 @@ static void CreateFlyDestIcons(void)
         canFlyFlag++;
     }
 
-    // Show the custom Lobby 1 map section icon from the start (non-flyable).
-    CreateFlyDestIconSprite(MAPSEC_CUSTOM, FALSE);
+    // Custom Lobby 1 entry; always treat as visited so it can be flown to and blink on selection.
+    FlagSet(FLAG_VISITED_LOBBY1);
+    CreateFlyDestIconSprite(MAPSEC_CUSTOM, TRUE);
 }
 
 // Draw a red outline box on the mapsec if its corresponding flag has been set
@@ -1986,6 +2023,51 @@ static void TryCreateRedOutlineFlyDestIcons(void)
 // Flickers fly destination icon color (by hiding the fly icon sprite) if the cursor is currently on it
 static void SpriteCB_FlyDestIcon(struct Sprite *sprite)
 {
+    if (sprite->sIconMapSec == MAPSEC_CUSTOM)
+    {
+        u8 defaultPaletteNum = IndexOfSpritePaletteTag(TAG_FLY_ICON);
+        u8 bluePaletteNum = IndexOfSpritePaletteTag(TAG_FLY_ICON_CUSTOM);
+        struct Sprite *bgSprite = sFlyMap->customBgSpriteId != MAX_SPRITES ? &gSprites[sFlyMap->customBgSpriteId] : NULL;
+
+        if (bluePaletteNum == 0xFF)
+            bluePaletteNum = defaultPaletteNum;
+
+        if (sFlyMap->regionMap.mapSecId == sprite->sIconMapSec)
+        {
+            if (++sprite->sFlickerTimer > 16)
+            {
+                sprite->sFlickerTimer = 0;
+                sprite->sCustomBlinkPhase ^= 1;
+            }
+
+            // Blink between blue and the original pink icon (background outline stays visible).
+            if (sprite->sCustomBlinkPhase)
+            {
+                sprite->oam.paletteNum = bluePaletteNum;
+                sprite->invisible = FALSE;
+            }
+            else
+            {
+                sprite->oam.paletteNum = defaultPaletteNum;
+                sprite->invisible = FALSE;
+            }
+
+            if (bgSprite != NULL)
+                bgSprite->invisible = FALSE;
+        }
+        else
+        {
+            sprite->sFlickerTimer = 16;
+            sprite->sCustomBlinkPhase = 0;
+            sprite->oam.paletteNum = defaultPaletteNum;
+            sprite->invisible = FALSE;
+
+            if (bgSprite != NULL)
+                bgSprite->invisible = FALSE;
+        }
+        return;
+    }
+
     if (sFlyMap->regionMap.mapSecId == sprite->sIconMapSec)
     {
         if (++sprite->sFlickerTimer > 16)
@@ -2003,6 +2085,7 @@ static void SpriteCB_FlyDestIcon(struct Sprite *sprite)
 
 #undef sIconMapSec
 #undef sFlickerTimer
+#undef sCustomBlinkPhase
 
 static void CB_FadeInFlyMap(void)
 {
