@@ -16873,3 +16873,30 @@ Double Battle: No
 Kyogre
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+=== TRAINER_PARTY_SELECT_TEST ===
+Name: PARTYSEL
+Class: Pkmn Trainer 1
+Pic: Cooltrainer M
+Gender: Male
+Music: Male
+Double Battle: No
+AI: Basic Trainer
+
+Wynaut
+Level: 50
+
+Delibird
+Level: 50
+
+Luvdisc
+Level: 50
+
+Pidgey
+Level: 50
+
+Pichu
+Level: 50
+
+Ledyba
+Level: 50

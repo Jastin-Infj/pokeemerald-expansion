@@ -146,7 +146,11 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
-	release
+	lockall
+	trainerpartyselect TRAINER_PARTY_SELECT_TEST, FALSE
+	goto_if_eq VAR_RESULT, FALSE, Debug_EventScript_PartySelectTest_Cancel
+	trainerbattle_single TRAINER_PARTY_SELECT_TEST, Debug_Text_PartySelectTest_Intro, Debug_Text_PartySelectTest_Lose
+	releaseall
 	end
 
 Debug_EventScript_Script_2::
@@ -176,6 +180,19 @@ Debug_EventScript_Script_7::
 Debug_EventScript_Script_8::
 	release
 	end
+
+Debug_EventScript_PartySelectTest_Cancel::
+	message Debug_Text_PartySelectTest_Cancel
+	goto Debug_MessageEnd
+
+Debug_Text_PartySelectTest_Intro:
+	.string "Party select test!$"
+
+Debug_Text_PartySelectTest_Lose:
+	.string "Nice picks.$"
+
+Debug_Text_PartySelectTest_Cancel:
+	.string "Party select canceled.$"
 
 Debug_CheckSaveBlock::
 	callnative CheckSaveBlock1Size

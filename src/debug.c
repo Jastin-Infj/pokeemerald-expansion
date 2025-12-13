@@ -10,6 +10,7 @@
 #include "global.h"
 #include "battle.h"
 #include "battle_setup.h"
+#include "battle_party_select.h"
 #include "berry.h"
 #include "clock.h"
 #include "coins.h"
@@ -281,6 +282,7 @@ static void DebugAction_Party_HealParty(u8 taskId);
 static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
+static void DebugAction_Party_OpenPartySelectUI(u8 taskId);
 
 static void DebugAction_FlagsVars_Flags(u8 taskId);
 static void DebugAction_FlagsVars_FlagsSelect(u8 taskId);
@@ -588,6 +590,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Check IVs"),          DebugAction_ExecuteScript, Debug_EventScript_CheckIVs },
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
+    { COMPOUND_STRING("Party Select UI"),    DebugAction_Party_OpenPartySelectUI },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
     { NULL }
 };
@@ -4166,6 +4169,12 @@ static void DebugAction_Party_SetParty(u8 taskId)
     CreateNPCTrainerPartyFromTrainer(gPlayerParty, &sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_PLAYER], TRUE, BATTLE_TYPE_TRAINER);
     ScriptContext_Enable();
     Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_OpenPartySelectUI(u8 taskId)
+{
+    Debug_DestroyMenu_Full(taskId);
+    CB2_OpenBattlePartySelectDemo();
 }
 
 static void DebugAction_Party_BattleSingle(u8 taskId)

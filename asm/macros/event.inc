@@ -796,6 +796,18 @@
 	trainerbattle TRAINER_BATTLE_TWO_TRAINERS_NO_INTRO, OBJ_ID_NONE, \trainer_a, NULL, \lose_text_a, NULL, OBJ_ID_NONE, \trainer_b, NULL, \lose_text_b, NULL, NULL, NULL, FALSE, TRUE, FALSE, FALSE
 	.endm
 
+	@ Opens the trainer party select UI using trainer ids passed as arguments.
+	@ trainer: primary trainer id
+	@ isDouble: 0 = single, non-zero = double battle
+	@ partner: optional second trainer id (for two-opponent battles)
+	.macro trainerpartyselect trainer:req, isDouble:req, partner=TRAINER_NONE
+	setvar VAR_0x8004, \trainer
+	setvar VAR_0x8005, \partner
+	setvar VAR_0x8006, \isDouble
+	special StartTrainerPartySelect
+	waitstate
+	.endm
+
 	@ Starts a trainer battle using the battle information stored in RAM (usually by the scripts in trainer_battle.inc, which
 	@ are run by trainerbattle), and blocks script execution until the battle finishes.
 	.macro dotrainerbattle
