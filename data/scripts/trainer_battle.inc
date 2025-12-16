@@ -47,8 +47,10 @@ EventScript_NoDoubleTrainerBattle::
 
 EventScript_DoNoIntroTrainerBattle::
 	setflag FLAG_SAFE_FOLLOWER_MOVEMENT
+	goto_if_eq VAR_LAST_TALKED, LOCALID_NONE, EventScript_DoNoIntroTrainerBattle_NoObj
 	applymovement VAR_LAST_TALKED, Movement_RevealTrainer
 	waitmovement 0
+EventScript_DoNoIntroTrainerBattle_NoObj::
 	clearflag FLAG_SAFE_FOLLOWER_MOVEMENT
 	special PlayTrainerEncounterMusic
 	dotrainerbattle

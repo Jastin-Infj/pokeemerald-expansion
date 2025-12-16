@@ -56,10 +56,11 @@ gSpecials::
 	def_special GetLinkPartnerNames
 	def_special SpawnLinkPartnerObjectEvent
 	def_special SavePlayerParty
-	def_special LoadPlayerParty
-	def_special ChooseHalfPartyForBattle
-	def_special StartTrainerPartySelect
-	def_special Script_ShowLinkTrainerCard
+def_special LoadPlayerParty
+def_special ChooseHalfPartyForBattle
+def_special StartTrainerPartySelect
+def_special StartTrainerBattleAfterPartySelect
+def_special Script_ShowLinkTrainerCard
 	def_special ObjectEventInteractionGetBerryTreeData
 	def_special ObjectEventInteractionGetBerryName
 	def_special ObjectEventInteractionGetBerryCountString

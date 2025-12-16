@@ -14,4 +14,14 @@ void CB2_OpenBattlePartySelectDemo(void);
 // On confirm, writes the chosen order into gSelectedOrderFromParty.
 u16 StartTrainerPartySelect(void);
 
+u16 StartTrainerBattleAfterPartySelect(void);
+
+// If the party select UI prepared a custom opponent party, copy it into
+// gEnemyParty and set gEnemyPartyCount. Returns TRUE if it was used.
+bool32 PartySelect_TryLoadPresetOpponentParty(void);
+
+// Restore the player's original party if it was replaced for party select.
+bool32 PartySelect_ShouldRestoreSavedParty(void);
+void PartySelect_RestoreSavedParty(void);
+
 #endif // GUARD_BATTLE_PARTY_SELECT_H

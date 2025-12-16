@@ -10,6 +10,8 @@
 #include "party_menu.h"
 #include "pokemon.h"
 #include "pokemon_icon.h"
+#include "random.h"
+#include "script_pokemon_util.h"
 #include "sound.h"
 #include "sprite.h"
 #include "string_util.h"
@@ -18,14 +20,23 @@
 #include "text_window.h"
 #include "window.h"
 #include "battle_main.h"
+#include "battle_setup.h"
 #include "data.h"
 #include "event_data.h"
+#include "event_scripts.h"
+#include "script.h"
+#include "battle.h"
+#include "battle.h"
+#include "overworld.h"
 #include "constants/pokemon.h"
+#include "constants/battle_setup.h"
 #include "constants/songs.h"
 #include "constants/characters.h"
 #include "constants/rgb.h"
 #include "constants/battle.h"
 #include "constants/trainers.h"
+#include "constants/event_objects.h"
+#include "trainer_see.h"
 #include "strings.h"
 
 enum
@@ -186,6 +197,24 @@ static u8 PartySelect_GetSlotIndex(u8 row, u8 col);
 static bool32 PartySelect_FindFirstSelectable(u8 side, u8 *slotOut);
 static bool32 PartySelect_Begin(const struct PartySelectConfig *config);
 static void PartySelect_SavePlayerSelection(void);
+static void PartySelect_PrepareBattleParties(void);
+static void PartySelect_SelectOpponentParty(void);
+static void CB2_PartySelectLaunchTrainerBattle(void);
+
+// Data shared with the battle scene to load the chosen parties.
+static EWRAM_DATA struct Pokemon sPresetOpponentParty[PARTY_SIZE] = {0};
+static EWRAM_DATA u8 sPresetOpponentPartyCount = 0;
+static EWRAM_DATA bool8 sHasPresetOpponentParty = FALSE;
+static EWRAM_DATA u8 sTrainerPartyCanDynamaxMask = 0;
+static EWRAM_DATA u8 sTrainerPartyCanTeraMask = 0;
+static EWRAM_DATA u8 sPresetOpponentCanDynamaxMask = 0;
+static EWRAM_DATA u8 sPresetOpponentCanTeraMask = 0;
+static EWRAM_DATA bool8 sShouldRestorePlayerParty = FALSE;
+static EWRAM_DATA struct Pokemon sPlayerPartyBackup[PARTY_SIZE] = {0};
+static EWRAM_DATA u8 sPlayerPartyBackupCount = 0;
+static EWRAM_DATA u16 sPendingTrainerIdA = TRAINER_NONE;
+static EWRAM_DATA u16 sPendingTrainerIdB = TRAINER_NONE;
+static EWRAM_DATA bool8 sPendingIsDouble = FALSE;
 
 void CB2_OpenBattlePartySelectDemo(void)
 {
@@ -217,6 +246,8 @@ u16 StartTrainerPartySelect(void)
     struct PartySelectConfig config;
     struct Pokemon opponentParty[PARTY_SIZE];
     const u8 *opponentName;
+    struct BattleStruct *backupBattleStruct = gBattleStruct;
+    struct BattleStruct *tempBattleStruct = NULL;
     u16 trainerA = gSpecialVar_0x8004;
     u16 trainerB = gSpecialVar_0x8005;
     bool8 isDouble = (gSpecialVar_0x8006 != 0);
@@ -234,9 +265,23 @@ u16 StartTrainerPartySelect(void)
     if (trainerB != TRAINER_NONE)
         battleTypeFlags |= BATTLE_TYPE_TWO_OPPONENTS;
 
+    // Capture gimmick flags even when no battle is active without touching any live battle data.
+    tempBattleStruct = AllocZeroed(sizeof(*tempBattleStruct));
+    if (tempBattleStruct != NULL)
+        gBattleStruct = tempBattleStruct;
+
     CreateNPCTrainerPartyFromTrainer(opponentParty, GetTrainerStructFromId(trainerA), TRUE, battleTypeFlags);
     if (trainerB != TRAINER_NONE)
         CreateNPCTrainerPartyFromTrainer(&opponentParty[MULTI_PARTY_SIZE], GetTrainerStructFromId(trainerB), FALSE, battleTypeFlags);
+
+    if (gBattleStruct != NULL)
+    {
+        sTrainerPartyCanDynamaxMask = gBattleStruct->opponentMonCanDynamax;
+        sTrainerPartyCanTeraMask = gBattleStruct->opponentMonCanTera;
+    }
+    if (tempBattleStruct != NULL)
+        Free(tempBattleStruct);
+    gBattleStruct = backupBattleStruct;
 
     config.playerParty = gPlayerParty;
     config.opponentParty = opponentParty;
@@ -247,12 +292,21 @@ u16 StartTrainerPartySelect(void)
     config.opponentName = opponentName;
     config.isDoubleBattle = isDouble;
     config.maxSelections = isDouble ? FRONTIER_DOUBLES_PARTY_SIZE : FRONTIER_PARTY_SIZE;
-    config.exitCallback = CB2_ReturnToFieldContinueScriptPlayMapMusic;
+    config.exitCallback = CB2_PartySelectLaunchTrainerBattle;
     config.fromScript = TRUE;
+
+    sPendingTrainerIdA = trainerA;
+    sPendingTrainerIdB = trainerB;
+    sPendingIsDouble = isDouble;
 
     if (PartySelect_Begin(&config))
     {
         gSpecialVar_Result = TRUE;
+        // No overworld trainer object for this flow; avoid scripts trying to move one.
+        gSpecialVar_LastTalked = LOCALID_NONE;
+        gSelectedObjectEvent = 0;
+        gNoOfApproachingTrainers = 0;
+        gApproachingTrainerId = 0;
         return TRUE;
     }
 
@@ -271,6 +325,14 @@ static bool32 PartySelect_Begin(const struct PartySelectConfig *config)
     sPartySelect = AllocZeroed(sizeof(*sPartySelect));
     if (sPartySelect == NULL)
         return FALSE;
+
+    sHasPresetOpponentParty = FALSE;
+    sPresetOpponentPartyCount = 0;
+    sShouldRestorePlayerParty = FALSE;
+    sTrainerPartyCanDynamaxMask = 0;
+    sTrainerPartyCanTeraMask = 0;
+    sPresetOpponentCanDynamaxMask = 0;
+    sPresetOpponentCanTeraMask = 0;
 
     playerCount = config->playerPartyCount;
     opponentCount = config->opponentPartyCount;
@@ -745,6 +807,7 @@ static void PartySelect_AttemptConfirm(void)
 
     sPartySelect->confirmed = TRUE;
     PartySelect_SavePlayerSelection();
+    PartySelect_PrepareBattleParties();
     sPartySelect->fadeOut = TRUE;
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
 }
@@ -775,4 +838,154 @@ static bool32 PartySelect_FindFirstSelectable(u8 side, u8 *slotOut)
         }
     }
     return FALSE;
+}
+
+static void PartySelect_PrepareBattleParties(void)
+{
+    // Only apply the temporary party swap when invoked from a script-driven battle.
+    if (!sPartySelect->fromScript)
+        return;
+
+    // Backup the player's current party so we can restore it after battle.
+    sPlayerPartyBackupCount = CalculatePlayerPartyCount();
+    memcpy(sPlayerPartyBackup, gPlayerParty, sizeof(sPlayerPartyBackup));
+    sShouldRestorePlayerParty = TRUE;
+
+    // Move the selected mons to the front and blank out the rest.
+    ReducePlayerPartyToSelectedMons();
+    CalculatePlayerPartyCount();
+
+    // Build the opponent's randomly chosen party for this battle.
+    PartySelect_SelectOpponentParty();
+}
+
+static void PartySelect_SelectOpponentParty(void)
+{
+    u8 i;
+    u8 desiredCount;
+    u8 opponentCount = sPartySelect->partyCount[PARTY_SELECT_OPPONENT];
+    u8 indices[PARTY_SIZE];
+
+    sHasPresetOpponentParty = FALSE;
+    sPresetOpponentPartyCount = 0;
+    sPresetOpponentCanDynamaxMask = 0;
+    sPresetOpponentCanTeraMask = 0;
+
+    if (opponentCount == 0)
+        return;
+
+    desiredCount = sPartySelect->maxSelections[PARTY_SELECT_OPPONENT];
+    if (desiredCount > opponentCount)
+        desiredCount = opponentCount;
+    if (desiredCount > PARTY_SIZE)
+        desiredCount = PARTY_SIZE;
+
+    for (i = 0; i < opponentCount; i++)
+        indices[i] = i;
+
+    // Fisher-Yates shuffle for the first desiredCount entries.
+    for (i = 0; i < desiredCount; i++)
+    {
+        u8 j = i + (Random() % (opponentCount - i));
+        u8 tmp = indices[i];
+        indices[i] = indices[j];
+        indices[j] = tmp;
+    }
+
+    memset(sPresetOpponentParty, 0, sizeof(sPresetOpponentParty));
+    for (i = 0; i < desiredCount; i++)
+    {
+        sPresetOpponentParty[i] = sPartySelect->parties[PARTY_SELECT_OPPONENT][indices[i]];
+        if (sTrainerPartyCanDynamaxMask & (1 << indices[i]))
+            sPresetOpponentCanDynamaxMask |= (1 << i);
+        if (sTrainerPartyCanTeraMask & (1 << indices[i]))
+            sPresetOpponentCanTeraMask |= (1 << i);
+    }
+
+    sPresetOpponentPartyCount = desiredCount;
+    sHasPresetOpponentParty = (sPresetOpponentPartyCount != 0);
+}
+
+bool32 PartySelect_TryLoadPresetOpponentParty(void)
+{
+    if (!sHasPresetOpponentParty)
+        return FALSE;
+
+    memcpy(gEnemyParty, sPresetOpponentParty, sizeof(sPresetOpponentParty));
+    gEnemyPartyCount = sPresetOpponentPartyCount;
+    if (gBattleStruct != NULL)
+    {
+        gBattleStruct->opponentMonCanDynamax = sPresetOpponentCanDynamaxMask;
+        gBattleStruct->opponentMonCanTera = sPresetOpponentCanTeraMask;
+    }
+    sHasPresetOpponentParty = FALSE;
+    return TRUE;
+}
+
+bool32 PartySelect_ShouldRestoreSavedParty(void)
+{
+    return sShouldRestorePlayerParty;
+}
+
+void PartySelect_RestoreSavedParty(void)
+{
+    if (!sShouldRestorePlayerParty)
+        return;
+
+    CpuFill32(0, gPlayerParty, sizeof(gPlayerParty));
+    memcpy(gPlayerParty, sPlayerPartyBackup, sizeof(sPlayerPartyBackup));
+    gPlayerPartyCount = sPlayerPartyBackupCount;
+    CalculatePlayerPartyCount();
+    sShouldRestorePlayerParty = FALSE;
+}
+
+// Starts a trainer battle using the trainer ids previously stored in gSpecialVar_0x8004/0x8005
+// and the mode in gSpecialVar_0x8006. Intended to be called immediately after the party select
+// special returns with VAR_RESULT = TRUE.
+u16 StartTrainerBattleAfterPartySelect(void)
+{
+    u16 trainerA = sPendingTrainerIdA;
+    u16 trainerB = sPendingTrainerIdB;
+    bool8 isDouble = sPendingIsDouble;
+
+    if (trainerA == TRAINER_NONE)
+        return FALSE;
+
+    // Clear any lingering approach state.
+    gSelectedObjectEvent = 0;
+    gNoOfApproachingTrainers = 0;
+    gApproachingTrainerId = 0;
+
+    memset(&gTrainerBattleParameter, 0, sizeof(gTrainerBattleParameter));
+    TRAINER_BATTLE_PARAM.isDoubleBattle = isDouble;
+    TRAINER_BATTLE_PARAM.playMusicA = TRUE;
+    TRAINER_BATTLE_PARAM.playMusicB = TRUE;
+    TRAINER_BATTLE_PARAM.objEventLocalIdA = LOCALID_NONE;
+    TRAINER_BATTLE_PARAM.opponentA = trainerA;
+    TRAINER_BATTLE_PARAM.objEventLocalIdB = LOCALID_NONE;
+    TRAINER_BATTLE_PARAM.opponentB = trainerB;
+    TRAINER_BATTLE_PARAM.mode = (isDouble ? TRAINER_BATTLE_CONTINUE_SCRIPT_DOUBLE : TRAINER_BATTLE_SINGLE_NO_INTRO_TEXT);
+
+    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+    if (isDouble)
+        gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
+    if (trainerB != TRAINER_NONE)
+        gBattleTypeFlags |= BATTLE_TYPE_TWO_OPPONENTS;
+
+    BattleSetup_StartTrainerBattle();
+    return TRUE;
+}
+
+static void CB2_PartySelectLaunchTrainerBattle(void)
+{
+    // If the UI was canceled, just return to the field/script flow.
+    if (!gSpecialVar_Result)
+    {
+        gMain.state = 0;
+        CB2_ReturnToFieldContinueScriptPlayMapMusic();
+        return;
+    }
+
+    // Launch the battle immediately without returning to the field.
+    StartTrainerBattleAfterPartySelect();
 }

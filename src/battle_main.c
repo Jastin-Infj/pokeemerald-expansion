@@ -42,6 +42,7 @@
 #include "pokeball.h"
 #include "pokedex.h"
 #include "pokemon.h"
+#include "battle_party_select.h"
 #include "random.h"
 #include "recorded_battle.h"
 #include "roamer.h"
@@ -563,9 +564,12 @@ static void CB2_InitBattleInternal(void)
     {
         if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED)))
         {
-            CreateNPCTrainerParty(&gEnemyParty[0], TRAINER_BATTLE_PARAM.opponentA, TRUE);
-            if (gBattleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS && !BATTLE_TWO_VS_ONE_OPPONENT)
-                CreateNPCTrainerParty(&gEnemyParty[PARTY_SIZE / 2], TRAINER_BATTLE_PARAM.opponentB, FALSE);
+            if (!PartySelect_TryLoadPresetOpponentParty())
+            {
+                CreateNPCTrainerParty(&gEnemyParty[0], TRAINER_BATTLE_PARAM.opponentA, TRUE);
+                if (gBattleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS && !BATTLE_TWO_VS_ONE_OPPONENT)
+                    CreateNPCTrainerParty(&gEnemyParty[PARTY_SIZE / 2], TRAINER_BATTLE_PARAM.opponentB, FALSE);
+            }
             SetWildMonHeldItem();
             CalculateEnemyPartyCount();
         }
@@ -1993,7 +1997,7 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             if (partyData[monIndex].dynamaxLevel > 0)
             {
                 u32 data = partyData[monIndex].dynamaxLevel;
-                if (partyData[monIndex].shouldUseDynamax)
+                if (gBattleStruct != NULL && partyData[monIndex].shouldUseDynamax)
                     gBattleStruct->opponentMonCanDynamax |= 1 << i;
                 SetMonData(&party[i], MON_DATA_DYNAMAX_LEVEL, &data);
             }
@@ -2004,7 +2008,8 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             }
             if (partyData[monIndex].teraType > 0)
             {
-                gBattleStruct->opponentMonCanTera |= 1 << i;
+                if (gBattleStruct != NULL)
+                    gBattleStruct->opponentMonCanTera |= 1 << i;
                 enum Type data = partyData[monIndex].teraType;
                 SetMonData(&party[i], MON_DATA_TERA_TYPE, &data);
             }

@@ -147,9 +147,12 @@ Debug_EventScript_Text_DefensiveIVs:
 
 Debug_EventScript_Script_1::
 	lockall
-	trainerpartyselect TRAINER_PARTY_SELECT_TEST, FALSE
+	setvar VAR_0x8004, TRAINER_PARTY_SELECT_TEST
+	setvar VAR_0x8005, TRAINER_NONE
+	setvar VAR_0x8006, FALSE
+	special StartTrainerPartySelect
+	waitstate
 	goto_if_eq VAR_RESULT, FALSE, Debug_EventScript_PartySelectTest_Cancel
-	trainerbattle_single TRAINER_PARTY_SELECT_TEST, Debug_Text_PartySelectTest_Intro, Debug_Text_PartySelectTest_Lose
 	releaseall
 	end
 

@@ -16,6 +16,7 @@
 #include "random.h"
 #include "starter_choose.h"
 #include "script_pokemon_util.h"
+#include "battle_party_select.h"
 #include "palette.h"
 #include "window.h"
 #include "event_object_movement.h"
@@ -1214,6 +1215,11 @@ void BattleSetup_StartTrainerBattle(void)
         else
         {
             gBattleTypeFlags = (BATTLE_TYPE_TRAINER);
+            if (TRAINER_BATTLE_PARAM.isDoubleBattle)
+                gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
+            if (TRAINER_BATTLE_PARAM.opponentB != TRAINER_NONE
+             && TRAINER_BATTLE_PARAM.opponentB != 0xFFFF)
+                gBattleTypeFlags |= BATTLE_TYPE_TWO_OPPONENTS;
         }
     }
 
@@ -1314,6 +1320,9 @@ static void CB2_EndTrainerBattle(void)
          || FlagGet(FNPC_FLAG_HEAL_AFTER_FOLLOWER_BATTLE)))
             HealPlayerParty();
     }
+
+    if (PartySelect_ShouldRestoreSavedParty())
+        PartySelect_RestoreSavedParty();
 
     if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
     {
