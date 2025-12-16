@@ -81,6 +81,9 @@ static void CB2_OpenPokeblockFromBag(void);
 static void ItemUseOnFieldCB_Honey(u8 taskId);
 static bool32 IsValidLocationForVsSeeker(void);
 
+// Custom
+static void ItemUseOnFieldCB_Surfboard(u8);
+
 static const u8 sText_CantDismountBike[] = _("You can't dismount your BIKE here.{PAUSE_UNTIL_PRESS}");
 static const u8 sText_ItemFinderNearby[] = _("Huh?\nThe ITEMFINDER's responding!\pThere's an item buried around here!{PAUSE_UNTIL_PRESS}");
 static const u8 sText_ItemFinderOnTop[] = _("Oh!\nThe ITEMFINDER's shaking wildly!{PAUSE_UNTIL_PRESS}");
@@ -1227,6 +1230,32 @@ void ItemUseInBattle_PartyMenuChooseMove(u8 taskId)
     ItemUseInBattle_ShowPartyMenu(taskId);
 }
 
+void GetOnOffSurfboard(u8 transitionFlags)
+{
+
+    if (gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_SURFING)
+    {
+        SetPlayerAvatarTransitionFlags(PLAYER_AVATAR_FLAG_ON_FOOT);
+        Overworld_ClearSavedMusic();
+        Overworld_PlaySpecialMapMusic();
+    }
+    else
+    {
+        FollowerIntoPokeball();
+    }
+}
+
+void ItemUseOutOfBattle_Surfboard(u8 taskId)
+{
+    if (IsPlayerFacingSurfableFishableWater())
+    {
+        sItemUseOnFieldCB = ItemUseOnFieldCB_Surfboard;
+        SetUpItemUseOnFieldCallback(taskId);
+    }
+    else
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+}
+
 static bool32 IteamHealsMonVolatile(u32 battler, u16 itemId)
 {
     const u8 *effect = GetItemEffect(itemId);
@@ -1486,6 +1515,14 @@ void ItemUseOutOfBattle_Honey(u8 taskId)
 void ItemUseOutOfBattle_CannotUse(u8 taskId)
 {
     DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+}
+
+static void ItemUseOnFieldCB_Surfboard(u8 taskId)
+{
+	LockPlayerFieldControls();
+    ScriptContext_SetupScript(EventScript_UseSurf);
+    GetOnOffSurfboard(PLAYER_AVATAR_FLAG_SURFING);
+    DestroyTask(taskId);
 }
 
 static bool32 IsValidLocationForVsSeeker(void)

@@ -1698,6 +1698,9 @@ extern const u16 gItemIconPalette_LustrousGlobe[];
 extern const u32 gItemIcon_BerserkGene[];
 extern const u16 gItemIconPalette_BerserkGene[];
 
+extern const u32 gItemIcon_Surfboard[];
+extern const u16 gItemIconPalette_Surfboard[];
+
 extern const u32 gItemIcon_FairyFeather[];
 extern const u16 gItemIconPalette_FairyFeather[];
 

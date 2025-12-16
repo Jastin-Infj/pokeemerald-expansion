@@ -3713,3 +3713,16 @@ bool8 ScrFunc_settimeofday(struct ScriptContext *ctx)
     SetTimeOfDay(ScriptReadByte(ctx));
     return FALSE;
 }
+
+void FollowerIntoPokeball(void)
+{
+    struct ObjectEvent *follower = GetFollowerObject();
+
+    if (follower != NULL && follower->invisible == FALSE)
+    {
+        gPlayerAvatar.preventStep = TRUE;
+        ClearObjectEventMovement(follower, &gSprites[follower->spriteId]);
+        ObjectEventForceSetHeldMovement(follower, MOVEMENT_ACTION_ENTER_POKEBALL);
+        gSpecialVar_Unused_0x8014 = 1;
+    }
+}

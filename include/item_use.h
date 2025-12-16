@@ -41,6 +41,9 @@ void ItemUseOutOfBattle_ExpShare(u8 taskId);
 void ItemUseInBattle_BagMenu(u8 taskId);
 void ItemUseInBattle_PartyMenu(u8 taskId);
 void ItemUseInBattle_PartyMenuChooseMove(u8 taskId);
+// Custom
+void ItemUseOutOfBattle_Surfboard(u8 taskId);
+
 void Task_UseDigEscapeRopeOnField(u8 taskId);
 bool8 CanUseDigOrEscapeRopeOnCurMap(void);
 u8 CheckIfItemIsTMHMOrEvolutionStone(u16 itemId);

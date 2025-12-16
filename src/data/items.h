@@ -6834,6 +6834,21 @@ const struct Item gItemsInfo[] =
         .iconPalette = gItemIconPalette_QuestionMark, // gItemIconPalette_Falinksite,
     },
 
+    [ITEM_SURFBOARD]  = 
+    {
+        .name = ITEM_NAME("Surfboard"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "This flat board\n"
+            "is shaped for\n"
+            "riding waves."),
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_Surfboard,
+        .iconPic = gItemIcon_Surfboard,
+        .iconPalette = gItemIconPalette_Surfboard
+    },
+
 // Gems
 
     [ITEM_NORMAL_GEM] =

@@ -175,6 +175,9 @@ bool32 IsSendingKeysOverCable(void);
 void ClearLinkPlayerObjectEvents(void);
 bool16 SetTimeOfDay(u16 hours);
 
+// Custom
+void FollowerIntoPokeball(void);
+
 // Item Description Headers
 enum ItemObtainFlags
 {

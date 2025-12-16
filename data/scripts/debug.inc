@@ -66,6 +66,8 @@ Debug_CheatStart::
 	setflag FLAG_LANDMARK_BATTLE_FRONTIER
 	clearflag FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY
 	clearflag FLAG_HIDE_BRINEYS_HOUSE_PEEKO
+	giveitem ITEM_HM_SURF
+	setflag FLAG_RECEIVED_HM_SURF
 	release
 	end
 
