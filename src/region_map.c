@@ -27,6 +27,7 @@
 #include "constants/heal_locations.h"
 #include "constants/rgb.h"
 #include "constants/weather.h"
+#include "qol_field_moves.h" // qol_field_moves
 
 /*
  *  This file handles region maps generally, and the map used when selecting a fly destination.
@@ -2004,11 +2005,23 @@ static void CB_ExitFlyMap(void)
 
                 SetFlyDestination(tempRegionMap);
                 ReturnToFieldFromFlyMapSelect();
+                
+                // Start qol_field_moves
+                if (IsFlyToolUsed())
+                    ReturnToFieldFromFlyToolMapSelect();
+                else
+                    ReturnToFieldFromFlyMapSelect();
+            }
+            else if (IsFlyToolUsed())
+            {
+                ReturnToFieldOrBagFromFlyTool();
+                // End qol_field_moves
             }
             else
             {
                 SetMainCallback2(CB2_ReturnToPartyMenuFromFlyMap);
             }
+            ResetFlyTool(); // qol_field_moves
             TRY_FREE_AND_SET_NULL(sFlyMap);
             FreeAllWindowBuffers();
         }
@@ -2044,4 +2057,6 @@ void SetFlyDestination(struct RegionMap* regionMap)
         SetWarpDestinationToHealLocation(flyDestination);
     else
         SetWarpDestinationToMapWarp(sMapHealLocations[regionMap->mapSecId][0], sMapHealLocations[regionMap->mapSecId][1], WARP_ID_NONE);
+
+    
 }

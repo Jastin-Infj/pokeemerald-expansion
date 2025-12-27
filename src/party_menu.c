@@ -165,12 +165,15 @@ enum {
 #define MENU_DIR_RIGHT    2
 #define MENU_DIR_LEFT    -2
 
+/*
+Moved to qol_field_moves.h
 enum {
     CAN_LEARN_MOVE,
     CANNOT_LEARN_MOVE,
     ALREADY_KNOWS_MOVE,
     CANNOT_LEARN_MOVE_IS_EGG
 };
+*/
 
 enum {
     // Window ids 0-5 are implicitly assigned to each party Pokémon in InitPartyMenuBoxes
@@ -277,8 +280,10 @@ static void DisplayPartyPokemonMaxHPCheck(struct Pokemon *, struct PartyMenuBox 
 static void DisplayPartyPokemonHPBarCheck(struct Pokemon *, struct PartyMenuBox *);
 static void DisplayPartyPokemonDescriptionText(u8, struct PartyMenuBox *, u8);
 static bool8 IsMonAllowedInMinigame(u8);
-static void DisplayPartyPokemonDataToTeachMove(u8, u16);
-static u8 CanTeachMove(struct Pokemon *, u16);
+static void DisplayPartyPokemonDataToTeachMove(u8, u16, u8);
+static u8 CanTeachMove(struct Pokemon *, u16, u8);
+u8 CanMonLearnTMTutor(struct Pokemon *, u16, u8); // qol_field_moves
+//static u8 CanMonLearnTMTutor(struct Pokemon *, u16, u8);
 static void DisplayPartyPokemonBarDetail(u8, const u8 *, u8, const u8 *);
 static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 color, const u8 *align, u32 width);
 static void DisplayPartyPokemonLevel(u8, struct PartyMenuBox *);
@@ -1141,7 +1146,7 @@ static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8 slot)
     if (gPartyMenu.action == PARTY_ACTION_MOVE_TUTOR)
     {
         gSpecialVar_Result = FALSE;
-        DisplayPartyPokemonDataToTeachMove(slot, gSpecialVar_0x8005);
+        DisplayPartyPokemonDataToTeachMove(slot, gSpecialVar_0x8005, TRUE);
     }
     else
     {
@@ -1153,7 +1158,7 @@ static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8 slot)
         default:
             return FALSE;
         case 1: // TM/HM
-            DisplayPartyPokemonDataToTeachMove(slot, ItemIdToBattleMoveId(item));
+            DisplayPartyPokemonDataToTeachMove(slot, item, FALSE);
             break;
         case 2: // Evolution stone
             if (!GetMonData(currentPokemon, MON_DATA_IS_EGG) && GetEvolutionTargetSpecies(currentPokemon, EVO_MODE_ITEM_CHECK, item, NULL, NULL, CHECK_EVO) != SPECIES_NONE)
@@ -1165,9 +1170,9 @@ static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8 slot)
     return TRUE;
 }
 
-static void DisplayPartyPokemonDataToTeachMove(u8 slot, u16 move)
+static void DisplayPartyPokemonDataToTeachMove(u8 slot, u16 itemOrMove, u8 tutor)
 {
-    switch (CanTeachMove(&gPlayerParty[slot], move))
+    switch (CanTeachMove(&gPlayerParty[slot], itemOrMove, tutor))
     {
     case CANNOT_LEARN_MOVE:
     case CANNOT_LEARN_MOVE_IS_EGG:
@@ -2265,8 +2270,13 @@ static void Task_HandleCancelParticipationYesNoInput(u8 taskId)
     }
 }
 
-static u8 CanTeachMove(struct Pokemon *mon, u16 move)
+static u8 CanTeachMove(struct Pokemon *mon, u16 itemOrMove, u8 tutor)
 {
+    u16 move = itemOrMove;
+
+    if (!tutor)
+        move = ItemIdToBattleMoveId(itemOrMove);
+
     if (GetMonData(mon, MON_DATA_IS_EGG))
         return CANNOT_LEARN_MOVE_IS_EGG;
     else if (!CanLearnTeachableMove(GetMonData(mon, MON_DATA_SPECIES_OR_EGG), move))
@@ -2275,6 +2285,20 @@ static u8 CanTeachMove(struct Pokemon *mon, u16 move)
         return ALREADY_KNOWS_MOVE;
     else
         return CAN_LEARN_MOVE;
+}
+
+u8 CanMonLearnTMTutor(struct Pokemon *mon, u16 item, u8 tutorIndex)
+{
+    if (item != ITEM_NONE)
+        return CanTeachMove(mon, item, FALSE);
+
+#if P_TUTOR_MOVES_ARRAY
+    if (gTutorMoves[tutorIndex] == MOVE_UNAVAILABLE)
+        return CANNOT_LEARN_MOVE;
+    return CanTeachMove(mon, gTutorMoves[tutorIndex], TRUE);
+#else
+    return CANNOT_LEARN_MOVE;
+#endif
 }
 
 static void InitPartyMenuWindows(u8 layout)
@@ -5498,7 +5522,7 @@ void ItemUseCB_TMHM(u8 taskId, TaskFunc task)
     GetMonNickname(mon, gStringVar1);
     StringCopy(gStringVar2, GetMoveName(move));
 
-    switch (CanTeachMove(mon, move))
+    switch (CanTeachMove(mon, item, FALSE))
     {
     case CANNOT_LEARN_MOVE:
         DisplayLearnMoveMessageAndClose(taskId, gText_PkmnCantLearnMove);
@@ -6995,7 +7019,7 @@ static void TryTutorSelectedMon(u8 taskId)
         gPartyMenu.data1 = gSpecialVar_0x8005;
         StringCopy(gStringVar2, GetMoveName(gPartyMenu.data1));
         move[1] = 2;
-        switch (CanTeachMove(mon, gPartyMenu.data1))
+        switch (CanTeachMove(mon, gPartyMenu.data1, TRUE))
         {
         case CANNOT_LEARN_MOVE:
             DisplayLearnMoveMessageAndClose(taskId, gText_PkmnCantLearnMove);

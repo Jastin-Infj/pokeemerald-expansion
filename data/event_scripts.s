@@ -1162,3 +1162,4 @@ EventScript_VsSeekerChargingDone::
 	.include "data/scripts/dexnav.inc"
 	.include "data/scripts/battle_frontier.inc"
 	.include "data/scripts/apricorn_tree.inc"
+	.include "data/scripts/qol_field_move_scripts.inc" @ qol_field_moves 

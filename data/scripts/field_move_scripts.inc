@@ -1,7 +1,14 @@
 @ Interact with cuttable tree
 EventScript_CutTree::
 	lockall
-	checkfieldmove FIELD_MOVE_CUT, TRUE
+@ Start qol_field_moves
+	// checkpartymove MOVE_CUT
+    checkitem ITEM_CUT_TOOL, 1
+    goto_if_eq VAR_RESULT, TRUE, EventScript_UseCutTool
+    checkpartylearnknowsfieldmove ITEM_HM01
+	goto_if_unset FLAG_BADGE01_GET, EventScript_CheckTreeCantCut
+@ End qol_field_moves
+	// checkfieldmove FIELD_MOVE_CUT, TRUE
 	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CheckTreeCantCut
 	setfieldeffectargument 0, VAR_RESULT
 	bufferpartymonnick STR_VAR_1, VAR_RESULT
@@ -16,6 +23,7 @@ EventScript_CutTreeCommon:
 	dofieldeffect FLDEFF_USE_CUT_ON_TREE
 	waitstate
 EventScript_CutTreeDown:: @ fallthrough
+	setflag FLAG_SYS_USE_CUT @ qol_field_moves
 	setflag FLAG_SAFE_FOLLOWER_MOVEMENT
 	call_if_eq VAR_0x8004, TRUE, EventScript_FollowerFieldMove
 	applymovement VAR_LAST_TALKED, Movement_CutTreeDown
@@ -63,6 +71,13 @@ EventScript_UseRockSmash::
 @ Interact with smashable rock
 EventScript_RockSmash::
 	lockall
+@ Start qol_field_moves
+	//checkpartymove MOVE_ROCK_SMASH
+    checkitem ITEM_ROCKSMASH_TOOL,1
+    goto_if_eq VAR_RESULT, TRUE, EventScript_UseRockSmashTool
+    checkpartylearnknowsfieldmove ITEM_HM06
+	goto_if_unset FLAG_BADGE03_GET, EventScript_CantSmashRock
+@ End qol_field_moves
 	checkfieldmove FIELD_MOVE_ROCK_SMASH, TRUE
 	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantSmashRock
 	setfieldeffectargument 0, VAR_RESULT
@@ -345,7 +360,10 @@ EventScript_EndDive::
 
 EventScript_UseDiveUnderwater::
 	lockall
-	checkfieldmove FIELD_MOVE_DIVE
+@ Start qol_field_moves
+	//checkpartymove MOVE_DIVE
+    call EventScript_CheckDiveToolAndParty
+@ End qol_field_moves
 	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantSurface
 	bufferpartymonnick STR_VAR_1, VAR_RESULT
 	setfieldeffectargument 0, VAR_RESULT
