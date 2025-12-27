@@ -48,6 +48,7 @@
 #include "pokemon_icon.h"
 #include "pokemon_storage_system.h"
 #include "random.h"
+#include "randomizer.h"
 #include "region_map.h"
 #include "rtc.h"
 #include "script.h"
@@ -302,6 +303,7 @@ static void DebugAction_FlagsVars_EncounterOnOff(u8 taskId);
 static void DebugAction_FlagsVars_TrainerSeeOnOff(u8 taskId);
 static void DebugAction_FlagsVars_BagUseOnOff(u8 taskId);
 static void DebugAction_FlagsVars_CatchingOnOff(u8 taskId);
+static void DebugAction_FlagsVars_ToggleRandomizer(u8 taskId);
 static void DebugAction_FlagsVars_RunningShoes(u8 taskId);
 
 static void DebugAction_Give_Item(u8 taskId);
@@ -661,6 +663,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Flags[] =
     [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_TRAINER_SEE]   = { COMPOUND_STRING("Toggle {STR_VAR_1}Trainer See OFF"), DebugAction_ToggleFlag, DebugAction_FlagsVars_TrainerSeeOnOff },
     [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_CATCHING]      = { COMPOUND_STRING("Toggle {STR_VAR_1}Catching OFF"),    DebugAction_ToggleFlag, DebugAction_FlagsVars_CatchingOnOff },
     [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_BAG_USE]       = { COMPOUND_STRING("Toggle {STR_VAR_1}Bag Use OFF"),     DebugAction_ToggleFlag, DebugAction_FlagsVars_BagUseOnOff },
+    { COMPOUND_STRING("Toggle Randomizer"),         DebugAction_FlagsVars_ToggleRandomizer },
     { NULL }
 };
 
@@ -2064,6 +2067,39 @@ static void DebugAction_FlagsVars_CatchingOnOff(u8 taskId)
     else
         PlaySE(SE_PC_LOGIN);
     FlagToggle(B_FLAG_NO_CATCHING);
+#endif
+}
+
+static void DebugAction_FlagsVars_ToggleRandomizer(u8 taskId)
+{
+#if RANDOMIZER_AVAILABLE == TRUE
+    bool32 enabled = FlagGet(RANDOMIZER_FLAG_WILD_MON)
+                  || FlagGet(RANDOMIZER_FLAG_FIELD_ITEMS)
+                  || FlagGet(RANDOMIZER_FLAG_TRAINER_MON)
+                  || FlagGet(RANDOMIZER_FLAG_FIXED_MON)
+                  || FlagGet(RANDOMIZER_FLAG_STARTERS);
+
+    if (enabled)
+    {
+        PlaySE(SE_PC_OFF);
+        FlagClear(RANDOMIZER_FLAG_WILD_MON);
+        FlagClear(RANDOMIZER_FLAG_FIELD_ITEMS);
+        FlagClear(RANDOMIZER_FLAG_TRAINER_MON);
+        FlagClear(RANDOMIZER_FLAG_FIXED_MON);
+        FlagClear(RANDOMIZER_FLAG_STARTERS);
+    }
+    else
+    {
+        PlaySE(SE_PC_LOGIN);
+        FlagSet(RANDOMIZER_FLAG_WILD_MON);
+        FlagSet(RANDOMIZER_FLAG_FIELD_ITEMS);
+        FlagSet(RANDOMIZER_FLAG_TRAINER_MON);
+        FlagSet(RANDOMIZER_FLAG_FIXED_MON);
+        FlagSet(RANDOMIZER_FLAG_STARTERS);
+        VarSet(RANDOMIZER_VAR_SPECIES_MODE, MON_RANDOM);
+    }
+#else
+    PlaySE(SE_FAILURE);
 #endif
 }
 

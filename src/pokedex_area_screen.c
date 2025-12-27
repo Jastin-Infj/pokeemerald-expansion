@@ -22,6 +22,7 @@
 #include "trig.h"
 #include "pokedex_area_region_map.h"
 #include "wild_encounter.h"
+#include "randomizer.h"
 #include "window.h"
 #include "constants/region_map_sections.h"
 #include "constants/rgb.h"
@@ -465,7 +466,14 @@ static bool8 MonListHasSpecies(const struct WildPokemonInfo *info, u16 species, 
     {
         for (i = 0; i < size; i++)
         {
-            if (info->wildPokemon[i].species == species)
+            u16 tableSpecies = info->wildPokemon[i].species;
+            #if RANDOMIZER_AVAILABLE == TRUE
+            if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON)
+                && IsRandomizationPossible(tableSpecies, species))
+                return TRUE;
+            #endif
+
+            if (tableSpecies == species)
                 return TRUE;
         }
     }

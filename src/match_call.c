@@ -17,6 +17,7 @@
 #include "pokedex.h"
 #include "pokemon.h"
 #include "random.h"
+#include "randomizer.h"
 #include "region_map.h"
 #include "rtc.h"
 #include "script.h"
@@ -1829,14 +1830,24 @@ static void PopulateSpeciesFromTrainerParty(int matchCallId, u8 *destStr)
     const struct TrainerMon *party;
     u8 monId;
     const u8 *speciesName;
+    u16 species;
+    u32 partySize;
 
     trainerId = GetLastBeatenRematchTrainerId(sMatchCallTrainers[matchCallId].trainerId);
     party = GetTrainerPartyFromId(trainerId);
-    monId = Random() % GetTrainerPartySizeFromId(trainerId);
-    if (party != NULL)
-        speciesName = GetSpeciesName(party[monId].species);
+    partySize = GetTrainerPartySizeFromId(trainerId);
+    monId = Random() % partySize;
+    if (party != NULL && partySize > 0)
+    {
+        species = party[monId].species;
+        #if RANDOMIZER_AVAILABLE == TRUE
+            species = RandomizeTrainerMon(trainerId, monId, partySize, species);
+        #endif
+    }
     else
-        speciesName = GetSpeciesName(SPECIES_NONE);
+        species = SPECIES_NONE;
+
+    speciesName = GetSpeciesName(species);
 
     StringCopy(destStr, speciesName);
 }
