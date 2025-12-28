@@ -10,6 +10,7 @@
 #include "script.h"
 #include "data.h"
 #include "data/randomizer/special_form_tables.h"
+#include "data/randomizer/trainer_skip_list.h"
 
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
 {
@@ -48,6 +49,24 @@ bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
         default:
             return FALSE;
     }
+}
+
+bool32 ShouldRandomizeTrainer(u16 trainerId)
+{
+#if RANDOMIZER_AVAILABLE != TRUE
+    return FALSE;
+#else
+    u32 i;
+    if (trainerId == RANDOMIZER_TRAINER_ID_UNKNOWN)
+        return TRUE;
+
+    for (i = 0; gRandomizerTrainerSkipList[i] != RANDOMIZER_TRAINER_ID_END; i++)
+    {
+        if (gRandomizerTrainerSkipList[i] == trainerId)
+            return FALSE;
+    }
+    return TRUE;
+#endif
 }
 
 u32 GetRandomizerSeed(void)

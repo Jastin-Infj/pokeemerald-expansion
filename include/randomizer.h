@@ -14,6 +14,8 @@
 //#include "constants/moves.h"
 
 #define RANDOMIZER_STREAM 17
+#define RANDOMIZER_TRAINER_ID_UNKNOWN 0xFFFF
+#define RANDOMIZER_TRAINER_ID_END 0xFFFF
 
 enum RandomizerFeature
 {
@@ -74,6 +76,7 @@ struct RandomizerGroupSet {
 
 u32 GetRandomizerSeed(void);
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature);
+bool32 ShouldRandomizeTrainer(u16 trainerId);
 
 struct Sfc32State RandomizerRandSeed(enum RandomizerReason reason, u32 data1, u32 data2);
 
