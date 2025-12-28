@@ -12,6 +12,7 @@
 #include "data.h"
 #include "data/randomizer/special_form_tables.h"
 #include "data/randomizer/trainer_skip_list.h"
+#include "data/randomizer/trainer_dup_rules.h"
 #include "randomizer_area_rules.h"
 
 #define AREA_MASK_LAND   (1 << 0)
@@ -22,6 +23,16 @@
 #define AREA_MASK_GIFT   (1 << 5)
 
 static bool32 IsSpeciesPermitted(u16 species);
+
+#define TRAINER_DUP_MAX_SAME_DEFAULT 255
+#define TRAINER_DUP_MIN_DISTINCT_DEFAULT 0
+#define TRAINER_DUP_MAX_ATTEMPTS 8
+
+static u16 sTrainerPartyCache[PARTY_SIZE];
+static u16 sTrainerPartyCacheTrainerId;
+static u8 sTrainerPartyCacheFilled;
+static u8 sTrainerPartyCacheDistinct;
+static u8 sTrainerPartyCacheTotal;
 
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
 {
@@ -162,6 +173,64 @@ static void DebugLogRandomization(enum RandomizerReason reason, u32 seed, u16 or
                      result);
 }
 #endif
+
+static void ResetTrainerPartyCache(u16 trainerId, u8 totalMons)
+{
+    sTrainerPartyCacheTrainerId = trainerId;
+    sTrainerPartyCacheTotal = totalMons;
+    sTrainerPartyCacheFilled = 0;
+    sTrainerPartyCacheDistinct = 0;
+}
+
+static void GetTrainerDupRule(u16 trainerId, u8 *maxSame, u8 *minDistinct)
+{
+    u16 i;
+    *maxSame = TRAINER_DUP_MAX_SAME_DEFAULT;
+    *minDistinct = TRAINER_DUP_MIN_DISTINCT_DEFAULT;
+
+    for (i = 0; gRandomizerTrainerDupRules[i].trainerId != RANDOMIZER_TRAINER_ID_END; i++)
+    {
+        if (gRandomizerTrainerDupRules[i].trainerId == trainerId)
+        {
+            *maxSame = gRandomizerTrainerDupRules[i].maxSame;
+            *minDistinct = gRandomizerTrainerDupRules[i].minDistinct;
+            break;
+        }
+    }
+}
+
+static bool8 TrainerPartyHasSpecies(u16 species)
+{
+    u8 i;
+    for (i = 0; i < sTrainerPartyCacheFilled; i++)
+    {
+        if (sTrainerPartyCache[i] == species)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static u8 TrainerPartySpeciesCount(u16 species)
+{
+    u8 i, count = 0;
+    for (i = 0; i < sTrainerPartyCacheFilled; i++)
+    {
+        if (sTrainerPartyCache[i] == species)
+            count++;
+    }
+    return count;
+}
+
+static void TrainerPartyCacheAdd(u16 species)
+{
+    bool8 alreadyPresent = TrainerPartyHasSpecies(species);
+    if (sTrainerPartyCacheFilled < PARTY_SIZE)
+    {
+        sTrainerPartyCache[sTrainerPartyCacheFilled++] = species;
+        if (!alreadyPresent)
+            sTrainerPartyCacheDistinct++;
+    }
+}
 
 static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species, const struct RandomizerAreaRule *rule)
 {
@@ -1003,10 +1072,75 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
         seed |= slot;
 
         areaRule = FindAreaRule(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, AREA_MASK_LAND);
-        if (areaRule != NULL)
-            return RandomizeWithAreaRule(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
+        {
+            u8 maxSame, minDistinct;
+            GetTrainerDupRule(trainerId, &maxSame, &minDistinct);
 
-        return RandomizeMon(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
+            if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                ResetTrainerPartyCache(trainerId, totalMons);
+
+            if (maxSame == TRAINER_DUP_MAX_SAME_DEFAULT && minDistinct == TRAINER_DUP_MIN_DISTINCT_DEFAULT)
+            {
+                if (areaRule != NULL)
+                    species = RandomizeWithAreaRule(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
+                else
+                    species = RandomizeMon(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
+            }
+            else
+            {
+                u8 attempt;
+                u8 remainingSlots = totalMons - sTrainerPartyCacheFilled;
+                u8 neededDistinct = (minDistinct > sTrainerPartyCacheDistinct) ? (minDistinct - sTrainerPartyCacheDistinct) : 0;
+                bool8 mustBeNew = (neededDistinct > 0 && remainingSlots <= neededDistinct);
+                u16 fallbackSpecies = species;
+
+                for (attempt = 0; attempt < TRAINER_DUP_MAX_ATTEMPTS; attempt++)
+                {
+                    u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
+                    u16 candidate;
+                    if (areaRule != NULL)
+                        candidate = RandomizeWithAreaRule(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), adjustedSeed, species, areaRule);
+                    else
+                        candidate = RandomizeMon(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), adjustedSeed, species);
+
+                    fallbackSpecies = candidate;
+
+                    if (mustBeNew && TrainerPartyHasSpecies(candidate))
+                        continue;
+                    if (TrainerPartySpeciesCount(candidate) >= maxSame)
+                        continue;
+
+                    species = candidate;
+                    break;
+                }
+
+                if (attempt == TRAINER_DUP_MAX_ATTEMPTS)
+                {
+                    if (mustBeNew && areaRule != NULL)
+                    {
+                        u16 i;
+                        for (i = 0; i < areaRule->whitelistCount; i++)
+                        {
+                            u16 candidate = areaRule->whitelist[i];
+                            if (TrainerPartySpeciesCount(candidate) < maxSame && !TrainerPartyHasSpecies(candidate))
+                            {
+                                species = candidate;
+                                break;
+                            }
+                        }
+                        if (i == areaRule->whitelistCount)
+                            species = fallbackSpecies;
+                    }
+                    else
+                    {
+                        species = fallbackSpecies;
+                    }
+                }
+            }
+
+            TrainerPartyCacheAdd(species);
+            return species;
+        }
     }
 
     return species;
