@@ -6,11 +6,22 @@
 #include "item.h"
 #include "event_data.h"
 #include "field_control_avatar.h"
+#include "gba/isagbprint.h"
 #include "pokemon.h"
 #include "script.h"
 #include "data.h"
 #include "data/randomizer/special_form_tables.h"
 #include "data/randomizer/trainer_skip_list.h"
+#include "randomizer_area_rules.h"
+
+#define AREA_MASK_LAND   (1 << 0)
+#define AREA_MASK_WATER  (1 << 1)
+#define AREA_MASK_FISH   (1 << 2)
+#define AREA_MASK_ROCKS  (1 << 3)
+#define AREA_MASK_HIDDEN (1 << 4)
+#define AREA_MASK_GIFT   (1 << 5)
+
+static bool32 IsSpeciesPermitted(u16 species);
 
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
 {
@@ -48,6 +59,136 @@ bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
             #endif
         default:
             return FALSE;
+    }
+}
+
+static bool8 RandomizerAreaRulesEnabled(void)
+{
+    return FlagGet(FLAG_RANDOMIZER_AREA_WL);
+}
+
+#ifndef NDEBUG
+static bool8 RandomizerDebugLoggingEnabled(void)
+{
+    return FlagGet(FLAG_RANDOMIZER_DEBUG_LOG);
+}
+#endif
+
+static u8 GetAreaMaskFromWildArea(enum WildPokemonArea area)
+{
+    switch (area)
+    {
+        case WILD_AREA_WATER:
+            return AREA_MASK_WATER;
+        case WILD_AREA_FISHING:
+            return AREA_MASK_FISH;
+        case WILD_AREA_ROCKS:
+            return AREA_MASK_ROCKS;
+        case WILD_AREA_HIDDEN:
+            return AREA_MASK_HIDDEN;
+        case WILD_AREA_LAND:
+        default:
+            return AREA_MASK_LAND;
+    }
+}
+
+static bool8 SpeciesAllowedByRule(u16 species, const struct RandomizerAreaRule *rule)
+{
+    u16 i;
+
+    if (!IsSpeciesPermitted(species))
+        return FALSE;
+
+    if (!rule->allowLegendOverride)
+    {
+        if (gSpeciesInfo[species].isLegendary
+         || gSpeciesInfo[species].isMythical
+         || gSpeciesInfo[species].isUltraBeast)
+            return FALSE;
+    }
+
+    for (i = 0; i < rule->blacklistCount; i++)
+    {
+        if (rule->blacklist[i] == species)
+            return FALSE;
+    }
+
+    for (i = 0; i < rule->whitelistCount; i++)
+    {
+        if (rule->whitelist[i] == species)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 areaMask)
+{
+    u16 i;
+
+    if (!RandomizerAreaRulesEnabled())
+        return NULL;
+
+    for (i = 0; i < RANDOMIZER_AREA_RULE_COUNT; i++)
+    {
+        const struct RandomizerAreaRule *rule = &sRandomizerAreaRules[i];
+        if (rule->mapGroup == mapGroup
+         && rule->mapNum == mapNum
+         && rule->areaMask == areaMask)
+            return rule;
+    }
+
+    return NULL;
+}
+
+#ifndef NDEBUG
+static void DebugLogRandomization(enum RandomizerReason reason, u32 seed, u16 original, u16 result, const struct RandomizerAreaRule *rule, u8 attempts, bool8 usedFallback)
+{
+    if (!RandomizerDebugLoggingEnabled())
+        return;
+
+    DebugPrintfLevel(MGBA_LOG_INFO,
+                     "RandR reason=%d map=%d/%d mask=%d wl=%d bl=%d attempts=%d%s seed=%lu %d->%d",
+                     reason,
+                     rule != NULL ? rule->mapGroup : -1,
+                     rule != NULL ? rule->mapNum : -1,
+                     rule != NULL ? rule->areaMask : -1,
+                     rule != NULL ? rule->whitelistCount : 0,
+                     rule != NULL ? rule->blacklistCount : 0,
+                     attempts,
+                     usedFallback ? " (fallback)" : "",
+                     (unsigned long)seed,
+                     original,
+                     result);
+}
+#endif
+
+static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species, const struct RandomizerAreaRule *rule)
+{
+    u8 attempt;
+    u16 candidate = species;
+
+    for (attempt = 0; attempt <= rule->maxRerolls; attempt++)
+    {
+        u32 adjustedSeed = seed ^ attempt;
+        candidate = RandomizeMon(reason, mode, adjustedSeed, species);
+        if (SpeciesAllowedByRule(candidate, rule))
+        {
+#ifndef NDEBUG
+            DebugLogRandomization(reason, seed, species, candidate, rule, attempt, FALSE);
+#endif
+            return candidate;
+        }
+    }
+
+    {
+        struct Sfc32State state = RandomizerRandSeed(reason, seed, species);
+        u16 idx = RandomizerNextRange(&state, rule->whitelistCount);
+        candidate = rule->whitelist[idx];
+#ifndef NDEBUG
+        DebugLogRandomization(reason, seed, species, candidate, rule, rule->maxRerolls + 1, TRUE);
+#endif
+        return candidate;
     }
 }
 
@@ -798,6 +939,7 @@ u16 RandomizeMon(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, 
 
 u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot)
 {
+    const struct RandomizerAreaRule *areaRule;
     if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON))
     {
         // Randomization is done based on the map number, the WildArea, and the encounter slot.
@@ -807,6 +949,10 @@ u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemon
         seed |= ((u32)mapNum) << 16;
         seed |= ((u32)area) << 8;
         seed |= slot;
+
+        areaRule = FindAreaRule(mapGroup, mapNum, GetAreaMaskFromWildArea(area));
+        if (areaRule != NULL)
+            return RandomizeWithAreaRule(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
 
         return RandomizeMon(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
     }
@@ -846,6 +992,7 @@ bool32 IsRandomizationPossible(u16 originalSpecies, u16 targetSpecies)
 
 u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
 {
+    const struct RandomizerAreaRule *areaRule;
     if (RandomizerFeatureEnabled(RANDOMIZE_TRAINER_MON))
     {
         // The seed is based on the internal trainer number, the number of
@@ -855,6 +1002,10 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
         seed |= (u32)totalMons << 8;
         seed |= slot;
 
+        areaRule = FindAreaRule(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, AREA_MASK_LAND);
+        if (areaRule != NULL)
+            return RandomizeWithAreaRule(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
+
         return RandomizeMon(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
     }
 
@@ -863,6 +1014,7 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
 
 u16 RandomizeFixedEncounterMon(u16 species, u8 mapNum, u8 mapGroup, u8 localId)
 {
+    const struct RandomizerAreaRule *areaRule;
     if (RandomizerFeatureEnabled(RANDOMIZE_FIXED_MON))
     {
         // The seed is based on the location of the object event.
@@ -870,6 +1022,10 @@ u16 RandomizeFixedEncounterMon(u16 species, u8 mapNum, u8 mapGroup, u8 localId)
         seed = (u32)mapNum << 16;
         seed |= (u32)mapGroup << 8;
         seed |= localId;
+
+        areaRule = FindAreaRule(mapGroup, mapNum, AREA_MASK_HIDDEN);
+        if (areaRule != NULL)
+            return RandomizeWithAreaRule(RANDOMIZER_REASON_FIXED_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
 
         return RandomizeMon(RANDOMIZER_REASON_FIXED_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
     }

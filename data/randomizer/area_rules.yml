@@ -1,0 +1,118 @@
+# YAML input for area-based randomizer WL/BL（初期データ投入版）
+
+# kits: 共通で使い回すWLパーツ（constants/species.hのマクロ名で記述）
+kits:
+  starter_land:
+    - SPECIES_POOCHYENA
+    - SPECIES_ZIGZAGOON
+    - SPECIES_WURMPLE
+    - SPECIES_TAILLOW
+    - SPECIES_PIDGEY
+    - SPECIES_SENTRET
+    - SPECIES_RATTATA
+    - SPECIES_HOOTHOOT
+  starter_water:
+    - SPECIES_MAGIKARP
+    - SPECIES_LOTAD
+    - SPECIES_POLIWAG
+    - SPECIES_TENTACOOL
+    - SPECIES_WINGULL
+  mid_land:
+    - SPECIES_LINOONE
+    - SPECIES_SWELLOW
+    - SPECIES_DUSTOX
+    - SPECIES_BEAUTIFLY
+    - SPECIES_FEAROW
+    - SPECIES_NOCTOWL
+  mid_water:
+    - SPECIES_LUDICOLO
+    - SPECIES_POLIWHIRL
+    - SPECIES_GOLDUCK
+    - SPECIES_PELIPPER
+  late_land:
+    - SPECIES_SLAKING
+    - SPECIES_FEAROW
+    - SPECIES_PIDGEOT
+    - SPECIES_SWELLOW
+    - SPECIES_SWALOT
+  late_water:
+    - SPECIES_GYARADOS
+    - SPECIES_LAPRAS
+    - SPECIES_STARMIE
+    - SPECIES_WAILORD
+  legend_unlock:
+    - SPECIES_ARTICUNO
+    - SPECIES_ZAPDOS
+    - SPECIES_MOLTRES
+    - SPECIES_LATIOS
+    - SPECIES_LATIAS
+  starter_trim:
+    - SPECIES_POOCHYENA
+    - SPECIES_ZIGZAGOON
+    - SPECIES_RATTATA
+    - SPECIES_SENTRET
+
+# areas: マップ別のWL適用指示
+# areaMask: Land / Water / Fish / Rock / Hidden / Gift の文字列を推奨
+areas:
+  route_101_land:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE101)
+      mapNum: MAP_NUM(MAP_ROUTE101)
+      areaMask: Land
+    apply: [starter_land]
+    remove: []
+    maxRerolls: 6
+    allowLegendOverride: false
+
+  route_102_land:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE102)
+      mapNum: MAP_NUM(MAP_ROUTE102)
+      areaMask: Land
+    apply: [starter_land, mid_land]
+    remove: [starter_trim]
+    maxRerolls: 6
+    allowLegendOverride: false
+
+  route_110_water:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE110)
+      mapNum: MAP_NUM(MAP_ROUTE110)
+      areaMask: Water
+    apply: [starter_water]
+    remove: []
+    maxRerolls: 6
+    allowLegendOverride: false
+
+  route_121_land:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE121)
+      mapNum: MAP_NUM(MAP_ROUTE121)
+      areaMask: Land
+    apply: [starter_land, mid_land, late_land]
+    remove: [starter_trim]
+    maxRerolls: 8
+    allowLegendOverride: false
+
+  route_128_water:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE128)
+      mapNum: MAP_NUM(MAP_ROUTE128)
+      areaMask: Water
+    apply: [starter_water, mid_water, late_water, legend_unlock]
+    remove: []
+    maxRerolls: 8
+    allowLegendOverride: true   # ここでだけ伝説解禁
+
+# gifts: マップに紐付かないギフト用キー（タマゴは除外）
+gifts:
+  default:
+    key:
+      mapGroup: 0xFF
+      mapNum: 0xFF
+      areaMask: Gift
+    apply: [starter_land, starter_water]
+    remove: []
+    maxRerolls: 6
+    allowLegendOverride: false

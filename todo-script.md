@@ -65,8 +65,8 @@
   - ScriptでON/OFFできるようにする（簡易テスト用のinc/スクリプトにsetflag/clearflagを用意）。
 
 - ステップB: データ入力フォーマットの決定
-  - `data/randomizer/area_rules.yml`（例）を作成。構造: kitsセクション（共通キット）、areasセクション（エリア/フォーマットごとのapply/remove/maxRerolls/allowLegendOverride）、giftsセクション（ギフト用AreaKey）。
-  - species名は`SPECIES_***`で記述。areaは`map_group/map_num/areaMask`をキーにする。
+  - `data/randomizer/area_rules.yml`に決定（雛形追加済み）。構造: kits（共通キット）、areas（エリア/フォーマットごとのapply/remove/maxRerolls/allowLegendOverride）、gifts（ギフト用AreaKey）。areaMaskはLand/Water/Fish/Rock/Hidden/Gift等で表記。
+  - species名は`SPECIES_***`で記述。areaは`mapGroup/mapNum/areaMask`をキーにする。
 
 - ステップC: ビルドスクリプト設計
   - 場所: `dev_scripts/build_randomizer_area_rules.py`（例）。
@@ -98,7 +98,15 @@
   - WL空/少数エリアがビルドで弾かれることを確認。
   - リロール上限に達したケースでフォールバックが仕様どおり動くか確認。
 
-- ステップH: 将来拡張メモ
-  - モード追加（area-direct等）をする場合の優先順は設計書に明記済み。
-  - 伝説解禁は`allowLegendOverride`と専用キットで明示する。
-  - タマゴは非対応のまま。対応したくなったら専用AreaKey＋WLを追加。
+- ステップH: 将来拡張メモ（検証プラン付き）
+  - 互換性/優先順: モード追加（area-direct等）をする場合も、マスターON→WLフラグON→既存モード候補→WL/BLフィルタの順を維持。
+  - 伝説解禁は`allowLegendOverride`と伝説キットで二重に明示する。タマゴは非対応のまま。対応するなら専用AreaKey＋WLを追加。
+  - 手動検証シナリオ
+    - フラグ切替: `FLAG_RANDOMIZER_AREA_WL` ON/OFFで野生/トレーナー/固定/ギフトの挙動が切り替わること。`FLAG_RANDOMIZER_DEBUG_LOG` ONでログが出ること（NDEBUGビルドでは出ない点に注意）。
+    - ルール適用: Route101/102/110/121/128でWLに無い種が出ないこと。Route128水路のみallowLegendOverride=trueでlegend_unlockが出ること。
+    - 減算確認: Route102/121でstarter_trim種が除外されていること。
+    - リロール上限: maxRerollsを意図的に低くしてビルドし、フォールバック時にログへ"(fallback)"が出ること。
+    - ギフト: giftルール（0xFF/0xFF/Gift）が適用され、WL内の種になること（タマゴは対象外）。
+  - 作業メモ
+    - データ更新後は `python3 dev_scripts/build_randomizer_area_rules.py --in data/randomizer/area_rules.yml --out generated/randomizer_area_rules.h` → `make`。
+    - ログは`FLAG_RANDOMIZER_DEBUG_LOG`をset/clearで切替。mgba/no$gba/AGBPrintいずれのハンドラでも出力される。

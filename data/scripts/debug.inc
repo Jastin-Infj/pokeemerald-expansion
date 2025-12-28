@@ -146,7 +146,13 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
-	release
+	lockall
+	setflag FLAG_RANDOMIZER_AREA_WL
+	setflag FLAG_RANDOMIZER_DEBUG_LOG
+	message Debug_EventScript_Text_RandomizerAreaWLOn
+	waitmessage
+	waitbuttonpress
+	releaseall
 	end
 
 Debug_EventScript_Script_2::
@@ -176,6 +182,10 @@ Debug_EventScript_Script_7::
 Debug_EventScript_Script_8::
 	release
 	end
+
+Debug_EventScript_Text_RandomizerAreaWLOn:
+	.string "Randomizer area WL + debug log enabled.\n"
+	.string "Use Script 1 again if you need to re-run.$"
 
 Debug_CheckSaveBlock::
 	callnative CheckSaveBlock1Size
