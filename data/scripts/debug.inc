@@ -149,7 +149,7 @@ Debug_EventScript_Script_1::
 	lockall
 	setflag FLAG_RANDOMIZER_AREA_WL
 	setflag FLAG_RANDOMIZER_DEBUG_LOG
-	setflag FLAG_RANDOMIZER_FISHING_AUTO_HOOK
+	setflag FLAG_RANDOMIZER_FISHING_AUTO_BITE
 	message Debug_EventScript_Text_RandomizerAreaWLOn
 	waitmessage
 	waitbuttonpress
@@ -157,6 +157,8 @@ Debug_EventScript_Script_1::
 	end
 
 Debug_EventScript_Script_2::
+	clearflag FLAG_RANDOMIZER_FISHING_AUTO_HOOK
+	clearflag FLAG_RANDOMIZER_FISHING_AUTO_BITE
 	release
 	end
 

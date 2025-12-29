@@ -45,6 +45,7 @@ static u32 CalculateFishingFollowerBoost(void);
 static u32 CalculateFishingProximityBoost(void);
 static u32 CalculateFishingTimeOfDayBoost(void);
 static bool32 FishingAutoHookEnabled(void);
+static bool32 FishingAutoBiteEnabled(void);
 
 #define FISHING_PROXIMITY_BOOST 20     //Active if config I_FISHING_PROXIMITY is TRUE
 #define FISHING_TIME_OF_DAY_BOOST 20   //Active if config I_FISHING_TIME_OF_DAY_BOOST is TRUE
@@ -270,7 +271,12 @@ static bool32 Fishing_CheckForBite(struct Task *task)
         bite = RandomPercentage(RNG_FISHING_GEN3_STICKY, FISHING_GEN3_STICKY_CHANCE);
 
     if (!bite && !FishingAutoHookEnabled())
-        bite = Fishing_RollForBite(task->tFishingRod, firstMonHasSuctionOrSticky);
+    {
+        if (FishingAutoBiteEnabled())
+            bite = TRUE;
+        else
+            bite = Fishing_RollForBite(task->tFishingRod, firstMonHasSuctionOrSticky);
+    }
     else if (FishingAutoHookEnabled())
         bite = TRUE;
 
@@ -594,6 +600,11 @@ static u32 CalculateFishingTimeOfDayBoost()
 static bool32 FishingAutoHookEnabled(void)
 {
     return FlagGet(FLAG_RANDOMIZER_FISHING_AUTO_HOOK);
+}
+
+static bool32 FishingAutoBiteEnabled(void)
+{
+    return FlagGet(FLAG_RANDOMIZER_FISHING_AUTO_BITE);
 }
 
 #undef tStep
