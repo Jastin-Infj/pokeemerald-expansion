@@ -86,3 +86,10 @@ Route102（Land）の課題と方針
 
 ビルド時チェック案（まだ未実装）
 - WL設計ミスを早期に検出したい場合、生成スクリプト側で `minDistinct > wlCount` を検出し、ビルドエラーにする運用を検討する。ただし、現時点のコードには入れていないため、導入する際は別途スクリプトを修正する。
+
+実装済みメモ（反映済みの主な変更）
+- WL/BLのエリア適用: `FLAG_RANDOMIZER_AREA_WL` ONでエリア別WL/BLが適用される（野生/トレーナー共通）。areaMaskはFish/Water/Rockは同一mask優先、無ければLandにフォールバック。
+- トレーナー重複制御: `data/randomizer/trainer_dup_rules.h` で `maxSame` / `minDistinct` を設定可能（未指定は255/0）。Route102などで重複が多い場合、特定トレーナーだけ重複抑制を掛けられる。
+- ロッド別上限: 釣り時は `fishingRule->maxSpecies` を優先してWL件数をクランプ（0ならエリア上限→件数）。Route102/Fishで適用例あり。
+- レア抽選（釣り含む）: `rareRate` は先頭 `rareSlots` 件を引く確率。`rareSlots > wlLimit` は丸め。バイト率とは無関係。
+- デバッグフラグ・ログ: `FLAG_RANDOMIZER_DEBUG_LOG` でWARNログ（`[INFO] RandR ...`）を出力。Script 1 でWL＋ログ＋釣りオートフックを一括ON。ログ表示にはDEBUGビルドが必要（NDEBUG無効）。

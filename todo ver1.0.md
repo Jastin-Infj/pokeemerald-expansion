@@ -62,3 +62,17 @@ Imperium版実装の観察ポイント（参考用）
 - WLキット運用: Baseはフォーマット/エリア固有のWL、Patchは共通キット（例: スタートキット、中盤キット、終盤削除など）を加算/減算指示で適用。適用順を明示し、減算優先で相殺。再利用しやすいキット名で組み立てる運用を想定。
 - ビルドスクリプトの扱い: 人が編集するのはYAML/CSV（例`data/randomizer/area_rules.yml`）のみ。ビルド時にスクリプト（`dev_scripts/build_randomizer_area_rules.py`など）が1回走り、重複除去・相殺・空WLチェックをして最終ヘッダ（例`generated/randomizer_area_rules.h`）を出力。Makefileには「YAMLが新しければ生成」程度の依存を足すだけ。実装詳細は後回しでOK、方針のみ共有。
 - デバッグ/検証フック: ログ出力ON/OFF用に未使用Flagを1本割り当て（例: `FLAG_UNUSED_0x04B`を`FLAG_RANDOMIZER_DEBUG_LOG`に）。Scriptで`setflag/clearflag`して切替。必要ならVarでレベル指定（0=なし,1=基本,2=詳細）も検討。ログ内容は種族ID・使用ルールID・リロール回数など。コンパイルスイッチよりランタイム切替を優先。
+
+実装済みメモ（釣り関連 v1.0）
+- デバッグフラグ: `FLAG_RANDOMIZER_FISHING_AUTO_HOOK`（バイト+ミニゲーム省略で必ず遭遇）、`FLAG_RANDOMIZER_FISHING_AUTO_BITE`（バイト100%、ミニゲームは原作通り）。`debug.inc` Script 1 でオートフックもON。
+- ロッド別上限: `fishingRule->maxSpecies` でWLの有効件数をクランプ（0ならエリア上限→件数）。Route102/Fishで実装例あり。
+- レア抽選: `rareRate` は「先頭`rareSlots`件を引く確率」。バイト率とは独立。`rareSlots > wlLimit` は丸め。
+- ルール検索: Fish/Water/Rock は同一mask優先、無い場合のみLandにフォールバック（釣りでLandを誤参照しない）。
+- ログ: WARNで `[INFO] RandR ... fishing=1` が出る。`FLAG_RANDOMIZER_DEBUG_LOG` で有効。
+
+実装済みメモ（WL/BL・トレーナー重複制御）
+- エリアWL/BL適用: `FLAG_RANDOMIZER_AREA_WL` ONでエリア別WL/BLを適用。`data/randomizer/area_rules.yml` → `dev_scripts/build_randomizer_area_rules.py` → `generated/randomizer_area_rules.h` を生成し、野生・トレーナー双方でフィルタ。Land/Water/Fish/Rockのマスク検索は同一mask優先、無い場合のみLandにフォールバック。
+- ランタイム: 野生は `RandomizeWildEncounter` でWLフィルタ＋`maxRerolls`リロール、超過時はWLから直接ピック（フォールバック）。トレーナーも同じWLフィルタを使用。
+- トレーナー重複制御: `data/randomizer/trainer_dup_rules.h` でトレーナー別の `maxSame` / `minDistinct` を指定可能。未指定はデフォルト制限なし（255/0）。WL不足時は重複許容で妥協し、`maxSame=0`は避ける。
+- デバッグフラグ: `FLAG_RANDOMIZER_DEBUG_LOG` でログ出力、Script 1 でWL＋ログ＋釣りオートフックを一括ON。ランダマイザーマスターは既存フラグ（WILD/TRAINERなど）でON/OFF。
+- シード安定: 現行のシード計算（トレーナーID＋秘密ID、野生は mapGroup/mapNum/area/slot、トレーナーは trainerId/partySize/slot）を維持。テーブルはビルド時静的生成で白OUT後も結果固定。

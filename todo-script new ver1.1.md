@@ -198,6 +198,14 @@ Fishingの竿別指定の扱い（要決定）
 - 竿別と共通rare指定の優先: 併記はエラーで止める（竿別優先で共通無視という許容案は採用しない）。
   - 決定経緯: 併記を許すと「どちらを採るか」で運用がぶれ、デバッグ負荷が増えるため。釣りは竿別で個性を出す方針に寄せ、共通rareとの併記は明示的に禁止してシンプルにする。
 - 竿別デフォルトの考え方: Old < Good < Super の順でレア率を高めに設定する運用が攻略性に寄与。明示記述がなければ竿別も均等（レア枠なし）とし、レア枠を使う場合は竿別にrareSlots/rareRateを必ず書く。
+
+実装済み（v1.0釣り周り）サマリ
+- デバッグフラグ追加: `FLAG_RANDOMIZER_FISHING_AUTO_HOOK`（バイト+ミニゲーム省略で必ず遭遇）、`FLAG_RANDOMIZER_FISHING_AUTO_BITE`（バイト100%、ミニゲームは原作通り）。`debug.inc` Script 1 でオートフックもON。
+- ロッド別上限反映: `fishingRule->maxSpecies` をランタイムで優先し、WL有効件数をクランプ。0ならエリア上限→件数。
+- レア抽選: `rareRate` は「先頭`rareSlots`件を引く確率」。バイト率とは無関係。`rareSlots > wlLimit` は丸め。
+- エリアルール検索: Fish/Water/Rock はまず同一maskを探し、無いときだけ Land にフォールバック（釣りでLandを誤参照しない）。
+- ログ: WARNに統一し `[INFO]` プレフィックス。釣り適用時は `fishing=1` が出る。
+- 生成物: `generated/randomizer_area_rules.h` に釣りルールとロッド別 `maxSpecies` あり（Route102/Fish の例）。
 - 補足: 釣りは竿別で個別にレア枠・レア率を持つ設計のまま進める（Landの単一レア枠と比べて特別扱いになるが、当面このバランスで運用）。
 - fishing内のslotMode: 各竿(old/good/super)で個別に指定。rareならその竿でレア枠を使う、uniformならレア枠なし均等。
 - 種別別のレア指定方針: 管理コストとバリデーション簡素化のため、Land/Water/RockなどはareaMaskごとに別エントリを書くA案で進める（1エリア内に種別別フィールドを持たせるB案は採用しない）。レア枠が必要な種別だけエントリを用意し、不要なら書かないかmaxSpecies=0で禁止。
