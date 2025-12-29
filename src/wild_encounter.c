@@ -580,7 +580,7 @@ static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum 
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                area, wildMonIndex);
+                area, wildMonIndex, 0xFF);
         #endif
         CreateWildMon(species, level);
     }
@@ -599,7 +599,7 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
             wildMonSpecies,
             gSaveBlock1Ptr->location.mapNum,
             gSaveBlock1Ptr->location.mapGroup,
-            WILD_AREA_FISHING, wildMonIndex);
+            WILD_AREA_FISHING, wildMonIndex, rod);
     #endif
 
     CreateWildMon(wildMonSpecies, level);
@@ -620,7 +620,7 @@ static bool8 SetUpMassOutbreakEncounter(u8 flags)
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                WILD_AREA_LAND, 0);
+                WILD_AREA_LAND, 0, 0xFF);
         #endif
 
         CreateWildMon(species, gSaveBlock1Ptr->outbreakPokemonLevel);
@@ -1010,7 +1010,7 @@ void FishingWildEncounter(u8 rod)
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                WILD_AREA_FISHING, 0);
+                WILD_AREA_FISHING, 0, rod);
         #endif
         CreateWildMon(species, level);
     }

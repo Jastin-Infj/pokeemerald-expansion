@@ -7,17 +7,19 @@ Output: generated/randomizer_area_rules.h
 
 Features:
 - Kits (reusable species lists) with apply/remove per area/gift.
-- Deduplication with removal taking precedence.
-- Empty WL detection (treated as error).
-- Sorted, unique species IDs.
+- Deduplication with removal taking precedence（remove優先＋重複除去）。
+- 空WL検出をエラー化。
+- 追加メタ（slotMode / rareSlots / rareRate / maxSpecies / 竿別設定）のバリデーションと出力。
+- ソート済みのルールで決定的な生成。
 
-Note: Makefile integration is step D; this script can be invoked manually.
+Note: Makefile統合は別ステップ。必要に応じて手動実行する。
 """
 
 import sys
 import pathlib
 import argparse
 import yaml
+from typing import Dict, List, Optional, Tuple
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 ROOT = THIS_DIR.parent
@@ -31,6 +33,24 @@ HEADER_PREAMBLE = """\
 #include "constants/species.h"
 #include "constants/maps.h"
 
+enum {
+    RANDOMIZER_SLOT_MODE_UNIFORM = 0,
+    RANDOMIZER_SLOT_MODE_RARE = 1,
+};
+
+enum {
+    RANDOMIZER_ROD_OLD = 0,
+    RANDOMIZER_ROD_GOOD = 1,
+    RANDOMIZER_ROD_SUPER = 2,
+};
+
+struct RandomizerFishingRule {
+    u8 slotMode;
+    u8 maxSpecies;
+    u8 rareSlots;
+    u8 rareRate;
+};
+
 struct RandomizerAreaRule {
     u8 mapGroup;
     u8 mapNum;
@@ -41,6 +61,12 @@ struct RandomizerAreaRule {
     u16 blacklistCount;
     u8 maxRerolls;
     bool8 allowLegendOverride;
+    u8 slotMode;
+    u8 maxSpecies;
+    u8 rareSlots;
+    u8 rareRate;
+    const struct RandomizerFishingRule *fishingRules;
+    u8 fishingRuleCount;
 };
 
 """
@@ -58,30 +84,65 @@ def load_yaml(path: pathlib.Path):
         return yaml.safe_load(f)
 
 
-def resolve_mask(mask):
+def resolve_mask(mask: str) -> Tuple[int, str]:
     # Accept string names for readability
     mask_map = {
-        "Land": 1 << 0,
-        "Water": 1 << 1,
-        "Fish": 1 << 2,
-        "Rock": 1 << 3,
-        "Hidden": 1 << 4,
-        "Gift": 1 << 5,
+        "Land": (1 << 0, "Land"),
+        "Water": (1 << 1, "Water"),
+        "Fishing": (1 << 2, "Fishing"),
+        "Fish": (1 << 2, "Fishing"),  # backward compatibility
+        "Rock": (1 << 3, "Rock"),
+        "Rocks": (1 << 3, "Rock"),  # backward compatibility
+        "Hidden": (1 << 4, "Hidden"),
+        "Gift": (1 << 5, "Gift"),
     }
     if isinstance(mask, int):
-        return mask
+        # int指定は非推奨だが通す（1ビットのみを許容）
+        if mask == 0 or mask & (mask - 1):
+            raise ValueError(f"areaMask int '{mask}' must be a single bit")
+        return mask, "Custom"
     if isinstance(mask, str):
-        if mask in mask_map:
-            return mask_map[mask]
-        # Allow multi-name comma-separated
         parts = [p.strip() for p in mask.split(",")]
-        val = 0
-        for p in parts:
-            if p not in mask_map:
-                raise ValueError(f"Unknown areaMask '{p}'")
-            val |= mask_map[p]
-        return val
+        if len(parts) != 1:
+            raise ValueError(f"areaMask must be a single entry (got '{mask}')")
+        part = parts[0]
+        if part not in mask_map:
+            raise ValueError(f"Unknown areaMask '{part}'")
+        return mask_map[part]
     raise ValueError(f"Unsupported areaMask type: {mask}")
+
+
+def parse_slot_mode(slot_mode: Optional[str]) -> int:
+    if slot_mode is None:
+        return 0
+    if isinstance(slot_mode, int):
+        if slot_mode in (0, 1):
+            return slot_mode
+        raise ValueError(f"slotMode int must be 0 or 1 (got {slot_mode})")
+    if isinstance(slot_mode, str):
+        lower = slot_mode.lower()
+        if lower == "uniform":
+            return 0
+        if lower == "rare":
+            return 1
+    raise ValueError(f"Unsupported slotMode '{slot_mode}'")
+
+
+# areaMaskごとのスロット上限（maxSpecies上限）
+AREA_SLOT_LIMITS = {
+    "Land": 12,
+    "Water": 5,
+    "Rock": 5,
+    "Fishing": None,  # 竿別で決定
+    "Hidden": 12,  # fallback用（未使用想定）
+    "Gift": 6,     # partyサイズ相当を上限としておく
+}
+
+ROD_SLOT_LIMITS = {
+    "old": 2,
+    "good": 5,
+    "super": 5,
+}
 
 
 def dedup_apply_remove(apply_list, remove_list):
@@ -116,16 +177,45 @@ def main():
     areas = data.get("areas", {})
     gifts = data.get("gifts", {})
 
-    wl_pool = []
-    bl_pool = []
-    rules = []
+    wl_pool: List[str] = []
+    bl_pool: List[str] = []
+    rules: List[Dict] = []
+    fishing_rules: List[Dict] = []
+
+    def validate_max_species(ctx: str, value: int, slot_limit: Optional[int], allow_zero: bool = False):
+        if value < 0:
+            raise ValueError(f"{ctx}: maxSpecies must be >=0 (got {value})")
+        if value == 0 and not allow_zero:
+            raise ValueError(f"{ctx}: maxSpecies=0 disables all slots (invalid here)")
+        if slot_limit is not None and value > slot_limit:
+            raise ValueError(f"{ctx}: maxSpecies {value} exceeds slot limit {slot_limit}")
+
+    def validate_rare_fields(ctx: str, slot_mode: int, rare_slots: int, rare_rate: int, max_species: int, slot_limit: Optional[int]):
+        if rare_rate < 0 or rare_rate > 100:
+            raise ValueError(f"{ctx}: rareRate must be 0-100 (got {rare_rate})")
+        if rare_slots < 0:
+            raise ValueError(f"{ctx}: rareSlots must be >=0 (got {rare_slots})")
+        if slot_mode == 0 and (rare_slots or rare_rate):
+            raise ValueError(f"{ctx}: slotMode=uniform cannot have rareSlots/rareRate")
+        if rare_slots == 0 and rare_rate > 0:
+            raise ValueError(f"{ctx}: rareSlots=0 with rareRate>0 is inconsistent")
+        if max_species == 0 and (rare_slots or rare_rate):
+            raise ValueError(f"{ctx}: maxSpecies=0 but rareSlots/rareRate specified")
+        if max_species not in (None, 0) and rare_slots > max_species:
+            raise ValueError(f"{ctx}: rareSlots {rare_slots} exceeds maxSpecies {max_species}")
+        if slot_limit is not None and rare_slots > slot_limit:
+            raise ValueError(f"{ctx}: rareSlots {rare_slots} exceeds slot limit {slot_limit}")
 
     def process_entry(name, entry, is_gift=False):
-        nonlocal wl_pool, bl_pool, rules
-        key = entry["key"]
+        nonlocal wl_pool, bl_pool, rules, fishing_rules
+        key = entry.get("key")
+        if key is None:
+            raise ValueError(f"Entry '{name}' missing key")
         mapGroup = key["mapGroup"]
         mapNum = key["mapNum"]
-        areaMask = resolve_mask(key["areaMask"])
+        areaMask, areaName = resolve_mask(key["areaMask"])
+        if areaName not in AREA_SLOT_LIMITS:
+            raise ValueError(f"{name}: areaMask '{areaName}' not supported")
 
         apply = []
         for kit_name in entry.get("apply", []):
@@ -137,6 +227,99 @@ def main():
             if kit_name not in kits:
                 raise ValueError(f"Unknown kit '{kit_name}' in {name}")
             remove.extend(kits[kit_name])
+
+        # slotMode / rare / maxSpecies
+        slot_mode = parse_slot_mode(entry.get("slotMode"))
+        rare_slots = int(entry.get("rareSlots", 0) or 0)
+        rare_rate = int(entry.get("rareRate", 0) or 0)
+        overrides = entry.get("maxSpeciesOverrides", {}) or {}
+
+        # defaults per area
+        slot_limit = AREA_SLOT_LIMITS.get(areaName)
+        if areaName != "Fishing":
+            if slot_limit is None:
+                raise ValueError(f"{name}: slot limit not defined for area '{areaName}'")
+            base_max_species = entry.get("maxSpecies")
+            if base_max_species is None:
+                base_max_species = slot_limit
+            base_max_species = int(base_max_species)
+        else:
+            slot_limit = None
+            base_max_species = 0
+
+        if areaName != "Fishing":
+            if overrides:
+                invalid = set(overrides.keys()) - {areaName}
+                if invalid:
+                    raise ValueError(f"{name}/{areaName}: maxSpeciesOverrides keys {invalid} not allowed for non-fishing area")
+                eff_max_species = int(overrides.get(areaName, base_max_species))
+            else:
+                eff_max_species = base_max_species
+
+            validate_max_species(f"{name}/{areaName}", eff_max_species, slot_limit, allow_zero=False)
+            validate_rare_fields(f"{name}/{areaName}", slot_mode, rare_slots, rare_rate, eff_max_species, slot_limit)
+            fishing_offset = 0
+            fishing_count = 0
+        else:
+            # Fishing uses per-rod settings; top-level rare fieldsは禁止
+            if rare_slots or rare_rate:
+                raise ValueError(f"{name}/Fishing: use fishing.old/good/super for rare settings (top-level rareSlots/rareRate not allowed)")
+            fishing_entry = entry.get("fishing")
+            if not fishing_entry:
+                raise ValueError(f"{name}/Fishing: 'fishing' block (old/good/super) is required")
+
+            # overrides for rods are optional but must target known rods
+            if overrides:
+                invalid = set(overrides.keys()) - set(ROD_SLOT_LIMITS.keys())
+                if invalid:
+                    raise ValueError(f"{name}/Fishing: maxSpeciesOverrides keys {invalid} not allowed (use old/good/super)")
+
+            fishing_offset = len(fishing_rules)
+            fishing_count = 3  # old/good/super fixed
+
+            # collect apply/remove from rods to build WL union
+            rod_apply_accum = []
+            rod_remove_accum = []
+
+            fishing_specs = []
+            for rod in ("old", "good", "super"):
+                rod_data = fishing_entry.get(rod, {})
+                rod_slot_mode = parse_slot_mode(rod_data.get("slotMode", "uniform"))
+                rod_rare_slots = int(rod_data.get("rareSlots", 0) or 0)
+                rod_rare_rate = int(rod_data.get("rareRate", 0) or 0)
+                rod_max_species = rod_data.get("maxSpecies", overrides.get(rod, ROD_SLOT_LIMITS[rod]))
+                rod_max_species = int(rod_max_species)
+                validate_max_species(f"{name}/Fishing/{rod}", rod_max_species, ROD_SLOT_LIMITS[rod], allow_zero=True)
+                validate_rare_fields(f"{name}/Fishing/{rod}", rod_slot_mode, rod_rare_slots, rod_rare_rate, rod_max_species, ROD_SLOT_LIMITS[rod])
+
+                for kit_name in rod_data.get("apply", []):
+                    if kit_name not in kits:
+                        raise ValueError(f"Unknown kit '{kit_name}' in {name}/Fishing/{rod}")
+                    rod_apply_accum.extend(kits[kit_name])
+                for kit_name in rod_data.get("remove", []):
+                    if kit_name not in kits:
+                        raise ValueError(f"Unknown kit '{kit_name}' in {name}/Fishing/{rod}")
+                    rod_remove_accum.extend(kits[kit_name])
+
+                fishing_specs.append({
+                    "slotMode": rod_slot_mode,
+                    "maxSpecies": rod_max_species,
+                    "rareSlots": rod_rare_slots,
+                    "rareRate": rod_rare_rate,
+                })
+
+            if len(fishing_specs) != 3:
+                raise ValueError(f"{name}/Fishing: expected old/good/super entries (defaults allowed)")
+
+            fishing_rules.extend(fishing_specs)
+
+            # Merge rod apply/remove into base apply/remove for WL/BL
+            if rod_apply_accum:
+                apply.extend(rod_apply_accum)
+            if rod_remove_accum:
+                remove.extend(rod_remove_accum)
+
+            eff_max_species = 0  # fishing uses per-rod values
 
         wl, bl = dedup_apply_remove(apply, remove)
 
@@ -158,6 +341,12 @@ def main():
             "bl_count": len(bl),
             "maxRerolls": entry.get("maxRerolls", 6),
             "allowLegendOverride": 1 if entry.get("allowLegendOverride", False) else 0,
+            "slotMode": slot_mode,
+            "maxSpecies": eff_max_species,
+            "rareSlots": rare_slots,
+            "rareRate": rare_rate,
+            "fishingOffset": fishing_offset if fishing_count > 0 else 0,
+            "fishingCount": fishing_count,
             "name": name,
         }
         rules.append(rule)
@@ -176,6 +365,17 @@ def main():
         f.write(render_array("sRandomizerAreaWhitelistPool", wl_pool))
         f.write(render_array("sRandomizerAreaBlacklistPool", bl_pool))
 
+        # Fishing rules table
+        f.write("static const struct RandomizerFishingRule sRandomizerFishingRules[] = {\n")
+        for fr in fishing_rules:
+            f.write("    {\n")
+            f.write(f"        .slotMode = {fr['slotMode']},\n")
+            f.write(f"        .maxSpecies = {fr['maxSpecies']},\n")
+            f.write(f"        .rareSlots = {fr['rareSlots']},\n")
+            f.write(f"        .rareRate = {fr['rareRate']},\n")
+            f.write("    },\n")
+        f.write("};\n\n")
+
         f.write("static const struct RandomizerAreaRule sRandomizerAreaRules[] = {\n")
         for r in rules:
             f.write("    {\n")
@@ -188,9 +388,20 @@ def main():
             f.write(f"        .blacklistCount = {r['bl_count']},\n")
             f.write(f"        .maxRerolls = {r['maxRerolls']},\n")
             f.write(f"        .allowLegendOverride = {r['allowLegendOverride']},\n")
+            f.write(f"        .slotMode = {r['slotMode']},\n")
+            f.write(f"        .maxSpecies = {r['maxSpecies']},\n")
+            f.write(f"        .rareSlots = {r['rareSlots']},\n")
+            f.write(f"        .rareRate = {r['rareRate']},\n")
+            if r["fishingCount"] > 0:
+                f.write(f"        .fishingRules = &sRandomizerFishingRules[{r['fishingOffset']}],\n")
+                f.write(f"        .fishingRuleCount = {r['fishingCount']},\n")
+            else:
+                f.write("        .fishingRules = NULL,\n")
+                f.write("        .fishingRuleCount = 0,\n")
             f.write("    },\n")
         f.write("};\n\n")
         f.write(f"#define RANDOMIZER_AREA_RULE_COUNT {len(rules)}\n")
+        f.write(f"#define RANDOMIZER_FISHING_RULE_COUNT {len(fishing_rules)}\n")
 
     return 0
 

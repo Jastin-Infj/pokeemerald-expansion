@@ -87,7 +87,7 @@
 #define FLAG_UNUSED_0x049    0x49 // Unused Flag
 #define FLAG_RANDOMIZER_AREA_WL 0x4A // Enables area-based whitelist randomizer
 #define FLAG_RANDOMIZER_DEBUG_LOG 0x4B // Enables randomizer debug logging
-#define FLAG_UNUSED_0x04C    0x4C // Unused Flag
+#define FLAG_RANDOMIZER_FISHING_AUTO_HOOK 0x4C // Debug: Force fishing bite/minigame success
 #define FLAG_UNUSED_0x04D    0x4D // Unused Flag
 #define FLAG_UNUSED_0x04E    0x4E // Unused Flag
 #define FLAG_UNUSED_0x04F    0x4F // Unused Flag

@@ -15,6 +15,9 @@
 #include "data/randomizer/trainer_dup_rules.h"
 #include "randomizer_area_rules.h"
 
+#define SLOT_MODE_UNIFORM RANDOMIZER_SLOT_MODE_UNIFORM
+#define SLOT_MODE_RARE    RANDOMIZER_SLOT_MODE_RARE
+
 #define AREA_MASK_LAND   (1 << 0)
 #define AREA_MASK_WATER  (1 << 1)
 #define AREA_MASK_FISH   (1 << 2)
@@ -23,6 +26,9 @@
 #define AREA_MASK_GIFT   (1 << 5)
 
 static bool32 IsSpeciesPermitted(u16 species);
+static u16 GetRuleWhitelistLimit(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule);
+static bool8 RuleWhitelistContains(const struct RandomizerAreaRule *rule, u16 species, u16 start, u16 count);
+static const struct RandomizerFishingRule *SelectFishingRule(const struct RandomizerAreaRule *rule, u8 rodType);
 
 #define TRAINER_DUP_MAX_SAME_DEFAULT 255
 #define TRAINER_DUP_MIN_DISTINCT_DEFAULT 0
@@ -83,6 +89,27 @@ static bool8 RandomizerDebugLoggingEnabled(void)
 {
     return FlagGet(FLAG_RANDOMIZER_DEBUG_LOG);
 }
+
+static void DebugLogWildRare(u8 mapGroup, u8 mapNum, enum WildPokemonArea area, u8 slot, const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 rareHit, u16 targetStart, u16 targetCount, u16 wlLimit)
+{
+    if (!RandomizerDebugLoggingEnabled())
+        return;
+
+    DebugPrintfLevel(MGBA_LOG_WARN, // WARNに統一（他のINFOログに埋もれないようにする）
+                     "[INFO] RandR wild m=%d/%d area=%d slot=%d mode=%d rareSlots=%d rareRate=%d wl=%d targetStart=%d targetCount=%d rareHit=%d fishing=%d",
+                     mapGroup,
+                     mapNum,
+                     area,
+                     slot,
+                     fishingRule ? fishingRule->slotMode : rule->slotMode,
+                     fishingRule ? fishingRule->rareSlots : rule->rareSlots,
+                     fishingRule ? fishingRule->rareRate : rule->rareRate,
+                     wlLimit,
+                     targetStart,
+                     targetCount,
+                     rareHit,
+                     fishingRule ? 1 : 0);
+}
 #endif
 
 static u8 GetAreaMaskFromWildArea(enum WildPokemonArea area)
@@ -106,9 +133,12 @@ static u8 GetAreaMaskFromWildArea(enum WildPokemonArea area)
 static bool8 SpeciesAllowedByRule(u16 species, const struct RandomizerAreaRule *rule)
 {
     u16 i;
+    u16 wlLimit;
 
     if (!IsSpeciesPermitted(species))
         return FALSE;
+
+    wlLimit = GetRuleWhitelistLimit(rule, NULL);
 
     if (!rule->allowLegendOverride)
     {
@@ -124,7 +154,7 @@ static bool8 SpeciesAllowedByRule(u16 species, const struct RandomizerAreaRule *
             return FALSE;
     }
 
-    for (i = 0; i < rule->whitelistCount; i++)
+    for (i = 0; i < wlLimit; i++)
     {
         if (rule->whitelist[i] == species)
             return TRUE;
@@ -133,9 +163,55 @@ static bool8 SpeciesAllowedByRule(u16 species, const struct RandomizerAreaRule *
     return FALSE;
 }
 
+static bool8 RuleWhitelistContains(const struct RandomizerAreaRule *rule, u16 species, u16 start, u16 count)
+{
+    u16 i;
+    if (rule == NULL)
+        return FALSE;
+    if (start >= rule->whitelistCount)
+        return FALSE;
+    if (start + count > rule->whitelistCount)
+        count = rule->whitelistCount - start;
+    for (i = 0; i < count; i++)
+    {
+        if (rule->whitelist[start + i] == species)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static const struct RandomizerFishingRule *SelectFishingRule(const struct RandomizerAreaRule *rule, u8 rodType)
+{
+    if (rule == NULL)
+        return NULL;
+    if (rule->fishingRuleCount == 0 || rule->fishingRules == NULL)
+        return NULL;
+
+    switch (rodType)
+    {
+    case 0: // Old Rod
+        return &rule->fishingRules[RANDOMIZER_ROD_OLD];
+    case 1: // Good Rod
+        if (rule->fishingRuleCount > RANDOMIZER_ROD_GOOD)
+            return &rule->fishingRules[RANDOMIZER_ROD_GOOD];
+        break;
+    case 2: // Super Rod
+        if (rule->fishingRuleCount > RANDOMIZER_ROD_SUPER)
+            return &rule->fishingRules[RANDOMIZER_ROD_SUPER];
+        break;
+    default:
+        break;
+    }
+    // fallback
+    return &rule->fishingRules[0];
+}
+
 static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 areaMask)
 {
     u16 i;
+    const u8 targetMask = areaMask;
+    const u8 matchMask = (areaMask & (AREA_MASK_FISH | AREA_MASK_WATER | AREA_MASK_ROCKS)) ? (AREA_MASK_FISH | AREA_MASK_WATER | AREA_MASK_ROCKS | AREA_MASK_LAND) : areaMask;
+    const struct RandomizerAreaRule *landFallback = NULL;
 
     if (!RandomizerAreaRulesEnabled())
         return NULL;
@@ -143,13 +219,17 @@ static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 
     for (i = 0; i < RANDOMIZER_AREA_RULE_COUNT; i++)
     {
         const struct RandomizerAreaRule *rule = &sRandomizerAreaRules[i];
-        if (rule->mapGroup == mapGroup
-         && rule->mapNum == mapNum
-         && rule->areaMask == areaMask)
-            return rule;
+        if (rule->mapGroup == mapGroup && rule->mapNum == mapNum)
+        {
+            if (rule->areaMask == targetMask)
+                return rule;
+            // allow falling back to Land when Water/Rock/Fish specific entry is absent
+            if (rule->areaMask == AREA_MASK_LAND && (matchMask & rule->areaMask))
+                landFallback = rule;
+        }
     }
 
-    return NULL;
+    return landFallback;
 }
 
 #ifndef NDEBUG
@@ -158,8 +238,8 @@ static void DebugLogRandomization(enum RandomizerReason reason, u32 seed, u16 or
     if (!RandomizerDebugLoggingEnabled())
         return;
 
-    DebugPrintfLevel(MGBA_LOG_INFO,
-                     "RandR reason=%d map=%d/%d mask=%d wl=%d bl=%d attempts=%d%s seed=%lu %d->%d",
+    DebugPrintfLevel(MGBA_LOG_WARN, // WARNに統一し、他のINFOログに埋もれないようにする
+                     "[INFO] RandR reason=%d map=%d/%d mask=%d wl=%d bl=%d attempts=%d%s seed=%lu %d->%d",
                      reason,
                      rule != NULL ? rule->mapGroup : -1,
                      rule != NULL ? rule->mapNum : -1,
@@ -236,6 +316,7 @@ static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSp
 {
     u8 attempt;
     u16 candidate = species;
+    u16 wlLimit = GetRuleWhitelistLimit(rule, NULL);
 
     for (attempt = 0; attempt <= rule->maxRerolls; attempt++)
     {
@@ -252,7 +333,7 @@ static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSp
 
     {
         struct Sfc32State state = RandomizerRandSeed(reason, seed, species);
-        u16 idx = RandomizerNextRange(&state, rule->whitelistCount);
+        u16 idx = RandomizerNextRange(&state, wlLimit);
         candidate = rule->whitelist[idx];
 #ifndef NDEBUG
         DebugLogRandomization(reason, seed, species, candidate, rule, rule->maxRerolls + 1, TRUE);
@@ -316,6 +397,27 @@ static bool32 IsSpeciesPermitted(u16 species)
 
     return TRUE;
 };
+
+static u16 GetRuleWhitelistLimit(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule)
+{
+    u16 limit;
+
+    if (rule == NULL)
+        return 0;
+
+    // Fishing rule maxSpecies takes priority if provided and nonzero
+    if (fishingRule != NULL && fishingRule->maxSpecies > 0)
+        limit = fishingRule->maxSpecies;
+    else if (rule->maxSpecies > 0)
+        limit = rule->maxSpecies;
+    else
+        limit = rule->whitelistCount;
+
+    if (limit > rule->whitelistCount)
+        limit = rule->whitelistCount;
+
+    return limit;
+}
 
 u32 GenerateSeedForRandomizer(void)
 {
@@ -1006,7 +1108,7 @@ u16 RandomizeMon(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, 
     }
 }
 
-u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot)
+u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot, u8 rodType)
 {
     const struct RandomizerAreaRule *areaRule;
     if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON))
@@ -1021,7 +1123,91 @@ u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemon
 
         areaRule = FindAreaRule(mapGroup, mapNum, GetAreaMaskFromWildArea(area));
         if (areaRule != NULL)
-            return RandomizeWithAreaRule(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
+        {
+            const struct RandomizerFishingRule *fishingRule = NULL;
+            u8 slotMode = areaRule->slotMode;
+            u8 rareSlots = areaRule->rareSlots;
+            u8 rareRate = areaRule->rareRate;
+            u16 wlLimit = GetRuleWhitelistLimit(areaRule, fishingRule);
+            u16 rareCount = 0;
+            u16 commonCount = wlLimit;
+
+            if (area == WILD_AREA_FISHING)
+            {
+                fishingRule = SelectFishingRule(areaRule, rodType);
+                if (fishingRule != NULL)
+                {
+                    slotMode = fishingRule->slotMode;
+                    rareSlots = fishingRule->rareSlots;
+                    rareRate = fishingRule->rareRate;
+                    wlLimit = GetRuleWhitelistLimit(areaRule, fishingRule);
+                }
+            }
+
+            if (wlLimit == 0)
+                return species;
+
+            if (rareSlots > wlLimit)
+                rareSlots = wlLimit;
+            rareCount = rareSlots;
+            commonCount = wlLimit - rareCount;
+
+            if (slotMode == SLOT_MODE_UNIFORM || rareCount == 0 || rareRate == 0)
+            {
+                return RandomizeWithAreaRule(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
+            }
+            else
+            {
+                struct Sfc32State state = RandomizerRandSeed(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species);
+                bool8 rareHit = (RandomizerNextRange(&state, 100) < rareRate);
+                u8 attempt;
+                u16 candidate = species;
+                u16 targetStart, targetCount;
+
+                if (rareHit && rareCount > 0)
+                {
+                    targetStart = 0;
+                    targetCount = rareCount;
+                }
+                else
+                {
+                    targetStart = rareCount;
+                    targetCount = commonCount;
+                    if (targetCount == 0)
+                    {
+                        targetStart = 0;
+                        targetCount = rareCount;
+                    }
+                }
+
+#ifndef NDEBUG
+                DebugLogWildRare(mapGroup, mapNum, area, slot, areaRule, fishingRule, rareHit, targetStart, targetCount, wlLimit);
+#endif
+
+                for (attempt = 0; attempt <= areaRule->maxRerolls; attempt++)
+                {
+                    u32 adjustedSeed = seed ^ attempt;
+                    candidate = RandomizeMon(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), adjustedSeed, species);
+                    if (SpeciesAllowedByRule(candidate, areaRule)
+                     && RuleWhitelistContains(areaRule, candidate, targetStart, targetCount))
+                    {
+#ifndef NDEBUG
+                        DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, attempt, FALSE);
+#endif
+                        return candidate;
+                    }
+                }
+
+                {
+                    u16 idx = RandomizerNextRange(&state, targetCount);
+                    candidate = areaRule->whitelist[targetStart + idx];
+#ifndef NDEBUG
+                    DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, areaRule->maxRerolls + 1, TRUE);
+#endif
+                    return candidate;
+                }
+            }
+        }
 
         return RandomizeMon(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
     }

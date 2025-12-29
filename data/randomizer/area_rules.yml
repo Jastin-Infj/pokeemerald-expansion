@@ -74,6 +74,17 @@ areas:
     remove: [starter_trim]
     maxRerolls: 6
     allowLegendOverride: false
+  
+  route_102_fishing:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE102)
+      mapNum: MAP_NUM(MAP_ROUTE102)
+      areaMask: Fish
+    slotMode: uniform
+    fishing:
+      old:  { slotMode: rare, rareSlots: 1, rareRate: 20, maxSpecies: 2, apply: [starter_water] }
+      good: { slotMode: rare, rareSlots: 1, rareRate: 50, maxSpecies: 5, apply: [starter_water, mid_water] }
+      super: { slotMode: rare, rareSlots: 1, rareRate: 70, maxSpecies: 5, apply: [starter_water, late_water] }
 
   route_110_water:
     key:

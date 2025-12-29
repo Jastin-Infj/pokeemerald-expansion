@@ -4,6 +4,7 @@
 #include "fieldmap.h"
 #include "field_effect_helpers.h"
 #include "field_player_avatar.h"
+#include "event_data.h"
 #include "menu.h"
 #include "metatile_behavior.h"
 #include "random.h"
@@ -13,6 +14,7 @@
 #include "text.h"
 #include "tv.h"
 #include "wild_encounter.h"
+#include "constants/flags.h"
 #include "config/fishing.h"
 
 static void Task_Fishing(u8);
@@ -42,6 +44,7 @@ static u32 CalculateFishingBiteOdds(u32, bool32);
 static u32 CalculateFishingFollowerBoost(void);
 static u32 CalculateFishingProximityBoost(void);
 static u32 CalculateFishingTimeOfDayBoost(void);
+static bool32 FishingAutoHookEnabled(void);
 
 #define FISHING_PROXIMITY_BOOST 20     //Active if config I_FISHING_PROXIMITY is TRUE
 #define FISHING_TIME_OF_DAY_BOOST 20   //Active if config I_FISHING_TIME_OF_DAY_BOOST is TRUE
@@ -266,8 +269,10 @@ static bool32 Fishing_CheckForBite(struct Task *task)
     if(firstMonHasSuctionOrSticky && I_FISHING_STICKY_BOOST < GEN_4)
         bite = RandomPercentage(RNG_FISHING_GEN3_STICKY, FISHING_GEN3_STICKY_CHANCE);
 
-    if (!bite)
+    if (!bite && !FishingAutoHookEnabled())
         bite = Fishing_RollForBite(task->tFishingRod, firstMonHasSuctionOrSticky);
+    else if (FishingAutoHookEnabled())
+        bite = TRUE;
 
     if (!bite)
         task->tStep = FISHING_NOT_EVEN_NIBBLE;
@@ -289,6 +294,12 @@ static bool32 Fishing_GotBite(struct Task *task)
 
 static bool32 Fishing_ChangeMinigame(struct Task *task)
 {
+    if (FishingAutoHookEnabled())
+    {
+        task->tStep = FISHING_MON_ON_HOOK;
+        return TRUE;
+    }
+
     switch (I_FISHING_MINIGAME)
     {
         case GEN_1:
@@ -578,6 +589,11 @@ static u32 CalculateFishingTimeOfDayBoost()
     if (timeOfDay == TIME_MORNING || timeOfDay == TIME_EVENING)
         return FISHING_TIME_OF_DAY_BOOST;
     return 0;
+}
+
+static bool32 FishingAutoHookEnabled(void)
+{
+    return FlagGet(FLAG_RANDOMIZER_FISHING_AUTO_HOOK);
 }
 
 #undef tStep

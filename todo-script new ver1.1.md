@@ -309,3 +309,40 @@ Fishingの竿別指定の扱い（要決定）
 - 各ステップで都度ビルド確認（例: `make -j4`）。必要に応じて `make clean` を挟む。
 - フラグや設定の追加は最小単位で行い、挙動を確認しながら進める。
 - ソース修正フェーズでは、実装範囲を小さく区切り、テーブル生成・ログ・バリデーションなどの影響面を個別に検証する。
+
+
+
+• テスト用fishingデータを追加して検証する流れの例をまとめます。コード改修は不要で、YAMLとフラグで確認できます。
+                                                                                                                                                                                                                                               
+  1. data/randomizer/area_rules.yml に釣りブロックを追加                                                                                                                                                                                       
+     例: ルート102で竿別レア枠を付けてみる場合                                                                                                                                                                                                 
+                                                                                                                                                                                                                                               
+     areas:                                                                                                                                                                                                                                    
+       route_102_fishing:                                                                                                                                                                                                                      
+         key:                                                                                                                                                                                                                                  
+           mapGroup: MAP_GROUP(MAP_ROUTE102)                                                                                                                                                                                                   
+           mapNum: MAP_NUM(MAP_ROUTE102)                                                                                                                                                                                                       
+           areaMask: Fishing                                                                                                                                                                                                                   
+         slotMode: uniform  # 釣り共通                                                                                                                                                                                                         
+         fishing:                                                                                                                                                                                                                              
+           old:  { slotMode: rare, rareSlots: 1, rareRate: 20, maxSpecies: 2, apply: [starter_water] }                                                                                                                                         
+           good: { slotMode: rare, rareSlots: 1, rareRate: 50, maxSpecies: 5, apply: [starter_water, mid_water] }                                                                                                                              
+           super:{ slotMode: rare, rareSlots: 1, rareRate: 70, maxSpecies: 5, apply: [starter_water, late_water] }
+     ※ apply/remove は共通と同じ構造を持たせる運用を想定。                                                                                                                                                                                     
+     ※ apply/remove は共通と同じ構造を持たせる運用を想定。                                                                                                                                                                                     
+  2. スクリプト再生成                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                               
+     python3 dev_scripts/build_randomizer_area_rules.py                                                                                                                                                                                        
+  3. ビルド                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                               
+     make -j4                                                                                                                                                                                                                                  
+  4. 動作確認（実機/エミュ）                                                                                                                                                                                                                   
+      - FLAG_RANDOMIZER_AREA_WL を有効にする（必要なら FLAG_RANDOMIZER_DEBUG_LOG もON）。                                                                                                                                                      
+      - ランダマイザー本体を有効化する。
+      - 釣りを行い、竿別にレア枠が当たるか（ログ: DEBUGビルド＋FLAGで1行出ます）。                                                                                                                                                             
+        ログ例: RandR wild m=... area=2 slot=... mode=1 rareSlots=1 rareRate=50 ... rareHit=1 fishing=1                                                                                                                                        
+  5. 確認ポイント                                                                                                                                                                                                                              
+      - rareSlotsとrareRateが意図どおり効いているか（レア枠が当たる頻度）。                                                                                                                                                                    
+      - maxSpecies上限を超えないこと。                                                                                                                                                                                                         
+      - 竿別設定が呼び分けられていること（rod引数がold/good/superで変わる）。                                                                                                                                                                  
+                                                                                                                                                         
