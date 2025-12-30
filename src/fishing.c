@@ -8,6 +8,7 @@
 #include "menu.h"
 #include "metatile_behavior.h"
 #include "random.h"
+#include "randomizer.h"
 #include "script.h"
 #include "strings.h"
 #include "task.h"
@@ -16,6 +17,7 @@
 #include "wild_encounter.h"
 #include "constants/flags.h"
 #include "config/fishing.h"
+#include "rtc.h"
 
 static void Task_Fishing(u8);
 static bool32 Fishing_Init(struct Task *);
@@ -33,6 +35,7 @@ static bool32 Fishing_MonOnHook(struct Task *);
 static bool32 Fishing_StartEncounter(struct Task *);
 static bool32 Fishing_NotEvenNibble(struct Task *);
 static bool32 Fishing_GotAway(struct Task *);
+static bool32 Fishing_Blocked(struct Task *);
 static bool32 Fishing_NoMon(struct Task *);
 static bool32 Fishing_PutRodAway(struct Task *);
 static bool32 Fishing_EndNoMon(struct Task *);
@@ -46,6 +49,10 @@ static u32 CalculateFishingProximityBoost(void);
 static u32 CalculateFishingTimeOfDayBoost(void);
 static bool32 FishingAutoHookEnabled(void);
 static bool32 FishingAutoBiteEnabled(void);
+#if RANDOMIZER_AVAILABLE == TRUE
+static bool32 Fishing_CheckRandomizerBlocked(struct Task *task);
+static u8 GetRandomizerFishingTimeSlot(void);
+#endif
 
 #define FISHING_PROXIMITY_BOOST 20     //Active if config I_FISHING_PROXIMITY is TRUE
 #define FISHING_TIME_OF_DAY_BOOST 20   //Active if config I_FISHING_TIME_OF_DAY_BOOST is TRUE
@@ -101,6 +108,7 @@ enum
     FISHING_START_ENCOUNTER,
     FISHING_NOT_EVEN_NIBBLE,
     FISHING_GOT_AWAY,
+    FISHING_BLOCKED,
     FISHING_NO_MON,
     FISHING_PUT_ROD_AWAY,
     FISHING_END_NO_MON,
@@ -123,6 +131,7 @@ static bool32 (*const sFishingStateFuncs[])(struct Task *) =
     [FISHING_START_ENCOUNTER]       = Fishing_StartEncounter,
     [FISHING_NOT_EVEN_NIBBLE]       = Fishing_NotEvenNibble,
     [FISHING_GOT_AWAY]              = Fishing_GotAway,
+    [FISHING_BLOCKED]               = Fishing_Blocked,
     [FISHING_NO_MON]                = Fishing_NoMon,
     [FISHING_PUT_ROD_AWAY]          = Fishing_PutRodAway,
     [FISHING_END_NO_MON]            = Fishing_EndNoMon,
@@ -136,6 +145,39 @@ static bool32 (*const sFishingStateFuncs[])(struct Task *) =
 #define tMinRoundsRequired data[13]
 #define tPlayerGfxId       data[14]
 #define tFishingRod        data[15]
+
+#if RANDOMIZER_AVAILABLE == TRUE
+static u8 GetRandomizerFishingTimeSlot(void)
+{
+    return RandomizerResolveTimeSlot(GetTimeOfDay());
+}
+
+static bool32 Fishing_CheckRandomizerBlocked(struct Task *task)
+{
+    u8 timeSlot = GetRandomizerFishingTimeSlot();
+
+    if (RandomizerIsEncounterBlocked(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, WILD_AREA_FISHING, task->tFishingRod, timeSlot))
+    {
+        // 保存しておかないと未初期化のまま後続で参照される
+        task->tPlayerGfxId = gObjectEvents[gPlayerAvatar.objectEventId].graphicsId;
+        LoadMessageBoxAndFrameGfx(0, TRUE);
+        FillWindowPixelBuffer(0, PIXEL_FILL(1));
+        AddTextPrinterParameterized2(0, FONT_NORMAL, gText_NoPokemonCanBeHooked, 1, 0, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY);
+#ifndef NDEBUG
+        DebugPrintfLevel(MGBA_LOG_WARN,
+                         "[INFO] Fishing blocked rod=%d timeSlot=%d map=%d/%d",
+                         task->tFishingRod,
+                         timeSlot,
+                         gSaveBlock1Ptr->location.mapGroup,
+                         gSaveBlock1Ptr->location.mapNum);
+#endif
+        task->tStep = FISHING_BLOCKED;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+#endif
 
 void StartFishing(u8 rod)
 {
@@ -155,6 +197,10 @@ static bool32 Fishing_Init(struct Task *task)
 {
     LockPlayerFieldControls();
     gPlayerAvatar.preventStep = TRUE;
+#if RANDOMIZER_AVAILABLE == TRUE
+    if (Fishing_CheckRandomizerBlocked(task))
+        return TRUE;
+#endif
     task->tStep = FISHING_GET_ROD_OUT;
     return FALSE;
 }
@@ -437,6 +483,19 @@ static bool32 Fishing_GotAway(struct Task *task)
     StartSpriteAnim(&gSprites[gPlayerAvatar.spriteId], GetFishingNoCatchDirectionAnimNum(GetPlayerFacingDirection()));
     FillWindowPixelBuffer(0, PIXEL_FILL(1));
     AddTextPrinterParameterized2(0, FONT_NORMAL, gText_ItGotAway, 1, 0, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY);
+    task->tStep = FISHING_NO_MON;
+    return TRUE;
+}
+
+static bool32 Fishing_Blocked(struct Task *task)
+{
+    AlignFishingAnimationFrames();
+    RunTextPrinters();
+#ifndef NDEBUG
+    DebugPrintfLevel(MGBA_LOG_WARN, "[INFO] Fishing blocked end");
+#endif
+    // 釣りアニメを開始していないので、待ちをスキップさせる
+    gSprites[gPlayerAvatar.spriteId].animEnded = TRUE;
     task->tStep = FISHING_NO_MON;
     return TRUE;
 }

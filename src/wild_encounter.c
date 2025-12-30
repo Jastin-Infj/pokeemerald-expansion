@@ -34,9 +34,7 @@
 #if RANDOMIZER_AVAILABLE == TRUE
 static u8 GetRandomizerTimeSlot(u8 defaultSlot)
 {
-    if (OW_TIME_OF_DAY_ENCOUNTERS)
-        return GenConfigTimeOfDay(GetTimeOfDay());
-    return defaultSlot;
+    return RandomizerResolveTimeSlot(defaultSlot);
 }
 #endif
 
@@ -585,12 +583,15 @@ static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum 
 
     {
         u16 species = wildMonInfo->wildPokemon[wildMonIndex].species;
+        bool8 blocked = FALSE;
         #if RANDOMIZER_AVAILABLE == TRUE
-            species = RandomizeWildEncounter(
+            blocked = RandomizeWildEncounterBlocked(
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                area, wildMonIndex, 0xFF, timeSlot);
+                area, wildMonIndex, 0xFF, timeSlot, &species);
+            if (blocked)
+                return FALSE;
         #endif
         CreateWildMon(species, level);
     }
@@ -602,14 +603,17 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
     u8 wildMonIndex = ChooseWildMonIndex_Fishing(rod);
     u16 wildMonSpecies = wildMonInfo->wildPokemon[wildMonIndex].species;
     u8 level = ChooseWildMonLevel(wildMonInfo->wildPokemon, wildMonIndex, WILD_AREA_FISHING);
+    bool8 blocked = FALSE;
 
     UpdateChainFishingStreak();
     #if RANDOMIZER_AVAILABLE == TRUE
-        wildMonSpecies = RandomizeWildEncounter(
+        blocked = RandomizeWildEncounterBlocked(
             wildMonSpecies,
             gSaveBlock1Ptr->location.mapNum,
             gSaveBlock1Ptr->location.mapGroup,
-            WILD_AREA_FISHING, wildMonIndex, rod, timeSlot);
+            WILD_AREA_FISHING, wildMonIndex, rod, timeSlot, &wildMonSpecies);
+        if (blocked)
+            return SPECIES_NONE;
     #endif
 
     CreateWildMon(wildMonSpecies, level);
@@ -625,12 +629,15 @@ static bool8 SetUpMassOutbreakEncounter(u8 flags)
 
     {
         u16 species = gSaveBlock1Ptr->outbreakPokemonSpecies;
+        bool8 blocked = FALSE;
         #if RANDOMIZER_AVAILABLE == TRUE
-            species = RandomizeWildEncounter(
+            blocked = RandomizeWildEncounterBlocked(
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                WILD_AREA_LAND, 0, 0xFF, 0xFF);
+                WILD_AREA_LAND, 0, 0xFF, 0xFF, &species);
+            if (blocked)
+                return FALSE;
         #endif
 
         CreateWildMon(species, gSaveBlock1Ptr->outbreakPokemonLevel);
@@ -1126,8 +1133,9 @@ void FishingWildEncounter(u8 rod)
         u8 level = ChooseWildMonLevel(&sWildFeebas, 0, WILD_AREA_FISHING);
 
         species = sWildFeebas.species;
+        bool8 blocked = FALSE;
         #if RANDOMIZER_AVAILABLE == TRUE
-            species = RandomizeWildEncounter(
+            blocked = RandomizeWildEncounterBlocked(
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
@@ -1137,7 +1145,9 @@ void FishingWildEncounter(u8 rod)
 #else
                 timeOfDay
 #endif
-                );
+                , &species);
+            if (blocked)
+                return;
         #endif
         CreateWildMon(species, level);
     }
@@ -1152,9 +1162,12 @@ void FishingWildEncounter(u8 rod)
             );
     }
 
-    IncrementGameStat(GAME_STAT_FISHING_ENCOUNTERS);
-    SetPokemonAnglerSpecies(species);
-    BattleSetup_StartWildBattle();
+    if (species != SPECIES_NONE)
+    {
+        IncrementGameStat(GAME_STAT_FISHING_ENCOUNTERS);
+        SetPokemonAnglerSpecies(species);
+        BattleSetup_StartWildBattle();
+    }
 }
 
 u16 GetLocalWildMon(bool8 *isWaterMon)

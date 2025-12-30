@@ -103,6 +103,9 @@ u16 RandomizeMon(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, 
 u16 RandomizeMonBaseForm(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species);
 
 u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot, u8 rodType, u8 timeSlot);
+bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot, u8 rodType, u8 timeSlot, u16 *outSpecies);
+bool8 RandomizerIsEncounterBlocked(u8 mapGroup, u8 mapNum, enum WildPokemonArea area, u8 rodType, u8 timeSlot);
+u8 RandomizerResolveTimeSlot(u8 defaultSlot);
 
 // Returns TRUE if it is possible for the species tableSpecies to randomize into the species matchSpecies.
 // This does not mean that it actually did, though.
