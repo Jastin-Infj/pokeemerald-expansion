@@ -60,7 +60,8 @@ areas:
     allowLegendOverride: false
     timeSlots:
       any:
-        default: { apply: [starter_land], remove: null }
+        allowEmpty: true
+        default: { apply: null, remove: null }
         rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
 
   route_102_land:
