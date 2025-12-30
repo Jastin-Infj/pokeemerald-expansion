@@ -77,3 +77,11 @@
   - blocked時に1回だけWARN（例: “[WARN] RandR allowEmpty: no candidates, skipping encounter”）を出す。釣りも不発判定時にWARN。
 - Chain Fishing/Streak:
   - allowEmptyで釣り遭遇をスキップした場合、バトルが発生しないためストリークは維持（リセットしない）。
+
+## 推奨実装順
+1) `RandomizeWildEncounter` にblocked out-paramを返すラッパを追加（既存シグネチャ維持、破壊的変更回避）。この時点では呼び出し元は触らない。
+2) `fishing.c` にblocked判定＋不発メッセージ導線を追加（ミニゲーム開始前、Old/Good/Super/SELECT共通）。メッセージIDは後で追加。
+3) `wild_encounter.c` でblockedを見てBattleSetupを呼ばない分岐を追加（Fishing/Land共通）。SPECIES_NONEは使わずblockedで制御。
+4) トレーナー/固定: blocked時に枠欠け防止で同ポケモンor候補先頭で埋める処理を追加。WARNログもここで。
+5) メッセージリソース追加: “No Pokémon can be hooked here.” をstrings系に追加し、fishingの不発で使用。
+6) ビルド・検証: `python3 dev_scripts/build_randomizer_area_rules.py` → `make -j4` → Route102/103のallowEmptyケースで遭遇なし+WARN/メッセージを確認。
