@@ -69,6 +69,8 @@ WL/BL適用（野生/トレーナー共通）
   - 上記YAMLを読み、重複除去・ソート・空WL検出を行い `generated/randomizer_area_rules.h` を生成するスクリプト。  
 - generated/randomizer_area_rules.h  
   - ビルド生成物。エリアルール・釣りルール・プール配列を定義し、ランタイムで参照。  
+- data/randomizer/area_rules.yml  
+  - WL/BLの定義元（kits＋areas/gifts）。釣り用のロッド別設定もここで記述する。時間帯対応を入れる場合もこのYAMLを拡張する。  
 - data/randomizer/trainer_dup_rules.h  
   - トレーナーごとの重複制御ルール（maxSame/minDistinct）を列挙するヘッダ。未記載はデフォルト（制限なし）。  
 - src/randomizer.c  

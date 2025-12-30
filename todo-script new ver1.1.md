@@ -188,6 +188,14 @@ fishing:
   super:{ slotMode: rare, rareSlots: 1, rareRate: 70, maxSpecies: 5 }
 ```
 
+ファイル一覧（WL定義元も明記）
+- data/randomizer/area_rules.yml … WL/BLの定義元（kits＋areas/gifts）。釣りロッド別設定や将来の時間帯拡張もここに記述。
+- generated/randomizer_area_rules.h … スクリプト生成物。エリアルール・釣りルール・プール配列。
+- dev_scripts/build_randomizer_area_rules.py … YAMLをマージ/検証し、生成ヘッダを吐くスクリプト。
+- src/randomizer.c … ランタイム適用（WL/BLフィルタ、釣りルール、重複制御など）。
+- data/randomizer/trainer_dup_rules.h … トレーナーの重複制御（maxSame/minDistinct）。
+- data/randomizer/trainer_skip_list.h … ランダマイズ除外トレーナーIDリスト。
+
 Fishingの竿別指定の扱い（要決定）
 - オプションA: 竿ごとに別エントリを持つ（例: area+OldRod / area+GoodRod / area+SuperRodを別キーとして記述）。柔軟だがエントリが増える。
 - オプションB: ひとつのエリアエントリ内で `fishing: { old: {...}, good: {...}, super: {...} }` のように竿別フィールドを持つ。構造は複雑だがエントリ数は抑えられる。
