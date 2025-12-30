@@ -1,0 +1,12 @@
+#pragma once
+
+#define LAND_MAX_SLOTS   12
+#define WATER_MAX_SLOTS  5
+#define ROCK_MAX_SLOTS   5
+#define FISH_MAX_SLOTS   12
+
+#define RANDOMIZER_TIME_MORNING 0
+#define RANDOMIZER_TIME_DAY     1
+#define RANDOMIZER_TIME_EVENING 2
+#define RANDOMIZER_TIME_NIGHT   3
+#define RANDOMIZER_TIME_ANY     0xFF
