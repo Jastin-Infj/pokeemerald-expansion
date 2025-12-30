@@ -32,6 +32,7 @@ HEADER_PREAMBLE = """\
 #include "global.h"
 #include "constants/species.h"
 #include "constants/maps.h"
+#include "constants/rtc.h"
 
 enum {
     RANDOMIZER_SLOT_MODE_UNIFORM = 0,
@@ -55,6 +56,7 @@ struct RandomizerAreaRule {
     u8 mapGroup;
     u8 mapNum;
     u8 areaMask;
+    u8 timeSlot; // TIME_MORNING/TIME_DAY/TIME_EVENING/TIME_NIGHT or 0xFF (ANY)
     const u16 *whitelist;
     const u16 *blacklist;
     u16 whitelistCount;
@@ -128,6 +130,8 @@ def parse_slot_mode(slot_mode: Optional[str]) -> int:
     raise ValueError(f"Unsupported slotMode '{slot_mode}'")
 
 
+TIME_KEYS = ("morning", "day", "evening", "night")
+
 # areaMaskごとのスロット上限（maxSpecies上限）
 AREA_SLOT_LIMITS = {
     "Land": 12,
@@ -181,6 +185,7 @@ def main():
     bl_pool: List[str] = []
     rules: List[Dict] = []
     fishing_rules: List[Dict] = []
+    warnings: List[str] = []
 
     def validate_max_species(ctx: str, value: int, slot_limit: Optional[int], allow_zero: bool = False):
         if value < 0:
@@ -206,7 +211,7 @@ def main():
         if slot_limit is not None and rare_slots > slot_limit:
             raise ValueError(f"{ctx}: rareSlots {rare_slots} exceeds slot limit {slot_limit}")
 
-    def process_entry(name, entry, is_gift=False):
+    def process_single_rule(name, entry, time_key: Optional[str], time_slot: int):
         nonlocal wl_pool, bl_pool, rules, fishing_rules
         key = entry.get("key")
         if key is None:
@@ -324,7 +329,7 @@ def main():
         wl, bl = dedup_apply_remove(apply, remove)
 
         if len(wl) == 0:
-            raise ValueError(f"Whitelist is empty for entry '{name}' (mapGroup={mapGroup}, mapNum={mapNum})")
+            raise ValueError(f"Whitelist is empty for entry '{name}' (mapGroup={mapGroup}, mapNum={mapNum}, time={time_key or 'any'})")
 
         wl_offset = len(wl_pool)
         bl_offset = len(bl_pool)
@@ -335,6 +340,7 @@ def main():
             "mapGroup": mapGroup,
             "mapNum": mapNum,
             "areaMask": areaMask,
+            "timeSlot": time_slot,
             "wl_offset": wl_offset,
             "wl_count": len(wl),
             "bl_offset": bl_offset,
@@ -351,13 +357,36 @@ def main():
         }
         rules.append(rule)
 
+    def process_entry(name, entry, is_gift=False):
+        # timeSlotsは任意。存在する場合は4キー必須。
+        time_slots_block = entry.get("timeSlots")
+        if time_slots_block is None:
+            # 共通のみ
+            warnings.append(f"[WARN] {name}: timeSlots未指定のため、timeSlot=ANY(0xFF)として扱います")
+            process_single_rule(name, entry, time_key=None, time_slot=0xFF)
+            return
+
+        # timeSlotsあり→4キー必須
+        missing = [k for k in TIME_KEYS if k not in time_slots_block]
+        if missing:
+            raise ValueError(f"{name}: timeSlots missing keys {missing}")
+        extra = [k for k in time_slots_block.keys() if k not in TIME_KEYS]
+        if extra:
+            raise ValueError(f"{name}: timeSlots has unknown keys {extra}")
+
+        for idx, key_name in enumerate(TIME_KEYS):
+            slot_entry = dict(entry)  # shallow copy
+            # timeSlotの上書きフィールドだけ反映
+            slot_entry.update(time_slots_block[key_name] or {})
+            process_single_rule(f"{name}/{key_name}", slot_entry, time_key=key_name, time_slot=idx)
+
     for name, entry in areas.items():
         process_entry(name, entry, is_gift=False)
     for name, entry in gifts.items():
         process_entry(f"gift_{name}", entry, is_gift=True)
 
     # Sort rules by mapGroup/mapNum/areaMask for deterministic lookup
-    rules.sort(key=lambda r: (str(r["mapGroup"]), str(r["mapNum"]), r["areaMask"]))
+    rules.sort(key=lambda r: (str(r["mapGroup"]), str(r["mapNum"]), r["areaMask"], r["timeSlot"]))
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
@@ -382,6 +411,7 @@ def main():
             f.write(f"        .mapGroup = {r['mapGroup']},\n")
             f.write(f"        .mapNum = {r['mapNum']},\n")
             f.write(f"        .areaMask = {r['areaMask']},\n")
+            f.write(f"        .timeSlot = {r['timeSlot']},\n")
             f.write(f"        .whitelist = &sRandomizerAreaWhitelistPool[{r['wl_offset']}],\n")
             f.write(f"        .blacklist = &sRandomizerAreaBlacklistPool[{r['bl_offset']}],\n")
             f.write(f"        .whitelistCount = {r['wl_count']},\n")
@@ -402,6 +432,10 @@ def main():
         f.write("};\n\n")
         f.write(f"#define RANDOMIZER_AREA_RULE_COUNT {len(rules)}\n")
         f.write(f"#define RANDOMIZER_FISHING_RULE_COUNT {len(fishing_rules)}\n")
+
+    if warnings:
+        for w in warnings:
+            print(w, file=sys.stderr)
 
     return 0
 

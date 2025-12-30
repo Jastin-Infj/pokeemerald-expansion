@@ -23,12 +23,22 @@
 #include "battle_debug.h"
 #include "battle_pike.h"
 #include "battle_pyramid.h"
+#include "rtc.h"
 #include "constants/abilities.h"
 #include "constants/game_stat.h"
 #include "constants/item.h"
 #include "constants/items.h"
 #include "constants/layouts.h"
 #include "constants/weather.h"
+
+#if RANDOMIZER_AVAILABLE == TRUE
+static u8 GetRandomizerTimeSlot(u8 defaultSlot)
+{
+    if (OW_TIME_OF_DAY_ENCOUNTERS)
+        return GenConfigTimeOfDay(GetTimeOfDay());
+    return defaultSlot;
+}
+#endif
 
 extern const u8 EventScript_SprayWoreOff[];
 
@@ -519,7 +529,7 @@ void CreateWildMon(u16 species, u8 level)
 #define TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildPokemon, type, ability, ptr, count) TryGetAbilityInfluencedWildMonIndex(wildPokemon, type, ability, ptr)
 #endif
 
-static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPokemonArea area, u8 flags)
+static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPokemonArea area, u8 flags, u8 timeSlot)
 {
     u8 wildMonIndex = 0;
     u8 level;
@@ -580,14 +590,14 @@ static bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum 
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                area, wildMonIndex, 0xFF);
+                area, wildMonIndex, 0xFF, timeSlot);
         #endif
         CreateWildMon(species, level);
     }
     return TRUE;
 }
 
-static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 rod)
+static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 rod, u8 timeSlot)
 {
     u8 wildMonIndex = ChooseWildMonIndex_Fishing(rod);
     u16 wildMonSpecies = wildMonInfo->wildPokemon[wildMonIndex].species;
@@ -599,7 +609,7 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
             wildMonSpecies,
             gSaveBlock1Ptr->location.mapNum,
             gSaveBlock1Ptr->location.mapGroup,
-            WILD_AREA_FISHING, wildMonIndex, rod);
+            WILD_AREA_FISHING, wildMonIndex, rod, timeSlot);
     #endif
 
     CreateWildMon(wildMonSpecies, level);
@@ -620,7 +630,7 @@ static bool8 SetUpMassOutbreakEncounter(u8 flags)
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                WILD_AREA_LAND, 0, 0xFF);
+                WILD_AREA_LAND, 0, 0xFF, 0xFF);
         #endif
 
         CreateWildMon(species, gSaveBlock1Ptr->outbreakPokemonLevel);
@@ -716,6 +726,9 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
 {
     u32 headerId;
     enum TimeOfDay timeOfDay;
+#if RANDOMIZER_AVAILABLE == TRUE
+    u8 randTimeSlot;
+#endif
     struct Roamer *roamer;
 
     if (sWildEncountersDisabled == TRUE)
@@ -728,12 +741,21 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
         {
             headerId = GetBattlePikeWildMonHeaderId();
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
             if (prevMetatileBehavior != curMetatileBehavior && !AllowWildCheckOnNewMetatile())
                 return FALSE;
             else if (WildEncounterCheck(gBattlePikeWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo->encounterRate, FALSE) != TRUE)
                 return FALSE;
-            else if (TryGenerateWildMon(gBattlePikeWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_KEEN_EYE) != TRUE)
+            else if (TryGenerateWildMon(gBattlePikeWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                randTimeSlot
+#else
+                timeOfDay
+#endif
+                ) != TRUE)
                 return FALSE;
             else if (!TryGenerateBattlePikeWildMon(TRUE))
                 return FALSE;
@@ -745,12 +767,21 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
         {
             headerId = gSaveBlock2Ptr->frontier.curChallengeBattleNum;
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
             if (prevMetatileBehavior != curMetatileBehavior && !AllowWildCheckOnNewMetatile())
                 return FALSE;
             else if (WildEncounterCheck(gBattlePyramidWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo->encounterRate, FALSE) != TRUE)
                 return FALSE;
-            else if (TryGenerateWildMon(gBattlePyramidWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_KEEN_EYE) != TRUE)
+            else if (TryGenerateWildMon(gBattlePyramidWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                randTimeSlot
+#else
+                timeOfDay
+#endif
+                ) != TRUE)
                 return FALSE;
 
             GenerateBattlePyramidWildMon();
@@ -763,6 +794,9 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
         if (MetatileBehavior_IsLandWildEncounter(curMetatileBehavior) == TRUE)
         {
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
             if (gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo == NULL)
                 return FALSE;
@@ -789,12 +823,24 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
                 }
 
                 // try a regular wild land encounter
-                if (TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE) == TRUE)
+                if (TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                    randTimeSlot
+#else
+                    timeOfDay
+#endif
+                    ) == TRUE)
                 {
                     if (TryDoDoubleWildBattle())
                     {
                         struct Pokemon mon1 = gEnemyParty[0];
-                        TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_KEEN_EYE);
+                        TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                            randTimeSlot
+#else
+                            timeOfDay
+#endif
+                            );
                         gEnemyParty[1] = mon1;
                         BattleSetup_StartDoubleWildBattle();
                     }
@@ -812,6 +858,9 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
                  || (TestPlayerAvatarFlags(PLAYER_AVATAR_FLAG_SURFING) && MetatileBehavior_IsBridgeOverWater(curMetatileBehavior) == TRUE))
         {
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_WATER);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
             if (AreLegendariesInSootopolisPreventingEncounters() == TRUE)
                 return FALSE;
@@ -833,13 +882,25 @@ bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior)
             }
             else // try a regular surfing encounter
             {
-                if (TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo, WILD_AREA_WATER, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE) == TRUE)
+                if (TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo, WILD_AREA_WATER, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                    randTimeSlot
+#else
+                    timeOfDay
+#endif
+                    ) == TRUE)
                 {
                     gIsSurfingEncounter = TRUE;
                     if (TryDoDoubleWildBattle())
                     {
                         struct Pokemon mon1 = gEnemyParty[0];
-                        TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo, WILD_AREA_WATER, WILD_CHECK_KEEN_EYE);
+                        TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo, WILD_AREA_WATER, WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                            randTimeSlot
+#else
+                            timeOfDay
+#endif
+                            );
                         gEnemyParty[1] = mon1;
                         BattleSetup_StartDoubleWildBattle();
                     }
@@ -862,10 +923,16 @@ void RockSmashWildEncounter(void)
 {
     u32 headerId = GetCurrentMapWildMonHeaderId();
     enum TimeOfDay timeOfDay;
+#if RANDOMIZER_AVAILABLE == TRUE
+    u8 randTimeSlot;
+#endif
 
     if (headerId != HEADER_NONE)
     {
         timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_ROCKS);
+#if RANDOMIZER_AVAILABLE == TRUE
+        randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
         const struct WildPokemonInfo *wildPokemonInfo = gWildMonHeaders[headerId].encounterTypes[timeOfDay].rockSmashMonsInfo;
 
@@ -874,12 +941,24 @@ void RockSmashWildEncounter(void)
             gSpecialVar_Result = FALSE;
         }
         else if (WildEncounterCheck(wildPokemonInfo->encounterRate, TRUE) == TRUE
-         && TryGenerateWildMon(wildPokemonInfo, WILD_AREA_ROCKS, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE) == TRUE)
+         && TryGenerateWildMon(wildPokemonInfo, WILD_AREA_ROCKS, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot
+#else
+            timeOfDay
+#endif
+            ) == TRUE)
         {
             if (TryDoDoubleWildBattle())
             {
                 struct Pokemon mon1 = gEnemyParty[0];
-                TryGenerateWildMon(wildPokemonInfo, WILD_AREA_ROCKS, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE);
+                TryGenerateWildMon(wildPokemonInfo, WILD_AREA_ROCKS, WILD_CHECK_REPEL | WILD_CHECK_KEEN_EYE,
+#if RANDOMIZER_AVAILABLE == TRUE
+                    randTimeSlot
+#else
+                    timeOfDay
+#endif
+                    );
                 gEnemyParty[1] = mon1;
                 BattleSetup_StartDoubleWildBattle();
                 gSpecialVar_Result = TRUE;
@@ -905,6 +984,9 @@ bool8 SweetScentWildEncounter(void)
     s16 x, y;
     u32 headerId;
     enum TimeOfDay timeOfDay;
+#if RANDOMIZER_AVAILABLE == TRUE
+    u8 randTimeSlot;
+#endif
 
     PlayerGetDestCoords(&x, &y);
     headerId = GetCurrentMapWildMonHeaderId();
@@ -914,8 +996,17 @@ bool8 SweetScentWildEncounter(void)
         {
             headerId = GetBattlePikeWildMonHeaderId();
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
-            if (TryGenerateWildMon(gBattlePikeWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0) != TRUE)
+            if (TryGenerateWildMon(gBattlePikeWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0,
+#if RANDOMIZER_AVAILABLE == TRUE
+                randTimeSlot
+#else
+                timeOfDay
+#endif
+                ) != TRUE)
                 return FALSE;
 
             TryGenerateBattlePikeWildMon(FALSE);
@@ -926,8 +1017,17 @@ bool8 SweetScentWildEncounter(void)
         {
             headerId = gSaveBlock2Ptr->frontier.curChallengeBattleNum;
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
-            if (TryGenerateWildMon(gBattlePyramidWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0) != TRUE)
+            if (TryGenerateWildMon(gBattlePyramidWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0,
+#if RANDOMIZER_AVAILABLE == TRUE
+                randTimeSlot
+#else
+                timeOfDay
+#endif
+                ) != TRUE)
                 return FALSE;
 
             GenerateBattlePyramidWildMon();
@@ -940,6 +1040,9 @@ bool8 SweetScentWildEncounter(void)
         if (MetatileBehavior_IsLandWildEncounter(MapGridGetMetatileBehaviorAt(x, y)) == TRUE)
         {
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
             if (gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo == NULL)
                 return FALSE;
@@ -953,7 +1056,13 @@ bool8 SweetScentWildEncounter(void)
             if (DoMassOutbreakEncounterTest() == TRUE)
                 SetUpMassOutbreakEncounter(0);
             else
-                TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0);
+                TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0,
+#if RANDOMIZER_AVAILABLE == TRUE
+                    randTimeSlot
+#else
+                    timeOfDay
+#endif
+                    );
 
             BattleSetup_StartWildBattle();
             return TRUE;
@@ -961,6 +1070,9 @@ bool8 SweetScentWildEncounter(void)
         else if (MetatileBehavior_IsWaterWildEncounter(MapGridGetMetatileBehaviorAt(x, y)) == TRUE)
         {
             timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_WATER);
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
             if (AreLegendariesInSootopolisPreventingEncounters() == TRUE)
                 return FALSE;
@@ -973,7 +1085,13 @@ bool8 SweetScentWildEncounter(void)
                 return TRUE;
             }
 
-            TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo, WILD_AREA_WATER, 0);
+            TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].waterMonsInfo, WILD_AREA_WATER, 0,
+#if RANDOMIZER_AVAILABLE == TRUE
+                randTimeSlot
+#else
+                timeOfDay
+#endif
+                );
             BattleSetup_StartWildBattle();
             return TRUE;
         }
@@ -996,8 +1114,11 @@ bool8 DoesCurrentMapHaveFishingMons(void)
 void FishingWildEncounter(u8 rod)
 {
     u16 species;
-    u32 headerId;
-    enum TimeOfDay timeOfDay;
+    u32 headerId = GetCurrentMapWildMonHeaderId();
+    enum TimeOfDay timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_FISHING);
+#if RANDOMIZER_AVAILABLE == TRUE
+    u8 randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
     gIsFishingEncounter = TRUE;
     if (CheckFeebas() == TRUE)
@@ -1010,15 +1131,25 @@ void FishingWildEncounter(u8 rod)
                 species,
                 gSaveBlock1Ptr->location.mapNum,
                 gSaveBlock1Ptr->location.mapGroup,
-                WILD_AREA_FISHING, 0, rod);
+                WILD_AREA_FISHING, 0, rod,
+#if RANDOMIZER_AVAILABLE == TRUE
+                randTimeSlot
+#else
+                timeOfDay
+#endif
+                );
         #endif
         CreateWildMon(species, level);
     }
     else
     {
-        headerId = GetCurrentMapWildMonHeaderId();
-        timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_FISHING);
-        species = GenerateFishingWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].fishingMonsInfo, rod);
+        species = GenerateFishingWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].fishingMonsInfo, rod,
+#if RANDOMIZER_AVAILABLE == TRUE
+            randTimeSlot
+#else
+            timeOfDay
+#endif
+            );
     }
 
     IncrementGameStat(GAME_STAT_FISHING_ENCOUNTERS);
@@ -1265,8 +1396,17 @@ bool8 StandardWildEncounter_Debug(void)
 {
     u32 headerId = GetCurrentMapWildMonHeaderId();
     enum TimeOfDay timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
+#if RANDOMIZER_AVAILABLE == TRUE
+    u8 randTimeSlot = GetRandomizerTimeSlot(timeOfDay);
+#endif
 
-    if (TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0) != TRUE)
+    if (TryGenerateWildMon(gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo, WILD_AREA_LAND, 0,
+#if RANDOMIZER_AVAILABLE == TRUE
+        randTimeSlot
+#else
+        timeOfDay
+#endif
+        ) != TRUE)
         return FALSE;
 
     DoStandardWildBattle_Debug();

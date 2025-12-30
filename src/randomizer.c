@@ -206,7 +206,16 @@ static const struct RandomizerFishingRule *SelectFishingRule(const struct Random
     return &rule->fishingRules[0];
 }
 
-static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 areaMask)
+static bool8 TimeSlotMatches(u8 ruleSlot, u8 requestSlot)
+{
+    if (ruleSlot == 0xFF)
+        return TRUE;          // ルール側ANYは常に許可
+    if (requestSlot == 0xFF)
+        return FALSE;         // 要求がANYなら、ANYルールのみを許可（時間帯付きルールにはマッチさせない）
+    return ruleSlot == requestSlot;
+}
+
+static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 areaMask, u8 timeSlot)
 {
     u16 i;
     const u8 targetMask = areaMask;
@@ -221,10 +230,10 @@ static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 
         const struct RandomizerAreaRule *rule = &sRandomizerAreaRules[i];
         if (rule->mapGroup == mapGroup && rule->mapNum == mapNum)
         {
-            if (rule->areaMask == targetMask)
+            if (rule->areaMask == targetMask && TimeSlotMatches(rule->timeSlot, timeSlot))
                 return rule;
             // allow falling back to Land when Water/Rock/Fish specific entry is absent
-            if (rule->areaMask == AREA_MASK_LAND && (matchMask & rule->areaMask))
+            if (rule->areaMask == AREA_MASK_LAND && (matchMask & rule->areaMask) && TimeSlotMatches(rule->timeSlot, timeSlot))
                 landFallback = rule;
         }
     }
@@ -1108,7 +1117,7 @@ u16 RandomizeMon(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, 
     }
 }
 
-u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot, u8 rodType)
+u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot, u8 rodType, u8 timeSlot)
 {
     const struct RandomizerAreaRule *areaRule;
     if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON))
@@ -1121,7 +1130,7 @@ u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemon
         seed |= ((u32)area) << 8;
         seed |= slot;
 
-        areaRule = FindAreaRule(mapGroup, mapNum, GetAreaMaskFromWildArea(area));
+        areaRule = FindAreaRule(mapGroup, mapNum, GetAreaMaskFromWildArea(area), timeSlot);
         if (areaRule != NULL)
         {
             const struct RandomizerFishingRule *fishingRule = NULL;
@@ -1257,7 +1266,7 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
         seed |= (u32)totalMons << 8;
         seed |= slot;
 
-        areaRule = FindAreaRule(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, AREA_MASK_LAND);
+        areaRule = FindAreaRule(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, AREA_MASK_LAND, 0xFF);
         {
             u8 maxSame, minDistinct;
             GetTrainerDupRule(trainerId, &maxSame, &minDistinct);
@@ -1343,7 +1352,7 @@ u16 RandomizeFixedEncounterMon(u16 species, u8 mapNum, u8 mapGroup, u8 localId)
         seed |= (u32)mapGroup << 8;
         seed |= localId;
 
-        areaRule = FindAreaRule(mapGroup, mapNum, AREA_MASK_HIDDEN);
+        areaRule = FindAreaRule(mapGroup, mapNum, AREA_MASK_HIDDEN, 0xFF);
         if (areaRule != NULL)
             return RandomizeWithAreaRule(RANDOMIZER_REASON_FIXED_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule);
 

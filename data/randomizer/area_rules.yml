@@ -51,6 +51,10 @@ kits:
     - SPECIES_ZIGZAGOON
     - SPECIES_RATTATA
     - SPECIES_SENTRET
+  legend_unlock:
+    - SPECIES_MEW
+    - SPECIES_MEWTWO
+    - SPECIES_ZAPDOS
 
 # areas: マップ別のWL適用指示
 # areaMask: Land / Water / Fish / Rock / Hidden / Gift の文字列を推奨
@@ -85,6 +89,21 @@ areas:
       old:  { slotMode: rare, rareSlots: 1, rareRate: 20, maxSpecies: 2, apply: [starter_water] }
       good: { slotMode: rare, rareSlots: 1, rareRate: 50, maxSpecies: 5, apply: [starter_water, mid_water] }
       super: { slotMode: rare, rareSlots: 1, rareRate: 70, maxSpecies: 5, apply: [starter_water, late_water] }
+
+  route_103_land:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE103)
+      mapNum: MAP_NUM(MAP_ROUTE103)
+      areaMask: Land
+    slotMode: uniform
+    maxSpecies: 12
+    timeSlots:
+      morning: {apply: [legend_unlock] , remove: []}
+      day: {apply: [starter_land , mid_land] , remove: [starter_trim]}
+      evening: {apply: [starter_land , mid_land] , remove: [starter_trim]}
+      night: {apply: [mid_land] , remove: []}
+    maxRerolls: 3
+    allowLegendOverride: false
 
   route_110_water:
     key:
