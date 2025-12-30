@@ -53,7 +53,44 @@ WL/BL適用（野生/トレーナー共通）
 -------------
 - include/constants/flags.h  
 - include/config/fishing.h  
+- include/config/randomizer.h  
+- include/randomizer.h  
+- include/constants/vars.h  
 - data/randomizer/area_rules.yml → generated/randomizer_area_rules.h  
 - data/randomizer/trainer_dup_rules.h  
 - data/scripts/debug.inc  
 - src/randomizer.c, src/fishing.c
+
+ファイル一覧と役割
+------------------
+- data/randomizer/area_rules.yml  
+  - エリア別WL/BL定義と釣りルール（ロッド別slotMode/rare/maxSpeciesなど）を記述する入力YAML。kitsもここで定義。  
+- dev_scripts/build_randomizer_area_rules.py  
+  - 上記YAMLを読み、重複除去・ソート・空WL検出を行い `generated/randomizer_area_rules.h` を生成するスクリプト。  
+- generated/randomizer_area_rules.h  
+  - ビルド生成物。エリアルール・釣りルール・プール配列を定義し、ランタイムで参照。  
+- data/randomizer/trainer_dup_rules.h  
+  - トレーナーごとの重複制御ルール（maxSame/minDistinct）を列挙するヘッダ。未記載はデフォルト（制限なし）。  
+- src/randomizer.c  
+  - ランダマイザ本体。WL/BLフィルタ、トレーナー重複制御、釣りルール適用、デバッグログなどを実装。  
+- src/fishing.c  
+  - 釣りミニゲーム・バイト判定の本体。デバッグフラグ（AUTO_BITE/AUTO_HOOK）を見て挙動を切替。  
+- include/config/fishing.h  
+  - 釣りのバイト率・ミニゲーム世代などの設定（`I_FISHING_BITE_ODDS` など）。  
+- include/config/randomizer.h  
+  - ランダマイザー全体のON/OFF（`RANDOMIZER_AVAILABLE`）、マスター用フラグ/Varの割り当て（wild/items/trainers/fixed/starters）、シード方式などを定義。マスターをOFFにすればランダム化を無効化できる。  
+- マスター無効化（フラグ/Var）
+  - `include/config/randomizer.h` で `RANDOMIZER_AVAILABLE` を FALSE にすると全ランダマイザーをビルド時に無効化。  
+  - 各マスターON/OFFフラグは同ファイルの `RANDOMIZER_FLAG_WILD_MON` などで未使用Flagに割り当て済み（flags.hの0x020〜0x024）。フラグを下ろせばランダマイザーを個別に無効化できる。  
+- data/randomizer/trainer_skip_list.h  
+  - ランダマイズから除外するトレーナーIDのリスト（終端 `RANDOMIZER_TRAINER_ID_END`）。`ShouldRandomizeTrainer` で参照し、フラグONでもこのリストにあるトレーナーは非ランダム化。  
+- include/randomizer.h  
+  - ランダマイザの公開API・enum（理由/オプション）・SFC32ユーティリティ。  
+- include/constants/vars.h  
+  - `VAR_RANDOMIZER_AREA_MODE` などランダマイザ関連のVar定義。  
+- include/constants/flags.h  
+  - ランダマイザ関連フラグの定義（WL適用、デバッグログ、釣りオート系など）。  
+- data/scripts/debug.inc  
+  - デバッグメニューのスクリプト。Script 1 で WL＋ログ＋釣りオートフックを一括ONにする。  
+- randomizer_v1.0.md / randomizer_fishing_v1.0.md / todo.md / todo-script*.md  
+  - 仕様メモ・進行メモ。v1.0のまとめ、本タスク用のTODO、釣り専用メモなど。
