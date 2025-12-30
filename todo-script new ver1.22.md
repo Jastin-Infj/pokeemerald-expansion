@@ -64,3 +64,16 @@
 - Step 3: 調整・ドキュメント
   - メッセージ位置やログ文言を必要に応じ調整。
   - `todo ver1.22.md` で最終仕様を更新（実装完了メモ）。
+
+## Encounterスキップ実装の具体案（関数レベル）
+- Wild/水/岩/隠し:
+- `RandomizeWildEncounter` は現状speciesのみ返すため、遭遇キャンセルできない。破壊的変更を避けるため、out-paramでblockedを返すラッパを追加し、呼び出し元（`GenerateFishingWildMon`等の上位フロー in wild_encounter.c）で blocked==true のときバトル開始を止める。`SPECIES_NONE`は使わない。
+- 釣り:
+  - `fishing.c` のミニゲーム開始前（GotBite/ChangeMinigame手前）で randomizer判定を挟み、blockedならミニゲームに入らずメッセージ表示→終了。
+  - `DoesCurrentMapHaveFishingMons` はバニラテーブルを見るだけなので、randomizer専用の「allowEmptyでblockedか」を問い合わせるAPIを追加し、そちらで判定する。
+- トレーナー/固定:
+  - `RandomizeWithAreaRule` に blockedフラグを渡し、blockedなら「手持ち枠を欠けさせない」ために現ポケモンまたは候補先頭で埋める処理を追加。
+- ログ:
+  - blocked時に1回だけWARN（例: “[WARN] RandR allowEmpty: no candidates, skipping encounter”）を出す。釣りも不発判定時にWARN。
+- Chain Fishing/Streak:
+  - allowEmptyで釣り遭遇をスキップした場合、バトルが発生しないためストリークは維持（リセットしない）。
