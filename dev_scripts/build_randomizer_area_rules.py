@@ -332,6 +332,9 @@ def main():
         rare_rate = parse_int(rare_block.get("rareRate"), f"{name}/{time_key}/rareRate", allow_null=True) if rare_block is not None else None
         rare_slots = parse_int(rare_block.get("rareSlots"), f"{name}/{time_key}/rareSlots", allow_null=True) if rare_block is not None else None
         validate_rare(f"{name}/{time_key}", slot_mode, rare_slots, rare_rate, max_species, slot_limit, allow_empty)
+        if allow_empty:
+            if wl_normal or wl_rare:
+                raise ValueError(f"{name}/{time_key}: allowEmpty=true but whitelist is not empty")
         ensure_non_empty(wl_normal, allow_empty, f"{name}/{time_key}")
         wl_norm_off, wl_norm_cnt, bl_norm_off, bl_norm_cnt = add_pool_entries(wl_normal, bl_normal)
         wl_rare_off, wl_rare_cnt, bl_rare_off, bl_rare_cnt = add_pool_entries(wl_rare, bl_rare) if wl_rare or bl_rare else (0, 0, 0, 0)
@@ -376,6 +379,9 @@ def main():
                 rod_rare_rate = parse_int((rod_rare or {}).get("rareRate"), f"{name}/{time_key}/fishing/{rod}/rareRate", allow_null=True)
                 rod_rare_slots = parse_int((rod_rare or {}).get("rareSlots"), f"{name}/{time_key}/fishing/{rod}/rareSlots", allow_null=True)
                 validate_rare(f"{name}/{time_key}/fishing/{rod}", rod_slot_mode, rod_rare_slots, rod_rare_rate, rod_max_species, ROD_SLOT_LIMITS[rod], rod_allow_empty)
+                if rod_allow_empty:
+                    if rod_wl_norm or rod_wl_rare:
+                        raise ValueError(f"{name}/{time_key}/fishing/{rod}: allowEmpty=true but whitelist is not empty")
                 ensure_non_empty(rod_wl_norm, rod_allow_empty, f"{name}/{time_key}/fishing/{rod}")
 
                 n_off, n_cnt, nb_off, nb_cnt = add_pool_entries(rod_wl_norm, rod_bl_norm)

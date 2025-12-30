@@ -84,24 +84,9 @@ areas:
       any:
         allowEmpty: true
         fishing:
-          old:
-            slotMode: uniform
-            maxSpecies: 2
-            maxRerolls: 6
-            default: { apply: [starter_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-          good:
-            slotMode: uniform
-            maxSpecies: 5
-            maxRerolls: 6
-            default: { apply: [starter_water, mid_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-          super:
-            slotMode: uniform
-            maxSpecies: 5
-            maxRerolls: 6
-            default: { apply: [starter_water, late_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
+          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
+          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
 
   route_103_land:
     key: { mapGroup: MAP_GROUP(MAP_ROUTE103), mapNum: MAP_NUM(MAP_ROUTE103), areaMask: Land }
@@ -133,24 +118,9 @@ areas:
       morning:
         allowEmpty: true
         fishing:
-          old:
-            slotMode: uniform
-            maxSpecies: 2
-            maxRerolls: 6
-            default: { apply: [starter_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-          good:
-            slotMode: uniform
-            maxSpecies: 5
-            maxRerolls: 6
-            default: { apply: [starter_water, mid_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-          super:
-            slotMode: uniform
-            maxSpecies: 5
-            maxRerolls: 6
-            default: { apply: [starter_water, late_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
+          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
+          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
       day:
         allowEmpty: true
         fishing:
@@ -167,25 +137,9 @@ areas:
         allowLegendOverride: true
         allowEmpty: true
         fishing:
-          old:
-            slotMode: uniform
-            maxSpecies: 2
-            maxRerolls: 6
-            default: { apply: [starter_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-          good:
-            slotMode: uniform
-            maxSpecies: 4
-            maxRerolls: 6
-            default: { apply: [mid_water], remove: null }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-          super:
-            slotMode: uniform
-            maxSpecies: 5
-            maxRerolls: 6
-            allowLegendOverride: true
-            default: { apply: [legend_unlock], remove: [starter_water, mid_water, late_water] }
-            rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
+          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
+          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
 
   route_110_water:
     key: { mapGroup: MAP_GROUP(MAP_ROUTE110), mapNum: MAP_NUM(MAP_ROUTE110), areaMask: Water }
