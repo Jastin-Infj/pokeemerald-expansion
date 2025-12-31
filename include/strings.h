@@ -747,6 +747,7 @@ extern const u8 gText_PokemonOnHook[];
 extern const u8 gText_NotEvenANibble[];
 extern const u8 gText_ItGotAway[];
 extern const u8 gText_NoPokemonCanBeHooked[];
+extern const u8 gText_NoFishingTargets[];
 
 extern const u8 gText_HallOfFame[];
 extern const u8 gText_LogOff[];
@@ -2398,6 +2399,7 @@ extern const u8 gText_PlayerScurriedToCenter[];
 extern const u8 gText_PlayerScurriedBackHome[];
 extern const u8 gText_PlayerRegroupCenter[];
 extern const u8 gText_PlayerRegroupHome[];
+extern const u8 gText_NoFishingTargets[];
 
 extern const u8 gText_Relearn[]; // move relearner from summary screen
 extern const u8 gText_Relearn_LevelUp[];

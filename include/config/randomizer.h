@@ -70,6 +70,18 @@
 #define RANDOMIZER_VAR_SEED_H               VAR_UNUSED_0x40FB
 #endif
 
+// Special overrides mode: ANDならカテゴリ重複は全て許可されている必要がある。ORならどれか1つ許可で通る。
+#define RANDOMIZER_SPECIAL_MODE_OR   0
+#define RANDOMIZER_SPECIAL_MODE_AND  1
+#define RANDOMIZER_SPECIAL_OVERRIDES_MODE_DEFAULT RANDOMIZER_SPECIAL_MODE_AND
+// 0=AND,1=OR を入れる可変スロット（未使用ならデフォルトを使う）
+#define VAR_RANDOMIZER_SPECIAL_MODE  VAR_UNUSED_0x40F7
+
+// 本番で例外マップ/バニラ許可を無効化するスイッチ（TRUEなら例外リストを無視）。
+#define RANDOMIZER_DISABLE_EXCEPTION_MAPS   FALSE // デバッグのみ例外マップを使う想定。本番は必ずTRUE。
+// 例外ヒット時はバニラ遭遇をそのまま許可する（カテゴリフィルタも無視）。
+#define RANDOMIZER_EXCEPTION_BYPASS_SPECIAL_FILTER TRUE
+
 #endif // RANDOMIZER_AVAILABLE
 
 #endif // GUARD_CONFIG_RANDOMIZER_H

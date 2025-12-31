@@ -1,4 +1,6 @@
-# YAML input for area-based randomizer WL/BL（ver1.21仕様）
+# YAML input for area-based randomizer WL/BL（ver1.30仕様）
+
+schemaVersion: 1.30
 
 kits:
   starter_land:
@@ -57,7 +59,6 @@ areas:
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 6
-    allowLegendOverride: false
     timeSlots:
       any:
         allowEmpty: true
@@ -69,7 +70,6 @@ areas:
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 6
-    allowLegendOverride: false
     timeSlots:
       any:
         default: { apply: [starter_land, mid_land], remove: [starter_trim] }
@@ -80,7 +80,6 @@ areas:
     slotMode: uniform
     maxSpecies: FISH_MAX_SLOTS
     maxRerolls: 6
-    allowLegendOverride: false
     timeSlots:
       any:
         allowEmpty: true
@@ -94,9 +93,9 @@ areas:
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 3
-    allowLegendOverride: false
     timeSlots:
       morning:
+        specialOverrides: { legend: false, mythical: true, ub: true, paradox: true, subLegend: true }
         default: { apply: [legend_unlock], remove: null }
         rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
       day:
@@ -114,7 +113,6 @@ areas:
     slotMode: uniform
     maxSpecies: FISH_MAX_SLOTS
     maxRerolls: 6
-    allowLegendOverride: false
     timeSlots:
       morning:
         allowEmpty: true
@@ -135,7 +133,6 @@ areas:
           good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
           super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
       night:
-        allowLegendOverride: true
         allowEmpty: true
         fishing:
           old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
@@ -147,7 +144,6 @@ areas:
     slotMode: uniform
     maxSpecies: WATER_MAX_SLOTS
     maxRerolls: 6
-    allowLegendOverride: false
     timeSlots:
       any:
         default: { apply: [starter_water], remove: null }
@@ -158,7 +154,6 @@ areas:
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 8
-    allowLegendOverride: false
     timeSlots:
       any:
         default: { apply: [starter_land, mid_land, late_land], remove: [starter_trim] }
@@ -169,7 +164,6 @@ areas:
     slotMode: uniform
     maxSpecies: WATER_MAX_SLOTS
     maxRerolls: 8
-    allowLegendOverride: true
     timeSlots:
       any:
         default: { apply: [starter_water, mid_water, late_water, legend_unlock], remove: null }
@@ -181,7 +175,6 @@ gifts:
     slotMode: uniform
     maxSpecies: 6
     maxRerolls: 6
-    allowLegendOverride: false
     timeSlots:
       any:
         default: { apply: [starter_land, starter_water], remove: null }

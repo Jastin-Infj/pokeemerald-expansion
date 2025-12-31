@@ -163,10 +163,12 @@ Debug_EventScript_Script_2::
 	end
 
 Debug_EventScript_Script_3::
+  setflag FLAG_RANDOMIZER_VANILLA_ENCOUNTER
 	release
 	end
 
 Debug_EventScript_Script_4::
+  clearflag FLAG_RANDOMIZER_VANILLA_ENCOUNTER
 	release
 	end
 

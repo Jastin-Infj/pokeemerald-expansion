@@ -21,6 +21,8 @@ import argparse
 import yaml
 from typing import Dict, List, Optional, Tuple
 
+SCHEMA_VERSION_EXPECTED = "1.30"
+
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 ROOT = THIS_DIR.parent
 DEFAULT_INPUT = ROOT / "data/randomizer/area_rules.yml"
@@ -34,6 +36,7 @@ HEADER_PREAMBLE = """\
 #include "constants/maps.h"
 #include "constants/rtc.h"
 #include "constants/randomizer_slots.h"
+#include "config/randomizer.h"
 
 enum {
     RANDOMIZER_SLOT_MODE_UNIFORM = 0,
@@ -54,6 +57,14 @@ enum {
     RANDOMIZER_TIME_SLOT_ANY = 0xFF,
 };
 
+enum {
+    RANDOMIZER_SPECIAL_LEGEND      = 1 << 0,
+    RANDOMIZER_SPECIAL_MYTHICAL    = 1 << 1,
+    RANDOMIZER_SPECIAL_ULTRA_BEAST = 1 << 2,
+    RANDOMIZER_SPECIAL_PARADOX     = 1 << 3,
+    RANDOMIZER_SPECIAL_SUB_LEGEND  = 1 << 4,
+};
+
 struct RandomizerFishingRule {
     u16 normalWlOffset;
     u16 normalWlCount;
@@ -67,7 +78,7 @@ struct RandomizerFishingRule {
     u8 maxSpecies;
     u8 rareSlots;
     u8 rareRate;
-    bool8 allowLegendOverride;
+    u8 specialOverrides;
     bool8 allowEmpty;
     u8 maxRerolls;
 };
@@ -86,11 +97,11 @@ struct RandomizerAreaRule {
     u16 rareBlOffset;
     u16 rareBlCount;
     u8 maxRerolls;
-    bool8 allowLegendOverride;
     u8 slotMode;
     u8 maxSpecies;
     u8 rareSlots;
     u8 rareRate;
+    u8 specialOverrides;
     const struct RandomizerFishingRule *fishingRules;
     u8 fishingRuleCount;
     bool8 allowEmpty;
@@ -103,12 +114,70 @@ def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="inp", default=str(DEFAULT_INPUT))
     ap.add_argument("--out", dest="out", default=str(DEFAULT_OUTPUT))
+    ap.add_argument("--exceptions", dest="exceptions", default=str(ROOT / "data/randomizer/exception_maps.yml"))
+    ap.add_argument("--exceptions-out", dest="exceptions_out", default=str(ROOT / "generated/randomizer_exceptions.h"))
     return ap.parse_args()
 
 
 def load_yaml(path: pathlib.Path):
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+ROD_CONST = {
+    "old": 0,
+    "good": 1,
+    "super": 2,
+}
+
+def load_exceptions(data: Optional[Dict]):
+    results = []
+    if not data:
+        return results
+    entries = data.get("exceptions", [])
+    for idx, e in enumerate(entries):
+        ctx = f"exception[{idx}]"
+        try:
+            mapGroup = e["mapGroup"]
+            mapNum = e["mapNum"]
+            areaMask, _ = resolve_mask(e["areaMask"])
+            timeSlot = TIME_CODE.get(e.get("timeSlot", "any"), TIME_CONST["RANDOMIZER_TIME_SLOT_ANY"])
+            rod = e.get("rod", None)
+            if rod is not None:
+                rod = rod.lower()
+                if rod not in ROD_CONST:
+                    raise ValueError(f"{ctx}: unknown rod '{rod}'")
+                rodType = ROD_CONST[rod]
+            else:
+                rodType = 0xFF  # any
+            action = e.get("action", "allow")
+            if action != "allow":
+                raise ValueError(f"{ctx}: action must be 'allow'")
+        except KeyError as err:
+            raise ValueError(f"{ctx}: missing key {err}") from err
+        results.append({
+            "mapGroup": mapGroup,
+            "mapNum": mapNum,
+            "areaMask": areaMask,
+            "timeSlot": timeSlot,
+            "rodType": rodType,
+            "action": action,
+        })
+    return results
+
+
+def parse_schema_version(data):
+    version = data.get("schemaVersion")
+    if version is None:
+        raise ValueError("schemaVersion is required (expected 1.30)")
+    expected_float = float(SCHEMA_VERSION_EXPECTED)
+    if isinstance(version, (int, float)):
+        if float(version) != expected_float:
+            raise ValueError(f"Unsupported schemaVersion '{version}', expected '{SCHEMA_VERSION_EXPECTED}' (future versions must match key/type layout exactly)")
+        return SCHEMA_VERSION_EXPECTED
+    version_str = str(version)
+    if version_str != SCHEMA_VERSION_EXPECTED:
+        raise ValueError(f"Unsupported schemaVersion '{version_str}', expected '{SCHEMA_VERSION_EXPECTED}' (future versions must match key/type layout exactly)")
+    return version_str
 
 
 def resolve_mask(mask: str) -> Tuple[int, str]:
@@ -181,6 +250,13 @@ TIME_CONST = {
     "RANDOMIZER_TIME_SLOT_NIGHT": 3,
     "RANDOMIZER_TIME_SLOT_ANY": 0xFF,
 }
+SPECIAL_MASK_ALL = (
+    (1 << 0) |  # legend
+    (1 << 1) |  # mythical
+    (1 << 2) |  # ub
+    (1 << 3) |  # paradox
+    (1 << 4)    # subLegend
+)
 
 # areaMaskごとのスロット上限（maxSpecies上限）
 AREA_SLOT_LIMITS = {
@@ -244,7 +320,14 @@ def main():
     args = parse_args()
     inp = pathlib.Path(args.inp)
     out = pathlib.Path(args.out)
+    exc_in = pathlib.Path(args.exceptions)
+    exc_out = pathlib.Path(args.exceptions_out)
     data = load_yaml(inp)
+    parse_schema_version(data)
+    exceptions_data = None
+    if exc_in.exists():
+        exceptions_data = load_yaml(exc_in)
+        parse_schema_version(exceptions_data)
 
     kits = data.get("kits", {})
     areas = data.get("areas", {})
@@ -254,6 +337,14 @@ def main():
     bl_pool: List[str] = []
     rules: List[Dict] = []
     fishing_rules: List[Dict] = []
+
+    def add_pool_entries(wl, bl):
+        nonlocal wl_pool, bl_pool
+        wl_offset = len(wl_pool)
+        bl_offset = len(bl_pool)
+        wl_pool.extend(wl)
+        bl_pool.extend(bl)
+        return wl_offset, len(wl), bl_offset, len(bl)
 
     def expand_kits(names, ctx):
         result = []
@@ -293,12 +384,38 @@ def main():
         if len(wl) == 0 and not allow_empty:
             raise ValueError(f"{ctx}: whitelist empty and allowEmpty is false")
 
-    def add_pool_entries(wl, bl):
-        wl_offset = len(wl_pool)
-        bl_offset = len(bl_pool)
-        wl_pool.extend(wl)
-        bl_pool.extend(bl)
-        return wl_offset, len(wl), bl_offset, len(bl)
+    SPECIAL_KEYS = ("legend", "mythical", "ub", "paradox", "subLegend")
+
+    def parse_special_overrides(entry, fallback_entry, ctx):
+        """
+        Returns bitmask of special categories.
+        If neither entry provides specialOverrides, default to all enabled (compat維持)。
+        """
+        src = entry.get("specialOverrides", None)
+        if src is None and fallback_entry is not None:
+            src = fallback_entry.get("specialOverrides", None)
+
+        # default: all enabled (legend/mythical/ub/paradox/subLegend)
+        mask = SPECIAL_MASK_ALL
+        if src is None:
+            return mask
+        if not isinstance(src, dict):
+            raise ValueError(f"{ctx}: specialOverrides must be a mapping")
+        mask = 0
+        for key in SPECIAL_KEYS:
+            val = src.get(key, False)
+            if val:
+                if key == "legend":
+                    mask |= (1 << 0)
+                elif key == "mythical":
+                    mask |= (1 << 1)
+                elif key == "ub":
+                    mask |= (1 << 2)
+                elif key == "paradox":
+                    mask |= (1 << 3)
+                elif key == "subLegend":
+                    mask |= (1 << 4)
+        return mask
 
     def process_time_slot(name, entry, time_key: str, ts_entry: Dict):
         nonlocal wl_pool, bl_pool, rules, fishing_rules
@@ -309,11 +426,14 @@ def main():
         mapNum = key["mapNum"]
         areaMask, areaName = resolve_mask(key["areaMask"])
 
+        if "allowLegendOverride" in entry or "allowLegendOverride" in ts_entry:
+            raise ValueError(f"{name}/{time_key}: allowLegendOverride is deprecated; use specialOverrides.legend instead")
+
         slot_mode = parse_slot_mode(ts_entry.get("slotMode", entry.get("slotMode")))
         max_species = parse_int(ts_entry.get("maxSpecies", entry.get("maxSpecies")), f"{name}/{time_key}/maxSpecies")
         max_rerolls = parse_int(ts_entry.get("maxRerolls", entry.get("maxRerolls")), f"{name}/{time_key}/maxRerolls")
-        allow_legend = 1 if ts_entry.get("allowLegendOverride", entry.get("allowLegendOverride", False)) else 0
         allow_empty = bool(ts_entry.get("allowEmpty", False))
+        special_mask = parse_special_overrides(ts_entry, entry, f"{name}/{time_key}")
 
         slot_limit = AREA_SLOT_LIMITS.get(areaName)
         if slot_limit is None:
@@ -360,17 +480,19 @@ def main():
                             "maxSpecies": 0,
                             "rareSlots": 0,
                             "rareRate": 0,
-                            "allowLegendOverride": 0,
+                            "specialOverrides": SPECIAL_MASK_ALL,
                             "allowEmpty": 1,
                             "maxRerolls": 0,
                         })
                         continue
                     raise ValueError(f"{name}/{time_key}: missing rod '{rod}'")
+                if "allowLegendOverride" in rod_data:
+                    raise ValueError(f"{name}/{time_key}/fishing/{rod}: allowLegendOverride is deprecated; use specialOverrides.legend")
                 rod_slot_mode = parse_slot_mode(rod_data.get("slotMode", slot_mode))
                 rod_max_species = parse_int(rod_data.get("maxSpecies", ROD_SLOT_LIMITS[rod]), f"{name}/{time_key}/fishing/{rod}/maxSpecies", allow_null=allow_empty)
                 rod_max_rerolls = parse_int(rod_data.get("maxRerolls", max_rerolls), f"{name}/{time_key}/fishing/{rod}/maxRerolls", allow_null=allow_empty)
-                rod_allow_legend = 1 if rod_data.get("allowLegendOverride", allow_legend) else 0
-                rod_allow_empty = bool(ts_entry.get("allowEmpty", False))
+                rod_allow_empty = bool(rod_data.get("allowEmpty", allow_empty))
+                rod_special_mask = parse_special_overrides(rod_data, ts_entry, f"{name}/{time_key}/fishing/{rod}")
 
                 rod_default = rod_data.get("default")
                 rod_rare = rod_data.get("rare")
@@ -394,7 +516,7 @@ def main():
                     "maxSpecies": rod_max_species if rod_max_species is not None else 0,
                     "rareSlots": 0 if rod_rare_slots is None else rod_rare_slots,
                     "rareRate": 0 if rod_rare_rate is None else rod_rare_rate,
-                    "allowLegendOverride": rod_allow_legend,
+                    "specialOverrides": rod_special_mask,
                     "allowEmpty": 1 if rod_allow_empty else 0,
                     "maxRerolls": 0 if rod_max_rerolls is None else rod_max_rerolls,
                 })
@@ -410,13 +532,13 @@ def main():
             "normal": (wl_norm_off, wl_norm_cnt, bl_norm_off, bl_norm_cnt),
             "rare": (wl_rare_off, wl_rare_cnt, bl_rare_off, bl_rare_cnt),
             "maxRerolls": max_rerolls if max_rerolls is not None else 0,
-            "allowLegendOverride": allow_legend,
             "slotMode": slot_mode,
             "maxSpecies": max_species if max_species is not None else 0,
             "rareSlots": 0 if rare_slots is None else rare_slots,
             "rareRate": 0 if rare_rate is None else rare_rate,
             "fishingOffset": fishing_offset,
             "fishingCount": fishing_count,
+            "specialOverrides": special_mask,
             "allowEmpty": 1 if allow_empty else 0,
         }
         rules.append(rule)
@@ -479,7 +601,7 @@ def main():
             f.write(f"        .maxSpecies = {fr['maxSpecies']},\n")
             f.write(f"        .rareSlots = {fr['rareSlots']},\n")
             f.write(f"        .rareRate = {fr['rareRate']},\n")
-            f.write(f"        .allowLegendOverride = {fr['allowLegendOverride']},\n")
+            f.write(f"        .specialOverrides = {fr.get('specialOverrides', SPECIAL_MASK_ALL)},\n")
             f.write(f"        .allowEmpty = {fr.get('allowEmpty', 0)},\n")
             f.write(f"        .maxRerolls = {fr.get('maxRerolls', 0)},\n")
             f.write("    },\n")
@@ -501,11 +623,11 @@ def main():
             f.write(f"        .rareBlOffset = {r['rare'][2]},\n")
             f.write(f"        .rareBlCount = {r['rare'][3]},\n")
             f.write(f"        .maxRerolls = {r['maxRerolls']},\n")
-            f.write(f"        .allowLegendOverride = {r['allowLegendOverride']},\n")
             f.write(f"        .slotMode = {r['slotMode']},\n")
             f.write(f"        .maxSpecies = {r['maxSpecies']},\n")
             f.write(f"        .rareSlots = {r['rareSlots']},\n")
             f.write(f"        .rareRate = {r['rareRate']},\n")
+            f.write(f"        .specialOverrides = {r['specialOverrides']},\n")
             if r["fishingCount"] > 0:
                 f.write(f"        .fishingRules = &sRandomizerFishingRules[{r['fishingOffset']}],\n")
                 f.write(f"        .fishingRuleCount = {r['fishingCount']},\n")
@@ -517,6 +639,34 @@ def main():
         f.write("};\n\n")
         f.write(f"#define RANDOMIZER_AREA_RULE_COUNT {len(rules)}\n")
         f.write(f"#define RANDOMIZER_FISHING_RULE_COUNT {len(fishing_rules)}\n")
+
+    # Exceptions (debug-only)
+    if exceptions_data is not None:
+        exc_list = load_exceptions(exceptions_data)
+    else:
+        exc_list = []
+    exc_out.parent.mkdir(parents=True, exist_ok=True)
+    with exc_out.open("w", encoding="utf-8") as fexc:
+        fexc.write("// Auto-generated by build_randomizer_area_rules.py. Do not edit manually.\n")
+        fexc.write("#pragma once\n")
+        fexc.write("#include \"global.h\"\n")
+        fexc.write("struct RandomizerException {\n")
+        fexc.write("    u8 mapGroup;\n")
+        fexc.write("    u8 mapNum;\n")
+        fexc.write("    u8 areaMask;\n")
+        fexc.write("    u8 timeSlot;\n")
+        fexc.write("    u8 rodType; // 0xFF=any\n")
+        fexc.write("};\n\n")
+        if exc_list:
+            fexc.write("static const struct RandomizerException sRandomizerExceptions[] = {\n")
+            for e in exc_list:
+                fexc.write("    { ")
+                fexc.write(f".mapGroup = {e['mapGroup']}, .mapNum = {e['mapNum']}, .areaMask = {e['areaMask']}, .timeSlot = {e['timeSlot']}, .rodType = {e['rodType']} ")
+                fexc.write("},\n")
+            fexc.write("};\n")
+        else:
+            fexc.write("static const struct RandomizerException sRandomizerExceptions[] = {};\n")
+        fexc.write(f"#define RANDOMIZER_EXCEPTION_COUNT {len(exc_list)}\n")
 
     return 0
 

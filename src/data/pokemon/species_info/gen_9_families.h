@@ -5339,6 +5339,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_GreatTusk
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sGreatTuskLevelUpLearnset,
         .teachableLearnset = sGreatTuskTeachableLearnset,
     },
@@ -5406,6 +5407,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_ScreamTail
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sScreamTailLevelUpLearnset,
         .teachableLearnset = sScreamTailTeachableLearnset,
     },
@@ -5473,6 +5475,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_BruteBonnet
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sBruteBonnetLevelUpLearnset,
         .teachableLearnset = sBruteBonnetTeachableLearnset,
     },
@@ -5543,6 +5546,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_FlutterMane
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sFlutterManeLevelUpLearnset,
         .teachableLearnset = sFlutterManeTeachableLearnset,
     },
@@ -5609,6 +5613,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_SlitherWing
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sSlitherWingLevelUpLearnset,
         .teachableLearnset = sSlitherWingTeachableLearnset,
     },
@@ -5676,6 +5681,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_SandyShocks
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sSandyShocksLevelUpLearnset,
         .teachableLearnset = sSandyShocksTeachableLearnset,
     },
@@ -5743,6 +5749,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronTreads
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronTreadsLevelUpLearnset,
         .teachableLearnset = sIronTreadsTeachableLearnset,
     },
@@ -5810,6 +5817,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronBundle
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronBundleLevelUpLearnset,
         .teachableLearnset = sIronBundleTeachableLearnset,
     },
@@ -5877,6 +5885,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronHands
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronHandsLevelUpLearnset,
         .teachableLearnset = sIronHandsTeachableLearnset,
     },
@@ -5945,6 +5954,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronJugulis
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronJugulisLevelUpLearnset,
         .teachableLearnset = sIronJugulisTeachableLearnset,
     },
@@ -6013,6 +6023,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronMoth
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronMothLevelUpLearnset,
         .teachableLearnset = sIronMothTeachableLearnset,
     },
@@ -6080,6 +6091,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronThorns
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronThornsLevelUpLearnset,
         .teachableLearnset = sIronThornsTeachableLearnset,
     },
@@ -6525,7 +6537,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_WoChien,
             gShinyOverworldPalette_WoChien
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sWoChienLevelUpLearnset,
         .teachableLearnset = sWoChienTeachableLearnset,
@@ -6592,7 +6604,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_ChienPao,
             gShinyOverworldPalette_ChienPao
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sChienPaoLevelUpLearnset,
         .teachableLearnset = sChienPaoTeachableLearnset,
@@ -6659,7 +6671,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_TingLu,
             gShinyOverworldPalette_TingLu
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sTingLuLevelUpLearnset,
         .teachableLearnset = sTingLuTeachableLearnset,
@@ -6727,7 +6739,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_ChiYu,
             gShinyOverworldPalette_ChiYu
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sChiYuLevelUpLearnset,
         .teachableLearnset = sChiYuTeachableLearnset,
@@ -6797,6 +6809,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_RoaringMoon
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sRoaringMoonLevelUpLearnset,
         .teachableLearnset = sRoaringMoonTeachableLearnset,
     },
@@ -6863,6 +6876,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronValiant
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronValiantLevelUpLearnset,
         .teachableLearnset = sIronValiantTeachableLearnset,
     },
@@ -7066,6 +7080,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_WalkingWake
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sWalkingWakeLevelUpLearnset,
         .teachableLearnset = sWalkingWakeTeachableLearnset,
     },
@@ -7132,6 +7147,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronLeaves
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronLeavesLevelUpLearnset,
         .teachableLearnset = sIronLeavesTeachableLearnset,
     },
@@ -7459,7 +7475,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_Okidogi,
             gShinyOverworldPalette_Okidogi
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sOkidogiLevelUpLearnset,
         .teachableLearnset = sOkidogiTeachableLearnset,
@@ -7526,7 +7542,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_Munkidori,
             gShinyOverworldPalette_Munkidori
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sMunkidoriLevelUpLearnset,
         .teachableLearnset = sMunkidoriTeachableLearnset,
@@ -7593,7 +7609,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gOverworldPalette_Fezandipiti,
             gShinyOverworldPalette_Fezandipiti
         )
-        .isLegendary = TRUE,
+        .isSubLegendary = TRUE,
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,
         .levelUpLearnset = sFezandipitiLevelUpLearnset,
         .teachableLearnset = sFezandipitiTeachableLearnset,
@@ -7662,6 +7678,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
         .formSpeciesIdTable = sOgerponFormSpeciesIdTable,                                                               \
         .formChangeTable = sOgerponFormChangeTable,                                                                     \
         .isLegendary = TRUE,                                                                                            \
+        .isSubLegendary = TRUE,                                                                                         \
         .isTeraForm = isTeraform,                                                                                       \
         .perfectIVCount = LEGENDARY_PERFECT_IV_COUNT,                                                                   \
     }
@@ -7741,6 +7758,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_GougingFire
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sGougingFireLevelUpLearnset,
         .teachableLearnset = sGougingFireTeachableLearnset,
     },
@@ -7808,6 +7826,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_RagingBolt
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sRagingBoltLevelUpLearnset,
         .teachableLearnset = sRagingBoltTeachableLearnset,
     },
@@ -7874,6 +7893,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronBoulder
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronBoulderLevelUpLearnset,
         .teachableLearnset = sIronBoulderTeachableLearnset,
     },
@@ -7941,6 +7961,7 @@ const struct SpeciesInfo gSpeciesInfoGen9[] =
             gShinyOverworldPalette_IronCrown
         )
         .isParadox = TRUE,
+        .isSubLegendary = TRUE,
         .levelUpLearnset = sIronCrownLevelUpLearnset,
         .teachableLearnset = sIronCrownTeachableLearnset,
     },

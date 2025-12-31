@@ -89,6 +89,7 @@
 #define FLAG_RANDOMIZER_DEBUG_LOG 0x4B // Enables randomizer debug logging
 #define FLAG_RANDOMIZER_FISHING_AUTO_HOOK 0x4C // Debug: Force fishing bite/minigame success
 #define FLAG_RANDOMIZER_FISHING_AUTO_BITE 0x4D // Debug: Force fishing bite success (minigameはそのまま)
+#define FLAG_RANDOMIZER_VANILLA_ENCOUNTER 0x4E // Debug: 全域バニラ化スイッチ。立てるとエリア例外やareaMaskに関係なくランダマイザーを無効化し、元の遭遇テーブルを使う（例: ルート103水朝だけバニラにする例外を検証する場合はOFFのまま。全エリアを元に戻したいテスト時だけON）。
 #define FLAG_UNUSED_0x04E    0x4E // Unused Flag
 #define FLAG_UNUSED_0x04F    0x4F // Unused Flag
 

@@ -162,7 +162,7 @@ static bool32 Fishing_CheckRandomizerBlocked(struct Task *task)
         task->tPlayerGfxId = gObjectEvents[gPlayerAvatar.objectEventId].graphicsId;
         LoadMessageBoxAndFrameGfx(0, TRUE);
         FillWindowPixelBuffer(0, PIXEL_FILL(1));
-        AddTextPrinterParameterized2(0, FONT_NORMAL, gText_NoPokemonCanBeHooked, 1, 0, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY);
+        AddTextPrinterParameterized2(0, FONT_NORMAL, gText_NoFishingTargets, 1, 0, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY);
 #ifndef NDEBUG
         DebugPrintfLevel(MGBA_LOG_WARN,
                          "[INFO] Fishing blocked rod=%d timeSlot=%d map=%d/%d",
@@ -489,12 +489,24 @@ static bool32 Fishing_GotAway(struct Task *task)
 
 static bool32 Fishing_Blocked(struct Task *task)
 {
-    AlignFishingAnimationFrames();
     RunTextPrinters();
+
+    // メッセージ表示をユーザ入力で閉じられるようにする
+    if (IsTextPrinterActive(0))
+        return FALSE;
+
+    if (!(JOY_NEW(A_BUTTON | B_BUTTON)))
+        return FALSE;
+
 #ifndef NDEBUG
     DebugPrintfLevel(MGBA_LOG_WARN, "[INFO] Fishing blocked end");
 #endif
+    ClearDialogWindowAndFrame(0, TRUE);
+    ClearWindowTilemap(0);
+    CopyWindowToVram(0, COPYWIN_GFX);
     // 釣りアニメを開始していないので、待ちをスキップさせる
+    gSprites[gPlayerAvatar.spriteId].x2 = 0;
+    gSprites[gPlayerAvatar.spriteId].y2 = 0;
     gSprites[gPlayerAvatar.spriteId].animEnded = TRUE;
     task->tStep = FISHING_NO_MON;
     return TRUE;
