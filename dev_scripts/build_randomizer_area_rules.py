@@ -19,6 +19,7 @@ import sys
 import pathlib
 import argparse
 import yaml
+import copy
 from typing import Dict, List, Optional, Tuple
 
 SCHEMA_VERSION_EXPECTED = "1.30"
@@ -289,6 +290,94 @@ def dedup_apply_remove(apply_list, remove_list):
     return wl, sorted(remove_set)
 
 
+def block_has_content(block: Optional[Dict]) -> bool:
+    if not block:
+        return False
+    if block.get("apply") or block.get("remove"):
+        return True
+    if "rareRate" in block or "rareSlots" in block:
+        return True
+    return False
+
+
+def rod_has_data(block: Optional[Dict]) -> bool:
+    if not block:
+        return False
+    if block_has_content(block.get("default")) or block_has_content(block.get("rare")):
+        return True
+    for key in ("slotMode", "maxSpecies", "maxRerolls", "specialOverrides"):
+        if key in block:
+            return True
+    return False
+
+
+def entry_has_data(block: Optional[Dict]) -> bool:
+    if not block:
+        return False
+    if block_has_content(block.get("default")) or block_has_content(block.get("rare")):
+        return True
+    fishing_block = block.get("fishing")
+    if fishing_block is not None:
+        if fishing_block:
+            return True
+        for rod_block in (fishing_block or {}).values():
+            if rod_has_data(rod_block):
+                return True
+    for key in ("slotMode", "maxSpecies", "maxRerolls", "specialOverrides"):
+        if key in block:
+            return True
+    return False
+
+
+def merge_block(base: Optional[Dict], override: Optional[Dict]) -> Dict:
+    result = copy.deepcopy(base) if base else {}
+    if override:
+        for k, v in override.items():
+            result[k] = copy.deepcopy(v)
+    return result
+
+
+def merge_rod(base: Optional[Dict], override: Optional[Dict]) -> Dict:
+    result = merge_block(base, override)
+    base_allow = bool((base or {}).get("allowEmpty", False))
+    data_written = rod_has_data(override)
+    if override and "allowEmpty" in override:
+        allow = bool(override.get("allowEmpty", False))
+    elif data_written:
+        allow = False
+    else:
+        allow = base_allow
+    result["allowEmpty"] = bool(allow)
+    return result
+
+
+def merge_fishing(base: Optional[Dict], override: Optional[Dict]) -> Dict:
+    base_fish = base or {}
+    override_fish = override or {}
+    merged: Dict = {}
+    for rod in set(base_fish.keys()) | set(override_fish.keys()):
+        merged[rod] = merge_rod(base_fish.get(rod), override_fish.get(rod))
+    return merged
+
+
+def merge_entry(base: Optional[Dict], override: Optional[Dict]) -> Dict:
+    base_entry = base or {}
+    override_entry = override or {}
+    result = merge_block(base_entry, override_entry)
+    if "fishing" in base_entry or "fishing" in override_entry:
+        result["fishing"] = merge_fishing(base_entry.get("fishing"), override_entry.get("fishing"))
+    data_written = entry_has_data(override_entry)
+    base_allow = bool(base_entry.get("allowEmpty", False))
+    if "allowEmpty" in override_entry:
+        allow = bool(override_entry.get("allowEmpty", False))
+    elif data_written:
+        allow = False
+    else:
+        allow = base_allow
+    result["allowEmpty"] = bool(allow)
+    return result
+
+
 def render_array(name, entries):
     lines = [f"static const u16 {name}[] = {{"]
     for s in entries:
@@ -547,28 +636,44 @@ def main():
         time_slots_block = entry.get("timeSlots")
         if time_slots_block is None:
             raise ValueError(f"{name}: timeSlots is required (any/false/morning/day/evening/night)")
-        # normalize times
         if time_slots_block is False:
             ts_map = {"false": {}}
         else:
             ts_map = dict(time_slots_block)
-        # If using explicit times, ensure morning/day/evening/night keys exist
-        if "false" in ts_map and len(ts_map) > 1:
-            raise ValueError(f"{name}: timeSlots false cannot be mixed with other keys")
-        if "any" in ts_map and any(k in ts_map for k in ("morning", "day", "evening", "night")):
-            raise ValueError(f"{name}: timeSlots any cannot be mixed with specific keys")
+
+        invalid_keys = [k for k in ts_map.keys() if k not in TIME_KEYS]
+        if invalid_keys:
+            raise ValueError(f"{name}: unknown timeSlots key(s): {invalid_keys}")
 
         if "false" in ts_map:
+            if len(ts_map) > 1:
+                raise ValueError(f"{name}: timeSlots false cannot be mixed with other keys")
             process_time_slot(name, entry, "false", ts_map["false"] or {})
             return
 
-        if "any" in ts_map:
-            process_time_slot(name, entry, "any", ts_map["any"] or {})
+        keys = set(ts_map.keys())
+        has_any = "any" in keys
+        if not has_any and keys != {"morning", "day", "evening", "night"}:
+            raise ValueError(f"{name}/timeSlots: invalid pattern (use 'any', 'any+partial times', or all morning/day/evening/night)")
+
+        if has_any and not keys.issubset({"any", "morning", "day", "evening", "night"}):
+            raise ValueError(f"{name}/timeSlots: invalid pattern (use 'any', 'any+partial times', or all morning/day/evening/night)")
+
+        base_any = ts_map.get("any")
+        specific_keys = keys - {"any"}
+
+        if has_any and not specific_keys:
+            process_time_slot(name, entry, "any", base_any or {})
             return
 
-        missing = [k for k in ("morning", "day", "evening", "night") if k not in ts_map]
-        if missing:
-            raise ValueError(f"{name}: timeSlots missing keys {missing}")
+        if has_any:
+            base_entry = base_any or {}
+            for tkey in ("morning", "day", "evening", "night"):
+                merged = merge_entry(base_entry, ts_map.get(tkey))
+                process_time_slot(name, entry, tkey, merged or {})
+            return
+
+        # no any: must be full set of 4 keys (checked above)
         for tkey in ("morning", "day", "evening", "night"):
             process_time_slot(name, entry, tkey, ts_map[tkey] or {})
 

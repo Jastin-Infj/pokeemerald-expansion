@@ -139,6 +139,20 @@ areas:
           good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
           super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
 
+  route_104_land:
+    key: { mapGroup: MAP_GROUP(MAP_ROUTE104), mapNum: MAP_NUM(MAP_ROUTE104), areaMask: Land }
+    slotMode: uniform
+    maxSpecies: LAND_MAX_SLOTS
+    maxRerolls: 6
+    timeSlots:
+      any:
+        allowEmpty: true
+        default: { apply: null, remove: null }
+        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+      morning:
+        default: { apply: [starter_land], remove: [starter_trim] }
+        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+
   route_110_water:
     key: { mapGroup: MAP_GROUP(MAP_ROUTE110), mapNum: MAP_NUM(MAP_ROUTE110), areaMask: Water }
     slotMode: uniform
