@@ -52,6 +52,7 @@ static bool32 FishingAutoBiteEnabled(void);
 #if RANDOMIZER_AVAILABLE == TRUE
 static bool32 Fishing_CheckRandomizerBlocked(struct Task *task);
 static u8 GetRandomizerFishingTimeSlot(void);
+static u32 GetRandomizerFishingOdds(u32 defaultOdds, u8 rod, u8 timeSlot);
 #endif
 
 #define FISHING_PROXIMITY_BOOST 20     //Active if config I_FISHING_PROXIMITY is TRUE
@@ -150,6 +151,24 @@ static bool32 (*const sFishingStateFuncs[])(struct Task *) =
 static u8 GetRandomizerFishingTimeSlot(void)
 {
     return RandomizerResolveTimeSlot(GetTimeOfDay());
+}
+
+static u32 GetRandomizerFishingOdds(u32 defaultOdds, u8 rod, u8 timeSlot)
+{
+    struct RandomizerRuleView view;
+
+    if (!RandomizerGetAreaRuleView(gSaveBlock1Ptr->location.mapGroup,
+                                   gSaveBlock1Ptr->location.mapNum,
+                                   WILD_AREA_FISHING,
+                                   rod,
+                                   timeSlot,
+                                   &view))
+        return defaultOdds;
+
+    // encounterRateをそのままバイト率として扱う（0なら全失敗、>100は100にクランプ）
+    if (view.encounterRate == 0)
+        return 0;
+    return min((u32)100, (u32)view.encounterRate);
 }
 
 static bool32 Fishing_CheckRandomizerBlocked(struct Task *task)
@@ -601,6 +620,9 @@ static u32 CalculateFishingBiteOdds(u32 rod, bool32 isStickyHold)
         odds *= 2;
 
     odds = min(100, odds);
+#if RANDOMIZER_AVAILABLE == TRUE
+    odds = GetRandomizerFishingOdds(odds, rod, GetRandomizerFishingTimeSlot());
+#endif
     DebugPrintf("Fishing odds: %d", odds);
     return odds;
 }

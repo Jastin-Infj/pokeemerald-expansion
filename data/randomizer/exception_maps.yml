@@ -2,34 +2,3 @@
 schemaVersion: 1.30
 
 exceptions:
-  # Route 101 Land allow vanilla encounters regardless of rule
-  - mapGroup: MAP_GROUP(MAP_ROUTE101)
-    mapNum: MAP_NUM(MAP_ROUTE101)
-    areaMask: Land
-    timeSlot: any   # optional, defaults to any
-    rod: null       # optional; for Fishing only
-    action: allow   # only allow is supported (bypass block & filters)
-
-  # Route 102 Fishing (Old Rod) allow vanilla
-  - mapGroup: MAP_GROUP(MAP_ROUTE102)
-    mapNum: MAP_NUM(MAP_ROUTE102)
-    areaMask: Fishing
-    timeSlot: any
-    rod: old
-    action: allow
-
-  # Route 103 Water morning allow vanilla
-  - mapGroup: MAP_GROUP(MAP_ROUTE103)
-    mapNum: MAP_NUM(MAP_ROUTE103)
-    areaMask: Water
-    timeSlot: morning
-    rod: null
-    action: allow
-
-  # Route 104 Rock night allow vanilla
-  - mapGroup: MAP_GROUP(MAP_ROUTE104)
-    mapNum: MAP_NUM(MAP_ROUTE104)
-    areaMask: Rock
-    timeSlot: night
-    rod: null
-    action: allow

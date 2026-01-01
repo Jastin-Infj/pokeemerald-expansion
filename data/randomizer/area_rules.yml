@@ -1,195 +1,553 @@
-# YAML input for area-based randomizer WL/BL（ver1.30仕様）
-
-schemaVersion: 1.30
-
+schemaVersion: 1.3
 kits:
   starter_land:
-    - SPECIES_POOCHYENA
-    - SPECIES_ZIGZAGOON
-    - SPECIES_WURMPLE
-    - SPECIES_TAILLOW
-    - SPECIES_PIDGEY
-    - SPECIES_SENTRET
-    - SPECIES_RATTATA
-    - SPECIES_HOOTHOOT
+  - SPECIES_POOCHYENA
+  - SPECIES_ZIGZAGOON
+  - SPECIES_WURMPLE
+  - SPECIES_TAILLOW
+  - SPECIES_PIDGEY
+  - SPECIES_SENTRET
+  - SPECIES_RATTATA
+  - SPECIES_HOOTHOOT
   starter_water:
-    - SPECIES_MAGIKARP
-    - SPECIES_LOTAD
-    - SPECIES_POLIWAG
-    - SPECIES_TENTACOOL
-    - SPECIES_WINGULL
+  - SPECIES_MAGIKARP
+  - SPECIES_LOTAD
+  - SPECIES_POLIWAG
+  - SPECIES_TENTACOOL
+  - SPECIES_WINGULL
   mid_land:
-    - SPECIES_LINOONE
-    - SPECIES_SWELLOW
-    - SPECIES_DUSTOX
-    - SPECIES_BEAUTIFLY
-    - SPECIES_FEAROW
-    - SPECIES_NOCTOWL
+  - SPECIES_LINOONE
+  - SPECIES_SWELLOW
+  - SPECIES_DUSTOX
+  - SPECIES_BEAUTIFLY
+  - SPECIES_FEAROW
+  - SPECIES_NOCTOWL
   mid_water:
-    - SPECIES_LUDICOLO
-    - SPECIES_POLIWHIRL
-    - SPECIES_GOLDUCK
-    - SPECIES_PELIPPER
+  - SPECIES_LUDICOLO
+  - SPECIES_POLIWHIRL
+  - SPECIES_GOLDUCK
+  - SPECIES_PELIPPER
   late_land:
-    - SPECIES_SLAKING
-    - SPECIES_FEAROW
-    - SPECIES_PIDGEOT
-    - SPECIES_SWELLOW
-    - SPECIES_SWALOT
+  - SPECIES_SLAKING
+  - SPECIES_FEAROW
+  - SPECIES_PIDGEOT
+  - SPECIES_SWELLOW
+  - SPECIES_SWALOT
   late_water:
-    - SPECIES_GYARADOS
-    - SPECIES_LAPRAS
-    - SPECIES_STARMIE
-    - SPECIES_WAILORD
+  - SPECIES_GYARADOS
+  - SPECIES_LAPRAS
+  - SPECIES_STARMIE
+  - SPECIES_WAILORD
   legend_unlock:
-    - SPECIES_ARTICUNO
-    - SPECIES_ZAPDOS
-    - SPECIES_MOLTRES
-    - SPECIES_LATIOS
-    - SPECIES_LATIAS
+  - SPECIES_ARTICUNO
+  - SPECIES_ZAPDOS
+  - SPECIES_MOLTRES
+  - SPECIES_LATIOS
+  - SPECIES_LATIAS
   starter_trim:
-    - SPECIES_POOCHYENA
-    - SPECIES_ZIGZAGOON
-    - SPECIES_RATTATA
-    - SPECIES_SENTRET
-
-areas:
-  route_101_land:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE101), mapNum: MAP_NUM(MAP_ROUTE101), areaMask: Land }
+  - SPECIES_POOCHYENA
+  - SPECIES_ZIGZAGOON
+  - SPECIES_RATTATA
+  - SPECIES_SENTRET
+slotSets:
+  vanilla:
+    slotCount: null
     slotMode: uniform
-    maxSpecies: LAND_MAX_SLOTS
-    maxRerolls: 6
-    timeSlots:
-      any:
-        allowEmpty: true
-        default: { apply: null, remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
-  route_102_land:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE102), mapNum: MAP_NUM(MAP_ROUTE102), areaMask: Land }
+    weightMode: vanilla
+    rareSlots: 0
+    allowEmpty: false
+    encounterRate: 15
+  even_land:
+    slotCount: LAND_MAX_SLOTS
     slotMode: uniform
-    maxSpecies: LAND_MAX_SLOTS
-    maxRerolls: 6
-    timeSlots:
-      any:
-        default: { apply: [starter_land, mid_land], remove: [starter_trim] }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
-  route_102_fishing:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE102), mapNum: MAP_NUM(MAP_ROUTE102), areaMask: Fish }
+    weightMode: even
+    rareSlots: 0
+    allowEmpty: false
+    encounterRate: 15
+  rare_land_sample:
+    slotCount: LAND_MAX_SLOTS
+    slotMode: rare
+    weightMode: even
+    rareSlots: 2
+    rareRate: 20
+    allowEmpty: false
+    encounterRate: 15
+  # 釣りミックスサンプル（old: rare、good: 出現なし、super: uniform）
+  fishing_mixed_sample:
     slotMode: uniform
     maxSpecies: FISH_MAX_SLOTS
     maxRerolls: 6
+    allowEmpty: false
+    encounterRate: 25
+    fishing:
+      old:
+        allowEmpty: false
+        slotMode: rare
+        maxSpecies: 2
+        weights:
+        - 60
+        - 40
+        levelBands:
+        - minLv: 5
+          maxLv: 8
+        - minLv: 6
+          maxLv: 10
+        rare:
+          rareSlots: 1
+          rareRate: 15
+      good:
+        allowEmpty: true
+        slotMode: uniform
+        maxSpecies: 0
+      super:
+        allowEmpty: false
+        slotMode: uniform
+        maxSpecies: 2
+        weights:
+        - 15
+        - 15
+        - 15
+        - 15
+        - 40
+        levelBands:
+        - minLv: 20
+          maxLv: 25
+        - minLv: 21
+          maxLv: 26
+        - minLv: 22
+          maxLv: 27
+        - minLv: 23
+          maxLv: 28
+        - minLv: 24
+          maxLv: 30
+  empty_area:
+    allowEmpty: true
+    slotCount: null
+    slotMode: null
+    weightMode: null
+    rareSlots: 0
+areas:
+  # Hidden/Fixed/Giftサンプルも含む。route_101_landはallowEmpty=trueの空エリア例。
+  # 空エリア（allowEmpty=true）サンプル: 出現させない例
+  route_101_land:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE101)
+      mapNum: MAP_NUM(MAP_ROUTE101)
+      areaMask: Land
+    slotSet: empty_area   # allowEmpty=true 前提の空エリア
+    maxSpecies: 0
+    maxRerolls: 0
     timeSlots:
       any:
         allowEmpty: true
-        fishing:
-          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-
+        default:
+          apply: null
+          remove: null
+  # Route102 Land: rare_land_sample（slotMode=rare, rareSlots=2）mid/starter混在の例
+  route_102_land:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE102)
+      mapNum: MAP_NUM(MAP_ROUTE102)
+      areaMask: Land
+    slotSet: rare_land_sample
+    maxRerolls: 12
+    timeSlots:
+      any:
+        specialOverrides:
+          legend: true
+          mythical: true
+          ub: true
+          paradox: true
+          subLegend: true
+        rare:
+          rareRate: 20
+          rareSlots: 2
+          apply:
+          - legend_unlock
+          remove: null
+        default:
+          apply:
+          - starter_land
+          - mid_land
+          remove:
+          - starter_trim
+  # Route102 Fishing: empty_area（allowEmpty=true, maxSpecies=0）出現なし例
+  route_102_fishing:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE102)
+      mapNum: MAP_NUM(MAP_ROUTE102)
+      areaMask: Fish
+    slotSet: empty_area
+    maxSpecies: 0
+    maxRerolls: 6
+    timeSlots:
+      any:
+        allowEmpty: true
+  # Route103 Land: even_land、時間帯ごとにLegend許可などの例
   route_103_land:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE103), mapNum: MAP_NUM(MAP_ROUTE103), areaMask: Land }
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE103)
+      mapNum: MAP_NUM(MAP_ROUTE103)
+      areaMask: Land
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 3
+    encounterRate: 15  # 明示しないと0になり遭遇しないため上書き
     timeSlots:
       morning:
-        specialOverrides: { legend: false, mythical: true, ub: true, paradox: true, subLegend: true }
-        default: { apply: [legend_unlock], remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+        specialOverrides:
+          legend: false
+          mythical: true
+          ub: true
+          paradox: true
+          subLegend: true
+        default:
+          apply:
+          - legend_unlock
+          remove: null
       day:
-        default: { apply: [starter_land, mid_land], remove: [starter_trim] }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+        default:
+          apply:
+          - starter_land
+          - mid_land
+          remove:
+          - starter_trim
       evening:
-        default: { apply: [starter_land, mid_land], remove: [starter_trim] }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+        default:
+          apply:
+          - starter_land
+          - mid_land
+          remove:
+          - starter_trim
       night:
-        default: { apply: [mid_land], remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
+        default:
+          apply:
+          - mid_land
+          remove: null
+  # 釣りでロッド別に出現有無を混在させるサンプル（old:出現あり、good:空、super:出現あり）
+  # Route103 Fishing: old=出現あり(rare有効)、good=allowEmptyで空、super=出現あり(weights+bands, rare無効)
   route_103_fishing:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE103), mapNum: MAP_NUM(MAP_ROUTE103), areaMask: Fish }
-    slotMode: uniform
-    maxSpecies: FISH_MAX_SLOTS
-    maxRerolls: 6
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE103)
+      mapNum: MAP_NUM(MAP_ROUTE103)
+      areaMask: Fish
+    slotSet: fishing_mixed_sample
     timeSlots:
-      morning:
-        allowEmpty: true
+      any:
+        allowEmpty: false
         fishing:
-          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-      day:
-        allowEmpty: true
-        fishing:
-          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-      evening:
-        allowEmpty: true
-        fishing:
-          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-      night:
-        allowEmpty: true
-        fishing:
-          old:   { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          good:  { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-          super: { default: null, rare: null, maxRerolls: null, maxSpecies: null }
-
+          old:
+            allowEmpty: false
+            default:
+              apply:
+              - starter_water
+              remove:
+              - legend_unlock
+            rare:
+              apply: null
+              remove: null
+          good:
+            allowEmpty: true
+            slotMode: uniform
+            maxSpecies: 0
+            default:
+              apply: null
+              remove: null
+          super:
+            allowEmpty: false
+            default:
+              apply:
+              - legend_unlock
+              remove:
+              - starter_water
+              - mid_water
+              - late_water
+  # Route104 Land: allowEmpty=true (any)、morningにstarter_land適用の例
   route_104_land:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE104), mapNum: MAP_NUM(MAP_ROUTE104), areaMask: Land }
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE104)
+      mapNum: MAP_NUM(MAP_ROUTE104)
+      areaMask: Land
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 6
     timeSlots:
       any:
         allowEmpty: true
-        default: { apply: null, remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+        default:
+          apply: null
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
       morning:
-        default: { apply: [starter_land], remove: [starter_trim] }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
+        allowEmpty: false
+        encounterRate: 0
+        default:
+          apply:
+          - starter_land
+          remove:
+          - starter_trim
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+      night:
+        allowEmpty: false
+        encounterRate: 15
+        default:
+          apply:
+          - mid_land
+          remove: null
   route_110_water:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE110), mapNum: MAP_NUM(MAP_ROUTE110), areaMask: Water }
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE110)
+      mapNum: MAP_NUM(MAP_ROUTE110)
+      areaMask: Water
     slotMode: uniform
     maxSpecies: WATER_MAX_SLOTS
     maxRerolls: 6
+    encounterRate: 15
     timeSlots:
       any:
-        default: { apply: [starter_water], remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
+        default:
+          apply:
+          - starter_water
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
   route_121_land:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE121), mapNum: MAP_NUM(MAP_ROUTE121), areaMask: Land }
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE121)
+      mapNum: MAP_NUM(MAP_ROUTE121)
+      areaMask: Land
     slotMode: uniform
     maxSpecies: LAND_MAX_SLOTS
     maxRerolls: 8
+    encounterRate: 15
     timeSlots:
       any:
-        default: { apply: [starter_land, mid_land, late_land], remove: [starter_trim] }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
+        default:
+          apply:
+          - starter_land
+          - mid_land
+          - late_land
+          remove:
+          - starter_trim
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
   route_128_water:
-    key: { mapGroup: MAP_GROUP(MAP_ROUTE128), mapNum: MAP_NUM(MAP_ROUTE128), areaMask: Water }
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE128)
+      mapNum: MAP_NUM(MAP_ROUTE128)
+      areaMask: Water
     slotMode: uniform
     maxSpecies: WATER_MAX_SLOTS
     maxRerolls: 8
+    encounterRate: 15
     timeSlots:
       any:
-        default: { apply: [starter_water, mid_water, late_water, legend_unlock], remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
-
+        default:
+          apply:
+          - starter_water
+          - mid_water
+          - late_water
+          - legend_unlock
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+  # Hidden: Route101の固定/ギフト用サンプル
+  hidden_sample:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE101)
+      mapNum: MAP_NUM(MAP_ROUTE101)
+      areaMask: Hidden
+    slotMode: uniform
+    maxSpecies: LAND_MAX_SLOTS
+    maxRerolls: 2
+    timeSlots:
+      any:
+        encounterRate: 15
+        default:
+          apply:
+          - starter_land
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+  # Hidden: Rustboroでweights/levelBands指定の固定/ギフトサンプル
+  hidden_rustboro_sample:
+    key:
+      mapGroup: MAP_GROUP(MAP_RUSTBORO_CITY)
+      mapNum: MAP_NUM(MAP_RUSTBORO_CITY)
+      areaMask: Hidden
+    slotMode: uniform
+    maxSpecies: 3
+    maxRerolls: 2
+    timeSlots:
+      any:
+        allowEmpty: false
+        encounterRate: 15
+        default:
+          apply:
+          - starter_land
+          remove:
+          - starter_trim
+          weights:
+          - 50
+          - 30
+          - 20
+          levelBands:
+          - minLv: 5
+            maxLv: 7
+          - minLv: 6
+            maxLv: 8
+          - minLv: 8
+            maxLv: 10
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+  # Hidden: LittlerootでallowEmpty=trueのスキップサンプル
+  hidden_littleroot_empty:
+    key:
+      mapGroup: MAP_GROUP(MAP_LITTLEROOT_TOWN)
+      mapNum: MAP_NUM(MAP_LITTLEROOT_TOWN)
+      areaMask: Hidden
+    slotMode: uniform
+    maxSpecies: 0
+    maxRerolls: 0
+    timeSlots:
+      any:
+        allowEmpty: true
+        default:
+          apply: null
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+  # Hidden: Petalburgでweights/levelBands指定の固定/ギフトサンプル
+  hidden_petalburg_sample:
+    key:
+      mapGroup: MAP_GROUP(MAP_PETALBURG_CITY)
+      mapNum: MAP_NUM(MAP_PETALBURG_CITY)
+      areaMask: Hidden
+    slotMode: uniform
+    maxSpecies: 4
+    maxRerolls: 3
+    timeSlots:
+      any:
+        encounterRate: 15
+        default:
+          apply:
+          - starter_land
+          - mid_land
+          remove:
+          - starter_trim
+          weights:
+          - 40
+          - 30
+          - 20
+          - 10
+          levelBands:
+          - minLv: 8
+            maxLv: 12
+          - minLv: 10
+            maxLv: 14
+          - minLv: 12
+            maxLv: 16
+          - minLv: 14
+            maxLv: 18
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+  hidden_slateport_empty:
+    key:
+      mapGroup: MAP_GROUP(MAP_SLATEPORT_CITY)
+      mapNum: MAP_NUM(MAP_SLATEPORT_CITY)
+      areaMask: Hidden
+    slotMode: uniform
+    maxSpecies: 0
+    maxRerolls: 0
+    timeSlots:
+      any:
+        allowEmpty: true
+        default:
+          apply: null
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
+  hidden_mauville_sample:
+    key:
+      mapGroup: MAP_GROUP(MAP_MAUVILLE_CITY)
+      mapNum: MAP_NUM(MAP_MAUVILLE_CITY)
+      areaMask: Hidden
+    slotMode: uniform
+    maxSpecies: 2
+    maxRerolls: 2
+    timeSlots:
+      any:
+        encounterRate: 15
+        default:
+          apply:
+          - starter_land
+          remove:
+          - starter_trim
+          weights:
+          - 70
+          - 30
+          levelBands:
+          - minLv: 10
+            maxLv: 12
+          - minLv: 12
+            maxLv: 14
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null
 gifts:
   default:
-    key: { mapGroup: 0xFF, mapNum: 0xFF, areaMask: Gift }
+    key:
+      mapGroup: 255
+      mapNum: 255
+      areaMask: Gift
     slotMode: uniform
     maxSpecies: 6
     maxRerolls: 6
+    encounterRate: 15
     timeSlots:
       any:
-        default: { apply: [starter_land, starter_water], remove: null }
-        rare:    { apply: null, remove: null, rareRate: null, rareSlots: null }
+        encounterRate: 15
+        default:
+          apply:
+          - starter_land
+          - starter_water
+          remove: null
+        rare:
+          apply: null
+          remove: null
+          rareRate: null
+          rareSlots: null

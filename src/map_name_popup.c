@@ -22,6 +22,8 @@
 #include "constants/weather.h"
 #include "config/general.h"
 #include "config/overworld.h"
+#include "gba/isagbprint.h"
+#include "randomizer.h"
 
 // enums
 enum MapPopUp_Themes
@@ -78,6 +80,16 @@ static const u16 sMapPopUp_PaletteTable[][16] =
     [MAPPOPUP_THEME_UNDERWATER] = INCBIN_U16("graphics/map_popup/underwater_outline.gbapal"),
     [MAPPOPUP_THEME_STONE2]     = INCBIN_U16("graphics/map_popup/stone2_outline.gbapal"),
 };
+
+#if RANDOMIZER_AVAILABLE == TRUE
+// ポップアップ時のallowEmptyログをマップごとに1回に抑制
+static struct
+{
+    bool8 valid;
+    u8 mapGroup;
+    u8 mapNum;
+} sRandrAllowEmptyLog;
+#endif
 
 static const u16 sMapPopUp_Palette_Underwater[16] = INCBIN_U16("graphics/map_popup/underwater.gbapal");
 
@@ -363,6 +375,37 @@ enum {
 
 void ShowMapNamePopup(void)
 {
+#if RANDOMIZER_AVAILABLE == TRUE
+    if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+    {
+        u8 group = gSaveBlock1Ptr->location.mapGroup;
+        u8 num = gSaveBlock1Ptr->location.mapNum;
+        if (!(sRandrAllowEmptyLog.valid && sRandrAllowEmptyLog.mapGroup == group && sRandrAllowEmptyLog.mapNum == num))
+        {
+            sRandrAllowEmptyLog.valid = TRUE;
+            sRandrAllowEmptyLog.mapGroup = group;
+            sRandrAllowEmptyLog.mapNum = num;
+
+            // ポップアップ表示と同時にLandのallowEmptyも確認（timeSlot/rodはデフォルト）
+            struct RandomizerRuleView view;
+            u8 timeSlot = RandomizerResolveTimeSlot(0xFF); // ANYをデフォルトとして現在の時間帯に解決
+            if (RandomizerGetAreaRuleView(group, num, WILD_AREA_LAND, 0xFF, timeSlot, &view))
+            {
+                if (view.allowEmpty && view.wlCount == 0)
+                {
+                    DebugPrintfLevel(MGBA_LOG_WARN,
+                                     "[INFO] RandR view allowEmpty map=%d/%d mask=%d time=%d rod=%d wl=0",
+                                     group,
+                                     num,
+                                     1,   // LAND mask
+                                     timeSlot,
+                                     0xFF);
+                }
+            }
+        }
+    }
+#endif
+
     if (FlagGet(FLAG_HIDE_MAP_NAME_POPUP) != TRUE)
     {
         if (!FuncIsActiveTask(Task_MapNamePopUpWindow))

@@ -22,7 +22,7 @@ import yaml
 import copy
 from typing import Dict, List, Optional, Tuple
 
-SCHEMA_VERSION_EXPECTED = "1.30"
+SCHEMA_VERSION_EXPECTED = ("1.30", "1.40")
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 ROOT = THIS_DIR.parent
@@ -66,6 +66,11 @@ enum {
     RANDOMIZER_SPECIAL_SUB_LEGEND  = 1 << 4,
 };
 
+struct RandomizerLevelBand {
+    u8 minLevel;
+    u8 maxLevel;
+};
+
 struct RandomizerFishingRule {
     u16 normalWlOffset;
     u16 normalWlCount;
@@ -82,6 +87,10 @@ struct RandomizerFishingRule {
     u8 specialOverrides;
     bool8 allowEmpty;
     u8 maxRerolls;
+    u16 levelBandOffset;
+    u16 levelBandCount;
+    u16 rareLevelBandOffset;
+    u16 rareLevelBandCount;
 };
 
 struct RandomizerAreaRule {
@@ -106,6 +115,16 @@ struct RandomizerAreaRule {
     const struct RandomizerFishingRule *fishingRules;
     u8 fishingRuleCount;
     bool8 allowEmpty;
+    u8 slotCount;
+    u8 encounterRate;
+    u16 weightOffset;
+    u16 weightCount;
+    u16 rareWeightOffset;
+    u16 rareWeightCount;
+    u16 levelBandOffset;
+    u16 levelBandCount;
+    u16 rareLevelBandOffset;
+    u16 rareLevelBandCount;
 };
 
 """
@@ -135,6 +154,8 @@ def load_exceptions(data: Optional[Dict]):
     if not data:
         return results
     entries = data.get("exceptions", [])
+    if entries is None:
+        entries = []
     for idx, e in enumerate(entries):
         ctx = f"exception[{idx}]"
         try:
@@ -169,15 +190,15 @@ def load_exceptions(data: Optional[Dict]):
 def parse_schema_version(data):
     version = data.get("schemaVersion")
     if version is None:
-        raise ValueError("schemaVersion is required (expected 1.30)")
-    expected_float = float(SCHEMA_VERSION_EXPECTED)
+        raise ValueError(f"schemaVersion is required (expected one of {', '.join(SCHEMA_VERSION_EXPECTED)})")
+    expected_float = [float(v) for v in SCHEMA_VERSION_EXPECTED]
     if isinstance(version, (int, float)):
-        if float(version) != expected_float:
-            raise ValueError(f"Unsupported schemaVersion '{version}', expected '{SCHEMA_VERSION_EXPECTED}' (future versions must match key/type layout exactly)")
-        return SCHEMA_VERSION_EXPECTED
+        if float(version) not in expected_float:
+            raise ValueError(f"Unsupported schemaVersion '{version}', expected one of {SCHEMA_VERSION_EXPECTED} (future versions must match key/type layout exactly)")
+        return str(version)
     version_str = str(version)
-    if version_str != SCHEMA_VERSION_EXPECTED:
-        raise ValueError(f"Unsupported schemaVersion '{version_str}', expected '{SCHEMA_VERSION_EXPECTED}' (future versions must match key/type layout exactly)")
+    if version_str not in SCHEMA_VERSION_EXPECTED:
+        raise ValueError(f"Unsupported schemaVersion '{version_str}', expected one of {SCHEMA_VERSION_EXPECTED} (future versions must match key/type layout exactly)")
     return version_str
 
 
@@ -259,6 +280,12 @@ SPECIAL_MASK_ALL = (
     (1 << 4)    # subLegend
 )
 
+# New fields defaults for slotSets-based weighted slots (v1.40 draft)
+DEFAULT_SLOT_MODE = RANDOMIZER_SLOT_MODE_UNIFORM
+DEFAULT_WEIGHT_MODE = "vanilla"  # when weights are absent
+DEFAULT_RARE_SLOTS = 0
+DEFAULT_ENCOUNTER_RATE = 0
+
 # areaMaskごとのスロット上限（maxSpecies上限）
 AREA_SLOT_LIMITS = {
     "Land": SLOT_LIMIT_CONST["LAND_MAX_SLOTS"],
@@ -336,6 +363,10 @@ def merge_block(base: Optional[Dict], override: Optional[Dict]) -> Dict:
             result[k] = copy.deepcopy(v)
     return result
 
+def merge_slotset(base: Optional[Dict], override: Optional[Dict]) -> Dict:
+    """slotSetに maxSpecies/maxRerolls などを含める場合のマージ。"""
+    return merge_block(base, override)
+
 
 def merge_rod(base: Optional[Dict], override: Optional[Dict]) -> Dict:
     result = merge_block(base, override)
@@ -394,6 +425,8 @@ def parse_int(value, ctx: str, allow_null: bool = False):
     if isinstance(value, int):
         return value
     if isinstance(value, str):
+        if value.lower() == "auto":
+            return "auto"
         if value in SLOT_LIMIT_CONST:
             return SLOT_LIMIT_CONST[value]
         if value in TIME_CONST:
@@ -419,11 +452,16 @@ def main():
         parse_schema_version(exceptions_data)
 
     kits = data.get("kits", {})
+    slot_sets = data.get("slotSets", {})
     areas = data.get("areas", {})
     gifts = data.get("gifts", {})
 
     wl_pool: List[str] = []
     bl_pool: List[str] = []
+    weight_pool: List[int] = []
+    rare_weight_pool: List[int] = []
+    level_band_pool: List[Tuple[int, int]] = []
+    rare_level_band_pool: List[Tuple[int, int]] = []
     rules: List[Dict] = []
     fishing_rules: List[Dict] = []
 
@@ -434,6 +472,16 @@ def main():
         wl_pool.extend(wl)
         bl_pool.extend(bl)
         return wl_offset, len(wl), bl_offset, len(bl)
+
+    def add_weight_entries(weights, pool: List[int]):
+        offset = len(pool)
+        pool.extend(weights)
+        return offset, len(weights)
+
+    def add_level_entries(bands: List[Tuple[int, int]], pool: List[Tuple[int, int]]):
+        offset = len(pool)
+        pool.extend(bands)
+        return offset, len(bands)
 
     def expand_kits(names, ctx):
         result = []
@@ -458,6 +506,8 @@ def main():
                 raise ValueError(f"{ctx}: slotMode=uniform cannot have rareRate/rareSlots")
         if rs == 0 and rr > 0:
             raise ValueError(f"{ctx}: rareSlots=0 with rareRate>0 is invalid")
+        if rs > 0 and rr == 0:
+            raise ValueError(f"{ctx}: rareSlots>0 with rareRate=0 is invalid")
         if rr < 0 or rr > 100:
             raise ValueError(f"{ctx}: rareRate must be 0-100 (got {rr})")
         if rs < 0:
@@ -506,6 +556,99 @@ def main():
                     mask |= (1 << 4)
         return mask
 
+    def extract_weights(entry: Dict, base_entry: Dict, slot_count: int, ctx: str):
+        weights = entry.get("weights")
+        rare_weights = entry.get("rareWeights")
+        weight_mode = entry.get("weightMode", base_entry.get("weightMode", DEFAULT_WEIGHT_MODE))
+        rare_slots = entry.get("rareSlots", base_entry.get("rareSlots", 0))
+
+        if weights is not None and weight_mode is not None:
+            raise ValueError(f"{ctx}: weights and weightMode cannot both be set")
+        if weights is None and weight_mode is None:
+            weight_mode = DEFAULT_WEIGHT_MODE
+
+        if weights is None:
+            if weight_mode == "vanilla":
+                weights = []
+            elif weight_mode == "even":
+                weights = [0] * slot_count
+                if slot_count > 0:
+                    even = 100 // slot_count
+                    weights = [even] * slot_count
+                    # adjust remainder
+                    if weights:
+                        weights[0] += 100 - even * slot_count
+            else:
+                raise ValueError(f"{ctx}: unknown weightMode '{weight_mode}'")
+        if rare_weights is None:
+            if weight_mode == "vanilla":
+                rare_weights = []
+            elif weight_mode == "even":
+                rare_weights = [0] * rare_slots
+                if rare_slots > 0:
+                    even = 100 // rare_slots
+                    rare_weights = [even] * rare_slots
+                    if rare_weights:
+                        rare_weights[0] += 100 - even * rare_slots
+        return weights, rare_weights
+
+    def validate_weights(weights, expected, ctx):
+        if weights is None:
+            return
+        if expected == 0 and len(weights) > 0:
+            raise ValueError(f"{ctx}: slotCount=0 but weights provided")
+        if expected != 0 and len(weights) != expected:
+            raise ValueError(f"{ctx}: weights length {len(weights)} != slotCount {expected}")
+        total = sum(weights)
+        if total != 100 and len(weights) > 0:
+            raise ValueError(f"{ctx}: weights sum {total} != 100")
+        if any(w < 0 for w in weights):
+            raise ValueError(f"{ctx}: weights must be non-negative")
+
+    def extract_level_bands(entry: Dict, slot_count: int, ctx: str, key_name: str):
+        bands = entry.get(key_name)
+        if bands is None:
+            return []
+        result = []
+        for idx, band in enumerate(bands):
+            try:
+                minLv = int(band.get("minLv"))
+                maxLv = int(band.get("maxLv"))
+            except Exception:
+                raise ValueError(f"{ctx}: {key_name}[{idx}] must have minLv/maxLv ints")
+            if minLv > maxLv:
+                raise ValueError(f"{ctx}: {key_name}[{idx}] minLv > maxLv")
+            if maxLv > 100:
+                raise ValueError(f"{ctx}: {key_name}[{idx}] maxLv > 100")
+            result.append((minLv, maxLv))
+        if slot_count == 0 and len(result) > 0:
+            raise ValueError(f"{ctx}: slotCount=0 but {key_name} provided")
+        if slot_count != 0 and len(result) not in (0, slot_count):
+            raise ValueError(f"{ctx}: {key_name} length {len(result)} != slotCount {slot_count}")
+        return result
+
+    def extract_level_bands_raw(entry: Dict, expected: int, ctx: str, key_name: str):
+        bands = entry.get(key_name)
+        if bands is None:
+            return []
+        result = []
+        for idx, band in enumerate(bands):
+            try:
+                minLv = int(band.get("minLv"))
+                maxLv = int(band.get("maxLv"))
+            except Exception:
+                raise ValueError(f"{ctx}: {key_name}[{idx}] must have minLv/maxLv ints")
+            if minLv > maxLv:
+                raise ValueError(f"{ctx}: {key_name}[{idx}] minLv > maxLv")
+            if maxLv > 100:
+                raise ValueError(f"{ctx}: {key_name}[{idx}] maxLv > 100")
+            result.append((minLv, maxLv))
+        if expected == 0 and len(result) > 0:
+            raise ValueError(f"{ctx}: slotCount=0 but {key_name} provided")
+        if expected != 0 and len(result) not in (0, expected):
+            raise ValueError(f"{ctx}: {key_name} length {len(result)} != slotCount {expected}")
+        return result
+
     def process_time_slot(name, entry, time_key: str, ts_entry: Dict):
         nonlocal wl_pool, bl_pool, rules, fishing_rules
         key = entry.get("key")
@@ -520,9 +663,11 @@ def main():
 
         slot_mode = parse_slot_mode(ts_entry.get("slotMode", entry.get("slotMode")))
         max_species = parse_int(ts_entry.get("maxSpecies", entry.get("maxSpecies")), f"{name}/{time_key}/maxSpecies")
-        max_rerolls = parse_int(ts_entry.get("maxRerolls", entry.get("maxRerolls")), f"{name}/{time_key}/maxRerolls")
-        allow_empty = bool(ts_entry.get("allowEmpty", False))
+        max_rerolls_raw = parse_int(ts_entry.get("maxRerolls", entry.get("maxRerolls")), f"{name}/{time_key}/maxRerolls", allow_null=True)
+        allow_empty = bool(ts_entry.get("allowEmpty", entry.get("allowEmpty", False)))
         special_mask = parse_special_overrides(ts_entry, entry, f"{name}/{time_key}")
+        slot_count = parse_int(ts_entry.get("slotCount", entry.get("slotCount", None)), f"{name}/{time_key}/slotCount", allow_null=True)
+        encounter_rate = parse_int(ts_entry.get("encounterRate", entry.get("encounterRate", None)), f"{name}/{time_key}/encounterRate", allow_null=True)
 
         slot_limit = AREA_SLOT_LIMITS.get(areaName)
         if slot_limit is None:
@@ -531,22 +676,95 @@ def main():
             raise ValueError(f"{name}/{time_key}: maxSpecies must be >0 (or allowEmpty true)")
         if max_species > slot_limit:
             raise ValueError(f"{name}/{time_key}: maxSpecies {max_species} exceeds slot limit {slot_limit}")
+        if slot_count is None:
+            slot_count = 0
+        if allow_empty:
+            if slot_count != 0:
+                raise ValueError(f"{name}/{time_key}: allowEmpty=true requires slotCount=0")
+            if encounter_rate is not None:
+                raise ValueError(f"{name}/{time_key}: allowEmpty=true requires encounterRate to be unspecified")
+        else:
+            if encounter_rate is None:
+                raise ValueError(f"{name}/{time_key}: encounterRate must be specified (slotSet or timeSlot)")
 
         # build pools for area (non-fishing) default/rare
         default_block = ts_entry.get("default")
         rare_block = ts_entry.get("rare")
         wl_normal, bl_normal = build_pool(default_block, f"{name}/{time_key}/default")
         wl_rare, bl_rare = build_pool(rare_block, f"{name}/{time_key}/rare")
+        wl_effective = len(wl_normal) - len(bl_normal)
+        if wl_effective < 0:
+            wl_effective = 0
 
+        base_rare_rate = entry.get("rareRate", None)
+        base_rare_slots = entry.get("rareSlots", None)
         rare_rate = parse_int(rare_block.get("rareRate"), f"{name}/{time_key}/rareRate", allow_null=True) if rare_block is not None else None
         rare_slots = parse_int(rare_block.get("rareSlots"), f"{name}/{time_key}/rareSlots", allow_null=True) if rare_block is not None else None
+        if rare_block is not None:
+            if slot_mode == RANDOMIZER_SLOT_MODE_RARE:
+                if rare_rate is None or rare_slots is None:
+                    raise ValueError(f"{name}/{time_key}: slotMode=rare override requires rareRate and rareSlots (null is invalid)")
+            else:
+                # uniformなどの場合は、nullならベースを継承、片方だけはエラー
+                if rare_rate is None and rare_slots is None:
+                    rare_rate = base_rare_rate
+                    rare_slots = base_rare_slots
+                elif rare_rate is None or rare_slots is None:
+                    raise ValueError(f"{name}/{time_key}: override rareRate/rareSlots requires both to be set (null is invalid)")
+        else:
+            rare_rate = base_rare_rate
+            rare_slots = base_rare_slots
+        if slot_mode == RANDOMIZER_SLOT_MODE_RARE and (rare_rate is None or rare_slots is None):
+            raise ValueError(f"{name}/{time_key}: slotMode=rare requires rareRate and rareSlots (null found)")
         validate_rare(f"{name}/{time_key}", slot_mode, rare_slots, rare_rate, max_species, slot_limit, allow_empty)
+        if slot_mode == RANDOMIZER_SLOT_MODE_RARE and rare_slots and not wl_rare and not allow_empty:
+            raise ValueError(f"{name}/{time_key}: slotMode=rare but rare whitelist is empty")
         if allow_empty:
             if wl_normal or wl_rare:
                 raise ValueError(f"{name}/{time_key}: allowEmpty=true but whitelist is not empty")
-        ensure_non_empty(wl_normal, allow_empty, f"{name}/{time_key}")
+        # Fishingはrod側でデータを持つため、メインWL空でも許容
+        if areaName != "Fishing":
+            ensure_non_empty(wl_normal, allow_empty, f"{name}/{time_key}")
+
+        # maxRerolls auto対応: 有効WL数を基準に推奨値を計算（上限8、最低1）
+        if max_rerolls_raw == "auto":
+            if allow_empty and wl_effective == 0:
+                max_rerolls = 0
+            else:
+                mr = wl_effective if wl_effective > 0 else 1
+                if mr > 8:
+                    mr = 8
+                max_rerolls = mr
+        else:
+            max_rerolls = max_rerolls_raw if max_rerolls_raw is not None else 0
         wl_norm_off, wl_norm_cnt, bl_norm_off, bl_norm_cnt = add_pool_entries(wl_normal, bl_normal)
         wl_rare_off, wl_rare_cnt, bl_rare_off, bl_rare_cnt = add_pool_entries(wl_rare, bl_rare) if wl_rare or bl_rare else (0, 0, 0, 0)
+
+        weights = []
+        rare_weights = []
+        level_bands = []
+        rare_level_bands = []
+
+        # Extract weights/level bands (slotCount-based). This is proto support; if invalid, just error.
+        weights, rare_weights = extract_weights(ts_entry, entry, slot_count, f"{name}/{time_key}")
+        validate_weights(weights, slot_count, f"{name}/{time_key}/weights")
+        validate_weights(rare_weights, rare_slots if rare_slots else 0, f"{name}/{time_key}/rareWeights")
+        level_bands = extract_level_bands(ts_entry, slot_count, f"{name}/{time_key}", "levelBands")
+        rare_level_bands = extract_level_bands(ts_entry, rare_slots if rare_slots else 0, f"{name}/{time_key}", "rareLevelBands")
+
+        weight_off, weight_cnt = (0, 0)
+        rare_weight_off, rare_weight_cnt = (0, 0)
+        level_off, level_cnt = (0, 0)
+        rare_level_off, rare_level_cnt = (0, 0)
+
+        if weights:
+            weight_off, weight_cnt = add_weight_entries(weights, weight_pool)
+        if rare_weights:
+            rare_weight_off, rare_weight_cnt = add_weight_entries(rare_weights, rare_weight_pool)
+        if level_bands:
+            level_off, level_cnt = add_level_entries(level_bands, level_band_pool)
+        if rare_level_bands:
+            rare_level_off, rare_level_cnt = add_level_entries(rare_level_bands, rare_level_band_pool)
 
         fishing_offset = 0
         fishing_count = 0
@@ -555,6 +773,8 @@ def main():
             fishing = ts_entry.get("fishing")
             if fishing is None and not allow_empty:
                 raise ValueError(f"{name}/{time_key}: fishing block required for Fish area")
+            if fishing is None and allow_empty and not ts_entry.get("allowEmpty", False):
+                raise ValueError(f"{name}/{time_key}: allowEmpty=true for Fishing requires allowEmpty:true in timeSlot (empty block is not allowed)")
 
             fishing_offset = len(fishing_rules)
             rod_rules = []
@@ -595,8 +815,22 @@ def main():
                         raise ValueError(f"{name}/{time_key}/fishing/{rod}: allowEmpty=true but whitelist is not empty")
                 ensure_non_empty(rod_wl_norm, rod_allow_empty, f"{name}/{time_key}/fishing/{rod}")
 
+                rod_level_bands = extract_level_bands_raw(rod_data, rod_max_species if rod_max_species else 0, f"{name}/{time_key}/fishing/{rod}", "levelBands")
+                rod_rare_level_bands = extract_level_bands_raw(rod_data, rod_rare_slots if rod_rare_slots else 0, f"{name}/{time_key}/fishing/{rod}", "rareLevelBands")
+
+                if rod_allow_empty:
+                    if rod_level_bands or rod_rare_level_bands:
+                        raise ValueError(f"{name}/{time_key}/fishing/{rod}: allowEmpty=true but levelBands provided")
+
                 n_off, n_cnt, nb_off, nb_cnt = add_pool_entries(rod_wl_norm, rod_bl_norm)
                 r_off, r_cnt, rb_off, rb_cnt = add_pool_entries(rod_wl_rare, rod_bl_rare) if rod_wl_rare or rod_bl_rare else (0, 0, 0, 0)
+
+                rod_level_off, rod_level_cnt = (0, 0)
+                rod_rare_level_off, rod_rare_level_cnt = (0, 0)
+                if rod_level_bands:
+                    rod_level_off, rod_level_cnt = add_level_entries(rod_level_bands, level_band_pool)
+                if rod_rare_level_bands:
+                    rod_rare_level_off, rod_rare_level_cnt = add_level_entries(rod_rare_level_bands, rare_level_band_pool)
 
                 rod_rules.append({
                     "normal": (n_off, n_cnt, nb_off, nb_cnt),
@@ -608,6 +842,8 @@ def main():
                     "specialOverrides": rod_special_mask,
                     "allowEmpty": 1 if rod_allow_empty else 0,
                     "maxRerolls": 0 if rod_max_rerolls is None else rod_max_rerolls,
+                    "levelBands": (rod_level_off, rod_level_cnt),
+                    "rareLevelBands": (rod_rare_level_off, rod_rare_level_cnt),
                 })
 
             fishing_count = len(rod_rules)
@@ -629,10 +865,37 @@ def main():
             "fishingCount": fishing_count,
             "specialOverrides": special_mask,
             "allowEmpty": 1 if allow_empty else 0,
+            "slotCount": slot_count if slot_count is not None else 0,
+            "encounterRate": encounter_rate if encounter_rate is not None else 0,
+            "weightOffset": weight_off,
+            "weightCount": weight_cnt,
+            "rareWeightOffset": rare_weight_off,
+            "rareWeightCount": rare_weight_cnt,
+            "levelBandOffset": level_off,
+            "levelBandCount": level_cnt,
+            "rareLevelBandOffset": rare_level_off,
+            "rareLevelBandCount": rare_level_cnt,
         }
         rules.append(rule)
 
+    def apply_slot_set(entry: Dict) -> Dict:
+        """Merge slotSet template into area entry."""
+        if "slotSet" not in entry:
+            return entry
+        set_name = entry["slotSet"]
+        if set_name not in slot_sets:
+            raise ValueError(f"{set_name}: slotSet is not defined")
+        base = dict(slot_sets[set_name] or {})
+        merged = dict(base)
+        merged.update(entry)
+        # map slotCount -> maxSpecies if not explicitly set
+        if "maxSpecies" not in merged and "slotCount" in merged and merged["slotCount"] is not None:
+            merged["maxSpecies"] = merged["slotCount"]
+        merged.pop("slotSet", None)
+        return merged
+
     def process_entry(name, entry):
+        entry = apply_slot_set(entry)
         time_slots_block = entry.get("timeSlots")
         if time_slots_block is None:
             raise ValueError(f"{name}: timeSlots is required (any/false/morning/day/evening/night)")
@@ -689,6 +952,18 @@ def main():
         f.write(HEADER_PREAMBLE)
         f.write(render_array("sRandomizerAreaWhitelistPool", wl_pool))
         f.write(render_array("sRandomizerAreaBlacklistPool", bl_pool))
+        f.write(render_array("sRandomizerAreaWeightPool", weight_pool))
+        f.write(render_array("sRandomizerAreaRareWeightPool", rare_weight_pool))
+
+        f.write("static const struct RandomizerLevelBand sRandomizerAreaLevelBandPool[] = {\n")
+        for band in level_band_pool:
+            f.write(f"    {{ .minLevel = {band[0]}, .maxLevel = {band[1]} }},\n")
+        f.write("};\n\n")
+
+        f.write("static const struct RandomizerLevelBand sRandomizerAreaRareLevelBandPool[] = {\n")
+        for band in rare_level_band_pool:
+            f.write(f"    {{ .minLevel = {band[0]}, .maxLevel = {band[1]} }},\n")
+        f.write("};\n\n")
 
         # Fishing rules table
         f.write("static const struct RandomizerFishingRule sRandomizerFishingRules[] = {\n")
@@ -709,6 +984,10 @@ def main():
             f.write(f"        .specialOverrides = {fr.get('specialOverrides', SPECIAL_MASK_ALL)},\n")
             f.write(f"        .allowEmpty = {fr.get('allowEmpty', 0)},\n")
             f.write(f"        .maxRerolls = {fr.get('maxRerolls', 0)},\n")
+            f.write(f"        .levelBandOffset = {fr.get('levelBands', (0,0))[0]},\n")
+            f.write(f"        .levelBandCount = {fr.get('levelBands', (0,0))[1]},\n")
+            f.write(f"        .rareLevelBandOffset = {fr.get('rareLevelBands', (0,0))[0]},\n")
+            f.write(f"        .rareLevelBandCount = {fr.get('rareLevelBands', (0,0))[1]},\n")
             f.write("    },\n")
         f.write("};\n\n")
 
@@ -740,10 +1019,24 @@ def main():
                 f.write("        .fishingRules = NULL,\n")
                 f.write("        .fishingRuleCount = 0,\n")
             f.write(f"        .allowEmpty = {r['allowEmpty']},\n")
+            f.write(f"        .slotCount = {r.get('slotCount', 0)},\n")
+            f.write(f"        .encounterRate = {r.get('encounterRate', 0)},\n")
+            f.write(f"        .weightOffset = {r.get('weightOffset', 0)},\n")
+            f.write(f"        .weightCount = {r.get('weightCount', 0)},\n")
+            f.write(f"        .rareWeightOffset = {r.get('rareWeightOffset', 0)},\n")
+            f.write(f"        .rareWeightCount = {r.get('rareWeightCount', 0)},\n")
+            f.write(f"        .levelBandOffset = {r.get('levelBandOffset', 0)},\n")
+            f.write(f"        .levelBandCount = {r.get('levelBandCount', 0)},\n")
+            f.write(f"        .rareLevelBandOffset = {r.get('rareLevelBandOffset', 0)},\n")
+            f.write(f"        .rareLevelBandCount = {r.get('rareLevelBandCount', 0)},\n")
             f.write("    },\n")
         f.write("};\n\n")
         f.write(f"#define RANDOMIZER_AREA_RULE_COUNT {len(rules)}\n")
         f.write(f"#define RANDOMIZER_FISHING_RULE_COUNT {len(fishing_rules)}\n")
+        f.write(f"#define RANDOMIZER_WEIGHT_POOL_COUNT {len(weight_pool)}\n")
+        f.write(f"#define RANDOMIZER_RARE_WEIGHT_POOL_COUNT {len(rare_weight_pool)}\n")
+        f.write(f"#define RANDOMIZER_LEVEL_BAND_POOL_COUNT {len(level_band_pool)}\n")
+        f.write(f"#define RANDOMIZER_RARE_LEVEL_BAND_POOL_COUNT {len(rare_level_band_pool)}\n")
 
     # Exceptions (debug-only)
     if exceptions_data is not None:

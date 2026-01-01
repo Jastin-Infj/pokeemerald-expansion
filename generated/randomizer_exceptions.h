@@ -9,10 +9,5 @@ struct RandomizerException {
     u8 rodType; // 0xFF=any
 };
 
-static const struct RandomizerException sRandomizerExceptions[] = {
-    { .mapGroup = MAP_GROUP(MAP_ROUTE101), .mapNum = MAP_NUM(MAP_ROUTE101), .areaMask = 1, .timeSlot = 255, .rodType = 255 },
-    { .mapGroup = MAP_GROUP(MAP_ROUTE102), .mapNum = MAP_NUM(MAP_ROUTE102), .areaMask = 4, .timeSlot = 255, .rodType = 0 },
-    { .mapGroup = MAP_GROUP(MAP_ROUTE103), .mapNum = MAP_NUM(MAP_ROUTE103), .areaMask = 2, .timeSlot = 0, .rodType = 255 },
-    { .mapGroup = MAP_GROUP(MAP_ROUTE104), .mapNum = MAP_NUM(MAP_ROUTE104), .areaMask = 8, .timeSlot = 3, .rodType = 255 },
-};
-#define RANDOMIZER_EXCEPTION_COUNT 4
+static const struct RandomizerException sRandomizerExceptions[] = {};
+#define RANDOMIZER_EXCEPTION_COUNT 0

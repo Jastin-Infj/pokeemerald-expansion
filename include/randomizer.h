@@ -73,6 +73,31 @@ struct RandomizerGroupSet {
     u16 maxGroup;
 };
 
+// View into generated rule data（weights/レベル帯/遭遇率などを参照するための構造体）
+struct RandomizerRuleView {
+    const struct RandomizerAreaRule *areaRule;
+    const struct RandomizerFishingRule *fishingRule;
+    const u16 *wl;
+    u16 wlCount;
+    const u16 *bl;
+    u16 blCount;
+    const u16 *weights;
+    u16 weightCount;
+    const u16 *rareWeights;
+    u16 rareWeightCount;
+    const struct RandomizerLevelBand *levelBands;
+    u16 levelBandCount;
+    const struct RandomizerLevelBand *rareLevelBands;
+    u16 rareLevelBandCount;
+    u8 slotCount;
+    u8 slotMode;
+    u8 rareSlots;
+    u8 rareRate;
+    u8 encounterRate;
+    u8 allowEmpty;
+    u8 specialOverrides;
+};
+
 
 u32 GetRandomizerSeed(void);
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature);
@@ -106,6 +131,7 @@ u16 RandomizeWildEncounter(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemon
 bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum WildPokemonArea area, u8 slot, u8 rodType, u8 timeSlot, u16 *outSpecies);
 bool8 RandomizerIsEncounterBlocked(u8 mapGroup, u8 mapNum, enum WildPokemonArea area, u8 rodType, u8 timeSlot);
 u8 RandomizerResolveTimeSlot(u8 defaultSlot);
+bool8 RandomizerGetAreaRuleView(u8 mapGroup, u8 mapNum, enum WildPokemonArea area, u8 rodType, u8 timeSlot, struct RandomizerRuleView *out);
 
 // Returns TRUE if it is possible for the species tableSpecies to randomize into the species matchSpecies.
 // This does not mean that it actually did, though.
