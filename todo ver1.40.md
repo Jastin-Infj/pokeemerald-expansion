@@ -1,0 +1,88 @@
+# todo ver1.40 — 現状把握メモ
+
+## 現在の状況（野生ランダマイザー）
+- 野生ポケモンのランダマイザー化は動作済み（WL/BLでのフィルタ＋ランダム化が機能）。
+- スロット枠（maxSpecies）はエリア種別ごとの上限を守りつつ増減可能。例: Land/WATER/ROCK/FISHで上限定義を持ち、データ側で値を絞る運用も可。
+- timeSlots拡張（any＋部分上書き、allowEmpty自動false落ち）は v1.31 までに実装済みで、野生遭遇の挙動確認済み。
+- allowEmpty=true を適用したエリアでは、遭遇スキップが正しく行われ、ブロックログもWARNで出力されることを確認。
+
+## 次ステップ（これから詰める内容）
+- ここに追加要件や新仕様を書き足していく（例: カテゴリフィルタの強化、さらなるデータスキーマ変更など）。
+
+## 新たに着手する検討テーマ（遭遇率・スロット再編）
+- 現状: 各マップは元の野生テーブル（最大12枠など）を保持し、そのスロットに対して種族を置き換えている。slotMode=uniform は「レア枠抽選の有無」を決めるのみで、スロット配列の枠数・比率は元テーブル依存。
+- 目的: スロット数/比率/レベル帯を定義ファイル側で可変にし、レア枠の出現率（遭遇確率）もデータ駆動にする。
+  - 例: Route101 の元比率を無視して、定義された weighted slots に全面置き換えできるようにする。
+  - レア枠抽選で当たった場合、特定スロットを上書きするのではなく、レア用の別比率を持たせたい。
+  - 遭遇率そのもの（歩数あたりエンカウント率）も既存設定を取得し、必要ならデータ側で上書きできるように検討（デフォルトは従来設定を尊重）。
+- 方針のたたき台:
+  - 既存テーブルはそのまま残しつつ、YAML側に「スロット配列」「各スロット重み」「レア枠重み」「レベル帯オプション」を持たせる拡張キーを追加する。
+  - スロット指定が無い場合は既存テーブルを使用（後方互換）。指定があれば全スロットを定義優先で再構成。
+  - レア枠: rate/slots だけでなく、レア側の配列に重みを設定できるようにする（出現率を下げるなどの工夫）。
+    - rareSlots 抽選で当たった場合は一般枠を1スロット消費し、末尾スロットをレア枠に割り当てる（例: Land最大12ならインデックス11、最大5ならインデックス4）。一般枠と置き換える運用を前提。
+  - スロットごとに重み（出現確率）を持てるようにする。未指定時は均等 or バニラ比率を流用する後方互換を想定。
+    - weight は各リスト（通常/レア）で合計100固定とし、マイナスや100超過はバリデーションエラーにする。
+    - 分離モデル案: レア抽選成功時はレア配列だけで100、失敗時は一般配列だけで100。ただし物理スロット数は一般＋レアで上限内に収め、レアは末尾スロットを占有する想定（総スロット数の帳尻は常に合わせる）。
+    - rareSlots は0（レア枠なし）から上限までを許容し、rareRateに応じて「レア枠全占有」「レア枠なし」の極端ケースもバリデーションでカバーする。上限は maxSpecies と種別スロット上限に従う。
+    - weight未指定時の挙動フラグを用意し、「均等分配」と「バニラ比率流用」のどちらを使うかをデータ側で選べるようにする。
+    - バリデーション方針: 「重み配列を明示」または「未指定時フラグ（均等/バニラ流用）を明示」のどちらか必須。両方書き/両方なしはビルドエラー。バニラ遭遇を例外許可している場合は強制でバニラ比率流用（コメントで明示）。
+    - レア抽選は従来どおり1枠ずつ抽選（rareSlotsはレア側スロット数の上限扱い）。一度の当たりで複数レア枠を同時に埋める運用は行わない。
+    - レア抽選タイミング: スロット選定前に rareSlots 回まで順番に抽選し、当たった回数ぶんレア枠を確保（各抽選は独立）。0回当選なら一般配列のみ、n回当選なら「一般枠を末尾からn枠レアに置換した状態」で重み抽選を行う（maxRerolls等は従来同様）。この多段抽選を本実装方針とする。
+  - スロット上限は種別ごとに異なる点を明記（例: Land=12枠、Water/Rock=5枠、Fishing=rod別上限など）。定義側で上限未指定ならこの種別デフォルトを用いる。
+  - レベル帯も定義可能にし、出現率・スロット構成とセットで上書きできるようにする（未指定時は従来のレベル帯を流用する後方互換）。
+  - 新規・既存マップでバニラに遭遇データが無い場所へ野生を追加する場合は、porymap側にもエンカウント設定を持たせる前提で、データ不足時はビルドエラーとする方針（例外エリアを除く）。街などに野生を出す際も「バニラ側設定必須＋上書きで制御」を基本とする。
+  - スロットごとのレベル帯テンプレートを種族とは分離して持つ案を検討（例: slot1: minLv3-maxLv5, slot2: minLv2-maxLv6）。種族はWLからランダム置換し、レベル帯のみスロットに結び付ける。未指定時はバニラのレベル帯を流用。
+- 実装検討タスク
+  - 既存の元テーブル参照箇所を洗い出し（wild_encounters系のJSON/ヘッダ、スロット上限処理）。
+  - 新しい定義スキーマ案を作成（weighted slots, rare-weight, level band optional）。
+  - 後方互換: 未指定時は従来のテーブル/比率をそのまま利用。
+  - weight未指定時挙動フラグ（均等/バニラ流用）のキー名、rare抽選方式フラグのキー名を決定。
+  - timeSlot/rod でも slotCount/weights/encounterRate/levelBands を上書き可能とする前提で優先順位を明記（slotSet → timeSlot → rod）。矛盾や未対応キー上書きはエラー。
+  - weight/レベル帯/遭遇率の上書きは timeSlot/rod でも可能にする前提で優先順位を明記（未指定はバニラ流用）。
+  - レベル帯テンプレートの型・バリデーション（minLv/maxLv[+step]は整数、min>maxはエラー、範囲外はエラー）を決める。
+  - 出力構造: `generated/randomizer_area_rules.h` を拡張し、slotCount（実使用スロット数）、weight配列、レベル帯配列、遭遇率を同テーブルにまとめる。種別上限（Land=12, Water/Rock=5, Fishing rod別）超過は生成時エラーとし、weight/レベル帯は slotCount 分だけ `u8` で生成。
+  - slotMode も同テーブルで扱い、weighted/rare指定と整合するよう拡張（既存の uniform/rare と新スキーマの重み設定が矛盾しないよう整理）。
+  - データ構成: `slotSets` セクションに重いスロット定義（weight/レベル帯/遭遇率/slotMode/slotCount等）をテンプレート化し、`areas` では `slotSet: <name>` を参照＋エリア固有のフラグ（allowEmpty/specialOverrides/maxRerolls/timeSlot/rod上書きなど）のみ記載する方式でシンプル化。
+  - バリデーション（厳格化）
+    - slotSet参照の未定義はエラー。
+    - weight配列明示 or weightMode(均等/バニラ流用) のどちらか必須、両方 or 両方なしはエラー。
+    - encounterRate 必須（1–100 or vanilla）、rareWeight/weight合計100、負数や超過はエラー。encounterRate=0はエラー（遭遇なしは allowEmpty/slotCount=0 で表現）。
+    - slotCountが種別上限・maxSpeciesを超えない。rareSlotsは0以上かつ上限以内。
+    - levelBandsは整数、min>maxや範囲外はエラー（maxLvは100まで）。
+    - weight/rareWeightのスロット数と slotCount/rareSlotsが一致しない場合はエラー。
+    - バニラ遭遇例外時は weightMode=vanilla を強制（他指定があればエラー）。
+    - allowEmpty は slotSet 側に集約し、area/timeSlot/rod では指定不可（移行）。エリア側に残っていた場合はエラー扱い。allowEmpty=true の場合は slotCount未指定（=0扱い）、weights/rareWeights/encounterRate/levelBands など「遭遇に関する項目」は未指定（空）を必須とし、1つでも指定があればエラー。
+    - timeSlot/rod でも slotCount/weights/encounterRate/levelBands を上書き可能とする前提で、優先順位は slotSet → timeSlot → rod。未対応キー上書きや矛盾はエラー。
+  - 運用ルール
+    - slotSetはエリア単位で固定参照（timeSlot/rodで slotSet 自体は差し替えない）。上書きは個別項目のみ。
+    - レベル帯の上限は100までを許容範囲とする。
+    - ログ: 適用slotSet名、slotCount、weightMode(even/vanilla)、rare抽選回数/当選数(例: rareDraws=1/3)、encounterRate、timeSlot/rodをWARNで出す（情報重視で絞りすぎない）。必要ならフラグでON/OFF。
+    - 未指定キーや想定外キーの上書きはビルド時エラーとする。
+  - slotSetsスキーマ案（叩き台）
+    - 最低限: `slotCount`, `slotMode`, `weightMode(even|vanilla)`, `weights(合計100)`, `rareWeights(合計100, rareSlots上限内)`, `levelBands`（配列: minLv/maxLv[+step]）、`encounterRate`（未指定はバニラ）。
+    - rare抽選方式は multiDraw固定（rareSlots回独立抽選）とし、将来拡張なら `rareDrawMode: multi|single` を追加検討。
+    - timeSlot/rod での上書き許可項目を列挙し、優先順位を固定（例: slotSet参照 → timeSlot/rodで weights/weightMode/encounterRate/levelBands/slotMode を上書き可）。
+    - encounterRate は必須。整数（1–100%相当）または `vanilla` を許容し、未指定はエラー。0はエラー（遭遇なしは allowEmpty/slotCount=0 で表現）。
+    - weightMode 仕様: `even`(均等割り) / `vanilla`(バニラ比率流用) を通常/レア共通で使用。weightsと併記はエラー（どちらか一方）。weights未指定なら weightMode 必須、rareWeights未指定なら weightMode でレアも同じ挙動を適用。
+    - 主なキー例: allowEmpty（slotSetのみ）、slotCount、slotMode、weightMode、weights/rareWeights、levelBands/rareLevelBands、encounterRate、rareSlots、rareDrawMode（multi固定想定）。
+  - サンプルデータ案
+    - vanilla流用セット: slotCount未指定（種別デフォルト）、weightMode=vanilla、encounterRate未指定（vanilla扱い）、rareSlots=0、weights/rareWeights/levelBands/rareLevelBands未指定（vanilla扱い）。vanillaセットで遭遇系の値を明示したらビルドエラー。
+    - 均等重みセット: slotCount=種別上限、weightMode=even、rareSlots=0、levelBandsはバニラ流用。
+    - レアなし＋weights明示: slotCount=上限、weights合計100、rareSlots=0。
+    - レアあり（rareSlots>0）: weights/rareWeights合計100、encounterRate明示、levelBands明示。
+    - allowEmptyセット: slotCount=0、allowEmpty=true、weights/rareWeights/encounterRate/levelBandsは未指定。
+    - エラー例（ビルドで弾く想定）: weightsとweightMode併記、weight合計≠100、rareSlots>slotCount、encounterRate未指定、allowEmpty=trueなのにweightsあり、未対応キー上書き 等（サンプル化する場合はコメントのみで、makeが失敗しない形にする）。
+    - timeSlot/rod上書きサンプル: base slotSet=weighted_land、timeSlot: morningでencounterRate=vanilla＋weightMode=even上書き、rod: superでslotCount=5＋rareSlots=1上書き、といった形で部分上書き。
+  - 移行ステップ
+    - ステップ1: 全エリアに slotSet: vanilla（既存テーブル流用）を割り当て、スキーマ新設でビルドが通ることを確認。
+    - ステップ2: テスト用のごく少数のエリアだけ新slotSet（weighted/levelBand/encounterRate指定）に差し替えて検証。
+    - ステップ3: 段階的に対象エリアを増やし、バリデーション警告/エラーが出ないことを確認しつつ移行。
+  - 事前準備
+    - スキーマキー確定版のミニ雛形（コメント付きYAML）を用意する。
+    - vanilla slotSet の実体（全未指定でvanilla扱い）を用意する。
+    - テスト用slotSet（均等重み/レアなし/レアあり/allowEmpty）を実データに追加して、スクリプトバリデーションが通るか試せる状態にする。
+  - 実装作業の流れ（メモ）
+    - ステップA: スキーマ雛形をYAMLで作成（vanilla slotSet＋テスト用slotSetを含める）。
+    - ステップB: build_randomizer_area_rules.py をスキーマ対応に拡張（slotSets→areas参照、バリデーション実装）。
+    - ステップC: テスト用エリアで生成・ビルドが通るか確認。
+    - ステップD: ログ内容（rareDraws等）を実機/エミュで確認し、必要なら調整。
