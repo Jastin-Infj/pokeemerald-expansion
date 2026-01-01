@@ -41,6 +41,41 @@ static u16 sTrainerPartyCacheTrainerId;
 static u8 sTrainerPartyCacheFilled;
 static u8 sTrainerPartyCacheDistinct;
 static u8 sTrainerPartyCacheTotal;
+static bool8 sAutoMaxRerollsLogValid = FALSE;
+static u8 sAutoMaxRerollsLogMapGroup;
+static u8 sAutoMaxRerollsLogMapNum;
+static u8 sAutoMaxRerollsLogArea;
+static u8 sAutoMaxRerollsLogTime;
+static u8 sAutoMaxRerollsLogRod;
+
+static u8 ClampAutoMaxRerolls(u16 count)
+{
+    if (count == 0)
+        return 0;
+    if (count > 8)
+        return 8;
+    return (u8)count;
+}
+
+static bool8 ShouldLogAutoMaxRerolls(u8 mapGroup, u8 mapNum, u8 area, u8 timeSlot, u8 rodType)
+{
+    if (!sAutoMaxRerollsLogValid
+        || sAutoMaxRerollsLogMapGroup != mapGroup
+        || sAutoMaxRerollsLogMapNum != mapNum
+        || sAutoMaxRerollsLogArea != area
+        || sAutoMaxRerollsLogTime != timeSlot
+        || sAutoMaxRerollsLogRod != rodType)
+    {
+        sAutoMaxRerollsLogValid = TRUE;
+        sAutoMaxRerollsLogMapGroup = mapGroup;
+        sAutoMaxRerollsLogMapNum = mapNum;
+        sAutoMaxRerollsLogArea = area;
+        sAutoMaxRerollsLogTime = timeSlot;
+        sAutoMaxRerollsLogRod = rodType;
+        return TRUE;
+    }
+    return FALSE;
+}
 
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
 {
@@ -1682,6 +1717,32 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
                 rareCount = rareSlots;
             }
 
+            // maxRerolls=auto (0xFF) はランタイムで有効候補数に基づいて決定する
+            u8 maxRerollsNormal = maxRerolls;
+            u8 maxRerollsRare = maxRerolls;
+            if (maxRerolls == RANDOMIZER_MAX_REROLLS_AUTO)
+            {
+                maxRerollsNormal = ClampAutoMaxRerolls(commonCount);
+                maxRerollsRare = ClampAutoMaxRerolls(rareCount);
+#ifndef NDEBUG
+                if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG) && ShouldLogAutoMaxRerolls(mapGroup, mapNum, area, timeSlot, rodType))
+                {
+                    DebugPrintfLevel(MGBA_LOG_WARN,
+                                     "[INFO] RandR auto maxRerolls map=%d/%d area=%d time=%d rod=%d normal=%d rare=%d -> n=%d r=%d",
+                                     mapGroup,
+                                     mapNum,
+                                     area,
+                                     timeSlot,
+                                     rodType,
+                                     commonCount,
+                                     rareCount,
+                                     maxRerollsNormal,
+                                     maxRerollsRare);
+                }
+#endif
+            }
+            maxRerolls = maxRerollsNormal;
+
             if (slotMode == SLOT_MODE_UNIFORM || rareCount == 0 || rareRate == 0)
             {
                 *outSpecies = RandomizeWithAreaRule(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule, fishingRule, FALSE, maxRerolls);
@@ -1695,12 +1756,13 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
                 u16 candidate = species;
                 u16 targetCount = rareHit ? rareCount : commonCount;
                 const u16 *wlTarget = rareHit ? wlRare : wlNormal;
+                u8 maxRerollsHit = rareHit ? maxRerollsRare : maxRerollsNormal;
 
 #ifndef NDEBUG
                 DebugLogWildRare(mapGroup, mapNum, area, slot, areaRule, fishingRule, rareHit, targetCount, rareHit ? rareCount : commonCount);
 #endif
 
-                for (attempt = 0; attempt <= maxRerolls; attempt++)
+                for (attempt = 0; attempt <= maxRerollsHit; attempt++)
                 {
                     u32 adjustedSeed = seed ^ attempt;
                     candidate = RandomizeMon(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), adjustedSeed, species);
@@ -1718,7 +1780,7 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
                     u16 idx = RandomizerNextRange(&state, targetCount);
                     candidate = wlTarget[idx];
 #ifndef NDEBUG
-                    DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, fishingRule, rareHit, maxRerolls + 1, TRUE);
+                    DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, fishingRule, rareHit, maxRerollsHit + 1, TRUE);
 #endif
                     *outSpecies = candidate;
                     return blocked;

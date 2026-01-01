@@ -76,7 +76,7 @@ slotSets:
   fishing_mixed_sample:
     slotMode: uniform
     maxSpecies: FISH_MAX_SLOTS
-    maxRerolls: 6
+    maxRerolls: auto
     allowEmpty: false
     encounterRate: 25
     fishing:
@@ -150,7 +150,7 @@ areas:
       mapNum: MAP_NUM(MAP_ROUTE102)
       areaMask: Land
     slotSet: rare_land_sample
-    maxRerolls: 12
+    maxRerolls: auto
     timeSlots:
       any:
         specialOverrides:

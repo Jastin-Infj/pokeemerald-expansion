@@ -58,6 +58,17 @@ enum {
     RANDOMIZER_TIME_SLOT_ANY = 0xFF,
 };
 
+// maxRerolls のランタイム自動算出用セントネル
+// 255 (0xFF) を「自動」扱いとし、ランタイムで有効候補数から決定する。
+// それ以外は固定値として扱う。
+// Fishing側も同様。
+// NOTE: ランタイムで clamp されるため、生成物はこの値をそのまま保持する。
+//       allowEmpty で 0 件ならランタイムは 0 を使用する。
+//       0 指定は「リロールしない」意味。
+//       1 以上は「(値+1) 回の試行」と同義（現行仕様の踏襲）。
+//       auto はランタイム計算に一本化（静的計算は廃止）。
+//       詳細は randomizer.c の実装を参照。
+#define RANDOMIZER_MAX_REROLLS_AUTO 0xFF
 enum {
     RANDOMIZER_SPECIAL_LEGEND      = 1 << 0,
     RANDOMIZER_SPECIAL_MYTHICAL    = 1 << 1,
@@ -136,6 +147,8 @@ def parse_args():
     ap.add_argument("--out", dest="out", default=str(DEFAULT_OUTPUT))
     ap.add_argument("--exceptions", dest="exceptions", default=str(ROOT / "data/randomizer/exception_maps.yml"))
     ap.add_argument("--exceptions-out", dest="exceptions_out", default=str(ROOT / "generated/randomizer_exceptions.h"))
+    ap.add_argument("--check", action="store_true", help="Validate only (no output files)")
+    ap.add_argument("--report", action="store_true", help="Print summary report to stdout")
     return ap.parse_args()
 
 
@@ -285,6 +298,7 @@ DEFAULT_SLOT_MODE = RANDOMIZER_SLOT_MODE_UNIFORM
 DEFAULT_WEIGHT_MODE = "vanilla"  # when weights are absent
 DEFAULT_RARE_SLOTS = 0
 DEFAULT_ENCOUNTER_RATE = 0
+MAX_REROLLS_AUTO = 0xFF
 
 # areaMaskごとのスロット上限（maxSpecies上限）
 AREA_SLOT_LIMITS = {
@@ -692,9 +706,6 @@ def main():
         rare_block = ts_entry.get("rare")
         wl_normal, bl_normal = build_pool(default_block, f"{name}/{time_key}/default")
         wl_rare, bl_rare = build_pool(rare_block, f"{name}/{time_key}/rare")
-        wl_effective = len(wl_normal) - len(bl_normal)
-        if wl_effective < 0:
-            wl_effective = 0
 
         base_rare_rate = entry.get("rareRate", None)
         base_rare_slots = entry.get("rareSlots", None)
@@ -726,15 +737,9 @@ def main():
         if areaName != "Fishing":
             ensure_non_empty(wl_normal, allow_empty, f"{name}/{time_key}")
 
-        # maxRerolls auto対応: 有効WL数を基準に推奨値を計算（上限8、最低1）
+        # maxRerolls auto はランタイム計算に委譲（セントネルを埋める）
         if max_rerolls_raw == "auto":
-            if allow_empty and wl_effective == 0:
-                max_rerolls = 0
-            else:
-                mr = wl_effective if wl_effective > 0 else 1
-                if mr > 8:
-                    mr = 8
-                max_rerolls = mr
+            max_rerolls = MAX_REROLLS_AUTO
         else:
             max_rerolls = max_rerolls_raw if max_rerolls_raw is not None else 0
         wl_norm_off, wl_norm_cnt, bl_norm_off, bl_norm_cnt = add_pool_entries(wl_normal, bl_normal)
@@ -841,7 +846,7 @@ def main():
                     "rareRate": 0 if rod_rare_rate is None else rod_rare_rate,
                     "specialOverrides": rod_special_mask,
                     "allowEmpty": 1 if rod_allow_empty else 0,
-                    "maxRerolls": 0 if rod_max_rerolls is None else rod_max_rerolls,
+                    "maxRerolls": 0 if rod_max_rerolls is None else (MAX_REROLLS_AUTO if rod_max_rerolls == "auto" else rod_max_rerolls),
                     "levelBands": (rod_level_off, rod_level_cnt),
                     "rareLevelBands": (rod_rare_level_off, rod_rare_level_cnt),
                 })
@@ -946,6 +951,16 @@ def main():
         process_entry(f"gift_{name}", entry)
 
     rules.sort(key=lambda r: (str(r["mapGroup"]), str(r["mapNum"]), r["areaMask"], r["timeSlot"]))
+
+    # 簡易レポート
+    if args.report or args.check:
+        allow_empty_rules = sum(1 for r in rules if r["allowEmpty"])
+        auto_rules = sum(1 for r in rules if r["maxRerolls"] == MAX_REROLLS_AUTO)
+        fishing_rules_count = sum(1 for r in rules if r.get("fishingCount", 0) > 0)
+        print(f"[report] rules={len(rules)} allowEmpty={allow_empty_rules} autoMaxRerolls={auto_rules} fishingAreas={fishing_rules_count}")
+        print(f"[report] wlPool={len(wl_pool)} blPool={len(bl_pool)} weightPool={len(weight_pool)} rareWeightPool={len(rare_weight_pool)}")
+    if args.check:
+        return 0
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
