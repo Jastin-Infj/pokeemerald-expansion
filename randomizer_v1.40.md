@@ -1,5 +1,15 @@
 # randomizer_v1.40 変更内容まとめ
 
+## リリースノート風サマリ
+- encounterRate/allowEmpty の厳格化（allowEmpty=true は encounterRate 未指定必須、書けばエラー）。  
+- rare設定の厳格化（slotMode=rare で rareRate/rareSlots 欠落や rareWL空はエラー）。  
+- maxRerolls `"auto"` 追加（静的に WL-BL 件数から min(件数,8)）。  
+- 釣り用 slotSet 追加、route_103_fishing を slotSet ベースに簡素化。  
+- route_102_land のレア枠を legend_unlock + specialOverrides 許可に。  
+- encounterRate を各エリア/slotSet に明示、allowEmpty 空エリアは未指定。  
+- ポップアップ時の allowEmpty ログは時間帯解決して1回だけ WARN。  
+- ビルド/生成：`python3 dev_scripts/build_randomizer_area_rules.py`、`CPPFLAGS_EXTRA="-UNDEBUG" CFLAGS_EXTRA="-UNDEBUG" make -j4` 成功。
+
 ## データスキーマ・バリデーション
 - **encounterRate必須化**: slotSet/エリア/timeSlotのいずれにも encounterRate が無い場合はビルドエラー。  
   - 例外: allowEmpty=true の空エリアは encounterRate 未指定が必須（0も書かない）。  
