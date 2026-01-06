@@ -44,7 +44,7 @@
 // These flags control whether a particular randomization feature is active.
 // They are ignored and disabled if the flags above are set.
 #ifndef FORCE_RANDOMIZE_WILD_MON
-#define RANDOMIZER_FLAG_WILD_MON            FLAG_UNUSED_0x020
+#define RANDOMIZER_FLAG_WILD_MON            FLAG_RANDOMIZER_AREA_WL
 #endif
 
 #ifndef FORCE_RANDOMIZE_FIELD_ITEMS

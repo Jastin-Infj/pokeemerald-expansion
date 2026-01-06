@@ -1,15 +1,19 @@
 #ifndef GUARD_CONFIG_DEXNAV_H
 #define GUARD_CONFIG_DEXNAV_H
 
-#define DEXNAV_ENABLED                FALSE  // Whether or not DexNav is enabled. If TRUE, flags/vars below must all be non-zero
+#define DEXNAV_ENABLED                TRUE  // Whether or not DexNav is enabled. If TRUE, flags/vars below must all be non-zero
 #define USE_DEXNAV_SEARCH_LEVELS      FALSE  /* WARNING: POSSIBLY EXCEEDS SAVEBLOCK SPACE! REQUIRES 1 BYTE PER SPECIES */
 
-// Flag/var defines
-#define DN_FLAG_SEARCHING             0 // Searching for mon
-#define DN_FLAG_DEXNAV_GET            0 // DexNav shows in start menu
-#define DN_FLAG_DETECTOR_MODE         0 // Allow player to find hidden mons
-#define DN_VAR_SPECIES                0 // Registered DexNav species
-#define DN_VAR_STEP_COUNTER           0 // Steps for finding hidden pokemon
+// 速度違反無効化（走行/自転車でチェインを切らない）
+// デフォルトON。デバッグフラグ（FLAG_RANDOMIZER_DEBUG_LOG）ともORで無効化。
+#define DEXNAV_IGNORE_SPEED_PENALTY   TRUE
+
+// Flag/var defines（必ず非0の空きを割り当てること）
+#define DN_FLAG_SEARCHING             FLAG_UNUSED_0x020 // Searching for mon
+#define DN_FLAG_DEXNAV_GET            FLAG_UNUSED_0x021 // DexNav shows in start menu
+#define DN_FLAG_DETECTOR_MODE         FLAG_UNUSED_0x022 // Allow player to find hidden mons
+#define DN_VAR_SPECIES                VAR_UNUSED_0x40F8 // Registered DexNav species
+#define DN_VAR_STEP_COUNTER           VAR_UNUSED_0x40F9 // Steps for finding hidden pokemon
 
 // Search parameters
 #define DEXNAV_TIMEOUT                  15  // 15 seconds is the time out. Max of 1092 seconds allowed

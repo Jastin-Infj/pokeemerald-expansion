@@ -96,6 +96,9 @@ struct RandomizerRuleView {
     u8 encounterRate;
     u8 allowEmpty;
     u8 specialOverrides;
+    const u16 *slotSpecies;
+    u16 slotSpeciesCount;
+    u8 slotRareStart;
 };
 
 

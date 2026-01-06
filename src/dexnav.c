@@ -5,8 +5,13 @@
 #include "data.h"
 #include "daycare.h"
 #include "decompress.h"
+#include "config/dexnav.h"
 #include "dexnav.h"
+#include "randomizer_area_rules.h"
+#include "randomizer.h"
+#include "random.h"
 #include "event_data.h"
+#include <stdio.h>
 #include "event_object_movement.h"
 #include "event_scripts.h"
 #include "field_effect.h"
@@ -121,13 +126,29 @@ struct DexNavGUI
     u16 landSpecies[LAND_WILD_COUNT];
     u16 waterSpecies[WATER_WILD_COUNT];
     u16 hiddenSpecies[HIDDEN_WILD_COUNT];
+    u8 landCount;
+    u8 waterCount;
+    u8 hiddenCount;
+    u8 landSlotCount;
+    u8 waterSlotCount;
+    u8 hiddenSlotCount;
+    u8 landRareStart;
+    u8 waterRareStart;
+    u8 hiddenRareStart;
+    struct RandomizerLevelBand landBands[LAND_WILD_COUNT];
+    struct RandomizerLevelBand waterBands[WATER_WILD_COUNT];
+    struct RandomizerLevelBand hiddenBands[HIDDEN_WILD_COUNT];
     u8 cursorRow;
     u8 cursorCol;
     u8 environment;
     u8 potential;
     u8 typeIconSpriteIds[2];
     u8 starSpriteIds[3];
+    u8 rareStarSpriteIds[LAND_WILD_COUNT + WATER_WILD_COUNT];
 };
+
+// Randomizer helper
+#define RANDOMIZER_ROD_NONE 0xFF
 
 // RAM
 
@@ -157,9 +178,49 @@ static void DexNavDrawIcons(void);
 static void DexNavUpdateSearchWindow(u8 proximity, u8 searchLevel);
 static void Task_DexNavSearch(u8 taskId);
 static void EndDexNavSearchSetupScript(const u8 *script, u8 taskId);
+static bool8 DexNavHasSeen(u16 species);
+static void DexNavSelectFirstAvailableSlot(void);
+static bool8 FillDexNavFromRandomizer(enum WildPokemonArea area, u8 rodType, u8 section, u16 *dst, struct RandomizerLevelBand *dstBands, u8 capacity, u8 *outCount, u8 *outSlotCount, u8 *outRareStart, bool8 *outAllowEmpty);
+static bool8 DexNavSelectionAllowed(u16 species, enum WildPokemonArea area, bool8 logFailure, bool8 *outSlotMismatch, bool8 *outAllowEmpty);
+#ifndef NDEBUG
+static void DebugPrintDexNavSpeciesArray(const char *tag, const u16 *arr, u8 len);
+#endif
 // HIDDEN MONS
 static void DexNavDrawHiddenIcons(void);
 static void DrawHiddenSearchWindow(u8 width);
+
+#ifndef NDEBUG
+// デバッグ用: 配列内容を簡易出力
+static void DebugPrintDexNavSpeciesArray(const char *tag, const u16 *arr, u8 len)
+{
+    if (!FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        return;
+    char buf[160];
+    u16 pos = 0;
+    u8 i;
+    for (i = 0; i < len && pos + 6 < sizeof(buf); i++)
+    {
+        u16 s = arr[i];
+        if (s == SPECIES_NONE)
+            buf[pos++] = '-';
+        else
+        {
+            u16 hundreds = s / 100;
+            u16 tens = (s / 10) % 10;
+            u16 ones = s % 10;
+            if (s >= 100)
+                buf[pos++] = '0' + hundreds;
+            if (s >= 10)
+                buf[pos++] = '0' + tens;
+            buf[pos++] = '0' + ones;
+        }
+        if (i != len - 1)
+            buf[pos++] = ',';
+    }
+    buf[pos] = '\0';
+    DebugPrintfLevel(MGBA_LOG_WARN, "[INFO] DexNav array %s: %s", tag, buf);
+}
+#endif
 
 //// Const Data
 // gui image data
@@ -178,6 +239,9 @@ static const u32 sPotentialStarGfx[] = INCBIN_U32("graphics/dexnav/star.4bpp.smo
 static const u32 sHiddenSearchIconGfx[] = INCBIN_U32("graphics/dexnav/hidden_search.4bpp.smol");
 static const u32 sOwnedIconGfx[] = INCBIN_U32("graphics/dexnav/owned_icon.4bpp.smol");
 static const u32 sHiddenMonIconGfx[] = INCBIN_U32("graphics/dexnav/hidden.4bpp.smol");
+    // rare枠表示用に、既存の星グラフィック/パレットを流用（8x8を1枚だけ使用）
+    static const struct CompressedSpriteSheet sRareSlotStarSheet = {sPotentialStarGfx, (8 * 8) / 2, 0x4001};
+    static const struct SpritePalette sRareSlotStarPalette = {gHeldItemPalette, 0x4001}; //既存パレットを流用
 
 // strings
 static const u8 sText_DexNav_NoInfo[] = _("--------");
@@ -193,6 +257,8 @@ static const u8 sText_HeldItem[] = _("{STR_VAR_1}");
 static const u8 sText_StartExit[] = _("{START_BUTTON} EXIT");
 static const u8 sText_DexNavChain[] = _("{NO} {STR_VAR_1}");
 static const u8 sText_DexNavChainLong[] = _("{NO}{STR_VAR_1}");
+static const u8 sText_DexNav_RegisterBlocked[] = _("Cannot register here.");
+static const u8 sText_DexNav_RegisterSlotMismatch[] = _("Not in slot map.");
 
 static const u8 sText_ArrowLeft[] = _("{LEFT_ARROW}");
 static const u8 sText_ArrowRight[] = _("{RIGHT_ARROW}");
@@ -913,19 +979,10 @@ static void Task_InitDexNavSearch(u8 taskId)
 
 static void DexNavDrawPotentialStars(u8 potential, u8 *dst)
 {
-    u8 spriteId;
+    // 以前の挙動に戻す: レア枠の星表示を行わない
     u32 i;
-
     for (i = 0; i < NELEMS(sDexNavSearchDataPtr->starSpriteIds); i++)
-    {
-        spriteId = MAX_SPRITES;
-        if (potential > i)
-            spriteId = CreateSprite(&sPotentialStarTemplate, SPECIES_ICON_X - 20, GetSearchWindowY() + 4 + (i * 8), 0);
-
-        dst[i] = spriteId;
-        if (spriteId != MAX_SPRITES)
-            gSprites[spriteId].invisible = TRUE;
-    }
+        dst[i] = MAX_SPRITES;
 }
 
 static void DexNavUpdateDirectionArrow(void)
@@ -1088,9 +1145,12 @@ static void Task_DexNavSearch(u8 taskId)
 
     if (sDexNavSearchDataPtr->proximity <= SNEAKING_PROXIMITY && TestPlayerAvatarFlags(PLAYER_AVATAR_FLAG_DASH | PLAYER_AVATAR_FLAG_BIKE))
     { // running/biking too close
-        //always do event script, even if player hasn't revealed a hidden mon. It's assumed they would be creeping towards it
-        EndDexNavSearchSetupScript(EventScript_MovedTooFast, taskId);
-        return;
+        if (!(DEXNAV_IGNORE_SPEED_PENALTY || FlagGet(FLAG_RANDOMIZER_DEBUG_LOG)))
+        {
+            //always do event script, even if player hasn't revealed a hidden mon. It's assumed they would be creeping towards it
+            EndDexNavSearchSetupScript(EventScript_MovedTooFast, taskId);
+            return;
+        }
     }
 
     if (ArePlayerFieldControlsLocked() == TRUE)
@@ -1513,8 +1573,145 @@ static u8 DexNavGeneratePotential(u8 searchLevel)
     return 0;   // No potential
 }
 
+#if RANDOMIZER_AVAILABLE == TRUE
+static bool8 TryGetRandomizerDexNavLevel(u16 species, enum EncounterType environment, u8 *level)
+{
+    struct RandomizerRuleView view;
+    u32 headerId = GetCurrentMapWildMonHeaderId();
+    u8 mapGroup = gSaveBlock1Ptr->location.mapGroup;
+    u8 mapNum = gSaveBlock1Ptr->location.mapNum;
+    u16 i;
+
+    struct AreaRodCombo
+    {
+        enum WildPokemonArea area;
+        u8 rod;
+    };
+
+    // Always try the primary area first, then fall back to fishing rods when the UI row is Water.
+    static const struct AreaRodCombo sAreaRodOrderLand[] = { { WILD_AREA_LAND, RANDOMIZER_ROD_NONE } };
+    static const struct AreaRodCombo sAreaRodOrderHidden[] = { { WILD_AREA_HIDDEN, RANDOMIZER_ROD_NONE } };
+    static const struct AreaRodCombo sAreaRodOrderWater[] = {
+        { WILD_AREA_WATER,   RANDOMIZER_ROD_NONE },
+        { WILD_AREA_FISHING, RANDOMIZER_ROD_OLD },
+        { WILD_AREA_FISHING, RANDOMIZER_ROD_GOOD },
+        { WILD_AREA_FISHING, RANDOMIZER_ROD_SUPER },
+    };
+
+    const struct AreaRodCombo *order = NULL;
+    u8 orderCount = 0;
+
+    switch (environment)
+    {
+    case ENCOUNTER_TYPE_LAND:
+        order = sAreaRodOrderLand;
+        orderCount = NELEMS(sAreaRodOrderLand);
+        break;
+    case ENCOUNTER_TYPE_WATER:
+        order = sAreaRodOrderWater;
+        orderCount = NELEMS(sAreaRodOrderWater);
+        break;
+    case ENCOUNTER_TYPE_HIDDEN:
+        order = sAreaRodOrderHidden;
+        orderCount = NELEMS(sAreaRodOrderHidden);
+        break;
+    default:
+        return FALSE;
+    }
+
+    for (i = 0; i < orderCount; i++)
+    {
+        u8 defaultSlot = GetTimeOfDayForEncounters(headerId, order[i].area);
+        u8 timeSlot = RandomizerResolveTimeSlot(defaultSlot);
+        u8 j;
+
+        // Try the resolved slot; if that fails, also try ANY to cope with fishing/time mismatches.
+        if (!RandomizerGetAreaRuleView(mapGroup, mapNum, order[i].area, order[i].rod, timeSlot, &view))
+        {
+            u8 anySlot = RandomizerResolveTimeSlot(RANDOMIZER_TIME_SLOT_ANY);
+            if (anySlot == timeSlot
+                || !RandomizerGetAreaRuleView(mapGroup, mapNum, order[i].area, order[i].rod, anySlot, &view))
+                continue;
+        }
+
+        if (view.slotSpecies == NULL
+            || view.slotSpeciesCount == 0)
+            continue;
+
+        {
+            u16 count = view.slotSpeciesCount;
+            for (j = 0; j < count; j++)
+            {
+                if (view.slotSpecies[j] == species)
+                {
+                    u8 lo = 0, hi = 0;
+                    bool8 hasBand = (view.levelBands != NULL && j < view.levelBandCount);
+
+                    if (hasBand)
+                    {
+                        lo = view.levelBands[j].minLevel;
+                        hi = view.levelBands[j].maxLevel;
+                    }
+                    else
+                    {
+                        const struct WildPokemonInfo *info = NULL;
+                        u8 slotLimit = 0;
+                        switch (order[i].area)
+                        {
+                        case WILD_AREA_LAND:
+                            info = gWildMonHeaders[headerId].encounterTypes[defaultSlot].landMonsInfo;
+                            slotLimit = LAND_WILD_COUNT;
+                            break;
+                        case WILD_AREA_WATER:
+                            info = gWildMonHeaders[headerId].encounterTypes[defaultSlot].waterMonsInfo;
+                            slotLimit = WATER_WILD_COUNT;
+                            break;
+                        case WILD_AREA_FISHING:
+                            info = gWildMonHeaders[headerId].encounterTypes[defaultSlot].fishingMonsInfo;
+                            slotLimit = FISH_WILD_COUNT;
+                            break;
+                        case WILD_AREA_HIDDEN:
+                            info = gWildMonHeaders[headerId].encounterTypes[defaultSlot].hiddenMonsInfo;
+                            slotLimit = HIDDEN_WILD_COUNT;
+                            break;
+                        default:
+                            break;
+                        }
+
+                        if (info == NULL || j >= slotLimit)
+                            continue;
+
+                        lo = info->wildPokemon[j].minLevel;
+                        hi = info->wildPokemon[j].maxLevel;
+                    }
+
+                    if (lo > hi)
+                    {
+                        u8 tmp = lo;
+                        lo = hi;
+                        hi = tmp;
+                    }
+                    *level = RandomUniform(RNG_DEXNAV_ENCOUNTER_LEVEL, lo, hi);
+                    return TRUE;
+                }
+            }
+        }
+    }
+
+    return FALSE;
+}
+#endif
+
 static u8 GetEncounterLevelFromMapData(u16 species, enum EncounterType environment)
 {
+#if RANDOMIZER_AVAILABLE == TRUE
+    {
+        u8 rndLevel;
+        if (TryGetRandomizerDexNavLevel(species, environment, &rndLevel))
+            return rndLevel;
+    }
+#endif
+
     u32 headerId = GetCurrentMapWildMonHeaderId();
     enum TimeOfDay timeOfDay;
     u8 min = MAX_LEVEL;
@@ -1857,6 +2054,13 @@ static void DexNav_InitWindows(void)
 
 static void DexNavGuiFreeResources(void)
 {
+    u32 i;
+
+    for (i = 0; i < NELEMS(sDexNavUiDataPtr->rareStarSpriteIds); i++)
+    {
+        if (sDexNavUiDataPtr->rareStarSpriteIds[i] != MAX_SPRITES)
+            DestroySprite(&gSprites[sDexNavUiDataPtr->rareStarSpriteIds[i]]);
+    }
     Free(sDexNavUiDataPtr);
     Free(sBg1TilemapBuffer);
     FreeAllWindowBuffers();
@@ -1941,6 +2145,226 @@ static bool8 SpeciesInArray(u16 species, u8 section)
     return FALSE;
 }
 
+static bool8 FillDexNavFromRandomizer(enum WildPokemonArea area, u8 rodType, u8 section, u16 *dst, struct RandomizerLevelBand *dstBands, u8 capacity, u8 *outCount, u8 *outSlotCount, u8 *outRareStart, bool8 *outAllowEmpty)
+{
+    struct RandomizerRuleView view;
+    u8 mapGroup = gSaveBlock1Ptr->location.mapGroup;
+    u8 mapNum = gSaveBlock1Ptr->location.mapNum;
+    u8 timeSlot = RandomizerResolveTimeSlot(RANDOMIZER_TIME_SLOT_ANY);
+    u16 filled = 0;
+
+    if (outCount)
+        *outCount = 0;
+    if (outSlotCount)
+        *outSlotCount = 0;
+    if (outRareStart)
+        *outRareStart = 0;
+    if (outAllowEmpty)
+        *outAllowEmpty = FALSE;
+    if (!RandomizerGetAreaRuleView(mapGroup, mapNum, area, rodType, timeSlot, &view))
+        return FALSE;
+
+#ifndef NDEBUG
+    if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+    {
+        char buf[160];
+        u16 pos = 0;
+        u8 j;
+        for (j = 0; j < view.slotSpeciesCount && j < 12 && pos + 6 < sizeof(buf); j++)
+        {
+            u16 s = view.slotSpecies[j];
+            if (s == SPECIES_NONE)
+                buf[pos++] = '-';
+            else
+            {
+                u16 hundreds = s / 100;
+                u16 tens = (s / 10) % 10;
+                u16 ones = s % 10;
+                if (s >= 100)
+                    buf[pos++] = '0' + hundreds;
+                if (s >= 10)
+                    buf[pos++] = '0' + tens;
+                buf[pos++] = '0' + ones;
+            }
+            if (j != view.slotSpeciesCount - 1 && j != 11)
+                buf[pos++] = ',';
+        }
+        buf[pos] = '\0';
+        DebugPrintfLevel(MGBA_LOG_WARN,
+                         "[INFO] DexNav view area=%d rod=%d count=%d slotCount=%d rareStart=%d list:%s",
+                         area,
+                         rodType,
+                         view.slotSpeciesCount,
+                         view.slotCount,
+                         view.slotRareStart,
+                         buf);
+    }
+#endif
+
+    if (view.allowEmpty)
+    {
+        if (outAllowEmpty)
+            *outAllowEmpty = TRUE;
+        return TRUE;
+    }
+
+    if (view.slotSpecies != NULL && view.slotSpeciesCount > 0)
+    {
+        u16 j;
+        const struct RandomizerLevelBand *slotBands = view.levelBands;
+        u16 slotBandCount = view.levelBandCount;
+        u16 slotCount = view.slotCount;
+
+        if (slotCount == 0 || slotCount > view.slotSpeciesCount)
+            slotCount = view.slotSpeciesCount;
+        if (slotCount > capacity)
+            slotCount = capacity;
+
+        for (j = 0; j < view.slotSpeciesCount && filled < capacity; j++)
+        {
+            u16 s = view.slotSpecies[j];
+            if (s == SPECIES_NONE || s > NUM_SPECIES)
+                continue;
+            if (SpeciesInArray(s, section))
+                continue; // avoid duplicates across randomizer sections
+
+            dst[filled] = s;
+            if (dstBands != NULL && slotBands != NULL && slotBandCount > j)
+                dstBands[filled] = slotBands[j];
+            filled++;
+        }
+
+        if (outCount)
+            *outCount = filled;
+        if (outSlotCount)
+        {
+            u16 effectiveSlotCount = slotCount;
+            if (filled < effectiveSlotCount)
+                effectiveSlotCount = filled;
+            *outSlotCount = effectiveSlotCount;
+        }
+        if (outRareStart)
+        {
+            u8 rare = view.slotRareStart;
+            u8 limit = outSlotCount ? *outSlotCount : filled;
+            if (rare > limit)
+                rare = limit;
+            *outRareStart = rare;
+        }
+
+#ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        {
+            DebugPrintfLevel(MGBA_LOG_WARN,
+                             "[INFO] DexNav slotmap map=%d/%d area=%d rod=%d slots=%d copy=%d rareStart=%d",
+                             mapGroup,
+                             mapNum,
+                             area,
+                             rodType,
+                             view.slotCount,
+                             filled,
+                             (outRareStart != NULL) ? *outRareStart : view.slotRareStart);
+            DebugPrintfLevel(MGBA_LOG_WARN,
+                             "[INFO] DexNav fill area=%d rod=%d added=%d allowEmpty=%d",
+                             area,
+                             rodType,
+                             filled,
+                             (outAllowEmpty != NULL) ? *outAllowEmpty : 0);
+
+            // 種一覧を簡易出力（デバッグ用・最大12枠）
+            {
+                char buf[128];
+                u16 pos = 0;
+                u16 j;
+                for (j = 0; j < filled && j < 12 && pos + 6 < sizeof(buf); j++)
+                {
+                    u16 s = dst[j];
+                    // 文字列化 (最大3桁＋カンマ)
+                    u16 hundreds = s / 100;
+                    u16 tens = (s / 10) % 10;
+                    u16 ones = s % 10;
+                    if (s >= 100)
+                        buf[pos++] = '0' + hundreds;
+                    if (s >= 10)
+                        buf[pos++] = '0' + tens;
+                    buf[pos++] = '0' + ones;
+                    if (j != filled - 1 && j != 11)
+                        buf[pos++] = ',';
+                }
+                buf[pos] = '\0';
+                DebugPrintfLevel(MGBA_LOG_WARN,
+                                 "[INFO] DexNav slots list: %s",
+                                 buf);
+            }
+        }
+#endif
+        return TRUE;
+    }
+
+    if (view.wl != NULL && view.wlCount > 0)
+    {
+#ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        {
+            char buf[160];
+            u16 pos = 0;
+            u16 j;
+            for (j = 0; j < view.wlCount && j < 12 && pos + 6 < sizeof(buf); j++)
+            {
+                u16 s = view.wl[j];
+                if (s == SPECIES_NONE)
+                    buf[pos++] = '-';
+                else
+                {
+                    u16 hundreds = s / 100;
+                    u16 tens = (s / 10) % 10;
+                    u16 ones = s % 10;
+                    if (s >= 100)
+                        buf[pos++] = '0' + hundreds;
+                    if (s >= 10)
+                        buf[pos++] = '0' + tens;
+                    buf[pos++] = '0' + ones;
+                }
+                if (j != view.wlCount - 1 && j != 11)
+                    buf[pos++] = ',';
+            }
+            buf[pos] = '\0';
+            DebugPrintfLevel(MGBA_LOG_WARN,
+                             "[INFO] DexNav wl area=%d rod=%d wlCount=%d list:%s",
+                             area,
+                             rodType,
+                             view.wlCount,
+                             buf);
+        }
+#endif
+
+        u16 count = view.wlCount;
+        if (count > 0)
+        {
+            u16 j;
+            for (j = 0; j < count && filled < capacity; j++)
+            {
+                u16 s = view.wl[j];
+                if (s == SPECIES_NONE || s > NUM_SPECIES)
+                    continue;
+                if (SpeciesInArray(s, section))
+                    continue;
+                dst[filled] = s;
+                if (dstBands != NULL && view.levelBands != NULL && view.levelBandCount > j)
+                    dstBands[filled] = view.levelBands[j];
+                filled++;
+            }
+            if (outCount)
+                *outCount = filled;
+            if (outSlotCount)
+                *outSlotCount = filled;
+            if (outRareStart)
+                *outRareStart = 0;
+        }
+    }
+    return TRUE;
+}
+
 // get unique wild encounters on current map
 static void DexNavLoadEncounterData(void)
 {
@@ -1951,6 +2375,17 @@ static void DexNavLoadEncounterData(void)
     u32 i;
     u32 headerId = GetCurrentMapWildMonHeaderId();
     enum TimeOfDay timeOfDay;
+    bool8 useRandomizer = RandomizerFeatureEnabled(RANDOMIZE_WILD_MON) && !FlagGet(FLAG_RANDOMIZER_VANILLA_ENCOUNTER);
+    bool8 landBlocked = FALSE, waterBlocked = FALSE, hiddenBlocked = FALSE;
+    bool8 landHandled = FALSE, waterHandled = FALSE, hiddenHandled = FALSE;
+    bool8 allowEmpty = FALSE;
+    u8 filled = 0;
+    u8 mapGroup = gSaveBlock1Ptr->location.mapGroup;
+    u8 mapNum = gSaveBlock1Ptr->location.mapNum;
+    u8 timeSlot = RandomizerResolveTimeSlot(RANDOMIZER_TIME_SLOT_ANY);
+    bool8 logged = FALSE;
+    bool8 fishingAnyHandled = FALSE;
+    bool8 fishingAllBlocked = TRUE;
 
     timeOfDay = GetTimeOfDayForEncounters(headerId, WILD_AREA_LAND);
     const struct WildPokemonInfo *landMonsInfo = gWildMonHeaders[headerId].encounterTypes[timeOfDay].landMonsInfo;
@@ -1963,9 +2398,137 @@ static void DexNavLoadEncounterData(void)
     memset(sDexNavUiDataPtr->landSpecies, 0, sizeof(sDexNavUiDataPtr->landSpecies));
     memset(sDexNavUiDataPtr->waterSpecies, 0, sizeof(sDexNavUiDataPtr->waterSpecies));
     memset(sDexNavUiDataPtr->hiddenSpecies, 0, sizeof(sDexNavUiDataPtr->hiddenSpecies));
+    memset(sDexNavUiDataPtr->landBands, 0, sizeof(sDexNavUiDataPtr->landBands));
+    memset(sDexNavUiDataPtr->waterBands, 0, sizeof(sDexNavUiDataPtr->waterBands));
+    memset(sDexNavUiDataPtr->hiddenBands, 0, sizeof(sDexNavUiDataPtr->hiddenBands));
+    sDexNavUiDataPtr->landSlotCount = 0;
+    sDexNavUiDataPtr->waterSlotCount = 0;
+    sDexNavUiDataPtr->hiddenSlotCount = 0;
+    sDexNavUiDataPtr->landRareStart = 0;
+    sDexNavUiDataPtr->waterRareStart = 0;
+    sDexNavUiDataPtr->hiddenRareStart = 0;
+
+    if (useRandomizer)
+    {
+        landBlocked = RandomizerIsEncounterBlocked(mapGroup, mapNum, WILD_AREA_LAND, RANDOMIZER_ROD_NONE, timeSlot);
+        if (!landBlocked)
+        {
+            struct RandomizerRuleView view;
+            if (RandomizerGetAreaRuleView(mapGroup, mapNum, WILD_AREA_LAND, RANDOMIZER_ROD_NONE, timeSlot, &view) && view.allowEmpty)
+            {
+                landBlocked = TRUE;
+                landHandled = TRUE; // allowEmptyならバニラ表にフォールバックしない
+            }
+        }
+        if (!landBlocked)
+        {
+            allowEmpty = FALSE;
+            filled = 0;
+            landHandled = FillDexNavFromRandomizer(WILD_AREA_LAND, RANDOMIZER_ROD_NONE, 0, sDexNavUiDataPtr->landSpecies, sDexNavUiDataPtr->landBands, LAND_WILD_COUNT, &filled, &sDexNavUiDataPtr->landSlotCount, &sDexNavUiDataPtr->landRareStart, &allowEmpty);
+            landBlocked = landBlocked || allowEmpty;
+            grassIndex = filled;
+            logged |= TRUE;
+#ifndef NDEBUG
+            if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+                DebugPrintDexNavSpeciesArray("land-preVanilla", sDexNavUiDataPtr->landSpecies, LAND_WILD_COUNT);
+#endif
+        }
+
+        waterBlocked = RandomizerIsEncounterBlocked(mapGroup, mapNum, WILD_AREA_WATER, RANDOMIZER_ROD_NONE, timeSlot);
+        if (!waterBlocked)
+        {
+            struct RandomizerRuleView view;
+            if (RandomizerGetAreaRuleView(mapGroup, mapNum, WILD_AREA_WATER, RANDOMIZER_ROD_NONE, timeSlot, &view) && view.allowEmpty)
+            {
+                waterBlocked = TRUE;
+                waterHandled = TRUE;
+            }
+        }
+        if (!waterBlocked)
+        {
+            allowEmpty = FALSE;
+            filled = 0;
+            waterHandled = FillDexNavFromRandomizer(WILD_AREA_WATER, RANDOMIZER_ROD_NONE, 1, sDexNavUiDataPtr->waterSpecies, sDexNavUiDataPtr->waterBands, WATER_WILD_COUNT, &filled, &sDexNavUiDataPtr->waterSlotCount, &sDexNavUiDataPtr->waterRareStart, &allowEmpty);
+            waterBlocked = waterBlocked || allowEmpty;
+            waterIndex = filled;
+            logged |= TRUE;
+#ifndef NDEBUG
+            if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+                DebugPrintDexNavSpeciesArray("water-preVanilla", sDexNavUiDataPtr->waterSpecies, WATER_WILD_COUNT);
+#endif
+        }
+
+        // Fishing (各ロッドを順次マージ、重複は既存チェックでスキップ)
+        if (waterIndex < WATER_WILD_COUNT)
+        {
+            u8 rod;
+            for (rod = RANDOMIZER_ROD_OLD; rod <= RANDOMIZER_ROD_SUPER; rod++)
+            {
+                if (RandomizerIsEncounterBlocked(mapGroup, mapNum, WILD_AREA_FISHING, rod, timeSlot))
+                    continue;
+
+                allowEmpty = FALSE;
+                filled = 0;
+                if (FillDexNavFromRandomizer(WILD_AREA_FISHING, rod, 1, &sDexNavUiDataPtr->waterSpecies[waterIndex], &sDexNavUiDataPtr->waterBands[waterIndex], WATER_WILD_COUNT - waterIndex, &filled, NULL, NULL, &allowEmpty))
+                {
+                    fishingAnyHandled = TRUE;
+                    if (!allowEmpty)
+                    {
+                        fishingAllBlocked = FALSE;
+                        waterBlocked = FALSE; // 釣りで有効スロットがあれば水欄を活性化
+                    }
+                    waterIndex += filled;
+                    if (waterIndex >= WATER_WILD_COUNT)
+                        break;
+                }
+            }
+        }
+
+        hiddenBlocked = RandomizerIsEncounterBlocked(mapGroup, mapNum, WILD_AREA_HIDDEN, RANDOMIZER_ROD_NONE, timeSlot);
+        if (!hiddenBlocked)
+        {
+            struct RandomizerRuleView view;
+            if (RandomizerGetAreaRuleView(mapGroup, mapNum, WILD_AREA_HIDDEN, RANDOMIZER_ROD_NONE, timeSlot, &view) && view.allowEmpty)
+            {
+                hiddenBlocked = TRUE;
+                hiddenHandled = TRUE;
+            }
+        }
+        if (!hiddenBlocked)
+        {
+            allowEmpty = FALSE;
+            filled = 0;
+            hiddenHandled = FillDexNavFromRandomizer(WILD_AREA_HIDDEN, RANDOMIZER_ROD_NONE, 2, sDexNavUiDataPtr->hiddenSpecies, sDexNavUiDataPtr->hiddenBands, HIDDEN_WILD_COUNT, &filled, &sDexNavUiDataPtr->hiddenSlotCount, &sDexNavUiDataPtr->hiddenRareStart, &allowEmpty);
+            hiddenBlocked = hiddenBlocked || allowEmpty;
+            hiddenIndex = filled;
+            logged |= TRUE;
+#ifndef NDEBUG
+            if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+                DebugPrintDexNavSpeciesArray("hidden-preVanilla", sDexNavUiDataPtr->hiddenSpecies, HIDDEN_WILD_COUNT);
+#endif
+        }
+
+#ifndef NDEBUG
+        if (logged && FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        {
+            DebugPrintfLevel(MGBA_LOG_WARN,
+                             "[INFO] DexNav randomizer map=%d/%d time=%d land=%d water=%d hidden=%d fish=%d allowEmpty(L/W/H)=%d/%d/%d",
+                             mapGroup,
+                             mapNum,
+                             timeSlot,
+                             landHandled && !landBlocked ? grassIndex : 0,
+                             (waterHandled || fishingAnyHandled) && !waterBlocked ? waterIndex : 0,
+                             hiddenHandled && !hiddenBlocked ? hiddenIndex : 0,
+                             fishingAnyHandled && !fishingAllBlocked ? waterIndex : 0,
+                             landBlocked,
+                             waterBlocked,
+                             hiddenBlocked);
+        }
+#endif
+    }
 
     // land mons
-    if (landMonsInfo != NULL && landMonsInfo->encounterRate != 0)
+    if (!landHandled && !landBlocked && landMonsInfo != NULL && landMonsInfo->encounterRate != 0)
     {
         for (i = 0; i < LAND_WILD_COUNT; i++)
         {
@@ -1973,10 +2536,14 @@ static void DexNavLoadEncounterData(void)
             if (species != SPECIES_NONE && !SpeciesInArray(species, 0))
                 sDexNavUiDataPtr->landSpecies[grassIndex++] = landMonsInfo->wildPokemon[i].species;
         }
+#ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+            DebugPrintDexNavSpeciesArray("land-final", sDexNavUiDataPtr->landSpecies, LAND_WILD_COUNT);
+#endif
     }
 
     // water mons
-    if (waterMonsInfo != NULL && waterMonsInfo->encounterRate != 0)
+    if (!waterHandled && !waterBlocked && waterMonsInfo != NULL && waterMonsInfo->encounterRate != 0)
     {
         for (i = 0; i < WATER_WILD_COUNT; i++)
         {
@@ -1984,10 +2551,14 @@ static void DexNavLoadEncounterData(void)
             if (species != SPECIES_NONE && !SpeciesInArray(species, 1))
                 sDexNavUiDataPtr->waterSpecies[waterIndex++] = waterMonsInfo->wildPokemon[i].species;
         }
+#ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+            DebugPrintDexNavSpeciesArray("water-final", sDexNavUiDataPtr->waterSpecies, WATER_WILD_COUNT);
+#endif
     }
 
     // hidden mons
-    if (hiddenMonsInfo != NULL) // no encounter rate check since 0 means land, 1 means water encounters
+    if (!hiddenHandled && !hiddenBlocked && hiddenMonsInfo != NULL) // no encounter rate check since 0 means land, 1 means water encounters
     {
         for (i = 0; i < HIDDEN_WILD_COUNT; i++)
         {
@@ -1995,17 +2566,156 @@ static void DexNavLoadEncounterData(void)
             if (species != SPECIES_NONE && !SpeciesInArray(species, 2))
                 sDexNavUiDataPtr->hiddenSpecies[hiddenIndex++] = hiddenMonsInfo->wildPokemon[i].species;
         }
+#ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+            DebugPrintDexNavSpeciesArray("hidden-final", sDexNavUiDataPtr->hiddenSpecies, HIDDEN_WILD_COUNT);
+#endif
     }
 }
 
-static void TryDrawIconInSlot(u16 species, s16 x, s16 y)
+// slotIndex: 0..N-1, rareStart>0 なら rareStart 以降はレア枠
+static bool8 DexNavHasSeen(u16 species)
+{
+    if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        return TRUE; // デバッグ時は未登録でも表示
+    return GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN);
+}
+
+// 最初に選択可能なスロットへカーソルを移す（ランド優先→ウォーター→隠し）
+static void DexNavSelectFirstAvailableSlot(void)
+{
+    u8 i;
+
+    // land
+    for (i = 0; i < LAND_WILD_COUNT; i++)
+    {
+        if (sDexNavUiDataPtr->landSpecies[i] != SPECIES_NONE)
+        {
+            sDexNavUiDataPtr->cursorRow = (i < COL_LAND_COUNT) ? ROW_LAND_TOP : ROW_LAND_BOT;
+            sDexNavUiDataPtr->cursorCol = i % COL_LAND_COUNT;
+            return;
+        }
+    }
+
+    // water
+    for (i = 0; i < WATER_WILD_COUNT; i++)
+    {
+        if (sDexNavUiDataPtr->waterSpecies[i] != SPECIES_NONE)
+        {
+            sDexNavUiDataPtr->cursorRow = ROW_WATER;
+            sDexNavUiDataPtr->cursorCol = i;
+            return;
+        }
+    }
+
+    // hidden (detectorモードのみ有効)
+    if (FlagGet(DN_FLAG_DETECTOR_MODE))
+    {
+        for (i = 0; i < HIDDEN_WILD_COUNT; i++)
+        {
+            if (sDexNavUiDataPtr->hiddenSpecies[i] != SPECIES_NONE)
+            {
+                sDexNavUiDataPtr->cursorRow = ROW_HIDDEN;
+                sDexNavUiDataPtr->cursorCol = i;
+                return;
+            }
+        }
+    }
+}
+
+static void TryDrawIconInSlot(u16 species, s16 x, s16 y, bool8 isRare)
 {
     if (species == SPECIES_NONE || species > NUM_SPECIES)
         CreateNoDataIcon(x, y);   //'X' in slot
-    else if (!GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN))
+    else if (!DexNavHasSeen(species))
         CreateMonIcon(SPECIES_NONE, SpriteCB_MonIcon, x, y, 0, 0xFFFFFFFF); //question mark
     else
         CreateMonIcon(species, SpriteCB_MonIcon, x, y, 0, 0xFFFFFFFF);
+}
+
+// ランダマイザー有効時に、cursor行/areaに紐づくスロットマップに存在しない種は選択不可とする
+static bool8 DexNavSelectionAllowed(u16 species, enum WildPokemonArea area, bool8 logFailure, bool8 *outSlotMismatch, bool8 *outAllowEmpty)
+{
+    if (species == SPECIES_NONE)
+        return FALSE;
+
+    if (outSlotMismatch)
+        *outSlotMismatch = FALSE;
+    if (outAllowEmpty)
+        *outAllowEmpty = FALSE;
+
+    if (!RandomizerFeatureEnabled(RANDOMIZE_WILD_MON) || FlagGet(FLAG_RANDOMIZER_VANILLA_ENCOUNTER))
+        return TRUE;
+
+    const u16 *slotArray = NULL;
+    u8 slotCount = 0;
+    switch (area)
+    {
+    case WILD_AREA_LAND:
+        slotArray = sDexNavUiDataPtr->landSpecies;
+        slotCount = LAND_WILD_COUNT;
+        break;
+    case WILD_AREA_WATER: // water+rodをまとめたスロット配列
+        slotArray = sDexNavUiDataPtr->waterSpecies;
+        slotCount = WATER_WILD_COUNT;
+        break;
+    case WILD_AREA_HIDDEN:
+        slotArray = sDexNavUiDataPtr->hiddenSpecies;
+        slotCount = HIDDEN_WILD_COUNT;
+        break;
+    default:
+        break;
+    }
+
+    if (slotArray != NULL && slotCount > 0)
+    {
+        bool8 anyPresent = FALSE;
+        u8 i;
+        for (i = 0; i < slotCount; i++)
+        {
+            u16 s = slotArray[i];
+            if (s == SPECIES_NONE)
+                continue;
+            anyPresent = TRUE;
+            if (s == species)
+                return TRUE; // UIに表示されている種なら許可
+        }
+
+        if (!anyPresent)
+        {
+            if (outAllowEmpty)
+                *outAllowEmpty = TRUE;
+            return FALSE;
+        }
+
+        if (outSlotMismatch)
+            *outSlotMismatch = TRUE; // UI上に存在しない
+
+        if (logFailure && FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        {
+            static u8 sLogMapGroup, sLogMapNum, sLogArea;
+            static u16 sLogSpecies;
+            if (sLogMapGroup != gSaveBlock1Ptr->location.mapGroup ||
+                sLogMapNum != gSaveBlock1Ptr->location.mapNum ||
+                sLogArea != area ||
+                sLogSpecies != species)
+            {
+                sLogMapGroup = gSaveBlock1Ptr->location.mapGroup;
+                sLogMapNum = gSaveBlock1Ptr->location.mapNum;
+                sLogArea = area;
+                sLogSpecies = species;
+                DebugPrintfLevel(MGBA_LOG_WARN,
+                                 "[INFO] DexNav register blocked (slot) map=%d/%d area=%d species=%d",
+                                 sLogMapGroup,
+                                 sLogMapNum,
+                                 area,
+                                 species);
+            }
+        }
+        return FALSE;
+    }
+
+    return TRUE; // スロット配列が無い場合は従来通り
 }
 
 static void DrawSpeciesIcons(void)
@@ -2013,22 +2723,68 @@ static void DrawSpeciesIcons(void)
     s16 x, y;
     u32 i;
     u16 species;
+    u8 rareStart = 0;
+    u8 landCount = LAND_WILD_COUNT;
+    u8 waterCount = WATER_WILD_COUNT;
 
     LoadCompressedSpriteSheetUsingHeap(&sNoDataIconSpriteSheet);
+    LoadCompressedSpriteSheetUsingHeap(&sRareSlotStarSheet);
+    LoadSpritePalette(&sRareSlotStarPalette);
+    // rare star 初期化
+    for (i = 0; i < NELEMS(sDexNavUiDataPtr->rareStarSpriteIds); i++)
+        sDexNavUiDataPtr->rareStarSpriteIds[i] = MAX_SPRITES;
+    // land: rare枠の開始位置を末尾扱い（slotSpeciesCountがあればそれを使う）
+    if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON) && !FlagGet(FLAG_RANDOMIZER_VANILLA_ENCOUNTER))
+    {
+        struct RandomizerRuleView view;
+        if (RandomizerGetAreaRuleView(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, WILD_AREA_LAND, RANDOMIZER_ROD_NONE, RandomizerResolveTimeSlot(RANDOMIZER_TIME_SLOT_ANY), &view))
+        {
+            if (view.slotSpecies != NULL && view.slotSpeciesCount > 0)
+            {
+                landCount = view.slotSpeciesCount;
+                rareStart = view.slotRareStart;
+                if (landCount > LAND_WILD_COUNT)
+                    landCount = LAND_WILD_COUNT;
+            }
+        }
+#ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        {
+            DebugPrintDexNavSpeciesArray("draw-land", sDexNavUiDataPtr->landSpecies, LAND_WILD_COUNT);
+            DebugPrintfLevel(MGBA_LOG_WARN, "[INFO] DexNav draw landCount=%d rareStart=%d", landCount, rareStart);
+        }
+#endif
+    }
     for (i = 0; i < LAND_WILD_COUNT; i++)
     {
         species = sDexNavUiDataPtr->landSpecies[i];
         x = ROW_LAND_ICON_X + (24 * (i % COL_LAND_COUNT));
         y = ROW_LAND_TOP_ICON_Y + (i > COL_LAND_MAX ? 28 : 0);
-        TryDrawIconInSlot(species, x, y);
+        // アイコン描画
+        TryDrawIconInSlot(species, x, y, FALSE);
     }
 
+    rareStart = 0;
+    if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON) && !FlagGet(FLAG_RANDOMIZER_VANILLA_ENCOUNTER))
+    {
+        struct RandomizerRuleView view;
+        if (RandomizerGetAreaRuleView(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum, WILD_AREA_WATER, RANDOMIZER_ROD_NONE, RandomizerResolveTimeSlot(RANDOMIZER_TIME_SLOT_ANY), &view))
+        {
+            if (view.slotSpecies != NULL && view.slotSpeciesCount > 0)
+            {
+                waterCount = view.slotSpeciesCount;
+                rareStart = view.slotRareStart;
+                if (waterCount > WATER_WILD_COUNT)
+                    waterCount = WATER_WILD_COUNT;
+            }
+        }
+    }
     for (i = 0; i < WATER_WILD_COUNT; i++)
     {
         species = sDexNavUiDataPtr->waterSpecies[i];
         x = ROW_WATER_ICON_X + 24 * i;
         y = ROW_WATER_ICON_Y;
-        TryDrawIconInSlot(species, x, y);
+        TryDrawIconInSlot(species, x, y, (rareStart > 0 && i >= rareStart));
     }
 
     for (i = 0; i < HIDDEN_WILD_COUNT; i++)
@@ -2037,7 +2793,7 @@ static void DrawSpeciesIcons(void)
         x = ROW_HIDDEN_ICON_X + 24 * i;
         y = ROW_HIDDEN_ICON_Y;
         if (FlagGet(DN_FLAG_DETECTOR_MODE))
-            TryDrawIconInSlot(species, x, y);
+            TryDrawIconInSlot(species, x, y, FALSE);
        else if (species == SPECIES_NONE || species > NUM_SPECIES)
             CreateNoDataIcon(x, y);
         else
@@ -2070,7 +2826,9 @@ static u16 DexNavGetSpecies(void)
         return SPECIES_NONE;
     }
 
-    if (!GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN))
+    // 通常は図鑑未登録だと選択不可だが、ランダマイザー＋デバッグ時は表示中のスロットを優先して返す
+    if (!GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN)
+        && !(RandomizerFeatureEnabled(RANDOMIZE_WILD_MON) && FlagGet(FLAG_RANDOMIZER_DEBUG_LOG)))
         return SPECIES_NONE;
 
     return species;
@@ -2283,6 +3041,7 @@ static bool8 DexNav_DoGfxSetup(void)
     case 7:
         PrintSearchableSpecies(VarGet(DN_VAR_SPECIES) & DEXNAV_MASK_SPECIES);
         DexNavLoadEncounterData();
+        DexNavSelectFirstAvailableSlot();
         gMain.state++;
         break;
     case 8:
@@ -2472,7 +3231,9 @@ static void Task_DexNavMain(u8 taskId)
         // check selection is valid. Play sound if invalid
         species = DexNavGetSpecies();
 
-        if (species != SPECIES_NONE)
+        bool8 slotMismatch = FALSE;
+        bool8 allowEmptyBlock = FALSE;
+        if (species != SPECIES_NONE && DexNavSelectionAllowed(species, sDexNavUiDataPtr->environment, TRUE, &slotMismatch, &allowEmptyBlock))
         {
             PrintSearchableSpecies(species);
             //PlaySE(SE_DEX_SEARCH);
@@ -2484,12 +3245,20 @@ static void Task_DexNavMain(u8 taskId)
         else
         {
             PlaySE(SE_FAILURE);
+            FillWindowPixelBuffer(WINDOW_REGISTERED, PIXEL_FILL(TEXT_COLOR_TRANSPARENT));
+            PutWindowTilemap(WINDOW_REGISTERED);
+            if (slotMismatch)
+                AddTextPrinterParameterized3(WINDOW_REGISTERED, FONT_NORMAL, 0, 0, sFontColor_White, TEXT_SKIP_DRAW, sText_DexNav_RegisterSlotMismatch);
+            else
+                AddTextPrinterParameterized3(WINDOW_REGISTERED, FONT_NORMAL, 0, 0, sFontColor_White, TEXT_SKIP_DRAW, sText_DexNav_RegisterBlocked);
+            PrintMapName();
+            CopyWindowToVram(WINDOW_REGISTERED, 3);
         }
     }
     else if (JOY_NEW(A_BUTTON))
     {
         species = DexNavGetSpecies();
-        if (species == SPECIES_NONE)
+        if (species == SPECIES_NONE || !DexNavSelectionAllowed(species, sDexNavUiDataPtr->environment, TRUE, NULL, NULL))
         {
             PlaySE(SE_FAILURE);
         }

@@ -1,4 +1,4 @@
-schemaVersion: 1.3
+schemaVersion: 1.50
 kits:
   starter_land:
   - SPECIES_POOCHYENA
@@ -72,6 +72,62 @@ slotSets:
     rareRate: 20
     allowEmpty: false
     encounterRate: 15
+  hidden_sample:
+    slotCount: 3
+    slotMode: uniform
+    weightMode: even
+    rareSlots: 0
+    allowEmpty: false
+    encounterRate: 10
+  fishing_rare_sample:
+    slotMode: uniform
+    maxSpecies: FISH_MAX_SLOTS
+    maxRerolls: auto
+    allowEmpty: false
+    encounterRate: 25
+    fishing:
+      old:
+        allowEmpty: false
+        slotMode: rare
+        maxSpecies: 3
+        weights: [40, 30, 30]
+        levelBands:
+        - { minLv: 8, maxLv: 12 }
+        - { minLv: 9, maxLv: 13 }
+        - { minLv: 10, maxLv: 14 }
+        rare:
+          rareSlots: 1
+          rareRate: 30
+          apply: [legend_unlock]
+      good:
+        allowEmpty: false
+        slotMode: uniform
+        maxSpecies: 3
+        weights: [34, 33, 33]
+        levelBands:
+        - { minLv: 12, maxLv: 16 }
+        - { minLv: 13, maxLv: 17 }
+        - { minLv: 14, maxLv: 18 }
+        default:
+          apply: [mid_water]
+          remove: null
+      super:
+        allowEmpty: false
+        slotMode: rare
+        maxSpecies: 4
+        weights: [25, 25, 25, 25]
+        levelBands:
+        - { minLv: 20, maxLv: 26 }
+        - { minLv: 21, maxLv: 27 }
+        - { minLv: 22, maxLv: 28 }
+        - { minLv: 23, maxLv: 30 }
+        rare:
+          rareSlots: 1
+          rareRate: 50
+          apply: [legend_unlock]
+        default:
+          apply: [late_water]
+          remove: null
   # 釣りミックスサンプル（old: rare、good: 出現なし、super: uniform）
   fishing_mixed_sample:
     slotMode: uniform
@@ -153,6 +209,9 @@ areas:
     maxRerolls: auto
     timeSlots:
       any:
+        default:
+          apply: [starter_land, mid_land]
+          remove: null
         specialOverrides:
           legend: true
           mythical: true
@@ -165,6 +224,52 @@ areas:
           apply:
           - legend_unlock
           remove: null
+  # Hidden: slotSpeciesありのサンプル
+  hidden_sample_101:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE101)
+      mapNum: MAP_NUM(MAP_ROUTE101)
+      areaMask: Hidden
+    slotSet: hidden_sample
+    timeSlots:
+      any:
+        allowEmpty: false
+        default:
+          apply: [starter_land]
+          remove: null
+
+  # Route103 Fishing（slotSpecies 付きサンプル: rare有りのold/super, goodは通常）
+  route_103_fishing:
+    key:
+      mapGroup: MAP_GROUP(MAP_ROUTE103)
+      mapNum: MAP_NUM(MAP_ROUTE103)
+      areaMask: Fish
+    slotSet: fishing_rare_sample
+    timeSlots:
+      any:
+        allowEmpty: false
+        fishing:
+          old:
+            allowEmpty: false
+            default:
+              apply: [starter_water]
+              remove: [legend_unlock]
+            rare:
+              apply: [legend_unlock]
+              remove: null
+          good:
+            allowEmpty: false
+            default:
+              apply: [mid_water]
+              remove: null
+          super:
+            allowEmpty: false
+            default:
+              apply: [late_water]
+              remove: null
+            rare:
+              apply: [legend_unlock]
+              remove: null
         default:
           apply:
           - starter_land

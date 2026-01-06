@@ -31,6 +31,7 @@
 static bool32 IsSpeciesPermitted(u16 species);
 static u16 GetRuleWhitelistLimit(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule);
 static const struct RandomizerFishingRule *SelectFishingRule(const struct RandomizerAreaRule *rule, u8 rodType);
+#define SLOT_HAS_DATA(species) ((species) != 0)
 
 #define TRAINER_DUP_MAX_SAME_DEFAULT 255
 #define TRAINER_DUP_MIN_DISTINCT_DEFAULT 0
@@ -47,14 +48,52 @@ static u8 sAutoMaxRerollsLogMapNum;
 static u8 sAutoMaxRerollsLogArea;
 static u8 sAutoMaxRerollsLogTime;
 static u8 sAutoMaxRerollsLogRod;
+static const u16 *sSlotSpeciesPool = sRandomizerSlotSpeciesPool;
 
-static u8 ClampAutoMaxRerolls(u16 count)
+// スロット巡回用のキー・カウンタ（マップ/時間/ロッド単位）
+struct SlotCycleState
 {
-    if (count == 0)
+    bool8 valid;
+    u8 mapGroup;
+    u8 mapNum;
+    u8 area;
+    u8 timeSlot;
+    u8 rodType;
+    u16 cycleTick;
+    u16 offset;
+    // 未遭遇枠優先のためのヒント（最大32枠までビット管理）
+    u32 seenMask; // 下位32ビットのみ利用（slotCountが32超のときは通常巡回優先）
+};
+static struct SlotCycleState sSlotCycle;
+
+#define AUTO_REROLLS_MIN 4
+#define AUTO_REROLLS_MAX LAND_MAX_SLOTS
+
+static u8 ClampAutoMaxRerolls(u16 normalCount, u16 rareCount, u16 slotCap)
+{
+    u16 cap = slotCap > 0 ? slotCap : AUTO_REROLLS_MAX;
+    u16 normalEff = normalCount;
+    u16 rareEff;
+    u16 total;
+
+    if (normalEff > cap)
+        normalEff = cap;
+    rareEff = rareCount;
+    if (rareEff > cap - normalEff)
+        rareEff = cap - normalEff;
+
+    total = normalEff + rareEff;
+    if (total == 0)
         return 0;
-    if (count > 8)
-        return 8;
-    return (u8)count;
+
+    if (total < AUTO_REROLLS_MIN)
+        total = AUTO_REROLLS_MIN;
+    if (total > cap)
+        total = cap;
+    if (total > AUTO_REROLLS_MAX)
+        total = AUTO_REROLLS_MAX;
+
+    return (u8)total;
 }
 
 static bool8 ShouldLogAutoMaxRerolls(u8 mapGroup, u8 mapNum, u8 area, u8 timeSlot, u8 rodType)
@@ -75,6 +114,77 @@ static bool8 ShouldLogAutoMaxRerolls(u8 mapGroup, u8 mapNum, u8 area, u8 timeSlo
         return TRUE;
     }
     return FALSE;
+}
+
+static void UpdateSlotCycleKey(u8 mapGroup, u8 mapNum, u8 area, u8 timeSlot, u8 rodType)
+{
+    if (!sSlotCycle.valid
+        || sSlotCycle.mapGroup != mapGroup
+        || sSlotCycle.mapNum != mapNum
+        || sSlotCycle.area != area
+        || sSlotCycle.timeSlot != timeSlot
+        || sSlotCycle.rodType != rodType)
+    {
+        sSlotCycle.valid = TRUE;
+        sSlotCycle.mapGroup = mapGroup;
+        sSlotCycle.mapNum = mapNum;
+        sSlotCycle.area = area;
+        sSlotCycle.timeSlot = timeSlot;
+        sSlotCycle.rodType = rodType;
+        sSlotCycle.cycleTick = 0;
+        // オフセットはロケーションベースで決定（シード由来の小さなランダム）
+        {
+            u32 seed = ((u32)mapGroup << 24) ^ ((u32)mapNum << 16) ^ ((u32)area << 8) ^ (timeSlot << 4) ^ rodType;
+            struct Sfc32State st = RandomizerRandSeed(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, seed ^ 0xA5A5);
+            sSlotCycle.offset = RandomizerNextRange(&st, 256); // 0..255
+        }
+        sSlotCycle.seenMask = 0;
+    }
+}
+
+static u16 GetCycleIndex(bool8 rareHit, u16 count, u8 rareStart)
+{
+    if (count == 0)
+        return 0;
+    if (!sSlotCycle.valid)
+        return 0;
+
+    // rareHitの有無は無視し、共通巡回（rareStartは呼び出し側で判断）
+    u16 idx = (sSlotCycle.offset + sSlotCycle.cycleTick) % count;
+    sSlotCycle.cycleTick++;
+    return rareHit ? (rareStart + (idx % count)) : idx;
+}
+
+static u16 GetCycleIndexCombined(u16 count)
+{
+    if (count == 0 || !sSlotCycle.valid)
+        return 0;
+    {
+        // 未遭遇枠（seenMaskに未セット）があればそちらを優先
+        if (count <= 32)
+        {
+            u32 mask = sSlotCycle.seenMask;
+            if (mask != (count == 32 ? 0xFFFFFFFF : ((1u << count) - 1)))
+            {
+                u16 start = (sSlotCycle.offset + sSlotCycle.cycleTick) % count;
+                u16 i;
+                for (i = 0; i < count; i++)
+                {
+                    u16 idx = (start + i) % count;
+                    if ((mask & (1u << idx)) == 0)
+                    {
+                        sSlotCycle.cycleTick++;
+                        return idx;
+                    }
+                }
+            }
+        }
+
+        // すべて埋まっている場合は通常巡回
+        u16 idx = (sSlotCycle.offset + sSlotCycle.cycleTick) % count;
+        sSlotCycle.cycleTick++;
+        return idx;
+    }
 }
 
 bool32 RandomizerFeatureEnabled(enum RandomizerFeature feature)
@@ -249,12 +359,118 @@ bool8 RandomizerGetAreaRuleView(u8 mapGroup, u8 mapNum, enum WildPokemonArea are
     out->rareSlots = fishingRule ? fishingRule->rareSlots : areaRule->rareSlots;
     out->rareRate = fishingRule ? fishingRule->rareRate : areaRule->rareRate;
     out->encounterRate = areaRule->encounterRate;
+    out->slotSpecies = NULL;
+    out->slotSpeciesCount = 0;
+    out->slotRareStart = 0;
     if (out->slotCount == 0 && out->weightCount > 0)
         out->slotCount = out->weightCount;
     if (out->slotCount == 0 && out->levelBandCount > 0)
         out->slotCount = out->levelBandCount;
     out->allowEmpty = allowEmpty;
     out->specialOverrides = specialMask;
+    if (sSlotSpeciesPool != NULL)
+    {
+        if (fishingRule != NULL && fishingRule->slotSpeciesCount > 0)
+        {
+            out->slotSpecies = &sSlotSpeciesPool[fishingRule->slotSpeciesOffset];
+            out->slotSpeciesCount = fishingRule->slotSpeciesCount;
+            out->slotRareStart = fishingRule->slotRareStart;
+            if (out->slotCount == 0)
+                out->slotCount = fishingRule->slotSpeciesCount;
+        }
+        else if (areaRule->slotSpeciesCount > 0)
+        {
+            out->slotSpecies = &sSlotSpeciesPool[areaRule->slotSpeciesOffset];
+            out->slotSpeciesCount = areaRule->slotSpeciesCount;
+            out->slotRareStart = areaRule->slotRareStart;
+            if (out->slotCount == 0)
+                out->slotCount = areaRule->slotSpeciesCount;
+        }
+    }
+
+    // スロットテーブルが無い場合はWLをそのままスロットとして扱う（DexNav表示/ランタイムサイクルのため）
+    if (out->slotSpecies == NULL && wl != NULL && wlCount > 0)
+    {
+        out->slotSpecies = wl;
+        out->slotSpeciesCount = wlCount;
+        if (out->slotCount == 0)
+            out->slotCount = wlCount;
+        // rareStartは未指定のため0のまま（全て通常枠として扱う）
+    }
+
+#ifndef NDEBUG
+    if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+    {
+        // viewダンプ（slot/rareStart/WL件数など）
+        DebugPrintfLevel(MGBA_LOG_WARN,
+                         "[INFO] RView map=%d/%d area=%d rod=%d time=%d slotCt=%d slotSpecCt=%d slotRareStart=%d wlCt=%d blCt=%d allowEmpty=%d",
+                         mapGroup,
+                         mapNum,
+                         area,
+                         rodType,
+                         timeSlot,
+                         out->slotCount,
+                         out->slotSpeciesCount,
+                         out->slotRareStart,
+                         out->wlCount,
+                         out->blCount,
+                         out->allowEmpty);
+        if (out->slotSpecies != NULL && out->slotSpeciesCount > 0)
+        {
+            char buf[160];
+            u16 pos = 0;
+            u16 j;
+            for (j = 0; j < out->slotSpeciesCount && j < 12 && pos + 6 < sizeof(buf); j++)
+            {
+                u16 s = out->slotSpecies[j];
+                if (s == SPECIES_NONE)
+                    buf[pos++] = '-';
+                else
+                {
+                    u16 hundreds = s / 100;
+                    u16 tens = (s / 10) % 10;
+                    u16 ones = s % 10;
+                    if (s >= 100)
+                        buf[pos++] = '0' + hundreds;
+                    if (s >= 10)
+                        buf[pos++] = '0' + tens;
+                    buf[pos++] = '0' + ones;
+                }
+                if (j != out->slotSpeciesCount - 1 && j != 11)
+                    buf[pos++] = ',';
+            }
+            buf[pos] = '\0';
+            DebugPrintfLevel(MGBA_LOG_WARN, "[INFO] RView slot list: %s", buf);
+        }
+        if (out->slotSpecies == NULL && out->wlCount > 0 && out->wl != NULL)
+        {
+            char buf[160];
+            u16 pos = 0;
+            u16 j;
+            for (j = 0; j < out->wlCount && j < 12 && pos + 6 < sizeof(buf); j++)
+            {
+                u16 s = out->wl[j];
+                if (s == SPECIES_NONE)
+                    buf[pos++] = '-';
+                else
+                {
+                    u16 hundreds = s / 100;
+                    u16 tens = (s / 10) % 10;
+                    u16 ones = s % 10;
+                    if (s >= 100)
+                        buf[pos++] = '0' + hundreds;
+                    if (s >= 10)
+                        buf[pos++] = '0' + tens;
+                    buf[pos++] = '0' + ones;
+                }
+                if (j != out->wlCount - 1 && j != 11)
+                    buf[pos++] = ',';
+            }
+            buf[pos] = '\0';
+            DebugPrintfLevel(MGBA_LOG_WARN, "[INFO] RView wl list: %s", buf);
+        }
+    }
+#endif
     return TRUE;
 #endif
 }
@@ -679,7 +895,7 @@ static void TrainerPartyCacheAdd(u16 species)
     }
 }
 
-static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species, const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, u8 maxRerolls)
+static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species, const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, u8 maxRerolls, bool8 useSlotMap)
 {
     u8 attempt;
     u16 candidate = species;
@@ -701,10 +917,54 @@ static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSp
         return species;
     }
 
+    // スロットマップ参照（末尾がレア枠）
+    const u16 *slotMap = NULL;
+    u16 slotCount = 0;
+    u8 rareStart = 0;
+    if (useSlotMap && rule != NULL && rule->slotSpeciesCount > 0 && sSlotSpeciesPool != NULL)
+    {
+        slotMap = &sSlotSpeciesPool[rule->slotSpeciesOffset];
+        slotCount = rule->slotSpeciesCount;
+        rareStart = rule->slotRareStart;
+    }
+
     for (attempt = 0; attempt <= maxRerolls; attempt++)
     {
         u32 adjustedSeed = seed ^ attempt;
-        candidate = RandomizeMon(reason, mode, adjustedSeed, species);
+
+        if (slotMap != NULL && slotCount > 0)
+        {
+            if (useRare)
+            {
+                u16 rareCount = (slotCount > rareStart) ? (slotCount - rareStart) : 0;
+                if (rareCount > 0)
+                {
+                    u16 idx = GetCycleIndex(TRUE, rareCount, rareStart);
+                    candidate = slotMap[idx];
+                }
+                else
+                {
+                    candidate = species;
+                }
+            }
+            else
+            {
+                if (rareStart > 0)
+                {
+                    u16 idx = GetCycleIndex(FALSE, rareStart, rareStart);
+                    candidate = slotMap[idx];
+                }
+                else
+                {
+                    candidate = species;
+                }
+            }
+        }
+        else
+        {
+            candidate = RandomizeMon(reason, mode, adjustedSeed, species);
+        }
+
         if (SpeciesAllowedByRule(candidate, rule, fishingRule, useRare, wlLimit))
         {
 #ifndef NDEBUG
@@ -715,13 +975,28 @@ static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSp
     }
 
     {
-        struct Sfc32State state = RandomizerRandSeed(reason, seed, species);
-        u16 idx;
-        if (weights != NULL && weightCount == wlCount && weightCount > 0)
-            idx = ChooseWeightedIndex(weights, weightCount, &state);
-        else
-            idx = RandomizerNextRange(&state, wlLimit);
-        candidate = wl[idx];
+        // 最終フォールバック: レア枠が残っていれば1枠進めて返す
+        if (useSlotMap && slotMap != NULL && slotCount > 0 && rareStart > 0)
+        {
+            u16 rareCount = (slotCount > rareStart) ? (slotCount - rareStart) : 0;
+            if (rareCount > 0)
+            {
+                // rareHit = FALSE 時も rareCycle を1つ消化して返す
+                u16 idx = GetCycleIndex(TRUE, rareCount, rareStart);
+                candidate = slotMap[idx];
+            }
+        }
+
+        if (candidate == species) // それでも決まらなければ通常のWLから選択
+        {
+            struct Sfc32State state = RandomizerRandSeed(reason, seed, species);
+            u16 idx;
+            if (weights != NULL && weightCount == wlCount && weightCount > 0)
+                idx = ChooseWeightedIndex(weights, weightCount, &state);
+            else
+                idx = RandomizerNextRange(&state, wlLimit);
+            candidate = wl[idx];
+        }
 #ifndef NDEBUG
         DebugLogRandomization(reason, seed, species, candidate, rule, fishingRule, useRare, maxRerolls + 1, TRUE);
 #endif
@@ -1603,24 +1878,25 @@ u16 RandomizeFixedEncounterMon(u16 species, u8 mapNum, u8 mapGroup, u8 localId)
         struct RandomizerRuleView view;
         if (RandomizerGetAreaRuleView(mapGroup, mapNum, WILD_AREA_HIDDEN, 0xFF, 0xFF, &view))
         {
-            // allowEmptyかつWL空ならスキップ
-            if (view.wlCount == 0 && view.allowEmpty)
-                return species;
+        // allowEmptyかつWL空ならスキップ
+        if (view.wlCount == 0 && view.allowEmpty)
+            return species;
 
-            // WL/weights/levelBandsを用いたランダム化
-            const struct RandomizerAreaRule *areaRule = view.areaRule;
-            const struct RandomizerFishingRule *fishRule = view.fishingRule; // 常にNULLのはず
-            u8 maxRerolls = areaRule ? areaRule->maxRerolls : 0;
-            return RandomizeWithAreaRule(RANDOMIZER_REASON_FIXED_ENCOUNTER,
-                                         GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE),
-                                         seed,
-                                         species,
-                                         areaRule,
-                                         fishRule,
-                                         FALSE,
-                                         maxRerolls);
-        }
+        // WL/weights/levelBandsを用いたランダム化（固定/ギフトは通常枠でスロットマップ使用）
+        const struct RandomizerAreaRule *areaRule = view.areaRule;
+        const struct RandomizerFishingRule *fishRule = view.fishingRule; // 常にNULLのはず
+        u8 maxRerolls = areaRule ? areaRule->maxRerolls : 0;
+        return RandomizeWithAreaRule(RANDOMIZER_REASON_FIXED_ENCOUNTER,
+                                     GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE),
+                                     seed,
+                                     species,
+                                     areaRule,
+                                     fishRule,
+                                     FALSE,
+                                     maxRerolls,
+                                     TRUE);
     }
+}
 
     return species;
 }
@@ -1661,6 +1937,10 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
     // TODO: 将来的にレベル/遭遇率/スロット選択まで返す拡張APIを作る。現状は種族のみ。
     const struct RandomizerAreaRule *areaRule;
     bool8 blocked = FALSE;
+    const u16 *slotMap = NULL;
+    u16 slotCount = 0;
+    u8 rareStart = 0;
+    u16 wlLimit = 0;
 
     if (outSpecies == NULL)
         return FALSE;
@@ -1683,13 +1963,15 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
         if (areaRule != NULL)
         {
             const struct RandomizerFishingRule *fishingRule = NULL;
-            const u16 *wlNormal, *wlRare;
-            u16 wlNormalCount, wlRareCount;
+            const u16 *wlNormal = NULL, *wlRare = NULL;
+            const u16 *wl = NULL;
+            u16 wlNormalCount = 0, wlRareCount = 0;
             u8 slotMode;
             u8 rareSlots;
             u8 rareRate;
             u16 rareCount = 0;
             u16 commonCount = 0;
+            u16 slotCap = 0;
             u8 maxRerolls;
 
             if (area == WILD_AREA_FISHING)
@@ -1699,6 +1981,33 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
             rareSlots = fishingRule ? fishingRule->rareSlots : areaRule->rareSlots;
             rareRate = fishingRule ? fishingRule->rareRate : areaRule->rareRate;
             maxRerolls = (fishingRule && fishingRule->maxRerolls > 0) ? fishingRule->maxRerolls : areaRule->maxRerolls;
+            slotCap = fishingRule ? fishingRule->slotSpeciesCount : areaRule->slotSpeciesCount;
+            wlLimit = GetRuleWhitelistLimit(areaRule, fishingRule);
+            wl = wlNormal;
+            if (wlLimit == 0 && wlNormalCount > 0)
+                wlLimit = wlNormalCount; // スロット未定義でWLのみの場合に0にならないよう補正
+
+            // スロット情報（巡回用）
+            if (area == WILD_AREA_FISHING && fishingRule != NULL && fishingRule->slotSpeciesCount > 0)
+            {
+                slotMap = &sSlotSpeciesPool[fishingRule->slotSpeciesOffset];
+                slotCount = fishingRule->slotSpeciesCount;
+                rareStart = fishingRule->slotRareStart;
+            }
+            else if (areaRule != NULL && areaRule->slotSpeciesCount > 0)
+            {
+                slotMap = &sSlotSpeciesPool[areaRule->slotSpeciesOffset];
+                slotCount = areaRule->slotSpeciesCount;
+                rareStart = areaRule->slotRareStart;
+            }
+            else if (wlNormal != NULL && wlNormalCount > 0)
+            {
+                // スロット定義が無い場合はWLをそのままスロットとして扱う
+                slotMap = wlNormal;
+                slotCount = wlNormalCount;
+                rareStart = 0;
+                slotCap = wlNormalCount;
+            }
 
             if (IsRuleBlocked(areaRule, fishingRule, &wlNormal, &wlNormalCount, mapGroup, mapNum, area, timeSlot, rodType, TRUE))
             {
@@ -1706,6 +2015,18 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
                 *outSpecies = species;
                 return blocked;
             }
+
+            // IsRuleBlockedでwlが再取得されるため、スロット未設定なら改めてWLをスロットとして扱う
+            if (slotCount == 0 && wlNormal != NULL && wlNormalCount > 0)
+            {
+                slotMap = wlNormal;
+                slotCount = wlNormalCount;
+                rareStart = 0;
+                slotCap = wlNormalCount;
+                if (wlLimit == 0)
+                    wlLimit = wlNormalCount;
+            }
+
             GetRulePools(areaRule, fishingRule, TRUE, &wlRare, &wlRareCount, NULL, NULL, NULL, NULL);
 
             commonCount = wlNormalCount;
@@ -1719,16 +2040,14 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
 
             // maxRerolls=auto (0xFF) はランタイムで有効候補数に基づいて決定する
             u8 maxRerollsNormal = maxRerolls;
-            u8 maxRerollsRare = maxRerolls;
             if (maxRerolls == RANDOMIZER_MAX_REROLLS_AUTO)
             {
-                maxRerollsNormal = ClampAutoMaxRerolls(commonCount);
-                maxRerollsRare = ClampAutoMaxRerolls(rareCount);
+                maxRerollsNormal = ClampAutoMaxRerolls(commonCount, rareCount, slotCap);
 #ifndef NDEBUG
                 if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG) && ShouldLogAutoMaxRerolls(mapGroup, mapNum, area, timeSlot, rodType))
                 {
                     DebugPrintfLevel(MGBA_LOG_WARN,
-                                     "[INFO] RandR auto maxRerolls map=%d/%d area=%d time=%d rod=%d normal=%d rare=%d -> n=%d r=%d",
+                                     "[INFO] RandR auto maxRerolls map=%d/%d area=%d time=%d rod=%d normal=%d rare=%d cap=%d -> auto=%d",
                                      mapGroup,
                                      mapNum,
                                      area,
@@ -1736,55 +2055,82 @@ bool8 RandomizeWildEncounterBlocked(u16 species, u8 mapNum, u8 mapGroup, enum Wi
                                      rodType,
                                      commonCount,
                                      rareCount,
-                                     maxRerollsNormal,
-                                     maxRerollsRare);
+                                     slotCap,
+                                     maxRerollsNormal);
                 }
 #endif
             }
             maxRerolls = maxRerollsNormal;
 
-            if (slotMode == SLOT_MODE_UNIFORM || rareCount == 0 || rareRate == 0)
+            // slotMap巡回。rareRateに依存せず、スロット全体を順に消化する。
+            UpdateSlotCycleKey(mapGroup, mapNum, area, timeSlot, rodType);
             {
-                *outSpecies = RandomizeWithAreaRule(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species, areaRule, fishingRule, FALSE, maxRerolls);
-                return blocked;
-            }
-            else
-            {
-                struct Sfc32State state = RandomizerRandSeed(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species);
-                bool8 rareHit = (RandomizerNextRange(&state, 100) < rareRate);
                 u8 attempt;
                 u16 candidate = species;
-                u16 targetCount = rareHit ? rareCount : commonCount;
-                const u16 *wlTarget = rareHit ? wlRare : wlNormal;
-                u8 maxRerollsHit = rareHit ? maxRerollsRare : maxRerollsNormal;
+                u16 targetCount = slotCount;
+                u8 maxRerollsHit = maxRerollsNormal;
+                bool8 chosenRare = FALSE;
 
 #ifndef NDEBUG
-                DebugLogWildRare(mapGroup, mapNum, area, slot, areaRule, fishingRule, rareHit, targetCount, rareHit ? rareCount : commonCount);
+                DebugLogWildRare(mapGroup, mapNum, area, slot, areaRule, fishingRule, FALSE, targetCount, targetCount);
 #endif
 
                 for (attempt = 0; attempt <= maxRerollsHit; attempt++)
                 {
-                    u32 adjustedSeed = seed ^ attempt;
-                    candidate = RandomizeMon(RANDOMIZER_REASON_WILD_ENCOUNTER, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), adjustedSeed, species);
-                    if (SpeciesAllowedByRule(candidate, areaRule, fishingRule, rareHit, targetCount))
+                    u16 idx = GetCycleIndexCombined(slotCount);
+                    // 軽いランダム揺らぎ（-1/0/+1のどれか）
+                    u16 deltaSeed = seed ^ attempt ^ sSlotCycle.cycleTick;
+                    struct Sfc32State tweak = RandomizerRandSeed(RANDOMIZER_REASON_WILD_ENCOUNTER, deltaSeed, species);
+                    s32 delta = (RandomizerNextRange(&tweak, 3) - 1); // -1,0,1
+                    s32 jittered = (s32)idx + delta;
+                    if (jittered < 0)
+                        jittered += slotCount;
+                    idx = (u16)(jittered % slotCount);
+
+                    candidate = slotMap[idx];
+                    chosenRare = (rareStart > 0 && idx >= rareStart);
+
+                    if (SpeciesAllowedByRule(candidate, areaRule, fishingRule, chosenRare, targetCount))
                     {
+                        // 未遭遇枠の記録
+                        if (slotCount <= 32)
+                            sSlotCycle.seenMask |= (1u << (idx % 32));
 #ifndef NDEBUG
-                        DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, fishingRule, rareHit, attempt, FALSE);
+                        DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, fishingRule, chosenRare, attempt, FALSE);
 #endif
                         *outSpecies = candidate;
                         return blocked;
                     }
                 }
 
+                // 最終フォールバック: rare枠も含め巡回で1枠返す
+                if (slotCount > 0)
                 {
-                    u16 idx = RandomizerNextRange(&state, targetCount);
-                    candidate = wlTarget[idx];
-#ifndef NDEBUG
-                    DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, fishingRule, rareHit, maxRerollsHit + 1, TRUE);
-#endif
-                    *outSpecies = candidate;
-                    return blocked;
+                    u16 idx = GetCycleIndexCombined(slotCount);
+                    // 軽いランダム揺らぎ（-1/0/+1のどれか）
+                    u16 deltaSeed = seed ^ (maxRerollsHit + 1) ^ sSlotCycle.cycleTick;
+                    struct Sfc32State tweak = RandomizerRandSeed(RANDOMIZER_REASON_WILD_ENCOUNTER, deltaSeed, species);
+                    s32 delta = (RandomizerNextRange(&tweak, 3) - 1); // -1,0,1
+                    s32 jittered = (s32)idx + delta;
+                    if (jittered < 0)
+                        jittered += slotCount;
+                    idx = (u16)(jittered % slotCount);
+
+                    candidate = slotMap[idx];
+                    chosenRare = (rareStart > 0 && idx >= rareStart);
+                    if (slotCount <= 32)
+                        sSlotCycle.seenMask |= (1u << (idx % 32));
                 }
+                else
+                {
+                    candidate = wl[RandomizerRandRange(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, wlLimit)];
+                    chosenRare = FALSE;
+                }
+#ifndef NDEBUG
+                DebugLogRandomization(RANDOMIZER_REASON_WILD_ENCOUNTER, seed, species, candidate, areaRule, fishingRule, chosenRare, maxRerollsHit + 1, TRUE);
+#endif
+                *outSpecies = candidate;
+                return blocked;
             }
         }
         else

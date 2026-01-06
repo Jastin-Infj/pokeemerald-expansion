@@ -22,7 +22,7 @@ import yaml
 import copy
 from typing import Dict, List, Optional, Tuple
 
-SCHEMA_VERSION_EXPECTED = ("1.30", "1.40")
+SCHEMA_VERSION_EXPECTED = ("1.30", "1.40", "1.50")
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 ROOT = THIS_DIR.parent
@@ -102,6 +102,9 @@ struct RandomizerFishingRule {
     u16 levelBandCount;
     u16 rareLevelBandOffset;
     u16 rareLevelBandCount;
+    u16 slotSpeciesOffset;
+    u16 slotSpeciesCount;
+    u8 slotRareStart;
 };
 
 struct RandomizerAreaRule {
@@ -136,6 +139,9 @@ struct RandomizerAreaRule {
     u16 levelBandCount;
     u16 rareLevelBandOffset;
     u16 rareLevelBandCount;
+    u16 slotSpeciesOffset;
+    u16 slotSpeciesCount;
+    u8 slotRareStart;
 };
 
 """
@@ -478,6 +484,7 @@ def main():
     rare_level_band_pool: List[Tuple[int, int]] = []
     rules: List[Dict] = []
     fishing_rules: List[Dict] = []
+    slot_species_pool: List[int] = []
 
     def add_pool_entries(wl, bl):
         nonlocal wl_pool, bl_pool
@@ -496,6 +503,11 @@ def main():
         offset = len(pool)
         pool.extend(bands)
         return offset, len(bands)
+
+    def add_slot_species(entries: List[int]):
+        offset = len(slot_species_pool)
+        slot_species_pool.extend(entries)
+        return offset, len(entries)
 
     def expand_kits(names, ctx):
         result = []
@@ -749,6 +761,7 @@ def main():
         rare_weights = []
         level_bands = []
         rare_level_bands = []
+        slot_species_list = []
 
         # Extract weights/level bands (slotCount-based). This is proto support; if invalid, just error.
         weights, rare_weights = extract_weights(ts_entry, entry, slot_count, f"{name}/{time_key}")
@@ -770,6 +783,34 @@ def main():
             level_off, level_cnt = add_level_entries(level_bands, level_band_pool)
         if rare_level_bands:
             rare_level_off, rare_level_cnt = add_level_entries(rare_level_bands, rare_level_band_pool)
+
+        # スロットマップ生成（末尾レア枠）
+        rare_slots_eff = rare_slots if (slot_mode == RANDOMIZER_SLOT_MODE_RARE and rare_rate and rare_slots) else 0
+        if slot_count < rare_slots_eff:
+            raise ValueError(f"{name}/{time_key}: rareSlots {rare_slots_eff} exceeds slotCount {slot_count}")
+        if rare_slots_eff > 0 and rare_slots_eff > len(wl_rare):
+            raise ValueError(f"{name}/{time_key}: rareSlots {rare_slots_eff} exceeds rare whitelist {len(wl_rare)}")
+        normal_slots = slot_count - rare_slots_eff
+
+        def build_sorted(wl_list, weights_list, ctx_sort):
+            if weights_list and len(weights_list) >= len(wl_list):
+                pairs = list(zip(wl_list, weights_list[:len(wl_list)]))
+                pairs.sort(key=lambda x: x[1], reverse=True)
+                return [p[0] for p in pairs]
+            return wl_list
+
+        normal_sorted = build_sorted(wl_normal, weights, f"{name}/{time_key}/weights")
+        rare_sorted = build_sorted(wl_rare, rare_weights, f"{name}/{time_key}/rareWeights")
+
+        normal_chosen = normal_sorted[:normal_slots]
+        if len(normal_chosen) < normal_slots:
+            normal_chosen.extend([0] * (normal_slots - len(normal_chosen)))
+        rare_chosen = rare_sorted[:rare_slots_eff]
+        if len(rare_chosen) < rare_slots_eff:
+            rare_chosen.extend([0] * (rare_slots_eff - len(rare_chosen)))
+        slot_species_list = normal_chosen + rare_chosen
+
+        slot_spec_off, slot_spec_cnt = add_slot_species(slot_species_list)
 
         fishing_offset = 0
         fishing_count = 0
@@ -837,6 +878,34 @@ def main():
                 if rod_rare_level_bands:
                     rod_rare_level_off, rod_rare_level_cnt = add_level_entries(rod_rare_level_bands, rare_level_band_pool)
 
+                # スロットマップ生成（末尾レア枠）
+                rod_slot_count = rod_max_species if rod_max_species else 0
+                rod_rare_slots_eff = rod_rare_slots if rod_rare_slots is not None else 0
+                if rod_slot_count < rod_rare_slots_eff:
+                    raise ValueError(f"{name}/{time_key}/fishing/{rod}: rareSlots {rod_rare_slots_eff} exceeds slotCount {rod_slot_count}")
+                normal_slots = rod_slot_count - rod_rare_slots_eff
+                # rareSlots > rareWLはエラー
+                if rod_rare_slots_eff > 0 and rod_rare_slots_eff > len(rod_wl_rare):
+                    raise ValueError(f"{name}/{time_key}/fishing/{rod}: rareSlots {rod_rare_slots_eff} exceeds rare whitelist {len(rod_wl_rare)}")
+                # 切り詰め用の重み: なければ均等
+                def build_sorted(wl_list, weights, ctx_sort):
+                    if weights and len(weights) >= len(wl_list):
+                        pairs = list(zip(wl_list, weights[:len(wl_list)]))
+                        pairs.sort(key=lambda x: x[1], reverse=True)
+                        return [p[0] for p in pairs]
+                    return wl_list
+                normal_sorted = build_sorted(rod_wl_norm, rod_data.get("weights"), f"{name}/{time_key}/fishing/{rod}/weights")
+                rare_sorted = build_sorted(rod_wl_rare, (rod_rare or {}).get("weights"), f"{name}/{time_key}/fishing/{rod}/rare/weights")
+                # 切り詰め・空埋め
+                normal_chosen = normal_sorted[:normal_slots]
+                if len(normal_chosen) < normal_slots:
+                    normal_chosen.extend([0] * (normal_slots - len(normal_chosen)))
+                rare_chosen = rare_sorted[:rod_rare_slots_eff]
+                if len(rare_chosen) < rod_rare_slots_eff:
+                    rare_chosen.extend([0] * (rod_rare_slots_eff - len(rare_chosen)))
+                slot_species = normal_chosen + rare_chosen
+                rod_slot_offset, rod_slot_count = add_slot_species(slot_species)
+
                 rod_rules.append({
                     "normal": (n_off, n_cnt, nb_off, nb_cnt),
                     "rare": (r_off, r_cnt, rb_off, rb_cnt),
@@ -849,6 +918,7 @@ def main():
                     "maxRerolls": 0 if rod_max_rerolls is None else (MAX_REROLLS_AUTO if rod_max_rerolls == "auto" else rod_max_rerolls),
                     "levelBands": (rod_level_off, rod_level_cnt),
                     "rareLevelBands": (rod_rare_level_off, rod_rare_level_cnt),
+                    "slotSpecies": (rod_slot_offset, rod_slot_count, normal_slots),
                 })
 
             fishing_count = len(rod_rules)
@@ -880,6 +950,9 @@ def main():
             "levelBandCount": level_cnt,
             "rareLevelBandOffset": rare_level_off,
             "rareLevelBandCount": rare_level_cnt,
+            "slotSpeciesOffset": slot_spec_off,
+            "slotSpeciesCount": slot_spec_cnt,
+            "slotRareStart": normal_slots,
         }
         rules.append(rule)
 
@@ -958,7 +1031,7 @@ def main():
         auto_rules = sum(1 for r in rules if r["maxRerolls"] == MAX_REROLLS_AUTO)
         fishing_rules_count = sum(1 for r in rules if r.get("fishingCount", 0) > 0)
         print(f"[report] rules={len(rules)} allowEmpty={allow_empty_rules} autoMaxRerolls={auto_rules} fishingAreas={fishing_rules_count}")
-        print(f"[report] wlPool={len(wl_pool)} blPool={len(bl_pool)} weightPool={len(weight_pool)} rareWeightPool={len(rare_weight_pool)}")
+        print(f"[report] wlPool={len(wl_pool)} blPool={len(bl_pool)} weightPool={len(weight_pool)} rareWeightPool={len(rare_weight_pool)} slotSpeciesPool={len(slot_species_pool)}")
     if args.check:
         return 0
 
@@ -969,6 +1042,7 @@ def main():
         f.write(render_array("sRandomizerAreaBlacklistPool", bl_pool))
         f.write(render_array("sRandomizerAreaWeightPool", weight_pool))
         f.write(render_array("sRandomizerAreaRareWeightPool", rare_weight_pool))
+        f.write(render_array("sRandomizerSlotSpeciesPool", slot_species_pool))
 
         f.write("static const struct RandomizerLevelBand sRandomizerAreaLevelBandPool[] = {\n")
         for band in level_band_pool:
@@ -1003,6 +1077,9 @@ def main():
             f.write(f"        .levelBandCount = {fr.get('levelBands', (0,0))[1]},\n")
             f.write(f"        .rareLevelBandOffset = {fr.get('rareLevelBands', (0,0))[0]},\n")
             f.write(f"        .rareLevelBandCount = {fr.get('rareLevelBands', (0,0))[1]},\n")
+            f.write(f"        .slotSpeciesOffset = {fr.get('slotSpecies', (0,0,0))[0]},\n")
+            f.write(f"        .slotSpeciesCount = {fr.get('slotSpecies', (0,0,0))[1]},\n")
+            f.write(f"        .slotRareStart = {fr.get('slotSpecies', (0,0,0))[2]},\n")
             f.write("    },\n")
         f.write("};\n\n")
 
@@ -1044,6 +1121,9 @@ def main():
             f.write(f"        .levelBandCount = {r.get('levelBandCount', 0)},\n")
             f.write(f"        .rareLevelBandOffset = {r.get('rareLevelBandOffset', 0)},\n")
             f.write(f"        .rareLevelBandCount = {r.get('rareLevelBandCount', 0)},\n")
+            f.write(f"        .slotSpeciesOffset = {r.get('slotSpeciesOffset', 0)},\n")
+            f.write(f"        .slotSpeciesCount = {r.get('slotSpeciesCount', 0)},\n")
+            f.write(f"        .slotRareStart = {r.get('slotRareStart', 0)},\n")
             f.write("    },\n")
         f.write("};\n\n")
         f.write(f"#define RANDOMIZER_AREA_RULE_COUNT {len(rules)}\n")
@@ -1052,6 +1132,7 @@ def main():
         f.write(f"#define RANDOMIZER_RARE_WEIGHT_POOL_COUNT {len(rare_weight_pool)}\n")
         f.write(f"#define RANDOMIZER_LEVEL_BAND_POOL_COUNT {len(level_band_pool)}\n")
         f.write(f"#define RANDOMIZER_RARE_LEVEL_BAND_POOL_COUNT {len(rare_level_band_pool)}\n")
+        f.write(f"#define RANDOMIZER_SLOT_SPECIES_POOL_COUNT {len(slot_species_pool)}\n")
 
     # Exceptions (debug-only)
     if exceptions_data is not None:

@@ -150,6 +150,12 @@ Debug_EventScript_Script_1::
 	setflag FLAG_RANDOMIZER_AREA_WL
 	setflag FLAG_RANDOMIZER_DEBUG_LOG
 	setflag FLAG_RANDOMIZER_FISHING_AUTO_BITE
+	clearflag FLAG_RANDOMIZER_VANILLA_ENCOUNTER
+	setflag DN_FLAG_DEXNAV_GET
+	setflag DN_FLAG_DETECTOR_MODE
+	setflag DN_FLAG_SEARCHING
+	setvar DN_VAR_SPECIES, 0
+	setvar DN_VAR_STEP_COUNTER, 0
 	message Debug_EventScript_Text_RandomizerAreaWLOn
 	waitmessage
 	waitbuttonpress
