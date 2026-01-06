@@ -163,6 +163,7 @@ static void Task_DexNavWaitFadeIn(u8 taskId);
 static void Task_DexNavMain(u8 taskId);
 static void PrintCurrentSpeciesInfo(void);
 // SEARCH
+bool8 DexNavIsSearchTaskActive(void);
 static bool8 TryStartHiddenMonFieldEffect(enum EncounterType environment, u8 xSize, u8 ySize, bool8 smallScan);
 static void DexNavGenerateMoveset(u16 species, u8 searchLevel, u8 encounterLevel, u16 *moveDst);
 static u16 DexNavGenerateHeldItem(u16 species, u8 searchLevel);
@@ -182,12 +183,23 @@ static bool8 DexNavHasSeen(u16 species);
 static void DexNavSelectFirstAvailableSlot(void);
 static bool8 FillDexNavFromRandomizer(enum WildPokemonArea area, u8 rodType, u8 section, u16 *dst, struct RandomizerLevelBand *dstBands, u8 capacity, u8 *outCount, u8 *outSlotCount, u8 *outRareStart, bool8 *outAllowEmpty);
 static bool8 DexNavSelectionAllowed(u16 species, enum WildPokemonArea area, bool8 logFailure, bool8 *outSlotMismatch, bool8 *outAllowEmpty);
+static void Task_SetUpDexNavSearch(u8 taskId);
+static void Task_RevealHiddenMon(u8 taskId);
+static void Task_InitDexNavSearch(u8 taskId);
 #ifndef NDEBUG
 static void DebugPrintDexNavSpeciesArray(const char *tag, const u16 *arr, u8 len);
 #endif
 // HIDDEN MONS
 static void DexNavDrawHiddenIcons(void);
 static void DrawHiddenSearchWindow(u8 width);
+
+bool8 DexNavIsSearchTaskActive(void)
+{
+    return (FindTaskIdByFunc(Task_DexNavSearch) != TASK_NONE)
+        || (FindTaskIdByFunc(Task_InitDexNavSearch) != TASK_NONE)
+        || (FindTaskIdByFunc(Task_SetUpDexNavSearch) != TASK_NONE)
+        || (FindTaskIdByFunc(Task_RevealHiddenMon) != TASK_NONE);
+}
 
 #ifndef NDEBUG
 // デバッグ用: 配列内容を簡易出力
@@ -793,10 +805,11 @@ static bool8 TryStartHiddenMonFieldEffect(enum EncounterType environment, u8 xSi
 {
     enum MapType currMapType = GetCurrentMapType();
     u8 fldEffId = 0;
+    u8 metatileBehaviour = 0;
 
     if (DexNavPickTile(environment, xSize, ySize, smallScan))
     {
-        u8 metatileBehaviour = MapGridGetMetatileBehaviorAt(sDexNavSearchDataPtr->tileX, sDexNavSearchDataPtr->tileY);
+        metatileBehaviour = MapGridGetMetatileBehaviorAt(sDexNavSearchDataPtr->tileX, sDexNavSearchDataPtr->tileY);
 
         switch (environment)
         {
@@ -838,11 +851,11 @@ static bool8 TryStartHiddenMonFieldEffect(enum EncounterType environment, u8 xSi
         }
 
         if (fldEffId != 0)
-        {
-            gFieldEffectArguments[0] = sDexNavSearchDataPtr->tileX;
-            gFieldEffectArguments[1] = sDexNavSearchDataPtr->tileY;
-            gFieldEffectArguments[2] = 0xFF; // subpriority
-            gFieldEffectArguments[3] = 2;   //priority
+    {
+        gFieldEffectArguments[0] = sDexNavSearchDataPtr->tileX;
+        gFieldEffectArguments[1] = sDexNavSearchDataPtr->tileY;
+        gFieldEffectArguments[2] = 0xFF; // subpriority
+        gFieldEffectArguments[3] = 2;   //priority
             sDexNavSearchDataPtr->fldEffSpriteId = FieldEffectStart(fldEffId);
             if (sDexNavSearchDataPtr->fldEffSpriteId == MAX_SPRITES)
                 return FALSE;
@@ -851,6 +864,18 @@ static bool8 TryStartHiddenMonFieldEffect(enum EncounterType environment, u8 xSi
             return TRUE;
         }
     }
+
+    #ifndef NDEBUG
+    DebugPrintfLevel(MGBA_LOG_WARN,
+                     "[INFO] DexNav TryStartHiddenMonFieldEffect fail env=%d fldEff=%d tile=%d/%d beh=0x%02x mapType=%d small=%d",
+                     environment,
+                     fldEffId,
+                     sDexNavSearchDataPtr->tileX,
+                     sDexNavSearchDataPtr->tileY,
+                     metatileBehaviour,
+                     currMapType,
+                     smallScan);
+    #endif
 
     return FALSE;
 }
@@ -968,9 +993,32 @@ static void Task_InitDexNavSearch(u8 taskId)
 
     if (sDexNavSearchDataPtr->monLevel == MON_LEVEL_NONEXISTENT || !TryStartHiddenMonFieldEffect(sDexNavSearchDataPtr->environment, 12, 12, FALSE))
     {
+#ifndef NDEBUG
+        {
+            u16 beh = MapGridGetMetatileBehaviorAt(gSaveBlock1Ptr->pos.x + MAP_OFFSET, gSaveBlock1Ptr->pos.y + MAP_OFFSET);
+            DebugPrintfLevel(MGBA_LOG_WARN,
+                             "[INFO] DexNav start failed species=%d env=%d level=%d tile=%d/%d beh=0x%02x mapType=%d",
+                             species,
+                             environment,
+                             sDexNavSearchDataPtr->monLevel,
+                             sDexNavSearchDataPtr->tileX,
+                             sDexNavSearchDataPtr->tileY,
+                             beh,
+                             GetCurrentMapType());
+        }
+#endif
         DexNavSearchBail(taskId, EventScript_NotFoundNearby);
         return;
     }
+#ifndef NDEBUG
+    DebugPrintfLevel(MGBA_LOG_WARN,
+                     "[INFO] DexNav start ok species=%d env=%d level=%d tile=%d/%d",
+                     species,
+                     environment,
+                     sDexNavSearchDataPtr->monLevel,
+                     sDexNavSearchDataPtr->tileX,
+                     sDexNavSearchDataPtr->tileY);
+#endif
 
     sDexNavSearchDataPtr->hiddenSearch = FALSE;
     task->tRevealed = TRUE; //search window revealed
@@ -1038,15 +1086,41 @@ bool8 TryStartDexNavSearch(void)
 {
     u8 taskId;
     u16 val = VarGet(DN_VAR_SPECIES);
+    bool8 dbg = FlagGet(FLAG_RANDOMIZER_DEBUG_LOG);
 
     if (FlagGet(DN_FLAG_SEARCHING) || (val & DEXNAV_MASK_SPECIES) == SPECIES_NONE)
+    {
+#ifndef NDEBUG
+        DebugPrintfLevel(MGBA_LOG_WARN,
+                         "[INFO] DexNav R-start blocked searching=%d species=0x%04x env=%d dbgFlag=%d",
+                         FlagGet(DN_FLAG_SEARCHING),
+                         val & DEXNAV_MASK_SPECIES,
+                         (val & DEXNAV_MASK_ENVIRONMENT) >> 14,
+                         dbg);
+#endif
         return FALSE;
+    }
+
+#ifndef NDEBUG
+    DebugPrintfLevel(MGBA_LOG_WARN,
+                     "[INFO] DexNav R-start begin species=0x%04x env=%d dbgFlag=%d",
+                     val & DEXNAV_MASK_SPECIES,
+                     (val & DEXNAV_MASK_ENVIRONMENT) >> 14,
+                     dbg);
+#endif
 
     HideMapNamePopUpWindow();
     ChangeBgY_ScreenOff(0, 0, 0);
     taskId = CreateTask(Task_InitDexNavSearch, 0);
     gTasks[taskId].tSpecies = val & DEXNAV_MASK_SPECIES;
     gTasks[taskId].tEnvironment = val >> 14;
+#ifndef NDEBUG
+    DebugPrintfLevel(MGBA_LOG_WARN,
+                     "[INFO] DexNav R-start task=%d species=%d env=%d",
+                     taskId,
+                     gTasks[taskId].tSpecies,
+                     gTasks[taskId].tEnvironment);
+#endif
     PlaySE(SE_DEX_SEARCH);
     return FALSE;   //we dont actually want to enable the script context
 }
@@ -1709,6 +1783,124 @@ static u8 GetEncounterLevelFromMapData(u16 species, enum EncounterType environme
         u8 rndLevel;
         if (TryGetRandomizerDexNavLevel(species, environment, &rndLevel))
             return rndLevel;
+
+        // Fallback: randomizer slot present but no level bands; derive levels from slot index or map table.
+        if (RandomizerFeatureEnabled(RANDOMIZE_WILD_MON) && !FlagGet(FLAG_RANDOMIZER_VANILLA_ENCOUNTER))
+        {
+            struct RandomizerRuleView view;
+            u8 mapGroup = gSaveBlock1Ptr->location.mapGroup;
+            u8 mapNum = gSaveBlock1Ptr->location.mapNum;
+            u32 headerId2 = GetCurrentMapWildMonHeaderId();
+            u8 j;
+
+            struct AreaRodCombo
+            {
+                enum WildPokemonArea area;
+                u8 rod;
+            };
+            static const struct AreaRodCombo sAreaRodOrderLand[] = { { WILD_AREA_LAND, RANDOMIZER_ROD_NONE } };
+            static const struct AreaRodCombo sAreaRodOrderHidden[] = { { WILD_AREA_HIDDEN, RANDOMIZER_ROD_NONE } };
+            static const struct AreaRodCombo sAreaRodOrderWater[] = {
+                { WILD_AREA_WATER,   RANDOMIZER_ROD_NONE },
+                { WILD_AREA_FISHING, RANDOMIZER_ROD_OLD },
+                { WILD_AREA_FISHING, RANDOMIZER_ROD_GOOD },
+                { WILD_AREA_FISHING, RANDOMIZER_ROD_SUPER },
+            };
+            const struct AreaRodCombo *order = NULL;
+            u8 orderCount = 0;
+
+            switch (environment)
+            {
+            case ENCOUNTER_TYPE_LAND:
+                order = sAreaRodOrderLand;
+                orderCount = NELEMS(sAreaRodOrderLand);
+                break;
+            case ENCOUNTER_TYPE_WATER:
+                order = sAreaRodOrderWater;
+                orderCount = NELEMS(sAreaRodOrderWater);
+                break;
+            case ENCOUNTER_TYPE_HIDDEN:
+                order = sAreaRodOrderHidden;
+                orderCount = NELEMS(sAreaRodOrderHidden);
+                break;
+            default:
+                break;
+            }
+
+            for (j = 0; j < orderCount; j++)
+            {
+                u8 defaultSlot = GetTimeOfDayForEncounters(headerId2, order[j].area);
+                u8 timeSlot = RandomizerResolveTimeSlot(defaultSlot);
+                u8 k;
+
+                if (!RandomizerGetAreaRuleView(mapGroup, mapNum, order[j].area, order[j].rod, timeSlot, &view))
+                {
+                    u8 anySlot = RandomizerResolveTimeSlot(RANDOMIZER_TIME_SLOT_ANY);
+                    if (anySlot == timeSlot
+                        || !RandomizerGetAreaRuleView(mapGroup, mapNum, order[j].area, order[j].rod, anySlot, &view))
+                        continue;
+                }
+
+                if (view.slotSpecies == NULL || view.slotSpeciesCount == 0)
+                    continue;
+
+                for (k = 0; k < view.slotSpeciesCount; k++)
+                {
+                    if (view.slotSpecies[k] == species)
+                    {
+                        u8 lo2 = 1, hi2 = 1;
+                        if (view.levelBands != NULL && k < view.levelBandCount)
+                        {
+                            lo2 = view.levelBands[k].minLevel;
+                            hi2 = view.levelBands[k].maxLevel;
+                        }
+                        else
+                        {
+                            const struct WildPokemonInfo *info = NULL;
+                            u8 slotLimit = 0;
+                            switch (order[j].area)
+                            {
+                            case WILD_AREA_LAND:
+                                info = gWildMonHeaders[headerId2].encounterTypes[defaultSlot].landMonsInfo;
+                                slotLimit = LAND_WILD_COUNT;
+                                break;
+                            case WILD_AREA_WATER:
+                                info = gWildMonHeaders[headerId2].encounterTypes[defaultSlot].waterMonsInfo;
+                                slotLimit = WATER_WILD_COUNT;
+                                break;
+                            case WILD_AREA_FISHING:
+                                info = gWildMonHeaders[headerId2].encounterTypes[defaultSlot].fishingMonsInfo;
+                                slotLimit = FISH_WILD_COUNT;
+                                break;
+                            case WILD_AREA_HIDDEN:
+                                info = gWildMonHeaders[headerId2].encounterTypes[defaultSlot].hiddenMonsInfo;
+                                slotLimit = HIDDEN_WILD_COUNT;
+                                break;
+                            default:
+                                break;
+                            }
+
+                            if (info != NULL && slotLimit > 0)
+                            {
+                                u8 idx = (k < slotLimit) ? k : (slotLimit - 1);
+                                lo2 = info->wildPokemon[idx].minLevel;
+                                hi2 = info->wildPokemon[idx].maxLevel;
+                            }
+                        }
+
+                        if (lo2 == 0 && hi2 == 0)
+                            return 5; // fallback level
+                        if (lo2 > hi2)
+                        {
+                            u8 tmp = lo2;
+                            lo2 = hi2;
+                            hi2 = tmp;
+                        }
+                        return RandomUniform(RNG_DEXNAV_ENCOUNTER_LEVEL, lo2, hi2);
+                    }
+                }
+            }
+        }
     }
 #endif
 

@@ -106,9 +106,33 @@ void FieldGetPlayerInput(struct FieldInput *input, u16 newKeys, u16 heldKeys)
     u8 tileTransitionState = gPlayerAvatar.tileTransitionState;
     u8 runningState = gPlayerAvatar.runningState;
     bool8 forcedMove = MetatileBehavior_IsForcedMovementTile(GetPlayerCurMetatileBehavior(runningState));
+    bool8 dbg = FlagGet(FLAG_RANDOMIZER_DEBUG_LOG);
 
     if ((tileTransitionState == T_TILE_CENTER && forcedMove == FALSE) || tileTransitionState == T_NOT_MOVING)
     {
+        if (newKeys & R_BUTTON)
+        {
+#ifndef NDEBUG
+            DebugPrintfLevel(MGBA_LOG_WARN,
+                             "[INFO] DexNav R-input raw new=%04x held=%04x speed=%d tile=%d forced=%d searching=%d dbg=%d",
+                             newKeys,
+                             heldKeys,
+                             GetPlayerSpeed(),
+                             tileTransitionState,
+                             forcedMove,
+                             FlagGet(DN_FLAG_SEARCHING),
+                             dbg);
+#endif
+            if (FlagGet(DN_FLAG_SEARCHING) && !DexNavIsSearchTaskActive())
+            {
+#ifndef NDEBUG
+                DebugPrintfLevel(MGBA_LOG_WARN,
+                                 "[INFO] DexNav R-input clear stale flag");
+#endif
+                FlagClear(DN_FLAG_SEARCHING);
+            }
+        }
+
         if (GetPlayerSpeed() != PLAYER_SPEED_FASTEST)
         {
             if (newKeys & START_BUTTON)
@@ -121,6 +145,23 @@ void FieldGetPlayerInput(struct FieldInput *input, u16 newKeys, u16 heldKeys)
                 input->pressedBButton = TRUE;
             if (newKeys & R_BUTTON && !FlagGet(DN_FLAG_SEARCHING))
                 input->pressedRButton = TRUE;
+        }
+        else
+        {
+#ifndef NDEBUG
+            if (newKeys & R_BUTTON)
+            {
+                DebugPrintfLevel(MGBA_LOG_WARN,
+                                 "[INFO] DexNav R-input blocked(speed) new=%04x held=%04x speed=%d tile=%d forced=%d searching=%d dbg=%d",
+                                 newKeys,
+                                 heldKeys,
+                                 GetPlayerSpeed(),
+                                 tileTransitionState,
+                                 forcedMove,
+                                 FlagGet(DN_FLAG_SEARCHING),
+                                 dbg);
+            }
+#endif
         }
 
         if (heldKeys & (DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT))
@@ -234,8 +275,17 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     if (input->pressedSelectButton && UseRegisteredKeyItemOnField() == TRUE)
         return TRUE;
 
-    if (input->pressedRButton && TryStartDexNavSearch())
-        return TRUE;
+    if (input->pressedRButton)
+    {
+#ifndef NDEBUG
+        DebugPrintfLevel(MGBA_LOG_WARN,
+                         "[INFO] DexNav R-press dispatch species=0x%04x searching=%d",
+                         VarGet(DN_VAR_SPECIES),
+                         FlagGet(DN_FLAG_SEARCHING));
+#endif
+        if (TryStartDexNavSearch())
+            return TRUE;
+    }
 
     if(input->input_field_1_2 && DEBUG_OVERWORLD_MENU && !DEBUG_OVERWORLD_IN_MENU)
     {
