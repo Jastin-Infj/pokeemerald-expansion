@@ -1,0 +1,12 @@
+## TODO-SCRIPT new ver1.51 — DexNav Rボタン/ランダマイザーログ対応
+
+### ゴール
+- フィールドでR押下によるRegister呼び出しが必ず通るようにする（DN_FLAG_SEARCHINGの幽霊立ちを排除）。
+- 揺れ開始失敗時の原因特定ができるログを追加する。
+
+### 実施内容
+- R入力処理でタスク非存在かつDN_FLAG_SEARCHINGが立っている場合にフラグをクリアして再試行。
+- R入力〜DexNav開始〜フィールドエフェクト開始失敗までの各段階で常時ログ出力を追加（種/環境/タイル座標/beh/mapType含む）。
+
+### 追記メモ
+- TryStartHiddenMonFieldEffect失敗ログで地形判定が分かる。小スキャンfallbackや地形許容拡大が必要なら別タスクで検討。
