@@ -1,0 +1,18 @@
+/* ランク共通サンプル: Sランク共有プール（重み合計100必須の想定） */
+/* NormalRank/RareRank指定はトレーナー側で持つことを想定。ここは候補プールのみ。 */
+
+=== RANK_S_SHARED ===
+Name: RANK S SHARED
+Class: Sample
+Pic: Youngster
+Gender: Male
+
+Dragonite
+Level: 50
+/* Weight: 40 */
+
+Metagross
+Level: 50
+/* Weight: 60 */
+
+/* ほかのSランク候補を追加する場合、Weightの合計が100になるよう調整する */

@@ -1,0 +1,17 @@
+/* ランク共通サンプル: Eランク共有プール（序盤用・重み合計100） */
+
+=== RANK_E_SHARED ===
+Name: RANK E SHARED
+Class: Sample
+Pic: Youngster
+Gender: Male
+
+Zigzagoon
+Level: 5
+/* Weight: 50 */
+
+Poochyena
+Level: 5
+/* Weight: 50 */
+
+/* 重みを変更する場合は合計100にすること */

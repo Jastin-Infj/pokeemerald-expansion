@@ -1,0 +1,12 @@
+/* トレーナー固有サンプル: 固定シンボル（完全固定）。 */
+/* 固有セットが存在する場合、共通プールは使用しない。 */
+
+=== TRAINER_FIXED_SYMBOL ===
+Name: FIXED SYMBOL
+Class: Ace Trainer
+Pic: Ace Trainer M
+Gender: Male
+
+Salamence
+Level: 55
+/* Weight: 100 */ /* 固定扱いなので重みは便宜的に100 */

@@ -1,0 +1,16 @@
+/* トレーナー固有サンプル: 序盤トレーナー用。Normal=E/D、Rare=C を想定。 */
+/* トレーナー側で NormalRank:E/D, RareRank:C を指定し、この固有セットで共通を上書き。 */
+
+=== TRAINER_ROUTE_EARLY ===
+Name: ROUTE EARLY SAMPLE
+Class: Youngster
+Pic: Youngster
+Gender: Male
+
+Lotad
+Level: 6
+/* Weight: 50 */
+
+Seedot
+Level: 6
+/* Weight: 50 */

@@ -1,0 +1,29 @@
+/* ランク共通: Aランク（終盤・高難度、重み合計100、WeightScale=100） */
+
+=== RANK_A_SHARED ===
+Name: RANK A SHARED
+WeightTotal: 100
+
+Salamence
+Level: 52
+/* Weight: 20 */
+
+Metagross
+Level: 52
+/* Weight: 20 */
+
+Snorlax
+Level: 50
+/* Weight: 15 */
+
+Gyarados
+Level: 50
+/* Weight: 15 */
+
+Heracross
+Level: 48
+/* Weight: 15 */
+
+Milotic
+Level: 50
+/* Weight: 15 */

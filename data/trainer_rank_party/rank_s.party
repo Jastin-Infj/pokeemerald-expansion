@@ -1,0 +1,25 @@
+/* ランク共通: Sランク（最上位・伝説枠、重み合計100、WeightScale=100） */
+
+=== RANK_S_SHARED ===
+Name: RANK S SHARED
+WeightTotal: 100
+
+Rayquaza
+Level: 70
+/* Weight: 20 */
+
+Latios
+Level: 68
+/* Weight: 20 */
+
+Latias
+Level: 68
+/* Weight: 20 */
+
+Deoxys
+Level: 70
+/* Weight: 20 */
+
+Jirachi
+Level: 70
+/* Weight: 20 */

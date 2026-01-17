@@ -1,0 +1,20 @@
+/* トレーナー固有サンプル: ライバル3択用。固有があれば共通を完全上書き。 */
+/* Weightは候補内合計100を前提。3択なので候補数=3で重複なし抽選。 */
+
+=== RIVAL_THREE_CHOICE ===
+Name: RIVAL THREE CHOICE
+Class: Rival
+Pic: Brendan
+Gender: Male
+
+Treecko
+Level: 15
+/* Weight: 34 */
+
+Torchic
+Level: 15
+/* Weight: 33 */
+
+Mudkip
+Level: 15
+/* Weight: 33 */

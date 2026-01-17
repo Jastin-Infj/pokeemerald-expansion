@@ -1,0 +1,16 @@
+/* 固有: Route 102 序盤トレーナー用（Normal=E/D、重み合計100、WeightScale=100） */
+
+=== YOUNGSTER_ROUTE102 ===
+Name: YOUNGSTER ROUTE 102
+Class: Youngster
+Pic: Youngster
+Gender: Male
+WeightTotal: 100
+
+Zigzagoon
+Level: 7
+/* Weight: 50 */
+
+Poochyena
+Level: 7
+/* Weight: 50 */

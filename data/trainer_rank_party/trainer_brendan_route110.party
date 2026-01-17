@@ -1,0 +1,20 @@
+/* 固有: ライバル（ルート110想定）3択、重み合計100、WeightScale=100。固有があれば共通プールを上書き。 */
+
+=== BRENDAN_ROUTE110 ===
+Name: BRENDAN ROUTE 110
+Class: Rival
+Pic: Brendan
+Gender: Male
+WeightTotal: 100
+
+Grovyle
+Level: 20
+/* Weight: 34 */
+
+Combusken
+Level: 20
+/* Weight: 33 */
+
+Marshtomp
+Level: 20
+/* Weight: 33 */

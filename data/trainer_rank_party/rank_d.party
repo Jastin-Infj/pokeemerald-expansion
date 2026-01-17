@@ -1,0 +1,45 @@
+/* ランク共通: Dランク（序〜中盤、重み合計100、WeightScale=100） */
+
+=== RANK_D_SHARED ===
+Name: RANK D SHARED
+WeightTotal: 100
+
+Linoone
+Level: 20
+/* Weight: 10 */
+
+Mightyena
+Level: 20
+/* Weight: 10 */
+
+Dustox
+Level: 19
+/* Weight: 10 */
+
+Beautifly
+Level: 19
+/* Weight: 10 */
+
+Nuzleaf
+Level: 20
+/* Weight: 10 */
+
+Lombre
+Level: 20
+/* Weight: 10 */
+
+Swellow
+Level: 21
+/* Weight: 10 */
+
+Pelipper
+Level: 21
+/* Weight: 10 */
+
+Kirlia
+Level: 20
+/* Weight: 10 */
+
+Vigoroth
+Level: 22
+/* Weight: 10 */

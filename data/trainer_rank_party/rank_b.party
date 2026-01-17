@@ -1,0 +1,45 @@
+/* ランク共通: Bランク（中〜終盤、重み合計100、WeightScale=100） */
+
+=== RANK_B_SHARED ===
+Name: RANK B SHARED
+WeightTotal: 100
+
+Gardevoir
+Level: 40
+/* Weight: 10 */
+
+Slaking
+Level: 40
+/* Weight: 10 */
+
+Walrein
+Level: 42
+/* Weight: 10 */
+
+Aggron
+Level: 42
+/* Weight: 10 */
+
+Armaldo
+Level: 42
+/* Weight: 10 */
+
+Cradily
+Level: 42
+/* Weight: 10 */
+
+Absol
+Level: 40
+/* Weight: 10 */
+
+Flygon
+Level: 42
+/* Weight: 10 */
+
+Kingdra
+Level: 42
+/* Weight: 10 */
+
+Weezing
+Level: 40
+/* Weight: 10 */
