@@ -6329,9 +6329,9 @@ Music: Hiker
 Double Battle: No
 AI: Check Bad Move
 
-Magikarp
-Level: 5
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+RANK_C
+
+RANK_C
 
 Magikarp
 Level: 6
@@ -11069,6 +11069,7 @@ Gender: Female
 Music: Female
 Double Battle: No
 AI: Check Bad Move
+MultiRandom: Count=3
 
 Lotad
 Level: 6

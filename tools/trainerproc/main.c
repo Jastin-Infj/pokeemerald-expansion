@@ -158,6 +158,9 @@ struct Trainer
 
     struct String back_pic;
     int back_pic_line;
+
+    int multi_random_count;
+    int multi_random_line;
 };
 
 static bool is_empty_string(struct String s)
@@ -251,6 +254,27 @@ static bool is_literal_token(const struct Token *t, const char *s)
         i++;
         s++;
     }
+}
+
+static bool parse_int_allow_prefix(const struct Token *t, int *out)
+{
+    const char *start = (const char *)&t->source->buffer[t->begin];
+    const char *end = (const char *)&t->source->buffer[t->end];
+    // Skip leading spaces
+    while (start < end && (*start == ' ' || *start == '\t'))
+        start++;
+    // If prefix like "Count=" exists, skip until digit or end
+    while (start < end && !('0' <= *start && *start <= '9'))
+        start++;
+    if (start == end)
+        return false;
+
+    char *stop;
+    long val = strtol(start, &stop, 10);
+    if (start == stop) // no digits
+        return false;
+    *out = (int)val;
+    return true;
 }
 
 struct Parser
@@ -1310,6 +1334,12 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
             trainer->back_pic_line = value.location.line;
             trainer->back_pic = token_string(&value);
         }
+        else if (is_literal_token(&key, "MultiRandom"))
+        {
+            trainer->multi_random_line = value.location.line;
+            if (!parse_int_allow_prefix(&value, &trainer->multi_random_count))
+                any_error = !set_show_parse_error(p, value.location, "expected integer for MultiRandom");
+        }
         else
         {
             any_error = !set_show_parse_error(p, key.location, "expected one of 'Name', 'Class', 'Pic', 'Gender', 'Music', 'Items', 'Battle Type', 'Difficulty', 'Party Size', 'Pool Rules', 'Pool Pick Functions', 'Pool Prune' or 'AI'");
@@ -1560,6 +1590,41 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
         set_show_parse_error(p, p->location, "partySize larger than supplied pool");
     }
 
+    // MultiRandom: pad up to Count, allowing zero defined mons (will duplicate a filler).
+    if (trainer->multi_random_count > 0)
+    {
+        if (trainer->multi_random_count < 1 || trainer->multi_random_count > PARTY_SIZE)
+        {
+            set_show_parse_error(p, p->location, "MultiRandom count must be between 1 and 6");
+        }
+        else
+        {
+            struct Pokemon filler = {0};
+            if (trainer->pokemon_n > 0)
+                filler = trainer->pokemon[trainer->pokemon_n - 1];
+            else
+            {
+                filler.species = literal_string("None");
+                filler.level = 1;
+                filler.level_line = trainer->multi_random_line;
+                filler.header_line = trainer->multi_random_line;
+            }
+            if (filler.level_line == 0)
+                filler.level = 1;
+
+            int target = trainer->multi_random_count;
+            if (target > PARTY_SIZE)
+                target = PARTY_SIZE;
+            for (int i = trainer->pokemon_n; i < target; i++)
+                trainer->pokemon[i] = filler;
+            if (trainer->pokemon_n < target)
+                trainer->pokemon_n = target;
+        }
+    }
+
+    if (trainer->multi_random_count > 0 && trainer->party_size < trainer->pokemon_n)
+        trainer->party_size = trainer->pokemon_n;
+
     return !any_error;
 }
 
@@ -1677,8 +1742,42 @@ static bool is_utf8_character(struct String s, int *i, const unsigned char *utf8
     }
 }
 
+static int rank_from_string(struct String s)
+{
+    // Expect exact tokens like "RANK_S"..."RANK_E"
+    if (s.string_n != 6)
+        return -1;
+    if (!(s.string[0] == 'R' && s.string[1] == 'A' && s.string[2] == 'N' && s.string[3] == 'K' && s.string[4] == '_'))
+        return -1;
+    switch (s.string[5])
+    {
+    case 'S':
+        return 0;
+    case 'A':
+        return 1;
+    case 'B':
+        return 2;
+    case 'C':
+        return 3;
+    case 'D':
+        return 4;
+    case 'E':
+        return 5;
+    default:
+        return -1;
+    }
+}
+
 static void fprint_species(FILE *f, const char *prefix, struct String s)
 {
+    int rankIdx = rank_from_string(s);
+    if (rankIdx >= 0)
+    {
+        static const char ranks[] = { 'S', 'A', 'B', 'C', 'D', 'E' };
+        fprintf(f, "TRAINER_RANK_SENTINEL_%c", ranks[rankIdx]);
+        return;
+    }
+
     if (!is_constant(s, prefix)) fprintf(f, "%s_", prefix);
 
     if (s.string_n == 0)

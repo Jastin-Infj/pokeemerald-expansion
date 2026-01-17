@@ -9,11 +9,11 @@ WeightTotal: 100
 
 Flygon
 Level: 46
-/* Weight: 20 */
+Weight: 20
 
 Gardevoir
 Level: 46
-/* Weight: 20 */
+Weight: 20
 
 Manectric
 Level: 45
@@ -29,4 +29,4 @@ Level: 46
 
 Breloom
 Level: 45
-/* Weight: 15 */
+Weight: 15

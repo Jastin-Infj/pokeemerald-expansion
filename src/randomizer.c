@@ -15,6 +15,7 @@
 #include "data/randomizer/trainer_dup_rules.h"
 #include "randomizer_area_rules.h"
 #include "randomizer_exceptions.h"
+#include "trainer_rank.h"
 #include "rtc.h"
 
 #define SLOT_MODE_UNIFORM RANDOMIZER_SLOT_MODE_UNIFORM
@@ -36,12 +37,15 @@ static const struct RandomizerFishingRule *SelectFishingRule(const struct Random
 #define TRAINER_DUP_MAX_SAME_DEFAULT 255
 #define TRAINER_DUP_MIN_DISTINCT_DEFAULT 0
 #define TRAINER_DUP_MAX_ATTEMPTS 8
+#define TRAINER_RANK_INVALID_POOL 0xFFFF
 
 static u16 sTrainerPartyCache[PARTY_SIZE];
 static u16 sTrainerPartyCacheTrainerId;
 static u8 sTrainerPartyCacheFilled;
 static u8 sTrainerPartyCacheDistinct;
 static u8 sTrainerPartyCacheTotal;
+static u8 sTrainerPartyOverrideLevel[PARTY_SIZE];
+static bool8 sTrainerPartyOverrideLevelSet[PARTY_SIZE];
 static bool8 sAutoMaxRerollsLogValid = FALSE;
 static u8 sAutoMaxRerollsLogMapGroup;
 static u8 sAutoMaxRerollsLogMapNum;
@@ -236,6 +240,8 @@ static u8 GetAreaMaskFromWildArea(enum WildPokemonArea area);
 static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 areaMask, u8 timeSlot);
 static bool8 IsExceptionMap(u8 mapGroup, u8 mapNum, u8 areaMask, u8 timeSlot, u8 rodType);
 static void GetRulePools(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, const u16 **wl, u16 *wlCount, const u16 **bl, u16 *blCount, u8 *specialMask, bool8 *allowEmpty);
+static u16 ChooseTrainerRankSpecies(const struct TrainerRankPoolDef *pool, struct Sfc32State *state, u8 *outLevel);
+static const struct TrainerRankPoolDef *GetSharedPoolByRank(char rank);
 
 static const u16 *GetRuleWeights(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, u16 *count)
 {
@@ -278,6 +284,41 @@ static u16 ChooseWeightedIndex(const u16 *weights, u16 count, struct Sfc32State 
 static bool8 RandomizerDebugLoggingEnabled(void)
 {
     return FlagGet(FLAG_RANDOMIZER_DEBUG_LOG);
+}
+
+static void DebugLogTrainerRand(u16 trainerId,
+                                u8 slot,
+                                u8 totalMons,
+                                const char *phase,
+                                u16 species,
+                                const struct TrainerRankSpecView *spec,
+                                const struct TrainerRankPoolDef *pool,
+                                bool8 picked,
+                                bool8 allowDuplicates,
+                                u8 maxSame)
+{
+    if (!RandomizerDebugLoggingEnabled())
+        return;
+
+    DebugPrintfLevel(
+        MGBA_LOG_WARN,
+        "[INFO] TRand %s trainer=%u slot=%u/%u species=%03u pool=%s picked=%d usePool=%d poolIdx=%u poolCnt=%u normal=%c/%u rare=%c/%u dup=%d maxSame=%u",
+        phase,
+        trainerId,
+        slot,
+        totalMons,
+        species,
+        pool ? pool->key : "none",
+        picked,
+        spec ? spec->useTrainerPool : FALSE,
+        spec ? spec->trainerPoolIndex : 0xFFFF,
+        spec ? spec->trainerPoolCount : 0,
+        spec && spec->hasNormal ? spec->normalRank : '-',
+        spec ? spec->normalCount : 0,
+        spec && spec->hasRare ? spec->rareRank : '-',
+        spec ? spec->rareCount : 0,
+        allowDuplicates,
+        maxSame);
 }
 
 static const struct RandomizerAreaRule *FindAreaRuleForContext(u8 mapGroup, u8 mapNum, enum WildPokemonArea area, u8 timeSlot, u8 rodType, const struct RandomizerFishingRule **outFishing)
@@ -843,6 +884,8 @@ static void ResetTrainerPartyCache(u16 trainerId, u8 totalMons)
     sTrainerPartyCacheTotal = totalMons;
     sTrainerPartyCacheFilled = 0;
     sTrainerPartyCacheDistinct = 0;
+    memset(sTrainerPartyOverrideLevel, 0, sizeof(sTrainerPartyOverrideLevel));
+    memset(sTrainerPartyOverrideLevelSet, 0, sizeof(sTrainerPartyOverrideLevelSet));
 }
 
 static void GetTrainerDupRule(u16 trainerId, u8 *maxSame, u8 *minDistinct)
@@ -893,6 +936,25 @@ static void TrainerPartyCacheAdd(u16 species)
         if (!alreadyPresent)
             sTrainerPartyCacheDistinct++;
     }
+}
+
+static void TrainerPartySetLevelOverride(u8 slot, u8 level)
+{
+    if (slot >= PARTY_SIZE)
+        return;
+    sTrainerPartyOverrideLevel[slot] = level;
+    sTrainerPartyOverrideLevelSet[slot] = TRUE;
+}
+
+bool32 RandomizerGetTrainerLevelOverride(u8 slot, u8 *outLevel)
+{
+    if (slot >= PARTY_SIZE)
+        return FALSE;
+    if (!sTrainerPartyOverrideLevelSet[slot])
+        return FALSE;
+    if (outLevel != NULL)
+        *outLevel = sTrainerPartyOverrideLevel[slot];
+    return TRUE;
 }
 
 static u16 RandomizeWithAreaRule(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species, const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, u8 maxRerolls, bool8 useSlotMap)
@@ -1105,6 +1167,45 @@ u16 GetRandomizerOption(enum RandomizerOption option)
         default: // Unknown option.
             return 0;
     }
+}
+
+static const struct TrainerRankPoolDef *GetSharedPoolByRank(char rank)
+{
+    const char order[] = { 'S', 'A', 'B', 'C', 'D', 'E' };
+    int idx = -1;
+    int i;
+    for (i = 0; i < (int)ARRAY_COUNT(order); i++)
+    {
+        if (order[i] == rank)
+        {
+            idx = i;
+            break;
+        }
+    }
+    if (idx < 0)
+        return NULL;
+    if (gTrainerRankSharedMap[idx] == TRAINER_RANK_INVALID_POOL)
+        return NULL;
+    return &gTrainerRankPools[gTrainerRankSharedMap[idx]];
+}
+
+static u16 ChooseTrainerRankSpecies(const struct TrainerRankPoolDef *pool, struct Sfc32State *state, u8 *outLevel)
+{
+    if (pool == NULL || pool->count == 0)
+        return SPECIES_NONE;
+
+    u16 count = pool->count;
+    u16 weights[count];
+    u16 i;
+    for (i = 0; i < count; i++)
+        weights[i] = pool->mons[i].weight;
+
+    u16 idx = ChooseWeightedIndex(weights, count, state);
+    if (idx >= count)
+        idx = count - 1;
+    if (outLevel != NULL)
+        *outLevel = pool->mons[idx].level;
+    return pool->mons[idx].species;
 }
 
 /* Seeds an SFC32 random number generator state for the randomizer.
@@ -1806,12 +1907,194 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
 {
     if (RandomizerFeatureEnabled(RANDOMIZE_TRAINER_MON))
     {
+        bool8 hasSpec = FALSE;
+        struct TrainerRankSpecView specView;
+        memset(&specView, 0, sizeof(specView));
+
+        // Blacklist check
+        if (TrainerRank_IsBlacklisted(trainerId))
+        {
+            DebugLogTrainerRand(trainerId, slot + 1, totalMons, "blacklist", species, NULL, NULL, FALSE, FALSE, TRAINER_DUP_MAX_SAME_DEFAULT);
+            return species;
+        }
+
         // The seed is based on the internal trainer number, the number of
         // Pokémon in that trainer's party, and which party position it is in.
         u32 seed;
         seed = (u32)trainerId << 16;
         seed |= (u32)totalMons << 8;
         seed |= slot;
+
+        // Load spec once (if any)
+        hasSpec = TrainerRank_GetSpec(trainerId, &specView);
+        if (hasSpec)
+            DebugLogTrainerRand(trainerId, slot + 1, totalMons, "spec-found", species, &specView, NULL, FALSE, specView.allowDuplicates, specView.maxSame > 0 ? specView.maxSame : TRAINER_DUP_MAX_SAME_DEFAULT);
+        else
+            DebugLogTrainerRand(trainerId, slot + 1, totalMons, "spec-none", species, NULL, NULL, FALSE, FALSE, TRAINER_DUP_MAX_SAME_DEFAULT);
+
+        // Inline rank sentinel (RANK_X)
+        {
+            char sentinelRank = TrainerRank_SentinelToRank(species);
+            if (sentinelRank != 0)
+            {
+                const struct TrainerRankPoolDef *pool = GetSharedPoolByRank(sentinelRank);
+                if (pool != NULL)
+                {
+                    u8 maxSame = TRAINER_DUP_MAX_SAME_DEFAULT;
+                    bool8 allowDup = TRUE;
+                    if (hasSpec)
+                    {
+                        allowDup = specView.allowDuplicates;
+                        if (!allowDup)
+                            maxSame = 1;
+                        else if (specView.maxSame > 0)
+                            maxSame = specView.maxSame;
+                    }
+
+                    DebugLogTrainerRand(trainerId, slot + 1, totalMons, "sentinel-rank", species, hasSpec ? &specView : NULL, pool, FALSE, allowDup, maxSame);
+
+                    if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                        ResetTrainerPartyCache(trainerId, totalMons);
+
+                    u8 attempt;
+                    u16 fallbackSpecies = species;
+                    for (attempt = 0; attempt < TRAINER_DUP_MAX_ATTEMPTS; attempt++)
+                    {
+                        u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
+                        struct Sfc32State innerState = RandomizerRandSeed(RANDOMIZER_REASON_TRAINER_PARTY, adjustedSeed, sentinelRank);
+                        u8 chosenLevel = 0;
+                        u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, &chosenLevel);
+
+                        fallbackSpecies = candidate;
+
+                        if (!allowDup && TrainerPartyHasSpecies(candidate))
+                            continue;
+                        if (maxSame != TRAINER_DUP_MAX_SAME_DEFAULT && TrainerPartySpeciesCount(candidate) >= maxSame)
+                            continue;
+
+                        species = candidate;
+                        if (chosenLevel > 0)
+                            TrainerPartySetLevelOverride(slot, chosenLevel);
+                        break;
+                    }
+
+                    if (attempt == TRAINER_DUP_MAX_ATTEMPTS)
+                        species = fallbackSpecies;
+
+                    TrainerPartyCacheAdd(species);
+                    DebugLogTrainerRand(trainerId, slot + 1, totalMons, "sentinel-picked", species, hasSpec ? &specView : NULL, pool, TRUE, allowDup, maxSame);
+                    return species;
+                }
+            }
+        }
+
+        // Rank-based override
+        {
+            if (hasSpec)
+            {
+
+                // Trainer-specific pool takes priority if enabled
+                if (specView.useTrainerPool && specView.trainerPoolIndex != TRAINER_RANK_INVALID_POOL && slot < specView.trainerPoolCount)
+                {
+                    const struct TrainerRankPoolDef *pool = &gTrainerRankPools[specView.trainerPoolIndex];
+                    if (pool != NULL)
+                    {
+                        DebugLogTrainerRand(trainerId, slot + 1, totalMons, "trainer-pool", species, &specView, pool, FALSE, specView.allowDuplicates, specView.maxSame > 0 ? specView.maxSame : TRAINER_DUP_MAX_SAME_DEFAULT);
+
+                        u8 maxSame = TRAINER_DUP_MAX_SAME_DEFAULT;
+                        if (!specView.allowDuplicates)
+                            maxSame = 1;
+                        else if (specView.maxSame > 0)
+                            maxSame = specView.maxSame;
+
+                        if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                            ResetTrainerPartyCache(trainerId, totalMons);
+
+                        u8 attempt;
+                        u16 fallbackSpecies = species;
+                        for (attempt = 0; attempt < TRAINER_DUP_MAX_ATTEMPTS; attempt++)
+                        {
+                            u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
+                            struct Sfc32State innerState = RandomizerRandSeed(RANDOMIZER_REASON_TRAINER_PARTY, adjustedSeed, specView.trainerPoolIndex);
+                        u8 chosenLevel = 0;
+                        u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, &chosenLevel);
+
+                        fallbackSpecies = candidate;
+
+                        if (!specView.allowDuplicates && TrainerPartyHasSpecies(candidate))
+                            continue;
+                            if (maxSame != TRAINER_DUP_MAX_SAME_DEFAULT && TrainerPartySpeciesCount(candidate) >= maxSame)
+                            continue;
+
+                        species = candidate;
+                        if (chosenLevel > 0)
+                            TrainerPartySetLevelOverride(slot, chosenLevel);
+                        break;
+                    }
+
+                        if (attempt == TRAINER_DUP_MAX_ATTEMPTS)
+                            species = fallbackSpecies;
+
+                        TrainerPartyCacheAdd(species);
+                        DebugLogTrainerRand(trainerId, slot + 1, totalMons, "trainer-pool-picked", species, &specView, pool, TRUE, specView.allowDuplicates, specView.maxSame > 0 ? specView.maxSame : TRAINER_DUP_MAX_SAME_DEFAULT);
+                        return species;
+                    }
+                }
+
+                char chosenRank = 0;
+                if (specView.hasNormal && slot < specView.normalCount)
+                    chosenRank = specView.normalRank;
+                else if (specView.hasRare && slot < specView.normalCount + specView.rareCount)
+                    chosenRank = specView.rareRank;
+
+                if (chosenRank != 0)
+                {
+                    const struct TrainerRankPoolDef *pool = GetSharedPoolByRank(chosenRank);
+                    if (pool != NULL)
+                    {
+                        DebugLogTrainerRand(trainerId, slot + 1, totalMons, "rank-pool", species, &specView, pool, FALSE, specView.allowDuplicates, specView.maxSame > 0 ? specView.maxSame : TRAINER_DUP_MAX_SAME_DEFAULT);
+
+                        u8 maxSame = TRAINER_DUP_MAX_SAME_DEFAULT;
+                        if (!specView.allowDuplicates)
+                            maxSame = 1;
+                        else if (specView.maxSame > 0)
+                            maxSame = specView.maxSame;
+
+                        if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                            ResetTrainerPartyCache(trainerId, totalMons);
+
+                        u8 attempt;
+                        u16 fallbackSpecies = species;
+                        for (attempt = 0; attempt < TRAINER_DUP_MAX_ATTEMPTS; attempt++)
+                        {
+                            u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
+                            struct Sfc32State innerState = RandomizerRandSeed(RANDOMIZER_REASON_TRAINER_PARTY, adjustedSeed, chosenRank);
+                            u8 chosenLevel = 0;
+                            u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, &chosenLevel);
+
+                            fallbackSpecies = candidate;
+
+                            if (!specView.allowDuplicates && TrainerPartyHasSpecies(candidate))
+                                continue;
+                            if (maxSame != TRAINER_DUP_MAX_SAME_DEFAULT && TrainerPartySpeciesCount(candidate) >= maxSame)
+                                continue;
+
+                            species = candidate;
+                            if (chosenLevel > 0)
+                                TrainerPartySetLevelOverride(slot, chosenLevel);
+                            break;
+                        }
+
+                        if (attempt == TRAINER_DUP_MAX_ATTEMPTS)
+                            species = fallbackSpecies;
+
+                        TrainerPartyCacheAdd(species);
+                        DebugLogTrainerRand(trainerId, slot + 1, totalMons, "rank-picked", species, &specView, pool, TRUE, specView.allowDuplicates, specView.maxSame > 0 ? specView.maxSame : TRAINER_DUP_MAX_SAME_DEFAULT);
+                        return species;
+                    }
+                }
+            }
+        }
 
         {
             u8 maxSame, minDistinct;
@@ -1820,42 +2103,11 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
             if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
                 ResetTrainerPartyCache(trainerId, totalMons);
 
-            if (maxSame == TRAINER_DUP_MAX_SAME_DEFAULT && minDistinct == TRAINER_DUP_MIN_DISTINCT_DEFAULT)
-            {
-                species = RandomizeMon(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), seed, species);
-            }
-            else
-            {
-                u8 attempt;
-                u8 remainingSlots = totalMons - sTrainerPartyCacheFilled;
-                u8 neededDistinct = (minDistinct > sTrainerPartyCacheDistinct) ? (minDistinct - sTrainerPartyCacheDistinct) : 0;
-                bool8 mustBeNew = (neededDistinct > 0 && remainingSlots <= neededDistinct);
-                u16 fallbackSpecies = species;
-
-                for (attempt = 0; attempt < TRAINER_DUP_MAX_ATTEMPTS; attempt++)
-                {
-                    u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
-                    u16 candidate = RandomizeMon(RANDOMIZER_REASON_TRAINER_PARTY, GetRandomizerOption(RANDOMIZER_OPTION_SPECIES_MODE), adjustedSeed, species);
-
-                    fallbackSpecies = candidate;
-
-                    if (mustBeNew && TrainerPartyHasSpecies(candidate))
-                        continue;
-                    if (TrainerPartySpeciesCount(candidate) >= maxSame)
-                        continue;
-
-                    species = candidate;
-                    break;
-                }
-
-                if (attempt == TRAINER_DUP_MAX_ATTEMPTS)
-                {
-                    species = fallbackSpecies;
-                }
-            }
+            // With trainer randomization enabled, but no trainer-rank config,
+            // leave the original party as-is (no area-based randomization for trainers).
+            DebugLogTrainerRand(trainerId, slot + 1, totalMons, "vanilla", species, NULL, NULL, TRUE, FALSE, maxSame);
         }
 
-        TrainerPartyCacheAdd(species);
         return species;
     }
 

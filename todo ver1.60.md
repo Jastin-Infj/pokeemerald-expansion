@@ -106,6 +106,8 @@
 - 正規化キーの衝突チェックを先に実施（`TRAINER_*` 名から正規化したキーが被らないか）。最長キー参考: 接頭辞除き30文字（`BACK_PIC_RUBY_SAPPHIRE_BRENDAN`）。
 - トレーナー.party拡張（キー名確定）: 任意でランク指定+手持ち数を持たせるフィールドを追加（例: NormalRank=A, RareRank=B, NormalCount=2, RareCount=2）。Normal/Rare それぞれ指定数をランク共通プールから抽選。Rank未指定で Count だけ指定された場合はエラーにする。Rank だけ指定し Count が欠けてもエラー（NormalRank→NormalCount必須、RareRank→RareCount必須）。
 - 抽選重複の扱い: デフォルトは重複禁止。オプションで `AllowDuplicates` を明示した場合のみ重複を許可（省略時は false）。禁止時に重複で埋まらない場合はビルドエラー。
+- 重複制御の一本化: ランク抽選を使うトレーナーは `AllowDuplicates`（＋任意 `MaxSame`）で制御し、従来の `gRandomizerTrainerDupRules` は併用しない前提。`MaxSame` を持つ場合は AllowDuplicates=true が前提、未指定は0（無制限）。
+- 固有シンボル用のマルチランダム: `MultiRandomMode:true` + `MultiRandomCount` を `trainer.party` に書くと、トレーナー固有プールを優先して抽選する（TrainerRankPoolDef の isTrainerSpecific）。対応する `TRAINER_XXX` 定数と同名の `.party` がある場合に有効。
 
 ### 優先順位案（固定→固有→ランク）
 - 1) ブラックリスト: `trainer_skip_list.h` にあれば完全固定（ランダム化しない）。
@@ -184,3 +186,6 @@
   this link.代表のs最近 darling downstairs円けたらつけて Yeah 今もうもじまうだいたいここから始まってる段階運動って結構 ouais again wantella to stayを運動って покаつけてーノンはなしのやつで抽選をするから、その時に、だからノンの時にあ
   れだね、ウェイトの値も参照しちゃダメだね。 だから、weightのトータルの100だとしても、nonのやつは弾かなきゃいけないから、そこも注意した方がいいっていうのが今気づいたから、それも設定しないとダメだね。で、weightのデフォルトは100か1000
   で選ぶから、それはいいとして、で、さっきのnonの混在の話は言ったからOKでしょ。で、blacklistのIDは、これはこちらで後で候補を立てるから、それはよろしく。
+
+
+多分これね、手持ちのポケモンを数で絞るんじゃなくてね、ランダム1っていうのを、あ、違う、ランダムA、ランダムSみたいな感じでやったほうが多分ね、手持ちのポケモン分かりやすいわ。そっちで管理するわ。

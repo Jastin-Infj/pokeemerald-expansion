@@ -10,10 +10,13 @@
 - `trainer.party` 拡張フィールド: `NormalRank`, `NormalCount`, `RareRank`, `RareCount`, `AllowDuplicates`(true/false, 省略時 false)。
   - NormalRank→NormalCount 必須、RareRank→RareCount 必須。Count だけ／Rank だけはエラー。
   - 重複禁止時に所定数を埋められなければビルドエラー。
+- 重複制御の一本化: ランク抽選を使うトレーナーは `AllowDuplicates`（＋任意 `MaxSame`）で制御し、従来の `gRandomizerTrainerDupRules` は使わない想定。  
+  - `MaxSame` を持たせる場合は AllowDuplicates=true が前提。省略時は0（無制限）。
+- 固有シンボル用マルチランダム: `MultiRandomMode: true` + `MultiRandomCount` を `trainer.party` に記述すると、対応する `TRAINER_XXX` ラベルの固有 `.party`（isTrainerSpecific）を優先抽選。`constants/trainers.h` に名前が無い場合は 0xFFFF として無効扱い（警告）。
 - 優先順位: 1) ブラックリスト → 2) 固有キー → 3) Normal/Rare+Count 指定 → 4) 共通デフォルト。
 
 ### 実装手順案（スクリプト＋生成）
-1. バリデーション兼生成スクリプトを追加（例: `dev_scripts/build_trainer_rank_parties.py`）  
+1. バリデーション兼生成スクリプトを追加（`dev_scripts/build_trainer_rank_parties.py`）  
    - 入力: `data/trainer_rank_party/*.party`（共通/固有）と `trainer.party`。  
    - チェック: WeightTotal=100/1000、0禁止、NONE除外、合計一致。Rank/Count の整合。AllowDuplicates 値。  
    - ブラックリストは既存 `src/data/randomizer/trainer_skip_list.h` を読み込むか、別入力で受ける（サンプルリストも受け付け可能に）。  

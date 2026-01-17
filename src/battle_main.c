@@ -1952,7 +1952,17 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
                 otIdType = OT_ID_PRESET;
                 fixedOtId = HIHALF(personalityValue) ^ LOHALF(personalityValue);
             }
-            CreateMon(&party[i], species, partyData[monIndex].lvl, 0, TRUE, personalityValue, otIdType, fixedOtId);
+            {
+                u8 level = partyData[monIndex].lvl;
+                #if RANDOMIZER_AVAILABLE == TRUE
+                {
+                    u8 overrideLevel;
+                    if (RandomizerGetTrainerLevelOverride(i, &overrideLevel))
+                        level = overrideLevel;
+                }
+                #endif
+                CreateMon(&party[i], species, level, 0, TRUE, personalityValue, otIdType, fixedOtId);
+            }
             SetMonData(&party[i], MON_DATA_HELD_ITEM, &partyData[monIndex].heldItem);
 
             CustomTrainerPartyAssignMoves(&party[i], &partyData[monIndex]);
