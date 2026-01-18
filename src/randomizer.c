@@ -16,6 +16,7 @@
 #include "randomizer_area_rules.h"
 #include "randomizer_exceptions.h"
 #include "trainer_rank.h"
+#include "trainer_pools.h"
 #include "rtc.h"
 
 #define SLOT_MODE_UNIFORM RANDOMIZER_SLOT_MODE_UNIFORM
@@ -240,7 +241,7 @@ static u8 GetAreaMaskFromWildArea(enum WildPokemonArea area);
 static const struct RandomizerAreaRule *FindAreaRule(u8 mapGroup, u8 mapNum, u8 areaMask, u8 timeSlot);
 static bool8 IsExceptionMap(u8 mapGroup, u8 mapNum, u8 areaMask, u8 timeSlot, u8 rodType);
 static void GetRulePools(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, const u16 **wl, u16 *wlCount, const u16 **bl, u16 *blCount, u8 *specialMask, bool8 *allowEmpty);
-static u16 ChooseTrainerRankSpecies(const struct TrainerRankPoolDef *pool, struct Sfc32State *state, u8 *outLevel);
+static u16 ChooseTrainerRankSpecies(const struct TrainerRankPoolDef *pool, struct Sfc32State *state, u64 slotTags, u64 leadTags, u64 aceTags, u8 *outLevel);
 static const struct TrainerRankPoolDef *GetSharedPoolByRank(char rank);
 
 static const u16 *GetRuleWeights(const struct RandomizerAreaRule *rule, const struct RandomizerFishingRule *fishingRule, bool8 useRare, u16 *count)
@@ -1189,23 +1190,53 @@ static const struct TrainerRankPoolDef *GetSharedPoolByRank(char rank)
     return &gTrainerRankPools[gTrainerRankSharedMap[idx]];
 }
 
-static u16 ChooseTrainerRankSpecies(const struct TrainerRankPoolDef *pool, struct Sfc32State *state, u8 *outLevel)
+static bool8 TagMatch(u64 monTags, u64 requiredTags)
+{
+    u64 tagMask = requiredTags & ~MON_POOL_TAGMODE_MASK;
+    if (tagMask == 0)
+        return TRUE;
+    if (requiredTags & MON_POOL_TAGMODE_AND)
+        return (monTags & tagMask) == tagMask;
+    return (monTags & tagMask) != 0;
+}
+
+static u16 ChooseTrainerRankSpecies(const struct TrainerRankPoolDef *pool, struct Sfc32State *state, u64 slotTags, u64 leadTags, u64 aceTags, u8 *outLevel)
 {
     if (pool == NULL || pool->count == 0)
         return SPECIES_NONE;
 
     u16 count = pool->count;
     u16 weights[count];
+    u16 indices[count];
+    u16 filtered = 0;
     u16 i;
-    for (i = 0; i < count; i++)
-        weights[i] = pool->mons[i].weight;
 
-    u16 idx = ChooseWeightedIndex(weights, count, state);
-    if (idx >= count)
-        idx = count - 1;
+    for (i = 0; i < count; i++)
+    {
+        u64 monTags = pool->mons[i].tags;
+
+        if (!TagMatch(monTags, slotTags))
+            continue;
+        if (!TagMatch(monTags, leadTags))
+            continue;
+        if (!TagMatch(monTags, aceTags))
+            continue;
+
+        weights[filtered] = pool->mons[i].weight;
+        indices[filtered] = i;
+        filtered++;
+    }
+
+    if (filtered == 0)
+        return SPECIES_NONE;
+
+    u16 idx = ChooseWeightedIndex(weights, filtered, state);
+    if (idx >= filtered)
+        idx = filtered - 1;
+    u16 monIndex = indices[idx];
     if (outLevel != NULL)
-        *outLevel = pool->mons[idx].level;
-    return pool->mons[idx].species;
+        *outLevel = pool->mons[monIndex].level;
+    return pool->mons[monIndex].species;
 }
 
 /* Seeds an SFC32 random number generator state for the randomizer.
@@ -1903,7 +1934,7 @@ bool32 IsRandomizationPossible(u16 originalSpecies, u16 targetSpecies)
     return TRUE;
 }
 
-u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
+u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species, u64 slotTags)
 {
     if (RandomizerFeatureEnabled(RANDOMIZE_TRAINER_MON))
     {
@@ -1932,6 +1963,16 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
         else
             DebugLogTrainerRand(trainerId, slot + 1, totalMons, "spec-none", species, NULL, NULL, FALSE, FALSE, TRAINER_DUP_MAX_SAME_DEFAULT);
 
+        u64 leadTags = 0;
+        u64 aceTags = 0;
+        if (hasSpec)
+        {
+            if (specView.leadTags != 0 && slot == 0)
+                leadTags = specView.leadTags;
+            if (specView.aceTags != 0 && slot == totalMons - 1)
+                aceTags = specView.aceTags;
+        }
+
         // Inline rank sentinel (RANK_X)
         {
             char sentinelRank = TrainerRank_SentinelToRank(species);
@@ -1953,7 +1994,7 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
 
                     DebugLogTrainerRand(trainerId, slot + 1, totalMons, "sentinel-rank", species, hasSpec ? &specView : NULL, pool, FALSE, allowDup, maxSame);
 
-                    if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                    if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || sTrainerPartyCacheFilled == 0)
                         ResetTrainerPartyCache(trainerId, totalMons);
 
                     u8 attempt;
@@ -1963,8 +2004,13 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
                         u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
                         struct Sfc32State innerState = RandomizerRandSeed(RANDOMIZER_REASON_TRAINER_PARTY, adjustedSeed, sentinelRank);
                         u8 chosenLevel = 0;
-                        u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, &chosenLevel);
+                        u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, slotTags, leadTags, aceTags, &chosenLevel);
 
+                        if (candidate == SPECIES_NONE)
+                        {
+                            species = fallbackSpecies;
+                            break;
+                        }
                         fallbackSpecies = candidate;
 
                         if (!allowDup && TrainerPartyHasSpecies(candidate))
@@ -2007,7 +2053,7 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
                         else if (specView.maxSame > 0)
                             maxSame = specView.maxSame;
 
-                        if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                        if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || sTrainerPartyCacheFilled == 0)
                             ResetTrainerPartyCache(trainerId, totalMons);
 
                         u8 attempt;
@@ -2016,21 +2062,26 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
                         {
                             u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
                             struct Sfc32State innerState = RandomizerRandSeed(RANDOMIZER_REASON_TRAINER_PARTY, adjustedSeed, specView.trainerPoolIndex);
-                        u8 chosenLevel = 0;
-                        u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, &chosenLevel);
+                            u8 chosenLevel = 0;
+                            u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, slotTags, leadTags, aceTags, &chosenLevel);
 
-                        fallbackSpecies = candidate;
+                            if (candidate == SPECIES_NONE)
+                            {
+                                species = fallbackSpecies;
+                                break;
+                            }
+                            fallbackSpecies = candidate;
 
-                        if (!specView.allowDuplicates && TrainerPartyHasSpecies(candidate))
-                            continue;
+                            if (!specView.allowDuplicates && TrainerPartyHasSpecies(candidate))
+                                continue;
                             if (maxSame != TRAINER_DUP_MAX_SAME_DEFAULT && TrainerPartySpeciesCount(candidate) >= maxSame)
-                            continue;
+                                continue;
 
-                        species = candidate;
-                        if (chosenLevel > 0)
-                            TrainerPartySetLevelOverride(slot, chosenLevel);
-                        break;
-                    }
+                            species = candidate;
+                            if (chosenLevel > 0)
+                                TrainerPartySetLevelOverride(slot, chosenLevel);
+                            break;
+                        }
 
                         if (attempt == TRAINER_DUP_MAX_ATTEMPTS)
                             species = fallbackSpecies;
@@ -2060,7 +2111,7 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
                         else if (specView.maxSame > 0)
                             maxSame = specView.maxSame;
 
-                        if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+                        if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || sTrainerPartyCacheFilled == 0)
                             ResetTrainerPartyCache(trainerId, totalMons);
 
                         u8 attempt;
@@ -2070,8 +2121,13 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
                             u32 adjustedSeed = seed ^ (0x9E3779B9u * attempt);
                             struct Sfc32State innerState = RandomizerRandSeed(RANDOMIZER_REASON_TRAINER_PARTY, adjustedSeed, chosenRank);
                             u8 chosenLevel = 0;
-                            u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, &chosenLevel);
+                            u16 candidate = ChooseTrainerRankSpecies(pool, &innerState, slotTags, leadTags, aceTags, &chosenLevel);
 
+                            if (candidate == SPECIES_NONE)
+                            {
+                                species = fallbackSpecies;
+                                break;
+                            }
                             fallbackSpecies = candidate;
 
                             if (!specView.allowDuplicates && TrainerPartyHasSpecies(candidate))
@@ -2100,7 +2156,7 @@ u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species)
             u8 maxSame, minDistinct;
             GetTrainerDupRule(trainerId, &maxSame, &minDistinct);
 
-            if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || slot == 0)
+            if (trainerId != sTrainerPartyCacheTrainerId || totalMons != sTrainerPartyCacheTotal || sTrainerPartyCacheFilled == 0)
                 ResetTrainerPartyCache(trainerId, totalMons);
 
             // With trainer randomization enabled, but no trainer-rank config,

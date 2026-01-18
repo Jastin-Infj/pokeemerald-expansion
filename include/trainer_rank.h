@@ -15,6 +15,8 @@ struct TrainerRankSpecView
     bool8 useTrainerPool;
     u8 trainerPoolCount; // 0 if unset
     u16 trainerPoolIndex; // 0xFFFF if unset
+    u64 leadTags;
+    u64 aceTags;
 };
 
 struct TrainerRankMon
@@ -22,6 +24,7 @@ struct TrainerRankMon
     u16 species;
     u8 level;
     u16 weight;
+    u64 tags;
 };
 
 struct TrainerRankPoolDef

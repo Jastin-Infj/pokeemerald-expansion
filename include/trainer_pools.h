@@ -45,14 +45,18 @@ enum PoolTags {
     POOL_NUM_TAGS = 8
 };
 
-#define MON_POOL_TAG_LEAD           1 << POOL_TAG_LEAD
-#define MON_POOL_TAG_ACE            1 << POOL_TAG_ACE
-#define MON_POOL_TAG_WEATHER_SETTER 1 << POOL_TAG_WEATHER_SETTER
-#define MON_POOL_TAG_WEATHER_ABUSER 1 << POOL_TAG_WEATHER_ABUSER
-#define MON_POOL_TAG_SUPPORT        1 << POOL_TAG_SUPPORT
-#define MON_POOL_TAG_TAG6           1 << POOL_TAG_TAG6
-#define MON_POOL_TAG_TAG7           1 << POOL_TAG_TAG7
-#define MON_POOL_TAG_TAG8           1 << POOL_TAG_TAG8
+#define MON_POOL_TAG_LEAD           (1ULL << POOL_TAG_LEAD)
+#define MON_POOL_TAG_ACE            (1ULL << POOL_TAG_ACE)
+#define MON_POOL_TAG_WEATHER_SETTER (1ULL << POOL_TAG_WEATHER_SETTER)
+#define MON_POOL_TAG_WEATHER_ABUSER (1ULL << POOL_TAG_WEATHER_ABUSER)
+#define MON_POOL_TAG_SUPPORT        (1ULL << POOL_TAG_SUPPORT)
+#define MON_POOL_TAG_TAG6           (1ULL << POOL_TAG_TAG6)
+#define MON_POOL_TAG_TAG7           (1ULL << POOL_TAG_TAG7)
+#define MON_POOL_TAG_TAG8           (1ULL << POOL_TAG_TAG8)
+#define MON_POOL_TAGMODE_AND        (1ULL << 63)
+#define MON_POOL_TAGMODE_MASK       MON_POOL_TAGMODE_AND
+
+#include "trainer_rank_tags.h"
 
 struct PoolRules
 {

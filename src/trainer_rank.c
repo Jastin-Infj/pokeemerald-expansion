@@ -53,6 +53,8 @@ bool32 TrainerRank_GetSpec(u16 trainerId, struct TrainerRankSpecView *out)
     out->useTrainerPool = spec->useTrainerPool;
     out->trainerPoolCount = spec->trainerPoolCount;
     out->trainerPoolIndex = spec->trainerPoolIndex;
+    out->leadTags = spec->leadTags;
+    out->aceTags = spec->aceTags;
     return TRUE;
 }
 

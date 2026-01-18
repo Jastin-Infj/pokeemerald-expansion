@@ -6330,16 +6330,17 @@ Double Battle: No
 AI: Check Bad Move
 
 RANK_C
+LeadTags: OR:Lead
 
 RANK_C
-
-Magikarp
-Level: 6
-IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+Tags: OR:Fire/Bass
 
 Magikarp
 Level: 7
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+RANK_C
+Tags: AND:Boss
 
 === TRAINER_CLAUDE ===
 Name: CLAUDE

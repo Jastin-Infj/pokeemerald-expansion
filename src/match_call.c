@@ -1841,7 +1841,7 @@ static void PopulateSpeciesFromTrainerParty(int matchCallId, u8 *destStr)
     {
         species = party[monId].species;
         #if RANDOMIZER_AVAILABLE == TRUE
-            species = RandomizeTrainerMon(trainerId, monId, partySize, species);
+            species = RandomizeTrainerMon(trainerId, monId, partySize, species, party[monId].tags);
         #endif
     }
     else

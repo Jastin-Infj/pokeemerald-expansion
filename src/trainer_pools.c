@@ -16,7 +16,7 @@ static void HasRequiredTag(const struct Trainer *trainer, u8* poolIndexArray, st
     for (u32 currTag = 2; currTag < POOL_NUM_TAGS; currTag++)
     {
         if (rules->tagRequired[currTag]
-         && trainer->party[poolIndexArray[currIndex]].tags & (1u << currTag))
+         && (trainer->party[poolIndexArray[currIndex]].tags & (1ULL << currTag)))
         {
             *arrayIndex = currIndex;
             *foundRequiredTag = TRUE;
@@ -39,7 +39,7 @@ static u32 DefaultLeadPickFunction(const struct Trainer *trainer, u8 *poolIndexA
         for (u32 currIndex = 0; currIndex < trainer->poolSize; currIndex++)
         {
             if ((poolIndexArray[currIndex] != POOL_SLOT_DISABLED)
-             && (trainer->party[poolIndexArray[currIndex]].tags & (1u << POOL_TAG_LEAD)))
+             && (trainer->party[poolIndexArray[currIndex]].tags & (1ULL << POOL_TAG_LEAD)))
             {
                 if (firstLeadIndex == POOL_SLOT_DISABLED)
                     firstLeadIndex = currIndex;
@@ -78,7 +78,7 @@ static u32 DefaultAcePickFunction(const struct Trainer *trainer, u8 *poolIndexAr
         for (u32 currIndex = 0; currIndex < trainer->poolSize; currIndex++)
         {
             if ((poolIndexArray[currIndex] != POOL_SLOT_DISABLED)
-             && (trainer->party[poolIndexArray[currIndex]].tags & (1u << POOL_TAG_ACE)))
+             && (trainer->party[poolIndexArray[currIndex]].tags & (1ULL << POOL_TAG_ACE)))
             {
                 if (firstAceIndex == POOL_SLOT_DISABLED)
                     firstAceIndex = currIndex;
@@ -113,8 +113,8 @@ static u32 DefaultOtherPickFunction(const struct Trainer *trainer, u8 *poolIndex
     for (u32 currIndex = 0; currIndex < trainer->poolSize; currIndex++)
     {
         if (poolIndexArray[currIndex] != POOL_SLOT_DISABLED
-         && !(trainer->party[poolIndexArray[currIndex]].tags & (1u << POOL_TAG_LEAD))
-         && !(trainer->party[poolIndexArray[currIndex]].tags & (1u << POOL_TAG_ACE)))
+         && !(trainer->party[poolIndexArray[currIndex]].tags & (1ULL << POOL_TAG_LEAD))
+         && !(trainer->party[poolIndexArray[currIndex]].tags & (1ULL << POOL_TAG_ACE)))
         {
             if (firstUnpickedIndex == POOL_SLOT_DISABLED)
                 firstUnpickedIndex = currIndex;
@@ -167,15 +167,15 @@ static u32 PickMonFromPool(const struct Trainer *trainer, u8 *poolIndexArray, u3
     //  If no mon has been found yet continue looking
     if (monIndex == POOL_SLOT_DISABLED)
         monIndex = pickFunctions.OtherFunction(trainer, poolIndexArray, partyIndex, monsCount, battleTypeFlags, rules);
-    u32 chosenTags = trainer->party[monIndex].tags;
+    u64 chosenTags = trainer->party[monIndex].tags;
     u16 chosenSpecies = trainer->party[monIndex].species;
     u16 chosenItem = trainer->party[monIndex].heldItem;
     enum NationalDexOrder chosenNatDex = gSpeciesInfo[chosenSpecies].natDexNum;
     //  If tag was required, change pool rule to account for the required tag already being picked
-    u32 tagsToEliminate = 0;
+    u64 tagsToEliminate = 0;
     for (u32 currTag = 0; currTag < POOL_NUM_TAGS; currTag++)
     {
-        if (chosenTags & (1u << currTag)
+        if (chosenTags & (1ULL << currTag)
          && rules->tagMaxMembers[currTag] != POOL_MEMBER_COUNT_UNLIMITED)
         {
             if (rules->tagMaxMembers[currTag] == 1)
@@ -183,10 +183,10 @@ static u32 PickMonFromPool(const struct Trainer *trainer, u8 *poolIndexArray, u3
             else
                 rules->tagMaxMembers[currTag]--;
         }
-        if (chosenTags & (1u << currTag))
+        if (chosenTags & (1ULL << currTag))
             rules->tagRequired[currTag] = FALSE;
         if (rules->tagMaxMembers[currTag] == POOL_MEMBER_COUNT_NONE)
-            tagsToEliminate |= 1u << currTag;
+            tagsToEliminate |= 1ULL << currTag;
     }
     //  If species clause, remove picked species from pool
     //  If item clause, remove all mons with same held item from pool
@@ -195,7 +195,7 @@ static u32 PickMonFromPool(const struct Trainer *trainer, u8 *poolIndexArray, u3
     {
         if (poolIndexArray[currIndex] != POOL_SLOT_DISABLED)
         {
-            u32 currentTags = trainer->party[poolIndexArray[currIndex]].tags;
+            u64 currentTags = trainer->party[poolIndexArray[currIndex]].tags;
             u16 currentSpecies = trainer->party[poolIndexArray[currIndex]].species;
             u16 currentItem = trainer->party[poolIndexArray[currIndex]].heldItem;
             enum NationalDexOrder currentNatDex = gSpeciesInfo[currentSpecies].natDexNum;
@@ -338,7 +338,7 @@ static void TestPrune(const struct Trainer *trainer, u8 *poolIndexArray, const s
 
 static void RandomTagPrune(const struct Trainer *trainer, u8 *poolIndexArray, const struct PoolRules *rules)
 {
-    u32 tagToUse = trainer->party[poolIndexArray[0]].tags;
+    u64 tagToUse = trainer->party[poolIndexArray[0]].tags;
     for (u32 i = 0; i < trainer->poolSize; i++)
         if (!(trainer->party[poolIndexArray[i]].tags & tagToUse))
             poolIndexArray[i] = POOL_SLOT_DISABLED;

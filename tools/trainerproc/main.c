@@ -93,6 +93,10 @@ struct Pokemon
     struct String tags[MAX_MON_TAGS];
     int tags_n;
     int tags_line;
+    bool tags_mode_and;
+
+    int lead_tags_line;
+    int ace_tags_line;
 };
 
 struct Trainer
@@ -211,6 +215,36 @@ static struct String literal_string(const char *s)
         .string = (const unsigned char *)s,
         .string_n = strlen(s),
     };
+}
+
+static unsigned char ascii_tolower(unsigned char c)
+{
+    if (c >= 'A' && c <= 'Z')
+        return (unsigned char)(c + ('a' - 'A'));
+    return c;
+}
+
+static bool string_equals_nocase(struct String s, const char *lit)
+{
+    size_t len = strlen(lit);
+    if ((size_t)s.string_n != len)
+        return false;
+    for (size_t i = 0; i < len; i++)
+    {
+        if (ascii_tolower(s.string[i]) != ascii_tolower((unsigned char)lit[i]))
+            return false;
+    }
+    return true;
+}
+
+static bool tags_contain_reserved_lead_ace(const struct String *tags, int tags_n)
+{
+    for (int i = 0; i < tags_n; i++)
+    {
+        if (string_equals_nocase(tags[i], "lead") || string_equals_nocase(tags[i], "ace"))
+            return true;
+    }
+    return false;
 }
 
 struct Source
@@ -1016,6 +1050,89 @@ static bool token_human_identifiers(struct Parser *p, const struct Token *t, str
     return true;
 }
 
+static bool token_tags_with_mode(struct Parser *p, const struct Token *t, struct String *tags, int *tags_n, int max_tags_n, bool *mode_and, bool require_mode)
+{
+    const unsigned char *buf = t->source->buffer;
+    int i = t->begin;
+    int end = t->end;
+    int n = 0;
+    bool mode_set = false;
+    bool mode_and_local = false;
+    bool mode_explicit = false;
+
+    while (i < end)
+    {
+        while (i < end && (buf[i] == ' ' || buf[i] == '\t' || buf[i] == '/'))
+            i++;
+        if (i >= end)
+            break;
+
+        int seg_start = i;
+        while (i < end && buf[i] != '/')
+            i++;
+        int seg_end = i;
+
+        while (seg_end > seg_start && (buf[seg_end - 1] == ' ' || buf[seg_end - 1] == '\t'))
+            seg_end--;
+        while (seg_start < seg_end && (buf[seg_start] == ' ' || buf[seg_start] == '\t'))
+            seg_start++;
+        if (seg_start >= seg_end)
+            continue;
+
+        if (!mode_set)
+        {
+            int len = seg_end - seg_start;
+            if (len >= 3
+             && (buf[seg_start] == 'O' || buf[seg_start] == 'o')
+             && (buf[seg_start + 1] == 'R' || buf[seg_start + 1] == 'r')
+             && buf[seg_start + 2] == ':')
+            {
+                mode_set = true;
+                mode_and_local = false;
+                mode_explicit = true;
+                seg_start += 3;
+            }
+            else if (len >= 4
+                  && (buf[seg_start] == 'A' || buf[seg_start] == 'a')
+                  && (buf[seg_start + 1] == 'N' || buf[seg_start + 1] == 'n')
+                  && (buf[seg_start + 2] == 'D' || buf[seg_start + 2] == 'd')
+                  && buf[seg_start + 3] == ':')
+            {
+                mode_set = true;
+                mode_and_local = true;
+                mode_explicit = true;
+                seg_start += 4;
+            }
+            else
+            {
+                mode_set = true;
+            }
+            while (seg_start < seg_end && (buf[seg_start] == ' ' || buf[seg_start] == '\t'))
+                seg_start++;
+        }
+
+        if (seg_start >= seg_end)
+            continue;
+
+        if (n >= max_tags_n)
+            return set_parse_error(p, t->location, "too many tags");
+
+        tags[n++] = (struct String) {
+            .string = &buf[seg_start],
+            .string_n = seg_end - seg_start,
+        };
+    }
+
+    if (n == 0)
+        return set_parse_error(p, t->location, "expected tag");
+    if (require_mode && !mode_explicit)
+        return set_parse_error(p, t->location, "Tags must start with OR: or AND:");
+
+    *tags_n = n;
+    *mode_and = mode_and_local;
+    return true;
+}
+
 static bool token_int(struct Parser *p, const struct Token *t, int *i)
 {
     char *end;
@@ -1516,15 +1633,45 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
             }
             else if (is_literal_token(&key, "Tags"))
             {
+                if (pokemon->lead_tags_line || pokemon->ace_tags_line)
+                    any_error = !set_show_parse_error(p, key.location, "Tags cannot be combined with LeadTags/AceTags in the same slot");
                 if (pokemon->tags_line)
                     any_error = !set_show_parse_error(p, key.location, "duplicate 'Tags'");
                 pokemon->tags_line = value.location.line;
-                if (!token_human_identifiers(p, &value, pokemon->tags, &pokemon->tags_n, MAX_MON_TAGS))
+                if (!token_tags_with_mode(p, &value, pokemon->tags, &pokemon->tags_n, MAX_MON_TAGS, &pokemon->tags_mode_and, true))
+                    any_error = !show_parse_error(p);
+                if (tags_contain_reserved_lead_ace(pokemon->tags, pokemon->tags_n))
+                    any_error = !set_show_parse_error(p, value.location, "Tags cannot include Lead/Ace; use LeadTags/AceTags");
+            }
+            else if (is_literal_token(&key, "LeadTags"))
+            {
+                if (pokemon->tags_line || pokemon->ace_tags_line)
+                    any_error = !set_show_parse_error(p, key.location, "LeadTags cannot be combined with Tags/AceTags in the same slot");
+                if (pokemon->lead_tags_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'LeadTags'");
+                pokemon->lead_tags_line = value.location.line;
+                struct String tmp_tags[MAX_MON_TAGS];
+                int tmp_tags_n = 0;
+                bool tmp_mode_and = false;
+                if (!token_tags_with_mode(p, &value, tmp_tags, &tmp_tags_n, MAX_MON_TAGS, &tmp_mode_and, true))
+                    any_error = !show_parse_error(p);
+            }
+            else if (is_literal_token(&key, "AceTags"))
+            {
+                if (pokemon->tags_line || pokemon->lead_tags_line)
+                    any_error = !set_show_parse_error(p, key.location, "AceTags cannot be combined with Tags/LeadTags in the same slot");
+                if (pokemon->ace_tags_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'AceTags'");
+                pokemon->ace_tags_line = value.location.line;
+                struct String tmp_tags[MAX_MON_TAGS];
+                int tmp_tags_n = 0;
+                bool tmp_mode_and = false;
+                if (!token_tags_with_mode(p, &value, tmp_tags, &tmp_tags_n, MAX_MON_TAGS, &tmp_mode_and, true))
                     any_error = !show_parse_error(p);
             }
             else
             {
-                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', or 'Tera Type'");
+                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', 'Tera Type', 'Tags', 'LeadTags' or 'AceTags'");
             }
         }
 
@@ -2170,6 +2317,8 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
             {
                 fprintf(f, "#line %d\n", pokemon->tags_line);
                 fprintf(f, "            .tags = ");
+                if (pokemon->tags_mode_and)
+                    fprintf(f, "MON_POOL_TAGMODE_AND | ");
                 for (int i = 0; i < pokemon->tags_n; i++)
                 {
                     if (i > 0)
@@ -2177,6 +2326,16 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
                     fprint_constant(f, "MON_POOL_TAG", pokemon->tags[i]);
                 }
                 fprintf(f, ",\n");
+            }
+            else if (pokemon->lead_tags_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->lead_tags_line);
+                fprintf(f, "            .tags = MON_POOL_TAG_LEAD,\n");
+            }
+            else if (pokemon->ace_tags_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->ace_tags_line);
+                fprintf(f, "            .tags = MON_POOL_TAG_ACE,\n");
             }
 
             if (pokemon->moves_n > 0)

@@ -78,6 +78,7 @@
 #include "constants/weather.h"
 #include "cable_club.h"
 #include "test/test_runner_battle.h"
+#include <stdio.h>
 
 extern const struct BgTemplate gBattleBgTemplates[];
 extern const struct WindowTemplate *const gBattleWindowTemplates[];
@@ -1915,6 +1916,102 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
 
         u32 monIndices[monsCount];
         DoTrainerPartyPool(trainer, monIndices, monsCount, battleTypeFlags);
+        {
+            s32 leadPos = -1;
+            s32 acePos = -1;
+            for (i = 0; i < monsCount; i++)
+            {
+                u64 tags = trainer->party[monIndices[i]].tags;
+                if (leadPos < 0 && (tags & MON_POOL_TAG_LEAD))
+                    leadPos = i;
+                if (acePos < 0 && (tags & MON_POOL_TAG_ACE))
+                    acePos = i;
+            }
+
+            if (leadPos > 0)
+            {
+                u32 tmp = monIndices[0];
+                monIndices[0] = monIndices[leadPos];
+                monIndices[leadPos] = tmp;
+                if (acePos == 0)
+                    acePos = leadPos;
+                else if (acePos == leadPos)
+                    acePos = 0;
+            }
+
+            if (acePos >= 0 && monsCount > 0)
+            {
+                u32 aceTarget = monsCount - 1;
+                if (acePos != (s32)aceTarget)
+                {
+                    u32 tmp = monIndices[aceTarget];
+                    monIndices[aceTarget] = monIndices[acePos];
+                    monIndices[acePos] = tmp;
+                }
+            }
+        }
+
+        u16 randomizedSpecies[monsCount];
+        bool8 hasRandomized = FALSE;
+        #if RANDOMIZER_AVAILABLE == TRUE
+        if (ShouldRandomizeTrainer(effectiveTrainerId))
+        {
+            s32 aceIndex = -1;
+            const struct TrainerMon *partyData = trainer->party;
+
+            for (i = 0; i < monsCount; i++)
+            {
+                if (partyData[monIndices[i]].tags & MON_POOL_TAG_ACE)
+                {
+                    aceIndex = i;
+                    break;
+                }
+            }
+
+            if (aceIndex >= 0)
+            {
+                u32 monIndex = monIndices[aceIndex];
+                u16 species = partyData[monIndex].species;
+                u64 slotTags = partyData[monIndex].tags & ~(MON_POOL_TAG_LEAD | MON_POOL_TAG_ACE);
+                randomizedSpecies[aceIndex] = RandomizeTrainerMon(trainerSeed, aceIndex, monsCount, species, slotTags);
+            }
+
+            for (i = 0; i < monsCount; i++)
+            {
+                if (i == aceIndex)
+                    continue;
+                u32 monIndex = monIndices[i];
+                u16 species = partyData[monIndex].species;
+                u64 slotTags = partyData[monIndex].tags & ~(MON_POOL_TAG_LEAD | MON_POOL_TAG_ACE);
+                randomizedSpecies[i] = RandomizeTrainerMon(trainerSeed, i, monsCount, species, slotTags);
+            }
+            hasRandomized = TRUE;
+        }
+        #endif
+
+        #ifndef NDEBUG
+        if (FlagGet(FLAG_RANDOMIZER_DEBUG_LOG))
+        {
+            for (i = 0; i < monsCount; i++)
+            {
+                u32 monIndex = monIndices[i];
+                const struct TrainerMon *partyData = trainer->party;
+                u16 species = partyData[monIndex].species;
+                u16 finalSpecies = hasRandomized ? randomizedSpecies[i] : species;
+                u64 tags = partyData[monIndex].tags;
+                DebugPrintfLevel(
+                    MGBA_LOG_WARN,
+                    "[INFO] TRand order trainer=%u slot=%u/%u species=%u%s%s",
+                    effectiveTrainerId,
+                    i + 1,
+                    monsCount,
+                    finalSpecies,
+                    (tags & MON_POOL_TAG_LEAD) ? " [L]" : "",
+                    (tags & MON_POOL_TAG_ACE) ? " [A]" : ""
+                );
+            }
+        }
+        #endif
 
         for (i = 0; i < monsCount; i++)
         {
@@ -1928,8 +2025,8 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             u16 species = partyData[monIndex].species;
 
             #if RANDOMIZER_AVAILABLE == TRUE
-                if (ShouldRandomizeTrainer(effectiveTrainerId))
-                    species = RandomizeTrainerMon(trainerSeed, i, monsCount, species);
+                if (hasRandomized)
+                    species = randomizedSpecies[i];
             #endif
 
             if (trainer->battleType != TRAINER_BATTLE_TYPE_SINGLES)

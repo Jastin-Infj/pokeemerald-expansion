@@ -18,6 +18,7 @@
 #include "pokemon.h"
 #include "random.h"
 #include "recorded_battle.h"
+#include "trainer_pools.h"
 #include "util.h"
 #include "script.h"
 #include "constants/abilities.h"
@@ -182,6 +183,25 @@ static u64 GetWildAiFlags(void)
     return flags;
 }
 
+static u8 CountTrainerAceTags(u16 trainerId)
+{
+    if (trainerId == 0xFFFF)
+        return 0;
+
+    const struct Trainer *trainer = GetTrainerStructFromId(trainerId);
+    if (trainer->party == NULL || trainer->partySize == 0)
+        return 0;
+
+    u8 aceCount = 0;
+    for (u32 i = 0; i < trainer->partySize; i++)
+    {
+        if (trainer->party[i].tags & MON_POOL_TAG_ACE)
+            aceCount++;
+    }
+
+    return aceCount;
+}
+
 static u64 GetAiFlags(u16 trainerId, u32 battler)
 {
     u64 flags = 0;
@@ -208,6 +228,15 @@ static u64 GetAiFlags(u16 trainerId, u32 battler)
             flags = AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT;
         else
             flags = GetTrainerAIFlagsFromId(trainerId);
+    }
+
+    if (trainerId != 0xFFFF && !(flags & (AI_FLAG_ACE_POKEMON | AI_FLAG_DOUBLE_ACE_POKEMON)))
+    {
+        u8 aceCount = CountTrainerAceTags(trainerId);
+        if (aceCount >= 2)
+            flags |= AI_FLAG_DOUBLE_ACE_POKEMON;
+        else if (aceCount == 1)
+            flags |= AI_FLAG_ACE_POKEMON;
     }
 
     if (IsDoubleBattle() && flags != 0)

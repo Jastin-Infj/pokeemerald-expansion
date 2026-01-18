@@ -140,7 +140,7 @@ bool8 RandomizerGetAreaRuleView(u8 mapGroup, u8 mapNum, enum WildPokemonArea are
 // This does not mean that it actually did, though.
 bool32 IsRandomizationPossible(u16 tableSpecies, u16 matchSpecies);
 
-u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species);
+u16 RandomizeTrainerMon(u16 trainerId, u8 slot, u8 totalMons, u16 species, u64 slotTags);
 bool32 RandomizerGetTrainerLevelOverride(u8 slot, u8 *outLevel);
 
 u16 RandomizeFixedEncounterMon(u16 species, u8 mapNum, u8 mapGroup, u8 localId);
