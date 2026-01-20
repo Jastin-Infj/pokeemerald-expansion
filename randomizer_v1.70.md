@@ -1,0 +1,754 @@
+# Randomizer v1.7.0 アイテムランダマイザー拡張 仕様・運用メモ
+
+## 目的/概要
+- フィールドアイテムのランダマイズを「カテゴリ付きマスターテーブル」で運用する。
+- カテゴリごとに既定個数と抽選倍率を持たせ、将来的な難易度調整をしやすくする。
+- 個数は固定値運用（カテゴリ既定 + 個別上書き）。
+- 隠しアイテムは無効化して入手不可とする。
+
+## スコープ
+- 対象: フィールドアイテム（item ball 等）
+- 対象外: 隠しアイテム（無効化）、NPC配布、キーアイテム、戦闘報酬
+- TM/HM: 抽選対象に含める（カテゴリでON/OFF可能）
+- アイコン差し替え: 今回は保留（将来対応）
+
+## 使い方（有効化）
+1. `include/config/randomizer.h` の `RANDOMIZER_AVAILABLE` が `TRUE` であることを確認する。
+2. フィールドアイテムのランダマイズを有効化するには以下のいずれか:
+   - `RANDOMIZER_FLAG_FIELD_ITEMS` を `setflag` で立てる。
+   - もしくは `FORCE_RANDOMIZE_FIELD_ITEMS` を `TRUE` にする（常時有効）。
+3. デバッグ用スクリプトでは `data/scripts/debug.inc` の `Debug_EventScript_Script_1` が `RANDOMIZER_FLAG_FIELD_ITEMS` を立てるため、簡易検証が可能。
+4. ビルド時に `dev_scripts/validate_randomizer_item_table.py` が実行され、テーブル整合性を検証する。
+
+### フィールドアイテム取得フロー（スクリプト）
+- `Common_EventScript_FindItem` -> `finditem` -> `Std_FindItem` の流れ。
+- `Std_FindItem` 内で `FindItemRandomize_NativeCall` が呼ばれ、
+  `ITEMID` と `AMOUNT` が **ランダム化結果で上書き** される。
+- これにより、テンプレートの数量は参照のみで実際の取得数は上書きされる。
+
+### 隠しアイテムの挙動
+- `data/scripts/obtain_item.inc` の `EventScript_HiddenItemScript` は、
+  `RANDOMIZER_AVAILABLE == TRUE` のとき常に無効化される。
+- 無効化時は取得フラグを立て、ダウジングの反応を止める。
+- つまり **フィールドアイテムのみが抽選対象** になる。
+
+## ランダマイズ挙動（設計）
+### 抽選手順（カテゴリ -> アイテム）
+1. 有効なカテゴリ（enabled + weightMul > 0 + アイテムあり）を抽出。
+2. カテゴリ倍率 `weightMul` でカテゴリを抽選。
+3. 選ばれたカテゴリ内でアイテム `weight` により抽選。
+4. 個数は `qtyOverride` があればそれを使用し、なければカテゴリ既定個数を使用。
+
+### 重みの意味
+- **カテゴリ抽選**
+  - `カテゴリ確率 = CAT_W_x / 合計(CAT_W_*)`
+  - カテゴリ内のアイテム数が増えても、カテゴリ抽選確率は変わらない。
+- **カテゴリ内抽選**
+  - `アイテム確率 = ITEM_W_x / 合計(ITEM_W_*)`
+  - 同カテゴリ内の相対確率のみ変化する。
+
+### 乱数の固定性（再現性）
+- 抽選のシードは `RANDOMIZER_REASON_FIELD_ITEM` + mapGroup/mapNum/localId + 元アイテムID を使用。
+- さらにグローバルシード（通常はトレーナーID）に依存するため、
+  同じセーブでは **同じ場所の同じアイテムは同じ結果** になる。
+
+## データ定義
+### カテゴリ定義
+`include/randomizer.h` の `enum RandomizerItemCategory` を使用。
+
+### カテゴリ設定テーブル
+ファイル: `src/data/randomizer/item_category_config.h`
+- `enabled`: カテゴリの有効/無効
+- `defaultQty`: 既定個数
+- `weightMul`: カテゴリ倍率（抽選比率）
+
+カテゴリ設定（初期値）:
+| Category | defaultQty | weightMul | enabled |
+| --- | --- | --- | --- |
+| HEAL | 10 | CAT_W_HEAL | TRUE |
+| BALL | 5 | CAT_W_BALL | TRUE |
+| BATTLE_USE | 3 | CAT_W_BATTLE_USE | TRUE |
+| HELD | 1 | CAT_W_HELD | TRUE |
+| TOOL | 1 | CAT_W_TOOL | TRUE |
+| TM | 1 | CAT_W_TM | TRUE |
+| HM | 1 | CAT_W_HM | TRUE |
+| MEGA | 1 | CAT_W_MEGA | TRUE |
+| Z | 1 | CAT_W_Z | TRUE |
+
+#### カテゴリ倍率の定数
+ファイル: `src/data/randomizer/item_category_config.h`
+```
+#define CAT_W_HEAL        1
+#define CAT_W_BALL        1
+#define CAT_W_BATTLE_USE  1
+#define CAT_W_HELD        1
+#define CAT_W_TOOL        1
+#define CAT_W_TM          1
+#define CAT_W_HM          1
+#define CAT_W_MEGA        1
+#define CAT_W_Z           1
+```
+- ここを調整することで「道具の当たりにくさ」などを制御できる。
+
+### アイテムテーブル
+ファイル: `src/data/randomizer/item_table.h`
+- `itemId`: アイテムID
+- `weight`: アイテム重み
+- `category`: カテゴリ
+- `qtyOverride`: 個数上書き（0ならカテゴリ既定）
+
+#### アイテム重みの定数
+```
+ITEM_W_VERY_RARE = 1
+ITEM_W_RARE = 2
+ITEM_W_UNCOMMON = 5
+ITEM_W_COMMON = 10
+```
+- 現状は **全アイテムが ITEM_W_COMMON** でフラット。
+- 将来的に個別確率を調整したい場合は `ITEM_W_*` を使う。
+
+### 個数上書き（qtyOverride）
+- ミント系 21種は `qtyOverride=3`（カテゴリ既定より優先）
+```
+ITEM_LONELY_MINT
+ITEM_ADAMANT_MINT
+ITEM_NAUGHTY_MINT
+ITEM_BRAVE_MINT
+ITEM_BOLD_MINT
+ITEM_IMPISH_MINT
+ITEM_LAX_MINT
+ITEM_RELAXED_MINT
+ITEM_MODEST_MINT
+ITEM_MILD_MINT
+ITEM_RASH_MINT
+ITEM_QUIET_MINT
+ITEM_CALM_MINT
+ITEM_GENTLE_MINT
+ITEM_CAREFUL_MINT
+ITEM_SASSY_MINT
+ITEM_TIMID_MINT
+ITEM_HASTY_MINT
+ITEM_JOLLY_MINT
+ITEM_NAIVE_MINT
+ITEM_SERIOUS_MINT
+```
+
+## 難易度調整の基本方針
+- **カテゴリ確率を動かす**: `CAT_W_*` を調整。
+  - 例: 道具を出しにくくするなら `CAT_W_TOOL` を下げる。
+- **カテゴリ内の偏りを作る**: `ITEM_W_*` を調整。
+  - 例: 伝説級の道具は `ITEM_W_VERY_RARE` など。
+- **個数で調整する**: `defaultQty` または `qtyOverride` を調整。
+
+## プール一覧（カテゴリ別）
+以下は `src/data/randomizer/item_table.h` に定義されている **全プール一覧**。
+
+#### RANDOMIZER_ITEMCAT_HEAL（回復） 件数:36
+```
+ITEM_POTION
+ITEM_SUPER_POTION
+ITEM_HYPER_POTION
+ITEM_MAX_POTION
+ITEM_FULL_RESTORE
+ITEM_REVIVE
+ITEM_MAX_REVIVE
+ITEM_FRESH_WATER
+ITEM_SODA_POP
+ITEM_LEMONADE
+ITEM_MOOMOO_MILK
+ITEM_ENERGY_POWDER
+ITEM_ENERGY_ROOT
+ITEM_HEAL_POWDER
+ITEM_REVIVAL_HERB
+ITEM_ANTIDOTE
+ITEM_PARALYZE_HEAL
+ITEM_BURN_HEAL
+ITEM_ICE_HEAL
+ITEM_AWAKENING
+ITEM_FULL_HEAL
+ITEM_ETHER
+ITEM_MAX_ETHER
+ITEM_ELIXIR
+ITEM_MAX_ELIXIR
+ITEM_OLD_GATEAU
+ITEM_SACRED_ASH
+ITEM_BERRY_JUICE
+ITEM_SWEET_HEART
+ITEM_BIG_MALASADA
+ITEM_PEWTER_CRUNCHIES
+ITEM_LAVA_COOKIE
+ITEM_LUMIOSE_GALETTE
+ITEM_RAGE_CANDY_BAR
+ITEM_CASTELIACONE
+ITEM_SHALOUR_SABLE
+```
+
+#### RANDOMIZER_ITEMCAT_BALL（ボール） 件数:25
+```
+ITEM_POKE_BALL
+ITEM_GREAT_BALL
+ITEM_ULTRA_BALL
+ITEM_MASTER_BALL
+ITEM_PREMIER_BALL
+ITEM_HEAL_BALL
+ITEM_NET_BALL
+ITEM_NEST_BALL
+ITEM_DIVE_BALL
+ITEM_DUSK_BALL
+ITEM_TIMER_BALL
+ITEM_QUICK_BALL
+ITEM_REPEAT_BALL
+ITEM_LUXURY_BALL
+ITEM_LEVEL_BALL
+ITEM_LURE_BALL
+ITEM_MOON_BALL
+ITEM_FRIEND_BALL
+ITEM_LOVE_BALL
+ITEM_FAST_BALL
+ITEM_HEAVY_BALL
+ITEM_DREAM_BALL
+ITEM_SAFARI_BALL
+ITEM_BEAST_BALL
+ITEM_CHERISH_BALL
+```
+
+#### RANDOMIZER_ITEMCAT_BATTLE_USE（戦闘用） 件数:8
+```
+ITEM_X_ATTACK
+ITEM_X_DEFENSE
+ITEM_X_SP_ATK
+ITEM_X_SP_DEF
+ITEM_X_SPEED
+ITEM_X_ACCURACY
+ITEM_DIRE_HIT
+ITEM_GUARD_SPEC
+```
+
+#### RANDOMIZER_ITEMCAT_HELD（持ち物/きのみ） 件数:158
+```
+ITEM_ASSAULT_VEST
+ITEM_WIDE_LENS
+ITEM_MUSCLE_BAND
+ITEM_EXPERT_BELT
+ITEM_METRONOME
+ITEM_SCOPE_LENS
+ITEM_WISE_GLASSES
+ITEM_RAZOR_CLAW
+ITEM_RAZOR_FANG
+ITEM_KINGS_ROCK
+ITEM_BRIGHT_POWDER
+ITEM_FOCUS_BAND
+ITEM_LUCKY_PUNCH
+ITEM_DEEP_SEA_TOOTH
+ITEM_DEEP_SEA_SCALE
+ITEM_METAL_COAT
+ITEM_DRAGON_SCALE
+ITEM_UPGRADE
+ITEM_DUBIOUS_DISC
+ITEM_CHOICE_BAND
+ITEM_CHOICE_SPECS
+ITEM_CHOICE_SCARF
+ITEM_EVIOLITE
+ITEM_FOCUS_SASH
+ITEM_LIFE_ORB
+ITEM_LIGHT_CLAY
+ITEM_TOXIC_ORB
+ITEM_FLAME_ORB
+ITEM_BLACK_SLUDGE
+ITEM_RINDO_BERRY
+ITEM_OCCA_BERRY
+ITEM_PASSHO_BERRY
+ITEM_WACAN_BERRY
+ITEM_SHUCA_BERRY
+ITEM_COBA_BERRY
+ITEM_PAYAPA_BERRY
+ITEM_TANGA_BERRY
+ITEM_YACHE_BERRY
+ITEM_CHOPLE_BERRY
+ITEM_KEBIA_BERRY
+ITEM_HABAN_BERRY
+ITEM_COLBUR_BERRY
+ITEM_BABIRI_BERRY
+ITEM_CHILAN_BERRY
+ITEM_ROSELI_BERRY
+ITEM_PETAYA_BERRY
+ITEM_APICOT_BERRY
+ITEM_LANSAT_BERRY
+ITEM_STARF_BERRY
+ITEM_ENIGMA_BERRY
+ITEM_MICLE_BERRY
+ITEM_CUSTAP_BERRY
+ITEM_JABOCA_BERRY
+ITEM_ROWAP_BERRY
+ITEM_KEE_BERRY
+ITEM_MARANGA_BERRY
+ITEM_POMEG_BERRY
+ITEM_KELPSY_BERRY
+ITEM_QUALOT_BERRY
+ITEM_HONDEW_BERRY
+ITEM_GREPA_BERRY
+ITEM_TAMATO_BERRY
+ITEM_EJECT_PACK
+ITEM_EJECT_BUTTON
+ITEM_AIR_BALLOON
+ITEM_WHITE_HERB
+ITEM_MACHO_BRACE
+ITEM_QUICK_CLAW
+ITEM_SOOTHE_BELL
+ITEM_MENTAL_HERB
+ITEM_SILVER_POWDER
+ITEM_AMULET_COIN
+ITEM_CLEANSE_TAG
+ITEM_SOUL_DEW
+ITEM_SMOKE_BALL
+ITEM_EVERSTONE
+ITEM_LUCKY_EGG
+ITEM_LEFTOVERS
+ITEM_LIGHT_BALL
+ITEM_SOFT_SAND
+ITEM_HARD_STONE
+ITEM_MIRACLE_SEED
+ITEM_BLACK_GLASSES
+ITEM_BLACK_BELT
+ITEM_MAGNET
+ITEM_MYSTIC_WATER
+ITEM_SHARP_BEAK
+ITEM_POISON_BARB
+ITEM_NEVER_MELT_ICE
+ITEM_SPELL_TAG
+ITEM_TWISTED_SPOON
+ITEM_CHARCOAL
+ITEM_DRAGON_FANG
+ITEM_SILK_SCARF
+ITEM_SHELL_BELL
+ITEM_SEA_INCENSE
+ITEM_LAX_INCENSE
+ITEM_LUCK_INCENSE
+ITEM_FULL_INCENSE
+ITEM_ODD_INCENSE
+ITEM_ROCK_INCENSE
+ITEM_ROSE_INCENSE
+ITEM_WAVE_INCENSE
+ITEM_STICKY_BARB
+ITEM_POWER_BRACER
+ITEM_POWER_BELT
+ITEM_POWER_LENS
+ITEM_POWER_BAND
+ITEM_POWER_ANKLET
+ITEM_POWER_WEIGHT
+ITEM_QUICK_POWDER
+ITEM_ZOOM_LENS
+ITEM_IRON_BALL
+ITEM_LAGGING_TAIL
+ITEM_DESTINY_KNOT
+ITEM_ICY_ROCK
+ITEM_SMOOTH_ROCK
+ITEM_HEAT_ROCK
+ITEM_DAMP_ROCK
+ITEM_GRIP_CLAW
+ITEM_POWER_HERB
+ITEM_FLOAT_STONE
+ITEM_ROCKY_HELMET
+ITEM_RED_CARD
+ITEM_RING_TARGET
+ITEM_BINDING_BAND
+ITEM_ABSORB_BULB
+ITEM_CELL_BATTERY
+ITEM_FIRE_GEM
+ITEM_WATER_GEM
+ITEM_ELECTRIC_GEM
+ITEM_GRASS_GEM
+ITEM_ICE_GEM
+ITEM_FIGHTING_GEM
+ITEM_POISON_GEM
+ITEM_GROUND_GEM
+ITEM_FLYING_GEM
+ITEM_PSYCHIC_GEM
+ITEM_BUG_GEM
+ITEM_ROCK_GEM
+ITEM_GHOST_GEM
+ITEM_DRAGON_GEM
+ITEM_DARK_GEM
+ITEM_STEEL_GEM
+ITEM_NORMAL_GEM
+ITEM_WEAKNESS_POLICY
+ITEM_SAFETY_GOGGLES
+ITEM_ADRENALINE_ORB
+ITEM_TERRAIN_EXTENDER
+ITEM_PROTECTIVE_PADS
+ITEM_ELECTRIC_SEED
+ITEM_PSYCHIC_SEED
+ITEM_MISTY_SEED
+ITEM_GRASSY_SEED
+ITEM_ROOM_SERVICE
+ITEM_BLUNDER_POLICY
+ITEM_HEAVY_DUTY_BOOTS
+ITEM_UTILITY_UMBRELLA
+```
+
+#### RANDOMIZER_ITEMCAT_TOOL（道具/汎用） 件数:46
+```
+ITEM_ABILITY_CAPSULE
+ITEM_ABILITY_PATCH
+ITEM_BOTTLE_CAP
+ITEM_GOLD_BOTTLE_CAP
+ITEM_PP_UP
+ITEM_PP_MAX
+ITEM_RARE_CANDY
+ITEM_DYNAMAX_CANDY
+ITEM_REPEL
+ITEM_SUPER_REPEL
+ITEM_MAX_REPEL
+ITEM_ESCAPE_ROPE
+ITEM_HP_UP
+ITEM_PROTEIN
+ITEM_IRON
+ITEM_CALCIUM
+ITEM_CARBOS
+ITEM_ZINC
+ITEM_HEALTH_FEATHER
+ITEM_MUSCLE_FEATHER
+ITEM_RESIST_FEATHER
+ITEM_GENIUS_FEATHER
+ITEM_CLEVER_FEATHER
+ITEM_SWIFT_FEATHER
+ITEM_PRETTY_FEATHER
+ITEM_LONELY_MINT
+ITEM_ADAMANT_MINT
+ITEM_NAUGHTY_MINT
+ITEM_BRAVE_MINT
+ITEM_BOLD_MINT
+ITEM_IMPISH_MINT
+ITEM_LAX_MINT
+ITEM_RELAXED_MINT
+ITEM_MODEST_MINT
+ITEM_MILD_MINT
+ITEM_RASH_MINT
+ITEM_QUIET_MINT
+ITEM_CALM_MINT
+ITEM_GENTLE_MINT
+ITEM_CAREFUL_MINT
+ITEM_SASSY_MINT
+ITEM_TIMID_MINT
+ITEM_HASTY_MINT
+ITEM_JOLLY_MINT
+ITEM_NAIVE_MINT
+ITEM_SERIOUS_MINT
+```
+
+#### RANDOMIZER_ITEMCAT_TM（TM） 件数:100
+```
+ITEM_TM01
+ITEM_TM02
+ITEM_TM03
+ITEM_TM04
+ITEM_TM05
+ITEM_TM06
+ITEM_TM07
+ITEM_TM08
+ITEM_TM09
+ITEM_TM10
+ITEM_TM11
+ITEM_TM12
+ITEM_TM13
+ITEM_TM14
+ITEM_TM15
+ITEM_TM16
+ITEM_TM17
+ITEM_TM18
+ITEM_TM19
+ITEM_TM20
+ITEM_TM21
+ITEM_TM22
+ITEM_TM23
+ITEM_TM24
+ITEM_TM25
+ITEM_TM26
+ITEM_TM27
+ITEM_TM28
+ITEM_TM29
+ITEM_TM30
+ITEM_TM31
+ITEM_TM32
+ITEM_TM33
+ITEM_TM34
+ITEM_TM35
+ITEM_TM36
+ITEM_TM37
+ITEM_TM38
+ITEM_TM39
+ITEM_TM40
+ITEM_TM41
+ITEM_TM42
+ITEM_TM43
+ITEM_TM44
+ITEM_TM45
+ITEM_TM46
+ITEM_TM47
+ITEM_TM48
+ITEM_TM49
+ITEM_TM50
+ITEM_TM51
+ITEM_TM52
+ITEM_TM53
+ITEM_TM54
+ITEM_TM55
+ITEM_TM56
+ITEM_TM57
+ITEM_TM58
+ITEM_TM59
+ITEM_TM60
+ITEM_TM61
+ITEM_TM62
+ITEM_TM63
+ITEM_TM64
+ITEM_TM65
+ITEM_TM66
+ITEM_TM67
+ITEM_TM68
+ITEM_TM69
+ITEM_TM70
+ITEM_TM71
+ITEM_TM72
+ITEM_TM73
+ITEM_TM74
+ITEM_TM75
+ITEM_TM76
+ITEM_TM77
+ITEM_TM78
+ITEM_TM79
+ITEM_TM80
+ITEM_TM81
+ITEM_TM82
+ITEM_TM83
+ITEM_TM84
+ITEM_TM85
+ITEM_TM86
+ITEM_TM87
+ITEM_TM88
+ITEM_TM89
+ITEM_TM90
+ITEM_TM91
+ITEM_TM92
+ITEM_TM93
+ITEM_TM94
+ITEM_TM95
+ITEM_TM96
+ITEM_TM97
+ITEM_TM98
+ITEM_TM99
+ITEM_TM100
+```
+
+#### RANDOMIZER_ITEMCAT_HM（HM） 件数:8
+```
+ITEM_HM01
+ITEM_HM02
+ITEM_HM03
+ITEM_HM04
+ITEM_HM05
+ITEM_HM06
+ITEM_HM07
+ITEM_HM08
+```
+
+#### RANDOMIZER_ITEMCAT_MEGA（メガ） 件数:73
+```
+ITEM_VENUSAURITE
+ITEM_CHARIZARDITE_X
+ITEM_CHARIZARDITE_Y
+ITEM_BLASTOISINITE
+ITEM_BEEDRILLITE
+ITEM_PIDGEOTITE
+ITEM_ALAKAZITE
+ITEM_SLOWBRONITE
+ITEM_GENGARITE
+ITEM_KANGASKHANITE
+ITEM_PINSIRITE
+ITEM_GYARADOSITE
+ITEM_AERODACTYLITE
+ITEM_MEWTWONITE_X
+ITEM_MEWTWONITE_Y
+ITEM_AMPHAROSITE
+ITEM_STEELIXITE
+ITEM_SCIZORITE
+ITEM_HERACRONITE
+ITEM_HOUNDOOMINITE
+ITEM_TYRANITARITE
+ITEM_SCEPTILITE
+ITEM_BLAZIKENITE
+ITEM_SWAMPERTITE
+ITEM_GARDEVOIRITE
+ITEM_SABLENITE
+ITEM_MAWILITE
+ITEM_AGGRONITE
+ITEM_MEDICHAMITE
+ITEM_MANECTITE
+ITEM_SHARPEDONITE
+ITEM_CAMERUPTITE
+ITEM_ALTARIANITE
+ITEM_BANETTITE
+ITEM_ABSOLITE
+ITEM_GLALITITE
+ITEM_SALAMENCITE
+ITEM_METAGROSSITE
+ITEM_LATIASITE
+ITEM_LATIOSITE
+ITEM_LOPUNNITE
+ITEM_GARCHOMPITE
+ITEM_LUCARIONITE
+ITEM_ABOMASITE
+ITEM_GALLADITE
+ITEM_AUDINITE
+ITEM_DIANCITE
+ITEM_CLEFABLITE
+ITEM_VICTREEBELITE
+ITEM_STARMINITE
+ITEM_DRAGONINITE
+ITEM_MEGANIUMITE
+ITEM_FERALIGITE
+ITEM_SKARMORITE
+ITEM_FROSLASSITE
+ITEM_EMBOARITE
+ITEM_EXCADRITE
+ITEM_SCOLIPITE
+ITEM_SCRAFTINITE
+ITEM_EELEKTROSSITE
+ITEM_CHANDELURITE
+ITEM_CHESNAUGHTITE
+ITEM_DELPHOXITE
+ITEM_GRENINJITE
+ITEM_PYROARITE
+ITEM_FLOETTITE
+ITEM_MALAMARITE
+ITEM_BARBARACITE
+ITEM_DRAGALGITE
+ITEM_HAWLUCHANITE
+ITEM_ZYGARDITE
+ITEM_DRAMPANITE
+ITEM_FALINKSITE
+```
+
+#### RANDOMIZER_ITEMCAT_Z（Zクリスタル） 件数:35
+```
+ITEM_NORMALIUM_Z
+ITEM_FIRIUM_Z
+ITEM_WATERIUM_Z
+ITEM_ELECTRIUM_Z
+ITEM_GRASSIUM_Z
+ITEM_ICIUM_Z
+ITEM_FIGHTINIUM_Z
+ITEM_POISONIUM_Z
+ITEM_GROUNDIUM_Z
+ITEM_FLYINIUM_Z
+ITEM_PSYCHIUM_Z
+ITEM_BUGINIUM_Z
+ITEM_ROCKIUM_Z
+ITEM_GHOSTIUM_Z
+ITEM_DRAGONIUM_Z
+ITEM_DARKINIUM_Z
+ITEM_STEELIUM_Z
+ITEM_FAIRIUM_Z
+ITEM_PIKANIUM_Z
+ITEM_EEVIUM_Z
+ITEM_SNORLIUM_Z
+ITEM_MEWNIUM_Z
+ITEM_DECIDIUM_Z
+ITEM_INCINIUM_Z
+ITEM_PRIMARIUM_Z
+ITEM_LYCANIUM_Z
+ITEM_MIMIKIUM_Z
+ITEM_KOMMONIUM_Z
+ITEM_TAPUNIUM_Z
+ITEM_SOLGANIUM_Z
+ITEM_LUNALIUM_Z
+ITEM_MARSHADIUM_Z
+ITEM_ALORAICHIUM_Z
+ITEM_PIKASHUNIUM_Z
+ITEM_ULTRANECROZIUM_Z
+```
+
+## バリデーション（ビルド時検証）
+- `dev_scripts/validate_randomizer_item_table.py` が以下をチェックする:
+  - `weight=0` の禁止
+  - `qtyOverride` は 0 または 1以上
+  - カテゴリの正当性
+  - `ITEM_NONE` / キーアイテム混入の禁止
+  - 重複 itemId の禁止
+  - 有効カテゴリに候補が0件の場合はエラー（`ALLOW_EMPTY_ITEM_POOL=TRUE` で抑制）
+- `Makefile` に組み込み済み（`generated/randomizer_item_table.ok`）
+
+## 参照/関連ファイル
+- `src/randomizer.c` : ランダマイズ本体、カテゴリ抽選・個数上書きの実装。
+- `include/randomizer.h` : `RandomizerItemCategory` / `RandomizerItemEntry` 等の定義。
+- `src/data/randomizer/item_category_config.h` : カテゴリ設定テーブル。
+- `src/data/randomizer/item_table.h` : アイテムマスターテーブル。
+- `include/config/randomizer.h` : `RANDOMIZER_AVAILABLE` / `RANDOMIZER_FLAG_FIELD_ITEMS` / `ALLOW_EMPTY_ITEM_POOL`。
+- `include/config/item.h` : `I_REUSABLE_TMS`（TM無限使用）。
+- `data/scripts/obtain_item.inc` : `Std_FindItem` / 隠しアイテム無効化。
+- `data/scripts/item_ball_scripts.inc` : `Common_EventScript_FindItem` の入口。
+- `data/scripts/debug.inc` : デバッグでのランダマイザー有効化。
+- `dev_scripts/validate_randomizer_item_table.py` : テーブル検証スクリプト。
+- `src/data/items.h` : バリデーション時の pocket 判定元。
+- `src/data/randomizer/item_whitelist.h` : 旧ホワイトリスト（現状未使用、参照用途）。
+
+## アイコン差し替え計画（将来対応）
+### 現状整理
+- UI（バッグ/説明ウィンドウ/入手演出）: `gItemsInfo` の `iconPic/iconPalette` を使用。
+  - 定義元: `src/data/items.h` と `src/data/graphics/items.h`。
+  - 画像/パレット: `graphics/items/icons/*.4bpp.smol` と `graphics/items/icon_palettes/*.gbapal`。
+  - TM/HM は `src/item_icon.c` の `GetItemIconPic/GetItemIconPalette` で特別扱い（TM/HM専用アイコン + タイプ別パレット）。
+- フィールドの見た目: マップイベントの `graphics_id` が `OBJ_EVENT_GFX_ITEM_BALL` 固定。
+  - 定義: `include/constants/event_objects.h` と `src/data/object_events/object_event_graphics_info.h`。
+  - 画像: `graphics/object_events/pics/misc/ball_poke.4bpp`。
+  - 参照テーブル: `src/data/object_events/object_event_pic_tables.h`。
+
+### UIアイコンの差し替え手順（バッグ等）
+1. 新しいアイコン/パレットを `graphics/items/icons/` と `graphics/items/icon_palettes/` に追加。
+2. `src/data/graphics/items.h` に `gItemIcon_*` と `gItemIconPalette_*` を定義。
+3. `src/data/items.h` の各アイテムに `iconPic/iconPalette` を割り当て。
+4. TM/HM の見せ方を変える場合は `src/item_icon.c` の TM/HM 特別処理を調整。
+
+### フィールド（オーバーワールド）の差し替え方針
+- 方針A（安全）: これまで通り `OBJ_EVENT_GFX_ITEM_BALL` のままにし、UI側だけ差し替える。
+- 方針B（カテゴリ表示）: カテゴリごとに別の `OBJ_EVENT_GFX_*` を作成して見た目を分岐。
+  - 追加するもの:
+    - `include/constants/event_objects.h` に新しい `OBJ_EVENT_GFX_*` を追加。
+    - `src/data/object_events/object_event_graphics.h` と `src/data/object_events/object_event_pic_tables.h` に画像定義。
+    - `src/data/object_events/object_event_graphics_info.h` と `src/data/object_events/object_event_graphics_info_pointers.h` に登録。
+  - 反映方法:
+    - 静的: `data/maps/**/map.json` の `graphics_id` を変更。
+    - 動的: マップロード時などに `ObjectEventSetGraphicsIdByLocalIdAndMap` を呼び、
+      `RandomizeFoundItemEx` の結果に応じて表示を切り替える。
+  - 動的方式は「乱数結果が決定論的」であることを利用し、
+    **取得前でも同じ結果を再現**できる点がメリット。
+
+### カテゴリ→表示アイコン対応表（案）
+- v1.7.0 時点では **全カテゴリが `OBJ_EVENT_GFX_ITEM_BALL`** を使用する想定。
+- カテゴリ表示を行う場合は、以下の `OBJ_EVENT_GFX_*` を新設する前提で運用する。
+
+| Randomizerカテゴリ | OBJ_EVENT_GFX（予定） | 現状 | 備考 |
+| --- | --- | --- | --- |
+| RANDOMIZER_ITEMCAT_HEAL | OBJ_EVENT_GFX_ITEM_HEAL | 未実装 | 回復系の専用見た目を追加 |
+| RANDOMIZER_ITEMCAT_BALL | OBJ_EVENT_GFX_ITEM_BALL | 既存 | 現状のボール |
+| RANDOMIZER_ITEMCAT_BATTLE_USE | OBJ_EVENT_GFX_ITEM_BATTLE | 未実装 | 戦闘用の専用見た目を追加 |
+| RANDOMIZER_ITEMCAT_HELD | OBJ_EVENT_GFX_ITEM_HELD | 未実装 | 持ち物/きのみの専用見た目 |
+| RANDOMIZER_ITEMCAT_TOOL | OBJ_EVENT_GFX_ITEM_TOOL | 未実装 | 道具/汎用の専用見た目 |
+| RANDOMIZER_ITEMCAT_TM | OBJ_EVENT_GFX_ITEM_TM | 未実装 | TM の専用見た目 |
+| RANDOMIZER_ITEMCAT_HM | OBJ_EVENT_GFX_ITEM_HM | 未実装 | HM の専用見た目 |
+| RANDOMIZER_ITEMCAT_MEGA | OBJ_EVENT_GFX_ITEM_MEGA | 未実装 | メガ石の専用見た目 |
+| RANDOMIZER_ITEMCAT_Z | OBJ_EVENT_GFX_ITEM_Z | 未実装 | Z クリスタルの専用見た目 |
+
+#### 新規 OBJ_EVENT_GFX 追加の共通ルール（推奨）
+- 画像は `graphics/object_events/pics/misc/` 配下に追加する。
+  例: `item_heal.4bpp`, `item_tm.4bpp` など。
+- サイズは `PokeBall` と同じ **16x32（2x4 タイル）** を基本とし、
+  `sPicTable_PokeBall` と同じ 6 フレーム構成で合わせると既存の挙動に乗せやすい。
+
+## 注意点 / 将来課題
+- **アイコン差し替えは未実装**（上記の計画で対応予定）。
+- HMを抽選に含めると進行が詰まる可能性があるため、
+  必要ならカテゴリOFFやweightMul=0で制御する。
+- バッグ容量制限により大量取得（例: 回復10個）の受け取り不可が発生しうる。
+- 隠しアイテムは **RANDOMIZER_AVAILABLE 時に常に無効化**。
+  フラグ連動で切り替えたい場合は `EventScript_HiddenItemScript` を調整する必要がある。
