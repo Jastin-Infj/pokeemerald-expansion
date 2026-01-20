@@ -217,36 +217,6 @@ static struct String literal_string(const char *s)
     };
 }
 
-static unsigned char ascii_tolower(unsigned char c)
-{
-    if (c >= 'A' && c <= 'Z')
-        return (unsigned char)(c + ('a' - 'A'));
-    return c;
-}
-
-static bool string_equals_nocase(struct String s, const char *lit)
-{
-    size_t len = strlen(lit);
-    if ((size_t)s.string_n != len)
-        return false;
-    for (size_t i = 0; i < len; i++)
-    {
-        if (ascii_tolower(s.string[i]) != ascii_tolower((unsigned char)lit[i]))
-            return false;
-    }
-    return true;
-}
-
-static bool tags_contain_reserved_lead_ace(const struct String *tags, int tags_n)
-{
-    for (int i = 0; i < tags_n; i++)
-    {
-        if (string_equals_nocase(tags[i], "lead") || string_equals_nocase(tags[i], "ace"))
-            return true;
-    }
-    return false;
-}
-
 struct Source
 {
     const char *path;
@@ -1640,8 +1610,6 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
                 pokemon->tags_line = value.location.line;
                 if (!token_tags_with_mode(p, &value, pokemon->tags, &pokemon->tags_n, MAX_MON_TAGS, &pokemon->tags_mode_and, true))
                     any_error = !show_parse_error(p);
-                if (tags_contain_reserved_lead_ace(pokemon->tags, pokemon->tags_n))
-                    any_error = !set_show_parse_error(p, value.location, "Tags cannot include Lead/Ace; use LeadTags/AceTags");
             }
             else if (is_literal_token(&key, "LeadTags"))
             {

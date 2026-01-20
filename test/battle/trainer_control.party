@@ -107,18 +107,18 @@ Party Size: 3
 Wynaut
 
 Wobbuffet
-Tags: Lead
+Tags: OR: Lead
 
 Eevee
-Tags: Ace
+Tags: OR: Ace
 
 Mew
 
 Oddish
-Tags: Ace
+Tags: OR: Ace
 
 Aron
-Tags: Lead
+Tags: OR: Lead
 
 === 5 ===
 Name: Test5
@@ -131,28 +131,28 @@ Party Size: 3
 Pool Rules: Weather Doubles
 
 Wynaut
-Tags: Lead
+Tags: OR: Lead
 
 Wobbuffet
-Tags: Lead
+Tags: OR: Lead
 
 Vulpix
-Tags: Lead / Weather Setter
+Tags: OR: Lead / Weather Setter
 
 Bulbasaur
-Tags: Lead / Weather Abuser
+Tags: OR: Lead / Weather Abuser
 
 Torkoal
-Tags: Lead / Weather Setter
+Tags: OR: Lead / Weather Setter
 
 Cherrim
-Tags: Lead / Weather Abuser
+Tags: OR: Lead / Weather Abuser
 
 Mew
-Tags: Lead
+Tags: OR: Lead
 
 Aron
-Tags: Lead
+Tags: OR: Lead
 
 Oddish
 
@@ -169,13 +169,13 @@ Party Size: 2
 Pool Rules: Basic
 
 Wynaut
-Tags: Lead
+Tags: OR: Lead
 
 Wobbuffet
-Tags: Lead
+Tags: OR: Lead
 
 Eevee
-Tags: Lead
+Tags: OR: Lead
 
 === 7 ===
 Name: Test1
@@ -191,7 +191,7 @@ Pool Prune: Test
 Wynaut
 
 Wobbuffet
-Tags: Lead
+Tags: OR: Lead
 
 Eevee
 
@@ -207,12 +207,12 @@ Pool Rules: Basic
 Pool Pick Functions: Lowest
 
 Wynaut
-Tags: Ace
+Tags: OR: Ace
 
 Wobbuffet
 
 Eevee
-Tags: Lead
+Tags: OR: Lead
 
 === 9 ===
 Name: Test9

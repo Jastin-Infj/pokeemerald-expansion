@@ -1311,39 +1311,67 @@ u16 RandomizerRandRange(enum RandomizerReason reason, u32 data1, u32 data2, u16 
 }
 
 // Utility functions for the field item randomizer.
-static inline bool32 IsItemTMHM(u16 itemId)
-{
-    return GetItemPocket(itemId) == POCKET_TM_HM;
-}
-
-static inline bool32 IsItemHM(u16 itemId)
-{
-    return itemId >= ITEM_HM01 && IsItemTMHM(itemId);
-}
-
 static inline bool32 IsKeyItem(u16 itemId)
 {
     return GetItemPocket(itemId) == POCKET_KEY_ITEMS;
 }
 
-// Don't randomize HMs or key items, that can make the game unwinnable.
-// ITEM_NONE also should not be randomized as it is invalid.
+// Key items and ITEM_NONE should not be randomized as they are invalid or blocking.
 static inline bool32 ShouldRandomizeItem(u16 itemId)
 {
-    return !(IsItemHM(itemId) || IsKeyItem(itemId) || itemId == ITEM_NONE);
+    return !(IsKeyItem(itemId) || itemId == ITEM_NONE);
 }
 
-#include "data/randomizer/item_whitelist.h"
+#include "data/randomizer/item_category_config.h"
+#include "data/randomizer/item_table.h"
 
-// Given a found item and its location in the game, returns a replacement for that item.
-u16 RandomizeFoundItem(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId)
+static inline bool32 IsRandomizerItemEntryEnabled(const struct RandomizerItemEntry *entry)
+{
+    const struct RandomizerItemCategoryConfig *config;
+
+    if (entry->category >= RANDOMIZER_ITEMCAT_COUNT)
+        return FALSE;
+
+    config = &sRandomizerItemCategoryConfig[entry->category];
+    if (!config->enabled || config->weightMul == 0)
+        return FALSE;
+
+    return entry->weight != 0;
+}
+
+bool32 RandomizeFoundItemEx(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId, u16 *outItemId, u16 *outQuantity)
 {
     struct Sfc32State state;
-    u16 result;
     u32 mapSeed;
+    u32 categoryWeights[RANDOMIZER_ITEMCAT_COUNT] = {0};
+    u32 categoryItemWeights[RANDOMIZER_ITEMCAT_COUNT] = {0};
+    u32 totalCategoryWeight = 0;
+    u32 i;
+    u32 roll;
+    u8 chosenCategory = RANDOMIZER_ITEMCAT_COUNT;
 
     if (!ShouldRandomizeItem(itemId))
-        return itemId;
+        return FALSE;
+
+    for (i = 0; i < RANDOMIZER_ITEM_TABLE_COUNT; i++)
+    {
+        const struct RandomizerItemEntry *entry = &sRandomizerItemTable[i];
+        if (IsRandomizerItemEntryEnabled(entry))
+            categoryItemWeights[entry->category] += entry->weight;
+    }
+
+    for (i = 0; i < RANDOMIZER_ITEMCAT_COUNT; i++)
+    {
+        const struct RandomizerItemCategoryConfig *config = &sRandomizerItemCategoryConfig[i];
+        if (config->enabled && config->weightMul > 0 && categoryItemWeights[i] > 0)
+        {
+            categoryWeights[i] = config->weightMul;
+            totalCategoryWeight += categoryWeights[i];
+        }
+    }
+
+    if (totalCategoryWeight == 0)
+        return FALSE;
 
     // Seed the generator using the original item and the object event that led up
     // to this call.
@@ -1352,33 +1380,72 @@ u16 RandomizeFoundItem(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId)
     mapSeed |= localId;
 
     state = RandomizerRandSeed(RANDOMIZER_REASON_FIELD_ITEM, mapSeed, itemId);
+    roll = RandomizerNextRange(&state, totalCategoryWeight);
 
-    // Randomize TMs to TMs. Because HMs shouldn't be randomized, we can assume
-    // this is a TM.
-    if (IsItemTMHM(itemId))
-        return RandomizerNextRange(&state, RANDOMIZER_MAX_TM - ITEM_TM01 + 1) + ITEM_TM01;
+    for (i = 0; i < RANDOMIZER_ITEMCAT_COUNT; i++)
+    {
+        if (categoryWeights[i] == 0)
+            continue;
 
-    // Randomize everything else to everything else.
-    do {
-        result = sRandomizerItemWhitelist[RandomizerNextRange(&state, ITEM_WHITELIST_SIZE)];
-    } while(!ShouldRandomizeItem(result) || IsItemTMHM(result));
+        if (roll < categoryWeights[i])
+        {
+            chosenCategory = i;
+            break;
+        }
+        roll -= categoryWeights[i];
+    }
 
-    return result;
+    if (chosenCategory >= RANDOMIZER_ITEMCAT_COUNT)
+        return FALSE;
 
+    roll = RandomizerNextRange(&state, categoryItemWeights[chosenCategory]);
+    for (i = 0; i < RANDOMIZER_ITEM_TABLE_COUNT; i++)
+    {
+        const struct RandomizerItemEntry *entry = &sRandomizerItemTable[i];
+        const struct RandomizerItemCategoryConfig *config;
+
+        if (entry->category != chosenCategory)
+            continue;
+        if (!IsRandomizerItemEntryEnabled(entry))
+            continue;
+
+        if (roll < entry->weight)
+        {
+            config = &sRandomizerItemCategoryConfig[entry->category];
+            if (outItemId != NULL)
+                *outItemId = entry->itemId;
+            if (outQuantity != NULL)
+                *outQuantity = (entry->qtyOverride != 0) ? entry->qtyOverride : config->defaultQty;
+            return TRUE;
+        }
+        roll -= entry->weight;
+    }
+
+    return FALSE;
 }
 
-// Takes a SpecialVar as an argument to simplify handling separate scripts.
-static inline void RandomizeFoundItemScript(u16 *scriptVar)
+// Given a found item and its location in the game, returns a replacement for that item.
+u16 RandomizeFoundItem(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId)
+{
+    u16 result = itemId;
+    (void)RandomizeFoundItemEx(itemId, mapNum, mapGroup, localId, &result, NULL);
+    return result;
+}
+
+// Takes SpecialVars as arguments to simplify handling separate scripts.
+static inline void RandomizeFoundItemScript(u16 *itemVar, u16 *amountVar)
 {
     if (RandomizerFeatureEnabled(RANDOMIZE_FIELD_ITEMS))
     {
         // Pull the object event information from the current object event.
         u8 objEvent = gSelectedObjectEvent;
-        *scriptVar = RandomizeFoundItem(
-            *scriptVar,
+        (void)RandomizeFoundItemEx(
+            *itemVar,
             gObjectEvents[objEvent].mapGroup,
             gObjectEvents[objEvent].mapNum,
-            gObjectEvents[objEvent].localId);
+            gObjectEvents[objEvent].localId,
+            itemVar,
+            amountVar);
     }
 }
 
@@ -1386,12 +1453,12 @@ static inline void RandomizeFoundItemScript(u16 *scriptVar)
 // write the results of the randomization to the correct script variable.
 void FindItemRandomize_NativeCall(struct ScriptContext *ctx)
 {
-    RandomizeFoundItemScript(&gSpecialVar_0x8000);
+    RandomizeFoundItemScript(&gSpecialVar_0x8000, &gSpecialVar_0x8001);
 }
 
 void FindHiddenItemRandomize_NativeCall(struct ScriptContext *ctx)
 {
-    RandomizeFoundItemScript(&gSpecialVar_0x8005);
+    RandomizeFoundItemScript(&gSpecialVar_0x8005, NULL);
 }
 
 // Both legendary and mythical Pokémon are included in this category.

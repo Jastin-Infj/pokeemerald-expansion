@@ -49,6 +49,35 @@ enum RandomizerReason
     RANDOMIZER_REASON_STARTER,
 };
 
+enum RandomizerItemCategory
+{
+    RANDOMIZER_ITEMCAT_HEAL,
+    RANDOMIZER_ITEMCAT_BALL,
+    RANDOMIZER_ITEMCAT_BATTLE_USE,
+    RANDOMIZER_ITEMCAT_HELD,
+    RANDOMIZER_ITEMCAT_TOOL,
+    RANDOMIZER_ITEMCAT_TM,
+    RANDOMIZER_ITEMCAT_HM,
+    RANDOMIZER_ITEMCAT_MEGA,
+    RANDOMIZER_ITEMCAT_Z,
+    RANDOMIZER_ITEMCAT_COUNT
+};
+
+struct RandomizerItemCategoryConfig
+{
+    bool8 enabled;
+    u8 defaultQty;
+    u16 weightMul;
+};
+
+struct RandomizerItemEntry
+{
+    u16 itemId;
+    u16 weight;
+    u8 category;
+    u8 qtyOverride;
+};
+
 enum RandomizerOption {
     // Controls how a species is randomized.
     RANDOMIZER_OPTION_SPECIES_MODE,
@@ -124,6 +153,7 @@ static inline u8 RandomizeMonType(u16 species, u8 typeNum)
 }
 
 u16 RandomizeFoundItem(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId);
+bool32 RandomizeFoundItemEx(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId, u16 *outItemId, u16 *outQuantity);
 void FindItemRandomize_NativeCall(struct ScriptContext *ctx);
 void FindHiddenItemRandomize_NativeCall(struct ScriptContext *ctx);
 

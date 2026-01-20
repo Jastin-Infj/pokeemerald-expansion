@@ -148,6 +148,7 @@ Debug_EventScript_Text_DefensiveIVs:
 Debug_EventScript_Script_1::
 	lockall
 	setflag FLAG_RANDOMIZER_AREA_WL
+	setflag RANDOMIZER_FLAG_FIELD_ITEMS
 	setflag FLAG_RANDOMIZER_DEBUG_LOG
 	setflag FLAG_RANDOMIZER_FISHING_AUTO_BITE
 	clearflag FLAG_RANDOMIZER_VANILLA_ENCOUNTER

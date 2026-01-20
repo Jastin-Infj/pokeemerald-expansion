@@ -28,6 +28,9 @@
 
 #define RANDOMIZER_MAX_TM           ITEM_TM50
 
+// If TRUE, allow a randomizer item pool with zero entries.
+#define ALLOW_EMPTY_ITEM_POOL       FALSE
+
 // Vars and features
 
 // These features allow you to force enable or disable individual randomization
