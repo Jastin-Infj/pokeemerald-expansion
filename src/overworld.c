@@ -47,6 +47,7 @@
 #include "palette.h"
 #include "play_time.h"
 #include "random.h"
+#include "randomizer.h"
 #include "roamer.h"
 #include "rotating_gate.h"
 #include "rtc.h"
@@ -219,6 +220,11 @@ EWRAM_DATA static bool8 sIsAmbientCryWaterMon = FALSE;
 EWRAM_DATA static u8 sHoursOverride = 0; // used to override apparent time of day hours
 EWRAM_DATA struct LinkPlayerObjectEvent gLinkPlayerObjectEvents[4] = {0};
 EWRAM_DATA bool8 gExitStairsMovementDisabled = FALSE;
+#if RANDOMIZER_AVAILABLE == TRUE
+EWRAM_DATA static u8 sItemGfxLastMapGroup = 0;
+EWRAM_DATA static u8 sItemGfxLastMapNum = 0;
+EWRAM_DATA static bool8 sItemGfxMapInit = FALSE;
+#endif
 
 static const struct WarpData sDummyWarpData =
 {
@@ -851,6 +857,9 @@ void LoadMapFromCameraTransition(u8 mapGroup, u8 mapNum)
     ApplyCurrentWarp();
     LoadCurrentMapData();
     LoadObjEventTemplatesFromHeader();
+#if RANDOMIZER_AVAILABLE == TRUE
+    Randomizer_UpdateItemBallGfxForMap();
+#endif
     TrySetMapSaveWarpStatus();
     ClearTempFieldEventData();
     ResetDexNavSearch();
@@ -1548,7 +1557,20 @@ static void DoCB1_Overworld(u16 newKeys, u16 heldKeys)
 void CB1_Overworld(void)
 {
     if (gMain.callback2 == CB2_Overworld)
+    {
+#if RANDOMIZER_AVAILABLE == TRUE
+        if (!sItemGfxMapInit
+            || gSaveBlock1Ptr->location.mapGroup != sItemGfxLastMapGroup
+            || gSaveBlock1Ptr->location.mapNum != sItemGfxLastMapNum)
+        {
+            sItemGfxMapInit = TRUE;
+            sItemGfxLastMapGroup = gSaveBlock1Ptr->location.mapGroup;
+            sItemGfxLastMapNum = gSaveBlock1Ptr->location.mapNum;
+            Randomizer_UpdateItemBallGfxForMap();
+        }
+#endif
         DoCB1_Overworld(gMain.newKeys, gMain.heldKeys);
+    }
 }
 
 #define TINT_NIGHT Q_8_8(0.456) | Q_8_8(0.456) << 8 | Q_8_8(0.615) << 16
@@ -2439,6 +2461,9 @@ static void InitObjectEventsLocal(void)
     InitPlayerAvatar(x, y, player->direction, gSaveBlock2Ptr->playerGender);
     SetPlayerAvatarTransitionFlags(player->transitionFlags);
     ResetInitialPlayerAvatarState();
+#if RANDOMIZER_AVAILABLE == TRUE
+    Randomizer_UpdateItemBallGfxForMap();
+#endif
     TrySpawnObjectEvents(0, 0);
     FollowerNPC_HandleSprite();
     UpdateFollowingPokemon();
@@ -2447,6 +2472,9 @@ static void InitObjectEventsLocal(void)
 
 static void InitObjectEventsReturnToField(void)
 {
+#if RANDOMIZER_AVAILABLE == TRUE
+    Randomizer_UpdateItemBallGfxForMap();
+#endif
     SpawnObjectEventsOnReturnToField(0, 0);
     RotatingGate_InitPuzzleAndGraphics();
     RunOnReturnToFieldMapScript();

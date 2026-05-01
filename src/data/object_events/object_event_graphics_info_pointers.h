@@ -238,6 +238,14 @@ extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_Lugia;
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_HoOh;
 // Begin pokemon event objects
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_PokeBall;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemHeal;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemBattle;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemHeld;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemTool;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemTM;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemHM;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemMega;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ItemZ;
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_Follower;
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_BallLight;
 
@@ -494,6 +502,14 @@ const struct ObjectEventGraphicsInfo *const gObjectEventGraphicsInfoPointers[NUM
     [OBJ_EVENT_GFX_OW_MON] =                   &gObjectEventGraphicsInfo_Follower,
     [OBJ_EVENT_GFX_LIGHT_SPRITE] =             &gObjectEventGraphicsInfo_BallLight,
     [OBJ_EVENT_GFX_APRICORN_TREE] =            &gObjectEventGraphicsInfo_ApricornTree,
+    [OBJ_EVENT_GFX_ITEM_HEAL] =                &gObjectEventGraphicsInfo_ItemHeal,
+    [OBJ_EVENT_GFX_ITEM_BATTLE] =              &gObjectEventGraphicsInfo_ItemBattle,
+    [OBJ_EVENT_GFX_ITEM_HELD] =                &gObjectEventGraphicsInfo_ItemHeld,
+    [OBJ_EVENT_GFX_ITEM_TOOL] =                &gObjectEventGraphicsInfo_ItemTool,
+    [OBJ_EVENT_GFX_ITEM_TM] =                  &gObjectEventGraphicsInfo_ItemTM,
+    [OBJ_EVENT_GFX_ITEM_HM] =                  &gObjectEventGraphicsInfo_ItemHM,
+    [OBJ_EVENT_GFX_ITEM_MEGA] =                &gObjectEventGraphicsInfo_ItemMega,
+    [OBJ_EVENT_GFX_ITEM_Z] =                   &gObjectEventGraphicsInfo_ItemZ,
 };
 
 const struct ObjectEventGraphicsInfo *const gMauvilleOldManGraphicsInfoPointers[] = {

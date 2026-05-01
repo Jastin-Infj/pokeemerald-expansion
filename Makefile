@@ -353,6 +353,11 @@ OBJS_REL := $(patsubst $(OBJ_DIR)/%,%,$(OBJS))
 SUBDIRS  := $(sort $(dir $(OBJS) $(dir $(TEST_OBJS))))
 $(shell mkdir -p $(SUBDIRS))
 
+# Ensure generated headers/assets exist before compiling any objects, even when
+# SETUP_PREREQS is disabled.
+$(OBJS): | generated
+$(TEST_OBJS): | generated
+
 # Pretend rules that are actually flags defer to `make all`
 modern: all
 compare: all

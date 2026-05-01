@@ -1117,6 +1117,41 @@ static const struct SpriteFrameImage sPicTable_PokeBall[] = {
     overworld_frame(gObjectEventPic_PokeBall, 2, 4, 0),
 };
 
+#define ITEM_PIC_FRAMES(name)                               \
+    overworld_frame(gObjectEventPic_##name, 2, 4, 0),       \
+    overworld_frame(gObjectEventPic_##name, 2, 4, 1),       \
+    overworld_frame(gObjectEventPic_##name, 2, 4, 2),       \
+    overworld_frame(gObjectEventPic_##name, 2, 4, 3),       \
+    overworld_frame(gObjectEventPic_##name, 2, 4, 4),       \
+    overworld_frame(gObjectEventPic_##name, 2, 4, 0)
+
+static const struct SpriteFrameImage sPicTable_ItemHeal[] = {
+    ITEM_PIC_FRAMES(ItemHeal),
+};
+static const struct SpriteFrameImage sPicTable_ItemBattle[] = {
+    ITEM_PIC_FRAMES(ItemBattle),
+};
+static const struct SpriteFrameImage sPicTable_ItemHeld[] = {
+    ITEM_PIC_FRAMES(ItemHeld),
+};
+static const struct SpriteFrameImage sPicTable_ItemTool[] = {
+    ITEM_PIC_FRAMES(ItemTool),
+};
+static const struct SpriteFrameImage sPicTable_ItemTM[] = {
+    ITEM_PIC_FRAMES(ItemTM),
+};
+static const struct SpriteFrameImage sPicTable_ItemHM[] = {
+    ITEM_PIC_FRAMES(ItemHM),
+};
+static const struct SpriteFrameImage sPicTable_ItemMega[] = {
+    ITEM_PIC_FRAMES(ItemMega),
+};
+static const struct SpriteFrameImage sPicTable_ItemZ[] = {
+    ITEM_PIC_FRAMES(ItemZ),
+};
+
+#undef ITEM_PIC_FRAMES
+
 extern const struct SpriteFrameImage gFieldEffectObjectPicTable_BallLight[];
 
 #if OW_FOLLOWERS_POKEBALLS

@@ -156,6 +156,10 @@ u16 RandomizeFoundItem(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId);
 bool32 RandomizeFoundItemEx(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId, u16 *outItemId, u16 *outQuantity);
 void FindItemRandomize_NativeCall(struct ScriptContext *ctx);
 void FindHiddenItemRandomize_NativeCall(struct ScriptContext *ctx);
+bool8 Randomizer_GetItemCategory(u16 itemId, u8 *outCategory);
+u16 Randomizer_GetItemBallGfxByCategory(u8 category);
+void Randomizer_UpdateItemBallGfxForMap(void);
+void Randomizer_ApplyItemBallIconOnSpawn(u8 objectEventId, const struct ObjectEventTemplate *template, u8 mapNum, u8 mapGroup);
 
 u16 RandomizeMon(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species);
 u16 RandomizeMonBaseForm(enum RandomizerReason reason, enum RandomizerSpeciesMode mode, u32 seed, u16 species);

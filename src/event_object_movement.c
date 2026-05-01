@@ -30,6 +30,7 @@
 #include "pokemon.h"
 #include "pokeball.h"
 #include "random.h"
+#include "randomizer.h"
 #include "region_map.h"
 #include "rtc.h"
 #include "script.h"
@@ -492,6 +493,7 @@ static const struct SpritePalette sObjectEventSpritePalettes[] = {
     {gObjectEventPal_Npc1,                  OBJ_EVENT_PAL_TAG_NPC_1},
     {gObjectEventPal_Npc2,                  OBJ_EVENT_PAL_TAG_NPC_2},
     {gObjectEventPal_Npc3,                  OBJ_EVENT_PAL_TAG_NPC_3},
+    {gObjectEventPal_ItemBall,             OBJ_EVENT_PAL_TAG_ITEM_BALL},
     {gObjectEventPal_Npc4,                  OBJ_EVENT_PAL_TAG_NPC_4},
     {gObjectEventPal_Npc1Reflection,        OBJ_EVENT_PAL_TAG_NPC_1_REFLECTION},
     {gObjectEventPal_Npc2Reflection,        OBJ_EVENT_PAL_TAG_NPC_2_REFLECTION},
@@ -1744,6 +1746,9 @@ static u8 TrySetupObjectEventSprite(const struct ObjectEventTemplate *objectEven
 
     SetObjectSubpriorityByElevation(objectEvent->previousElevation, sprite, 1);
     UpdateObjectEventVisibility(objectEvent, sprite);
+#if RANDOMIZER_AVAILABLE == TRUE
+    Randomizer_ApplyItemBallIconOnSpawn(objectEventId, objectEventTemplate, mapNum, mapGroup);
+#endif
     return objectEventId;
 }
 

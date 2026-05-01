@@ -4,9 +4,12 @@
 #include "main.h"
 #include "new_game.h"
 #include "item.h"
+#include "sprite.h"
 #include "event_data.h"
+#include "event_object_movement.h"
 #include "field_control_avatar.h"
 #include "gba/isagbprint.h"
+#include "global.fieldmap.h"
 #include "pokemon.h"
 #include "script.h"
 #include "data.h"
@@ -18,6 +21,13 @@
 #include "trainer_rank.h"
 #include "trainer_pools.h"
 #include "rtc.h"
+#include "battle_factory.h"
+#include "battle_pike.h"
+#include "battle_pyramid.h"
+#include "trainer_hill.h"
+#include "constants/event_objects.h"
+#include "constants/items.h"
+#include "constants/map_types.h"
 
 #define SLOT_MODE_UNIFORM RANDOMIZER_SLOT_MODE_UNIFORM
 #define SLOT_MODE_RARE    RANDOMIZER_SLOT_MODE_RARE
@@ -1422,6 +1432,261 @@ bool32 RandomizeFoundItemEx(u16 itemId, u8 mapNum, u8 mapGroup, u8 localId, u16 
     }
 
     return FALSE;
+}
+
+static bool8 IsNormalMapForItemGfx(void)
+{
+    if (InBattlePyramid_() || InBattlePike() || InBattleFactory() || InTrainerHillChallenge())
+        return FALSE;
+
+    if (gMapHeader.mapType == MAP_TYPE_SECRET_BASE || gMapHeader.mapType == MAP_TYPE_UNKNOWN)
+        return FALSE;
+
+    if (gMapHeader.mapType == MAP_TYPE_UNDERWATER)
+        return FALSE;
+
+    return TRUE;
+}
+
+static bool8 RandomizerItemGfxDebugEnabled(void)
+{
+    return FlagGet(FLAG_RANDOMIZER_DEBUG_LOG);
+}
+
+static bool8 IsItemBallGraphicsId(u16 graphicsId)
+{
+    switch (graphicsId)
+    {
+    case OBJ_EVENT_GFX_ITEM_BALL:
+    case OBJ_EVENT_GFX_ITEM_HEAL:
+    case OBJ_EVENT_GFX_ITEM_BATTLE:
+    case OBJ_EVENT_GFX_ITEM_HELD:
+    case OBJ_EVENT_GFX_ITEM_TOOL:
+    case OBJ_EVENT_GFX_ITEM_TM:
+    case OBJ_EVENT_GFX_ITEM_HM:
+    case OBJ_EVENT_GFX_ITEM_MEGA:
+    case OBJ_EVENT_GFX_ITEM_Z:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+bool8 Randomizer_GetItemCategory(u16 itemId, u8 *outCategory)
+{
+    u32 i;
+
+    for (i = 0; i < RANDOMIZER_ITEM_TABLE_COUNT; i++)
+    {
+        const struct RandomizerItemEntry *entry = &sRandomizerItemTable[i];
+
+        if (entry->itemId != itemId)
+            continue;
+
+        if (!IsRandomizerItemEntryEnabled(entry))
+            return FALSE;
+
+        if (outCategory != NULL)
+            *outCategory = entry->category;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+struct RandomizerItemBallIcon
+{
+    u16 itemId;
+    const struct SpriteFrameImage *images;
+};
+
+// Item ball icon overrides (optional).
+// Each entry must match the item ball frame layout (2x4 tiles, 5 frames + repeat)
+// and use the item ball palette (OBJ_EVENT_PAL_TAG_ITEM_BALL).
+static const struct RandomizerItemBallIcon sRandomizerItemBallIcons[] = {
+    { ITEM_NONE, NULL },
+};
+
+static const struct SpriteFrameImage *GetItemBallIconImages(u16 itemId)
+{
+    const struct RandomizerItemBallIcon *entry = sRandomizerItemBallIcons;
+    while (entry->itemId != ITEM_NONE)
+    {
+        if (entry->itemId == itemId)
+            return entry->images;
+        entry++;
+    }
+    return NULL;
+}
+
+static bool8 ApplyItemBallIconToObjectEvent(u8 objectEventId, u16 itemId)
+{
+    const struct SpriteFrameImage *images = GetItemBallIconImages(itemId);
+    const struct SpriteFrameImage *defaultImages = GetObjectEventGraphicsInfo(OBJ_EVENT_GFX_ITEM_BALL)->images;
+    struct Sprite *sprite;
+    bool8 isCustom = (images != NULL);
+
+    if (objectEventId == OBJECT_EVENTS_COUNT)
+        return isCustom;
+
+    if (images == NULL)
+        images = defaultImages;
+
+    sprite = &gSprites[gObjectEvents[objectEventId].spriteId];
+    if (sprite->images != images)
+    {
+        sprite->images = images;
+        SeekSpriteAnim(sprite, 0);
+    }
+    return isCustom;
+}
+
+u16 Randomizer_GetItemBallGfxByCategory(u8 category)
+{
+    (void)category;
+    // Item ball graphics are kept as the base Poke Ball.
+    // Custom item icons are handled separately.
+    return OBJ_EVENT_GFX_ITEM_BALL;
+}
+
+void Randomizer_UpdateItemBallGfxForMap(void)
+{
+    u32 i;
+    u8 mapGroup;
+    u8 mapNum;
+    bool8 dbg = RandomizerItemGfxDebugEnabled();
+    struct ObjectEventTemplate *savTemplates;
+    const struct ObjectEventTemplate *mapTemplates;
+
+    if (!RandomizerFeatureEnabled(RANDOMIZE_FIELD_ITEMS))
+    {
+        if (dbg)
+            DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: field item randomizer off");
+        return;
+    }
+
+    if (!IsNormalMapForItemGfx())
+    {
+        if (dbg)
+            DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: not normal map type=%u", gMapHeader.mapType);
+        return;
+    }
+
+    if (gMapHeader.events == NULL || gMapHeader.events->objectEventCount == 0)
+    {
+        if (dbg)
+            DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: no events");
+        return;
+    }
+
+    mapGroup = gSaveBlock1Ptr->location.mapGroup;
+    mapNum = gSaveBlock1Ptr->location.mapNum;
+    savTemplates = gSaveBlock1Ptr->objectEventTemplates;
+    mapTemplates = gMapHeader.events->objectEvents;
+
+    if (dbg)
+        DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] map=%u/%u type=%u count=%u", mapGroup, mapNum, gMapHeader.mapType, gMapHeader.events->objectEventCount);
+
+    for (i = 0; i < gMapHeader.events->objectEventCount; i++)
+    {
+        const struct ObjectEventTemplate *mapTempl = &mapTemplates[i];
+        struct ObjectEventTemplate *savTempl = &savTemplates[i];
+        const struct ObjectEventTemplate *templ = savTempl;
+        u16 itemId;
+        u16 randItem;
+        u16 gfxId;
+        u8 objectEventId = OBJECT_EVENTS_COUNT;
+        u8 localId;
+        bool8 customIcon = FALSE;
+
+        if (!IsItemBallGraphicsId(mapTempl->graphicsId) && !IsItemBallGraphicsId(savTempl->graphicsId))
+            continue;
+
+        localId = mapTempl->localId != 0 ? mapTempl->localId : templ->localId;
+
+        if (dbg)
+            DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] itemball localId=%u flag=%u", localId, templ->flagId);
+
+        if (templ->flagId != 0 && FlagGet(templ->flagId))
+        {
+            if (dbg)
+                DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: already collected localId=%u", localId);
+            continue;
+        }
+
+        if (localId == 0 || localId - 1 != i)
+        {
+            if (dbg)
+                DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: localId mismatch localId=%u idx=%u", localId, (u8)i);
+            continue;
+        }
+
+        itemId = templ->trainerRange_berryTreeId;
+        if (itemId <= ITEM_NONE || itemId >= ITEMS_COUNT)
+        {
+            if (dbg)
+                DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: invalid itemId=%u localId=%u", itemId, localId);
+            continue;
+        }
+
+        if (!RandomizeFoundItemEx(itemId, mapNum, mapGroup, localId, &randItem, NULL))
+        {
+            if (dbg)
+                DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] skip: rand fail itemId=%u localId=%u", itemId, localId);
+            savTempl->graphicsId = OBJ_EVENT_GFX_ITEM_BALL;
+            continue;
+        }
+
+        gfxId = OBJ_EVENT_GFX_ITEM_BALL;
+        savTempl->graphicsId = gfxId;
+
+        objectEventId = GetObjectEventIdByLocalId(localId);
+        if (objectEventId != OBJECT_EVENTS_COUNT)
+            ObjectEventSetGraphicsId(&gObjectEvents[objectEventId], gfxId);
+
+        customIcon = ApplyItemBallIconToObjectEvent(objectEventId, randItem);
+
+        if (dbg)
+        {
+            DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] icon localId=%u objId=%u item=%u src=%s", localId, objectEventId, randItem, customIcon ? "custom" : "ball");
+        }
+    }
+}
+
+void Randomizer_ApplyItemBallIconOnSpawn(u8 objectEventId, const struct ObjectEventTemplate *template, u8 mapNum, u8 mapGroup)
+{
+    u16 itemId;
+    u16 randItem;
+    bool8 dbg;
+    bool8 customIcon;
+
+    if (objectEventId == OBJECT_EVENTS_COUNT)
+        return;
+
+    if (!RandomizerFeatureEnabled(RANDOMIZE_FIELD_ITEMS))
+        return;
+
+    if (!IsNormalMapForItemGfx())
+        return;
+
+    if (!IsItemBallGraphicsId(template->graphicsId))
+        return;
+
+    itemId = template->trainerRange_berryTreeId;
+    if (itemId <= ITEM_NONE || itemId >= ITEMS_COUNT)
+        return;
+
+    if (!RandomizeFoundItemEx(itemId, mapNum, mapGroup, template->localId, &randItem, NULL))
+        return;
+
+    if (gObjectEvents[objectEventId].graphicsId != OBJ_EVENT_GFX_ITEM_BALL)
+        ObjectEventSetGraphicsId(&gObjectEvents[objectEventId], OBJ_EVENT_GFX_ITEM_BALL);
+
+    customIcon = ApplyItemBallIconToObjectEvent(objectEventId, randItem);
+    dbg = RandomizerItemGfxDebugEnabled();
+    if (dbg)
+        DebugPrintfLevel(MGBA_LOG_WARN, "[ITEMGFX] icon spawn localId=%u objId=%u item=%u src=%s", template->localId, objectEventId, randItem, customIcon ? "custom" : "ball");
 }
 
 // Given a found item and its location in the game, returns a replacement for that item.

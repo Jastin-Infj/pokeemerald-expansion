@@ -499,6 +499,7 @@ bool32 IsVirtualObjectInvisible(u8 virtualObjId);
 void SetVirtualObjectSpriteAnim(u8 virtualObjId, u8 animNum);
 bool32 IsVirtualObjectAnimating(u8 virtualObjId);
 u8 GetObjectEventIdByLocalId(u8 localId);
+void ObjectEventSetGraphicsIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup, u16 graphicsId);
 bool32 IsFollowerVisible(void);
 
 // run slow
