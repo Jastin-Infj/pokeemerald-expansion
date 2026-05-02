@@ -244,6 +244,50 @@
 - `checkUnlocked=TRUE` を使う script と使わない script があるため、badge / flag unlock と move 所持のどちらを外すかを分けて設計する。
 - Cut / Rock Smash は `removeobject VAR_LAST_TALKED`、Strength は `FLAG_SYS_USE_STRENGTH`、Flash は `FLAG_SYS_USE_FLASH` を使う。field move animation は `CreateFieldMoveTask` と `FLDEFF_FIELD_MOVE_SHOW_MON_INIT` に依存する。詳細は `docs/flows/field_move_hm_flow_v15.md`。
 
+### DexNav Scripts
+
+確認した入口:
+
+| File | Confirmed symbols / behavior |
+|---|---|
+| `data/scripts/dexnav.inc` | DexNav search 成功 / 失敗時の shared scripts。 |
+| `src/dexnav.c` | `ScriptContext_SetupScript(EventScript_StartDexNavBattle)`、`EventScript_LostSignal`、`EventScript_MovedTooFast`、`EventScript_PokemonGotAway`、`EventScript_NotFoundNearby`、`EventScript_TooDark` を参照。 |
+| `src/field_control_avatar.c` | field input / step script から DexNav search を呼ぶ。 |
+
+重要 labels:
+
+| Label | Notes |
+|---|---|
+| `EventScript_StartDexNavBattle` | `lock`、SE / exclamation movement 後に `dowildbattle`。trainer battle ではなく wild battle flow。 |
+| `EventScript_LostSignal` | search 対象から離れた時の失敗 script。 |
+| `EventScript_MovedTooFast` | 近距離で通常歩行 / dash / bike した時の失敗 script。 |
+| `EventScript_PokemonGotAway` | timeout 時の失敗 script。 |
+| `EventScript_NotFoundNearby` | 対象が見つからない時の失敗 script。 |
+| `EventScript_TooDark` | Flash level がある map での失敗 script。 |
+
+拡張時の注意:
+
+- DexNav は `dowildbattle` を使うため、通常 trainer battle 選出とは別 flow。
+- `TryFindHiddenPokemon()` は hidden search 開始時に script context を有効化せず `FALSE` を返す。失敗 / 到達時だけ `ScriptContext_SetupScript()` へ進む。
+- 詳細は `docs/flows/dexnav_flow_v15.md`。
+
+### Move Relearner Scripts
+
+確認した入口:
+
+| File | Confirmed symbols / behavior |
+|---|---|
+| `data/scripts/move_relearner.inc` | 共通 move relearner script。`dynmultipush`、`setmoverelearnerstate`、`istmrelearneractive`、`chooseboxmon SELECT_PC_MON_MOVE_RELEARNER`、`special TeachMoveRelearnerMove`。 |
+| `data/maps/FallarborTown_MoveRelearnersHouse/scripts.inc` | vanilla Heart Scale relearner。`MOVE_RELEARNER_LEVEL_UP_MOVES` 固定、成功時に Heart Scale を消費。 |
+| `asm/macros/event.inc` | `setmoverelearnerstate`、`getmoverelearnerstate`、`istmrelearneractive`、`chooseboxmon` macro。 |
+| `src/scrcmd.c` | `ScrCmd_setmoverelearnerstate`、`ScrCmd_getmoverelearnerstate`、`ScrCmd_istmrelearneractive`。 |
+
+拡張時の注意:
+
+- `gMoveRelearnerState` は script command と summary / party menu の両方で使われる。
+- `P_TM_MOVES_RELEARNER` や `P_ENABLE_ALL_TM_MOVES` を変えると `istmrelearneractive` と `GetRelearnerTMMoves()` の候補が変わる。
+- TM 追加時は `MAX_RELEARNER_MOVES` も確認する。詳細は `docs/flows/move_relearner_flow_v15.md`。
+
 ## Core Trainer Battle Scripts
 
 ### `data/scripts/trainer_battle.inc`

@@ -20,6 +20,9 @@ trainer battle 前選出、相手 party preview、battle UI 変更、status / op
 | `include/config/summary_screen.h` | summary screen の表示 config。 |
 | `include/pokemon_summary_screen.h` | summary mode / page 定義。 |
 | `src/pokemon_summary_screen.c` | summary screen 本体。 |
+| `include/constants/move_relearner.h` | `MAX_RELEARNER_MOVES`, `MoveRelearnerStates`, `RelearnMode`。 |
+| `src/move_relearner.c` | summary / party / script から起動される move relearner UI。 |
+| `include/pokemon_icon.h`, `src/pokemon_icon.c` | Pokemon icon API と palette / sprite lifetime。 |
 | `src/party_menu.c` | party menu の HP / status / held item / icon 表示。 |
 | `src/battle_controller_player.c` | battle 中の button mode、move info、effectiveness、move reorder。 |
 
@@ -90,6 +93,8 @@ flowchart TD
 
 これらは compile-time config であり、option menu の save data とは別系統。ユーザーがゲーム内 option で切り替えられる UI にする場合は、`src/option_menu.c` と `struct SaveBlock2` 追加が必要になる可能性がある。
 
+SaveBlock2 / SaveBlock3 / flag / var の詳細は `docs/flows/save_data_flow_v15.md`。
+
 ## Button Mode Interaction
 
 `src/battle_controller_player.c` で確認した button mode 依存:
@@ -142,6 +147,25 @@ flowchart TD
 
 Battle 前選出 UI から summary を開く場合、`gPlayerParty` が元 6 匹なのか、選出後の一時 party なのかで表示対象が変わる。MVP では、選出 UI は battle 前に元 party を対象に開く想定が安全。
 
+## Move Relearner Integration
+
+`src/pokemon_summary_screen.c` の moves page では `ShouldShowMoveRelearner()` が true の時、START button で `CB2_InitLearnMove` へ進む。
+
+確認した主な連携:
+
+| Symbol | Role |
+|---|---|
+| `ShouldShowMoveRelearner` | summary screen に relearn prompt を出す条件。Battle Factory / Slateport Battle Tent などを除外。 |
+| `ShowRelearnPrompt` | `gMoveRelearnerState` に応じて `RELEARN` / `RELEARN TM` などを表示。 |
+| `gRelearnMode` | summary page id と relearner の戻り先を結びつける。 |
+| `gSpecialVar_0x8004` | party mon slot、または `PC_MON_CHOSEN`。 |
+| `TeachMoveRelearnerMove` | script / party / summary 共通の relearner 起動 special。 |
+| `CB2_InitLearnMove` | move relearner screen 初期化。 |
+
+`include/constants/move_relearner.h` の `MAX_RELEARNER_MOVES` は 60。TM / tutor / level-up moves を増やす場合、move relearner list がこの上限に収まるか確認する。
+
+詳細は `docs/flows/move_relearner_flow_v15.md`。
+
 ## Party Menu Status Display
 
 `src/party_menu.c` で確認した status / HP 関連 symbols:
@@ -158,6 +182,23 @@ Battle 前選出 UI から summary を開く場合、`gPlayerParty` が元 6 匹
 
 選出 UI を既存 party menu で流用する場合、status 表示と fainted / egg / selected / no-entry の状態は既存処理に従う。
 
+## Pokemon Icon Impact
+
+Pokemon icon は party menu、DexNav、storage、将来の相手 party preview で共通して使う可能性が高い。
+
+確認した主な入口:
+
+| Symbol | Role |
+|---|---|
+| `CreateMonIcon` | species icon sprite を作る。 |
+| `LoadMonIconPalettes` | Pokemon icon palette を読み込む。 |
+| `FreeMonIconPalettes` | Pokemon icon palette を解放する。 |
+| `SpriteCB_MonIcon` | icon animation frame を更新する callback。 |
+
+選出 UI や summary / party menu の上に独自表示を重ねる場合、既存画面が持つ sprite / palette と競合しないか確認する。DexNav のように `ResetSpriteData()` と `FreeAllSpritePalettes()` を通る専用画面なら画面単位で所有しやすいが、party menu 内拡張では lifetime を分けて考える必要がある。
+
+詳細は `docs/flows/pokemon_icon_ui_flow_v15.md`。
+
 ## Battle Selection Impact
 
 | Area | Impact |
@@ -166,6 +207,7 @@ Battle 前選出 UI から summary を開く場合、`gPlayerParty` が元 6 匹
 | Battle config | compile-time で UI を増減するなら `include/config/battle.h` だけで済む場合がある。 |
 | Summary screen | 選出 UI から summary を開く場合、元 party slot と一時 party slot の区別が必要。 |
 | Party menu status | 既存 choose half 流用時は fainted/egg/status/held item 表示の仕様を継承する。 |
+| Pokemon icon | party / DexNav / opponent preview で共通化できるが、sprite 数と palette lifetime を確認する。 |
 | Button shortcuts | L=A、move description、last used ball、gimmick trigger と競合しない input 設計が必要。 |
 
 ## Open Questions
@@ -174,3 +216,4 @@ Battle 前選出 UI から summary を開く場合、`gPlayerParty` が元 6 匹
 - `optionsButtonMode` の初期化箇所は `SetDefaultOptions` だけでは確認できなかったため、追加調査対象。
 - Summary screen を選出 UI から開く場合、選出順を維持したまま戻る挙動の詳細は未確認。
 - Status 表示の新規カテゴリや custom icon を足す場合、party menu / summary / battle healthbox の 3 系統をすべて追う必要がある。
+- Pokemon icon を使う custom UI の sprite budget と palette conflict は未計測。

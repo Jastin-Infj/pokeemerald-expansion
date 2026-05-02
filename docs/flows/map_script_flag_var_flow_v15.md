@@ -97,6 +97,22 @@ flowchart TD
 | `struct SaveBlock1.vars` | `include/global.h` の `struct SaveBlock1` 内。saved vars。 |
 | `gSpecialVar_0x8000`..`gSpecialVar_Result` | `src/event_data.c` の global。script の一時引数や戻り値。 |
 
+### DexNav Flag / Var Notes
+
+DexNav を有効化する場合、`include/config/dexnav.h` の flag / var define は 0 のまま使えない。
+
+| Symbol | Storage expectation | Notes |
+|---|---|---|
+| `DN_FLAG_SEARCHING` | saved flag candidate | DexNav search 中。`src/dexnav.c` に static assert あり。 |
+| `DN_FLAG_DEXNAV_GET` | saved flag candidate | Start menu に DexNav entry を出す入手 flag。`src/start_menu.c` が `DN_FLAG_DEXNAV_GET != 0 && FlagGet(DN_FLAG_DEXNAV_GET)` を見る。 |
+| `DN_FLAG_DETECTOR_MODE` | saved flag candidate | hidden Pokemon detector mode の unlock flag。`src/dexnav.c` に static assert あり。 |
+| `DN_VAR_SPECIES` | saved var candidate | 下位 14 bit species、上位 2 bit environment。 |
+| `DN_VAR_STEP_COUNTER` | saved var candidate | hidden Pokemon 検出用の step counter。 |
+
+`DN_FLAG_DEXNAV_GET` と `DN_FLAG_DETECTOR_MODE` は別用途。Start menu から GUI を開けることと、歩数で hidden Pokemon を検出することは独立している。詳細は `docs/flows/dexnav_flow_v15.md`。
+
+DexNav chain / search level の永続 save は SaveBlock3 側で、flag / var とは別。`USE_DEXNAV_SEARCH_LEVELS` を有効にする場合は `gSaveBlock3Ptr->dexNavSearchLevels[NUM_SPECIES]` の容量影響を `docs/flows/save_data_flow_v15.md` で確認する。
+
 `src/event_data.c` の `GetVarPointer(id)` は以下の分岐を持つ。
 
 - `id < VARS_START` は `NULL`。

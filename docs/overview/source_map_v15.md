@@ -102,7 +102,10 @@
 | `src/text.c`, `include/text.h` | Text rendering。 |
 | `src/menu.c`, `src/menu_helpers.c`, `src/menu_specialized.c` | Menu framework。 |
 | `src/sprite.c`, `include/sprite.h` | `gSprites[MAX_SPRITES + 1]`。 |
-| `src/pokemon_icon.c` | Party menu icon rendering。 |
+| `include/pokemon_icon.h` | `CreateMonIcon`, `LoadMonIconPalettes`, `FreeMonIconPalettes`, `SpriteCB_MonIcon`。 |
+| `src/pokemon_icon.c` | Pokemon icon sprite 作成、palette、frame copy。Party menu / DexNav / storage / custom UI の共通入口。 |
+| `src/graphics.c` | `gMonIconPalettes[][16]`。 |
+| `src/data/graphics/pokemon.h` | species icon graphics の集約。 |
 | `include/graphics.h` | graphics extern declarations。 |
 
 ### Options / Summary / Status
@@ -116,6 +119,11 @@
 | `include/config/summary_screen.h` | summary screen config。 |
 | `include/pokemon_summary_screen.h` | summary modes / pages。 |
 | `src/pokemon_summary_screen.c` | `ShowPokemonSummaryScreen`, `ShowSelectMovePokemonSummaryScreen`, status sprite / move icon / IV EV 表示。 |
+| `include/constants/move_relearner.h` | `MAX_RELEARNER_MOVES`, `enum MoveRelearnerStates`, `enum RelearnMode`。 |
+| `include/move_relearner.h` | `TeachMoveRelearnerMove`, `CB2_InitLearnMove`, `CanBoxMonRelearnMoves`, `gMoveRelearnerState`, `gRelearnMode`。 |
+| `src/move_relearner.c` | move relearner UI 本体。`CreateLearnableMovesList`、`GetRelearnerTMMoves`。 |
+| `data/scripts/move_relearner.inc` | script 経由の move relearner flow。 |
+| `data/maps/FallarborTown_MoveRelearnersHouse/scripts.inc` | vanilla Heart Scale relearner 例。 |
 
 ### Trainer Party Pool / Randomizer
 
@@ -153,6 +161,18 @@
 | `src/dexnav.c` | DexNav が `gWildMonHeaders` と `CreateWildMon` を参照。 |
 | `src/pokedex_area_screen.c` | Pokedex area 表示が `gWildMonHeaders` を参照。 |
 | `src/match_call.c` | Match Call 周辺が `gWildMonHeaders` を参照。 |
+
+### DexNav / Encounter UI
+
+| File | Important symbols / notes |
+|---|---|
+| `include/config/dexnav.h` | `DEXNAV_ENABLED`, `USE_DEXNAV_SEARCH_LEVELS`, `DN_FLAG_SEARCHING`, `DN_FLAG_DEXNAV_GET`, `DN_FLAG_DETECTOR_MODE`, `DN_VAR_SPECIES`, `DN_VAR_STEP_COUNTER`。 |
+| `include/dexnav.h` | `COL_LAND_COUNT`, `SCANSTART_X`, `DEXNAV_MASK_SPECIES`, `Task_OpenDexNavFromStartMenu`, `TryStartDexNavSearch`, `TryFindHiddenPokemon`, `OnStep_DexNavSearch`, `gDexNavSpecies`。 |
+| `src/dexnav.c` | `struct DexNavSearch`, `struct DexNavGUI`, `DexNav_DoGfxSetup`, `Task_DexNavMain`, `DrawSpeciesIcons`, `TryDrawIconInSlot`, `TryIncrementSpeciesSearchLevel`。 |
+| `src/start_menu.c` | `BuildNormalStartMenu`, `StartMenuDexNavCallback`。`DN_FLAG_DEXNAV_GET` で Start menu entry を出す。 |
+| `src/field_control_avatar.c` | `TryFindHiddenPokemon`, `TryStartDexNavSearch`, `OnStep_DexNavSearch` の field input / step entry。 |
+| `data/scripts/dexnav.inc` | `EventScript_StartDexNavBattle`。DexNav 到達時は wild battle。 |
+| `include/constants/wild_encounter.h` | `LAND_WILD_COUNT 12`, `WATER_WILD_COUNT 5`, `HIDDEN_WILD_COUNT 3`。DexNav の 12 枠問題と関係。 |
 
 ### TM/HM / Field Move
 
@@ -251,7 +271,9 @@
 |---|---|
 | `src/load_save.c` | `gSaveBlock1Ptr`, `gSaveBlock2Ptr`, `SavePlayerParty`, `LoadPlayerParty` |
 | `include/load_save.h` | save block pointer externs and save/load function declarations。 |
-| `include/global.h` | `struct SaveBlock1`, `struct SaveBlock2`, `struct BattleFrontier.selectedPartyMons` |
+| `include/global.h` | `struct SaveBlock1`, `struct SaveBlock2`, `struct SaveBlock3`, `struct BattleFrontier.selectedPartyMons` |
+| `include/save.h` | `SECTOR_DATA_SIZE`, `SAVE_BLOCK_3_CHUNK_SIZE`, `NUM_SECTORS_PER_SLOT`。 |
+| `src/save.c` | `SaveBlock3Size`, `CopyToSaveBlock3`, `CopyFromSaveBlock3`, `STATIC_ASSERT(sizeof(struct SaveBlock3) <= ...)`。 |
 | `src/pokemon.c` | `GetSavedPlayerPartyMon`, `GetSavedPlayerPartyCount`, `SavePlayerPartyMon` |
 
 ## Files Related to Battle Selection Idea
@@ -288,6 +310,10 @@
 |---|---|
 | `docs/flows/battle_ui_flow_v15.md` | battle 開始後の UI / healthbox / battle menu / party status summary。 |
 | `docs/flows/options_status_flow_v15.md` | option menu、battle UI config、summary/status 表示。 |
+| `docs/flows/move_relearner_flow_v15.md` | 思い出し技 menu、summary / party / script からの relearner flow。 |
+| `docs/flows/dexnav_flow_v15.md` | DexNav UI、hidden Pokemon、SaveBlock3、12 枠制限。 |
+| `docs/flows/save_data_flow_v15.md` | SaveBlock1/2/3、flag / var、DexNav save field、option save field。 |
+| `docs/flows/pokemon_icon_ui_flow_v15.md` | Pokemon icon 描画、palette、sprite lifetime、DexNav / custom UI 影響。 |
 | `docs/flows/script_inc_audit_v15.md` | `.inc` script の battle / selection 関連 audit。 |
 | `docs/flows/map_script_flag_var_flow_v15.md` | `map.json`、generated `.inc`、hand-written `scripts.inc`、flag / var、NPC visibility、item ball / hidden item flow。 |
 | `docs/features/battle_selection/opponent_party_and_randomizer.md` | 相手 party preview、Trainer Party Pools、party randomize / reorder。 |

@@ -37,6 +37,7 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 | Pokemart / shop settings | `data/maps/*/scripts.inc`, `src/shop.c` | `ScrCmd_pokemart`, `CreatePokemartMenu`, `Task_BuyMenu` | `asm/macros/event.inc`, `data/script_cmd_table.inc`, `src/shop.c` | Medium |
 | Map scripts / flags / vars | `data/maps/*/map.json`, `data/maps/*/scripts.inc`, `include/constants/flags.h`, `include/constants/vars.h` | `ProcessPlayerFieldInput`, `TryRunOnFrameMapScript`, `ShouldTriggerScriptRun`, `FlagGet`, `VarGet` | `asm/macros/map.inc`, `asm/macros/event.inc`, `map_data_rules.mk`, `tools/mapjson/mapjson` | High |
 | Wild Pokemon / randomizer | `src/data/wild_encounters.json`, generated `src/data/wild_encounters.h` | `StandardWildEncounter`, `TryGenerateWildMon`, `CreateWildMon` | `tools/wild_encounters/wild_encounters_to_header.py`, DexNav, Pokedex area | High |
+| DexNav / encounter UI | `include/config/dexnav.h`, `src/dexnav.c`, `include/constants/wild_encounter.h` | `Task_OpenDexNavFromStartMenu`, `TryStartDexNavSearch`, `TryFindHiddenPokemon`, `OnStep_DexNavSearch` | Start menu, Pokemon icon, SaveBlock3, wild encounter tables | Very High |
 | Trainer party pools / trainer randomizer | `src/data/trainers.h`, `src/data/trainers.party`, `src/data/battle_pool_rules.h` | `CreateNPCTrainerPartyFromTrainer`, `DoTrainerPartyPool`, `RandomizePoolIndices` | `tools/trainerproc/main.c`, `include/constants/battle_ai.h` | High |
 | TM/HM / move machines | `include/constants/tms_hms.h`, `include/constants/items.h`, `src/data/items.h` | `ItemUseOutOfBattle_TMHM`, `ItemUseCB_TMHM`, `GetItemTMHMMoveId` | `src/item_menu.c`, `src/party_menu.c`, `test/text.c` | High |
 | Field HM removal / field moves | `src/field_move.c`, `include/constants/field_move.h` | `ScrCmd_checkfieldmove`, `CursorCb_FieldMove`, field effect callbacks | `data/scripts/field_move_scripts.inc`, `src/field_control_avatar.c`, `src/field_effect.c` | Very High |
@@ -46,6 +47,8 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 | Abilities | `include/constants/abilities.h`, `src/data/abilities.h` | `GetMonAbility`, `GetSpeciesAbility`, `AbilityBattleEffects` | battle AI, ability popup, text tests | Very High |
 | Pokemon species / learnsets / forms | `include/constants/species.h`, `src/data/pokemon/` | `GetSpeciesInfo`, learnset/evolution/form helpers | summary, Dex, graphics, cry, icon, tests | Very High |
 | Options / summary / status | `src/option_menu.c`, `src/pokemon_summary_screen.c`, `include/config/summary_screen.h` | `CB2_InitOptionMenu`, `ShowPokemonSummaryScreen` | save options, window templates, status UI | Medium |
+| Move relearner / summary menu | `include/config/summary_screen.h`, `src/move_relearner.c`, `src/pokemon_summary_screen.c` | `TeachMoveRelearnerMove`, `CB2_InitLearnMove`, `ShouldShowMoveRelearner` | `data/scripts/move_relearner.inc`, party menu, chooseboxmon | High |
+| Pokemon icon UI | `src/pokemon_icon.c`, `include/pokemon_icon.h`, `src/data/pokemon/species_info.h` | `CreateMonIcon`, `LoadMonIconPalettes`, `SpriteCB_MonIcon` | DexNav, party menu, storage, custom preview UI | Medium |
 | Battle UI / battle controller | `src/battle_interface.c`, `src/battle_bg.c`, `src/battle_controller_player.c` | `CB2_InitBattle`, `BattleMainCB1`, `BattleMainCB2`, controller commands | healthbox, party status summary, battle intro | Very High |
 | Save data / config | `include/global.h`, `src/load_save.c`, `include/config/*.h` | `SavePlayerParty`, `LoadPlayerParty`, save option initializers | migration, save compatibility | Very High |
 | Build tools / generated data | `tools/`, generated headers under `src/data/` | tool-dependent | trainerproc, wild encounter generation, text/gfx tools | High |
@@ -117,6 +120,27 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 - runtime randomizer なら `TryGenerateWildMon`、`CreateWildMon`、`ChooseWildMonIndex_*`、DexNav 経由の生成を分けて検討する必要がある。
 - `StandardWildEncounter` だけを変えると、DexNav、Fishing、Sweet Scent、Rock Smash、Pokedex area 表示とずれる可能性がある。
 - seed / difficulty / option で変える場合は save data と config の設計が必要。
+
+## DexNav / Encounter UI
+
+確認した入口:
+
+| File | Symbols / facts |
+|---|---|
+| `include/config/dexnav.h` | `DEXNAV_ENABLED`, `USE_DEXNAV_SEARCH_LEVELS`, `DN_FLAG_SEARCHING`, `DN_FLAG_DEXNAV_GET`, `DN_FLAG_DETECTOR_MODE`, `DN_VAR_SPECIES`, `DN_VAR_STEP_COUNTER`。 |
+| `include/dexnav.h` | `COL_LAND_COUNT`, `COL_WATER_COUNT`, `COL_HIDDEN_COUNT`, `DEXNAV_MASK_SPECIES`, `DEXNAV_MASK_ENVIRONMENT`。 |
+| `src/dexnav.c` | `struct DexNavSearch`, `struct DexNavGUI`, `DexNav_DoGfxSetup`, `Task_OpenDexNavFromStartMenu`, `TryStartDexNavSearch`, `TryFindHiddenPokemon`, `OnStep_DexNavSearch`, `DrawSpeciesIcons`。 |
+| `src/start_menu.c` | `BuildNormalStartMenu` が `DN_FLAG_DEXNAV_GET != 0 && FlagGet(DN_FLAG_DEXNAV_GET)` で DexNav menu action を追加。 |
+| `src/field_control_avatar.c` | step input で `TryFindHiddenPokemon()`、R button で `TryStartDexNavSearch()`、step script 末尾で `OnStep_DexNavSearch()`。 |
+| `src/battle_main.c` | battle end で `IncrementDexNavChain()`、`TryIncrementSpeciesSearchLevel()`、`gDexNavSpecies = SPECIES_NONE`。 |
+| `data/scripts/dexnav.inc` | `EventScript_StartDexNavBattle` が `dowildbattle` を実行。 |
+
+拡張時の注意:
+
+- DexNav の有効化は Start menu entry と detector mode の 2 系統がある。`DN_FLAG_DEXNAV_GET` と `DN_FLAG_DETECTOR_MODE` を混同しない。
+- `USE_DEXNAV_SEARCH_LEVELS` は `gSaveBlock3Ptr->dexNavSearchLevels[NUM_SPECIES]` を追加する。species 数が多い v15 系では SaveBlock3 容量への影響が大きい。
+- 陸上 12 枠は `LAND_WILD_COUNT 12`、wild encounter data、`ChooseWildMonIndex_Land()`、DexNav GUI の 6 x 2 固定座標が絡む。12 枠以上にするなら UI と抽選確率も変更対象。
+- 詳細は `docs/flows/dexnav_flow_v15.md` と `docs/flows/save_data_flow_v15.md`。
 
 ## Trainer Party Pools / Trainer Randomizer
 
@@ -297,6 +321,45 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 
 - 新 species は constants、species info、graphics、icon、cry、dex、learnsets、evolution、forms、summary/dex display に波及する。
 - ランダム化で species を差し替える場合、DexNav、Pokedex area、trainer preview、battle assets が参照できる species か確認する。
+
+## Move Relearner / Summary Menu
+
+確認した入口:
+
+| File | Symbols / facts |
+|---|---|
+| `include/config/summary_screen.h` | `P_SUMMARY_SCREEN_MOVE_RELEARNER`, `P_PARTY_MOVE_RELEARNER`, `P_TM_MOVES_RELEARNER`, `P_ENABLE_ALL_TM_MOVES`, `P_FLAG_EGG_MOVES`, `P_FLAG_TUTOR_MOVES`。 |
+| `include/constants/move_relearner.h` | `MAX_RELEARNER_MOVES 60`, `MOVE_RELEARNER_*`, `RELEARN_MODE_*`。 |
+| `src/move_relearner.c` | `TeachMoveRelearnerMove`, `CB2_InitLearnMove`, `CreateLearnableMovesList`, `GetRelearnerTMMoves`。 |
+| `src/pokemon_summary_screen.c` | `ShouldShowMoveRelearner`, `ShowRelearnPrompt`, START button から `CB2_InitLearnMove` へ戻す flow。 |
+| `src/party_menu.c` | `ChooseMonForMoveRelearner`, `P_PARTY_MOVE_RELEARNER` 経由の party menu action。 |
+| `src/chooseboxmon.c` | `SELECT_PC_MON_MOVE_RELEARNER`, `CanRelearnMoves`。 |
+| `data/scripts/move_relearner.inc` | script 経由 relearner flow。 |
+
+拡張時の注意:
+
+- TM / tutor / level-up move を増やす場合、`MAX_RELEARNER_MOVES` を超えないか確認する。
+- `RELEARN_MODE_PSS_PAGE_BATTLE_MOVES = 2` と `RELEARN_MODE_PSS_PAGE_CONTEST_MOVES = 3` は summary page と結びついているため、値変更は危険。
+- summary / party / script の戻り先は `gRelearnMode` と `gSpecialVar_0x8004` に依存する。
+- 詳細は `docs/flows/move_relearner_flow_v15.md`。
+
+## Pokemon Icon UI
+
+確認した入口:
+
+| File | Symbols / facts |
+|---|---|
+| `include/pokemon_icon.h` | `CreateMonIcon`, `CreateMonIconNoPersonality`, `LoadMonIconPalettes`, `FreeMonIconPalettes`, `SpriteCB_MonIcon`。 |
+| `src/pokemon_icon.c` | `gMonIconPaletteTable`, `GetMonIconTilesIsEgg`, `CreateMonIconSprite`, `UpdateMonIconFrame`。 |
+| `src/graphics.c` | `gMonIconPalettes[][16]`。 |
+| `src/data/pokemon/species_info.h` | `.iconSprite`, `.iconSpriteFemale`, `.iconPalIndex`。 |
+| `src/dexnav.c` | DexNav GUI の `DrawSpeciesIcons`, `TryDrawIconInSlot`。 |
+
+拡張時の注意:
+
+- 独自 party preview / battle selection UI で icon を使う場合、sprite 数、palette tag、`ResetSpriteData()` / `FreeAllSpritePalettes()` の画面遷移を確認する。
+- DexNav の unseen species は `SPECIES_NONE` icon、no-data は独自 no-data icon。Pokedex seen flag が表示内容に影響する。
+- 詳細は `docs/flows/pokemon_icon_ui_flow_v15.md`。
 
 ## Callback / Dispatch Watch List
 

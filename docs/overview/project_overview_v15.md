@@ -28,17 +28,19 @@
 | Battle Engine | `src/battle_main.c`, `src/battle_controller_player.c`, `src/battle_script_commands.c`, `src/battle_util.c` | `CB2_InitBattle` 以降が本体。`gBattleTypeFlags` と party 配列に強く依存。 |
 | Battle UI | `src/battle_interface.c`, `src/battle_bg.c`, `src/battle_intro.c`, `src/battle_controller_player.c` | healthbox、party status summary、battle window、action/move menu。選出後の見え方に影響。 |
 | Party Menu | `src/party_menu.c`, `include/party_menu.h`, `include/constants/party_menu.h`, `graphics/party_menu/` | 既存選出流用候補。`PARTY_MENU_TYPE_CHOOSE_HALF` と `gSelectedOrderFromParty` が重要。 |
+| Summary / Move Relearner | `src/pokemon_summary_screen.c`, `src/move_relearner.c`, `include/config/summary_screen.h`, `data/scripts/move_relearner.inc` | 思い出し技、summary moves page、party menu action、script 起動。TM / 技追加時に `MAX_RELEARNER_MOVES` を確認。詳細は `docs/flows/move_relearner_flow_v15.md`。 |
 | Pokemon Data | `src/pokemon.c`, `include/pokemon.h`, `src/data/pokemon/`, `include/constants/pokemon.h` | `gPlayerParty` / `gEnemyParty` 定義、`CalculatePlayerPartyCount`、`SavePlayerPartyMon`。 |
 | Trainer Data | `src/data.c`, `include/data.h`, `src/data/trainers.h`, `src/data/trainers.party`, `src/data/trainer_parties.h`, `src/trainer_pools.c` | `struct Trainer`, `struct TrainerMon`, `gTrainers`, `GetTrainerStructFromId`、Trainer Party Pools。 |
 | Pokemart / Shop | `src/shop.c`, `include/shop.h`, `src/scrcmd.c`, `data/maps/*Mart*/scripts.inc`, `data/maps/*DepartmentStore*/scripts.inc` | `ScrCmd_pokemart`、`CreatePokemartMenu`、`Task_BuyMenu`。品揃えや動的ショップを変える場合の入口。 |
 | Wild Encounter | `src/wild_encounter.c`, `include/wild_encounter.h`, `src/data/wild_encounters.json`, `tools/wild_encounters/wild_encounters_to_header.py` | `StandardWildEncounter`、`TryGenerateWildMon`、`CreateWildMon`。野生ランダム化や出現テーブル変更の中心。 |
+| DexNav | `include/config/dexnav.h`, `src/dexnav.c`, `src/start_menu.c`, `data/scripts/dexnav.inc` | Start menu DexNav、detector mode、hidden Pokemon、SaveBlock3 search level、12 land slots。詳細は `docs/flows/dexnav_flow_v15.md`。 |
 | Item | `src/item.c`, `src/item_use.c`, `src/item_menu.c`, `src/data/items.h`, `include/item.h`, `include/constants/items.h` | item database、bag pocket、field use callback、shop、text test に波及。 |
 | TM/HM / Field Move | `include/constants/tms_hms.h`, `src/field_move.c`, `include/field_move.h`, `data/scripts/field_move_scripts.inc`, `data/scripts/surf.inc`, `src/party_menu.c`, `src/field_effect.c` | `FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CreateFieldMoveTask`、`FldEff_FieldMoveShowMonInit`。field move 廃止 / modernize の中心。詳細は `docs/flows/field_move_hm_flow_v15.md`。 |
 | Move | `include/constants/moves.h`, `include/move.h`, `src/data/moves_info.h`, `src/data/battle_move_effects.h`, `data/battle_scripts_1.s`, `data/battle_scripts_2.s` | 新技追加は data / effect / battle script / animation / AI / tests に波及。 |
 | Ability | `include/constants/abilities.h`, `src/data/abilities.h`, `src/battle_util.c`, `src/battle_ai_main.c`, `src/battle_ai_util.c`, `src/battle_ai_switch.c` | 新特性追加は battle trigger、AI、copy/suppress flags、popup、species 割当へ波及。 |
 | UI / Window | `src/window.c`, `src/text.c`, `src/menu.c`, `src/menu_helpers.c` | 専用 UI を作る段階で重要。MVP では party menu 流用が前提。 |
-| Sprite / Graphics | `src/sprite.c`, `src/pokemon_icon.c`, `graphics/party_menu/`, `graphics/trainers/` | Party menu と battle intro の描画資産。 |
-| Save Data | `src/load_save.c`, `include/load_save.h`, `include/global.h` | `SavePlayerParty` / `LoadPlayerParty` が `gSaveBlock1Ptr->playerParty` と `gPlayerParty` を同期。 |
+| Sprite / Graphics | `src/sprite.c`, `src/pokemon_icon.c`, `include/pokemon_icon.h`, `graphics/party_menu/`, `graphics/trainers/` | Party menu、DexNav、相手 party preview 候補の icon 描画。詳細は `docs/flows/pokemon_icon_ui_flow_v15.md`。 |
+| Save Data | `src/load_save.c`, `src/save.c`, `include/save.h`, `include/load_save.h`, `include/global.h` | `SavePlayerParty` / `LoadPlayerParty` と SaveBlock1/2/3。DexNav search levels や独自 option 追加は `docs/flows/save_data_flow_v15.md` 参照。 |
 | Config | `include/config/*.h` | 機能トグルが多い。大型更新では差分確認が必須。 |
 | Build Tools | `Makefile`, `tools/`, `dev_scripts/`, `tools/trainerproc/` | trainer data 生成・変換系がある。今回は読み取りのみ。 |
 | Debug / Test | `src/debug.c`, `test/`, `include/test/` | Debug battle や battle tests がある。将来の検証に使える。 |
@@ -81,6 +83,7 @@ flowchart TD
 | `gSpecialVar_0x8000`..`gSpecialVar_0x800B` | `src/event_data.c`, `include/event_data.h`, `data/event_scripts.s` | script command / special の一時引数。 | Medium. 既存 choose half / frontier は `VAR_0x8004`, `VAR_0x8005`, `VAR_FRONTIER_FACILITY` に依存。 |
 | `gSaveBlock1Ptr` | `src/load_save.c`, `include/load_save.h`, `include/global.h` | 保存データ 1。`vars`, `flags`, `playerParty`, `playerPartyCount` など。 | Very High. 元 party 退避・復元に使われる既存導線あり。 |
 | `gSaveBlock2Ptr` | `src/load_save.c`, `include/load_save.h`, `include/global.h` | 保存データ 2。player name, options, frontier state など。 | High. `frontier.selectedPartyMons` は既存選出順の保存場所。通常戦に流用するかは要検討。 |
+| `gSaveBlock3Ptr` | `src/load_save.c`, `include/global.h` | expansion 用 save state。`dexNavChain`、config 次第で `dexNavSearchLevels[NUM_SPECIES]`。 | High. DexNav search levels、randomizer seed、独自 unlock state 追加時の容量確認が必要。 |
 | `gMain` | `src/main.c`, `include/main.h` | callback 管理、入力、`savedCallback`, `inBattle`。 | Very High. 選出 menu から battle setup に戻る callback 設計で重要。 |
 | `gTasks[NUM_TASKS]` | `src/task.c`, `include/task.h` | 非同期 UI / animation / menu task。 | High. Party menu と battle transition は task で進む。 |
 | `gSprites[MAX_SPRITES + 1]` | `src/sprite.c`, `include/sprite.h` | sprite 管理。 | Medium. 専用選出 UI を作る段階で重要。 |
@@ -92,6 +95,8 @@ flowchart TD
 | `gBattleStruct` | `src/battle_main.c`; extern in `include/battle.h` | battle 中の大規模 state。partyState、itemLost、chosen move、intro state など。 | High. battle UI / party order / battle end 反映の調査対象。 |
 | `gBattlePartyCurrentOrder[PARTY_SIZE / 2]` | `src/party_menu.c`; extern in `include/party_menu.h` | battle 中 party menu の order encoding。 | High. battle 中 switch menu と選出元 slot mapping が重なる。 |
 | `gNoOfApproachingTrainers` / `gApproachingTrainers` | `src/trainer_see.c`, `include/trainer_see.h` | 視線検知した接近トレーナー数と script pointer。 | High. 接近トレーナー戦にも選出を入れるなら必須。 |
+| `gDexNavSpecies` | `src/dexnav.c`, `include/dexnav.h` | DexNav battle 中の species marker。battle end と shiny rolls に使う。 | Medium. wild randomizer / DexNav 改造時に関係。trainer battle 選出とは別 flow。 |
+| `gMoveRelearnerState` / `gRelearnMode` | `src/move_relearner.c`, `include/move_relearner.h` | 技思い出し候補種別と戻り先 mode。 | Medium. summary / party menu / script UI を変える時に関係。 |
 
 ## Notes
 
@@ -106,13 +111,16 @@ flowchart TD
   - `src/trainer_pools.c` の trainer party pool / randomize。
   - `src/shop.c` の `CreatePokemartMenu` / `Task_BuyMenu` と `data/maps/*/scripts.inc` の mart lists。
   - `src/wild_encounter.c` と generated `src/data/wild_encounters.h` / source `src/data/wild_encounters.json` の関係。
+  - `src/dexnav.c`、`include/config/dexnav.h`、`include/constants/wild_encounter.h` の DexNav enable / 12 slot / SaveBlock3 search levels。
+  - `src/move_relearner.c`、`src/pokemon_summary_screen.c`、`include/constants/move_relearner.h` の思い出し技 UI と候補数。
+  - `src/pokemon_icon.c`、`include/pokemon_icon.h` の icon palette / sprite lifetime。
   - `include/constants/tms_hms.h`、`src/field_move.c`、`data/scripts/field_move_scripts.inc`、`src/field_effect.c`、`src/fldeff_rocksmash.c` の TM/HM / field move policy と animation。
   - `src/battle_setup.c`、`include/config/battle.h`、`src/script_pokemon_util.c`、`src/pokemon_storage_system.c` の trainer battle aftercare / forced release。
   - `include/constants/items.h`、`src/data/items.h`、`src/item_use.c` の item ID / use callback。
   - `include/constants/moves.h`、`src/data/moves_info.h`、`src/data/battle_move_effects.h`、battle script source の move effect。
   - `include/constants/abilities.h`、`src/data/abilities.h`、`src/battle_util.c` の ability behavior。
   - `SetMainCallback2` / `CreateTask` / `ScrCmd_*` / `special` / field callback を使う画面遷移。
-  - `include/global.h` の save block 構造、特に `BattleFrontier.selectedPartyMons`。
+  - `include/global.h` と `include/save.h` の save block 構造、特に `BattleFrontier.selectedPartyMons` と `struct SaveBlock3`。
   - `src/battle_main.c` の party 作成・battle init。
 
 ## Open Questions
