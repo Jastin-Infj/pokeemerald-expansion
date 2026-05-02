@@ -27,6 +27,16 @@
 | `data/scripts/move_relearner.inc` | 共通 move relearner script。 |
 | `data/maps/FallarborTown_MoveRelearnersHouse/scripts.inc` | vanilla Heart Scale relearner 例。 |
 
+## 1.15.2 Notes
+
+upstream `expansion/1.15.2` では `src/move_relearner.c`、`src/menu_specialized.c`、`src/pokemon_summary_screen.c` が変更されているが、確認した範囲では callback / state flow の大改造ではなく、主に graphics declarations の `INCGFX_*` 移行だった。
+
+| Topic | 1.15.2 change | Impact |
+|---|---|---|
+| Move relearner assets | `graphics/interface/ui_learn_move` 周辺の declarations が `INCGFX_U8` / `INCGFX_U16` 形式へ移行。 | custom relearner UI / summary UI asset を追加する場合は 1.15.2 の build pipeline を基準にする。 |
+| Summary assets | `src/pokemon_summary_screen.c` の status / summary graphics declarations も INCGFX 化。 | summary screen 強化では asset path と generated data の扱いを再確認する。 |
+| Flow | `MAX_RELEARNER_MOVES`、`gMoveRelearnerState`、`gRelearnMode` の基本設計変更は未確認。 | TM 大量追加リスクは 1.15.1 docs のまま継続。 |
+
 ## Config
 
 `include/config/summary_screen.h` の確認値:

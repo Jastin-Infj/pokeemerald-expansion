@@ -29,6 +29,16 @@
 | `src/event_object_movement.c` | object spawn / remove / visibility / template lookup。 |
 | `src/scrcmd.c` | script command handler。flag / var / object command と `pokemart` の C 側入口。 |
 
+## 1.15.2 Notes
+
+upstream `expansion/1.15.2` では `.inc` script と field interaction に関係する小さいが重要な変更がある。
+
+| Area | 1.15.2 change | Impact |
+|---|---|---|
+| string var macro | `asm/macros/event.inc` の `bufferlivemonnickname` が `stringVarId` を取り、内部で `stringvar` macro を使う形へ変更。`data/scripts/follower.inc` は `bufferlivemonnickname STR_VAR_1` へ更新。 | 今後の script 例では raw `0` ではなく `STR_VAR_1` などを使う。 |
+| warp / waitstate | `src/script.c` の `StopScript` が `Task_WarpAndLoadMap` 実行中なら assert するよう変更。 | warp を発生させる custom script / UI では `waitstate` 漏れを疑う。 |
+| follower interaction | follower local id の script lookup が `src/event_object_movement.c` から `src/field_control_avatar.c` 側へ移り、Trainer Hill check より前に follower fallback を見る。 | follower NPC、partner、Trainer Hill を触る map script は merge 後に `GetInteractedObjectEventScript` を再確認する。 |
+
 ## File Ownership
 
 | Path | Generated? | Edit policy for future work |

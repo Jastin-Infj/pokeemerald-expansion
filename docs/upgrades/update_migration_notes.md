@@ -6,6 +6,18 @@
 
 現時点では、トレーナーバトル前選出機能の実装コードは存在しない。今回追加したのは docs のみ。
 
+2026-05-02 に upstream `RHH` remote の `expansion/1.15.2` tag を確認した。local baseline 表記はまだ 1.15.1 だが、main を 1.15.2 へ上げる場合は `docs/upgrades/1_15_1_to_1_15_2_impact.md` を先に確認する。
+
+## 1.15.2 Migration Notes
+
+1.15.2 への追従で最初に注意する点:
+
+- `INCBIN_*` graphics declarations から `INCGFX_*` への migration が大きい。custom UI / icon / Pokemon graphics を追加する前に main を 1.15.2 へ上げるなら、asset pipeline の移行を先に終える。
+- upstream changelog は `migration_scripts/1.15/migrate_incgfx.py` を clean worktree から使う前提を示している。
+- `src/battle_setup.c`、`src/party_menu.c`、`src/script_pokemon_util.c` は 1.15.1 -> 1.15.2 の diff では未変更だったため、トレーナーバトル前選出の初期調査は概ね維持できる。
+- `src/battle_main.c`、`src/battle_interface.c`、`src/dexnav.c`、`src/field_control_avatar.c`、`src/pokedex_area_screen.c` は変更があるため、battle end、battle UI、DexNav、follower / map interaction、wild display は merge 後に再確認する。
+- `include/global.h` は変更されているが、確認した diff では `struct SaveBlock3` field 追加は見つかっていない。ただし merge 後は `STATIC_ASSERT(sizeof(struct SaveBlock3) <= ...)` と `SaveBlock3Size` を必ず確認する。
+
 ## Migration Principles
 
 - upstream 更新前に local custom feature の入口 file を把握する。

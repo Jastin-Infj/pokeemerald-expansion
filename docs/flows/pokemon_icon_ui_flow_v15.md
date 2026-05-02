@@ -24,6 +24,16 @@
 | `src/pokemon_storage_system.c` | PC storage icon 表示。 |
 | `src/pokemon_summary_screen.c` | summary screen sprite / icon 近辺。 |
 
+## 1.15.2 Notes
+
+upstream `expansion/1.15.2` では `src/pokemon_icon.c` / `include/pokemon_icon.h` 自体は重要 diff 対象ではなかったが、Pokemon graphics data と build pipeline が大きく変わる。
+
+| Topic | 1.15.2 change | Impact |
+|---|---|---|
+| Asset declarations | `src/data/graphics/pokemon.h`、`src/graphics.c`、battle / DexNav / summary assets の多くが `INCGFX_*` 形式へ移行。 | 新規 icon / form graphics / custom UI asset の追加手順は 1.15.2 merge 後の `INCGFX_*` 前提で再確認する。 |
+| Species graphics churn | `src/data/pokemon/species_info/gen_*_families.h` と graphics assets に大量の sprite / icon / cry 修正。 | 相手 party preview、DexNav、summary で表示できる species data が 1.15.1 と完全には一致しない。 |
+| Sprite creation diagnostics | upstream changelog では `MAX_SPRITES` 到達時の sprite creation error reporting が追加されている。 | Pokemon Champions 風 UI で大量 icon を出す場合、sprite budget の実測がさらに重要。 |
+
 ## Public API
 
 `include/pokemon_icon.h` で確認した主な API:
@@ -54,7 +64,7 @@
 | `POKE_ICON_BASE_PAL_TAG + 4` | `gMonIconPalettes[4]` |
 | `POKE_ICON_BASE_PAL_TAG + 5` | `gMonIconPalettes[5]` |
 
-`src/graphics.c` の `gMonIconPalettes[][16]` は `graphics/pokemon/icon_palettes/pal0.gbapal` から `pal5.gbapal` を読み込む。
+`src/graphics.c` の `gMonIconPalettes[][16]` は local 1.15.1 baseline では `graphics/pokemon/icon_palettes/pal0.gbapal` から `pal5.gbapal` を読み込む。1.15.2 では周辺 graphics declarations が `INCGFX_*` へ移行するため、asset 追加時は merge 後の declaration を確認する。
 
 species ごとの icon は `src/data/pokemon/species_info.h` の `gSpeciesInfo` が持つ。
 

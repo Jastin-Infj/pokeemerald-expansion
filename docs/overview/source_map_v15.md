@@ -4,6 +4,12 @@
 
 この文書は今後の改造時に参照するソースコード地図です。ファイル名とシンボルは実際に確認したものを記載しています。
 
+## Version Notes
+
+- 初回 source map は local 1.15.1 baseline を読んで作成した。
+- 2026-05-02 に upstream `expansion/1.15.2` tag を確認した。1.15.2 では `INCBIN_*` graphics declarations から `INCGFX_*` への移行が大きく、`Makefile`、`graphics_file_rules.mk`、`tools/preproc`、`tools/scaninc`、`migration_scripts/1.15/migrate_incgfx.py` が重要になる。
+- 1.15.1 -> 1.15.2 の詳細は `docs/upgrades/1_15_1_to_1_15_2_impact.md` を参照。
+
 ## Directory Overview
 
 | Directory | Role |
@@ -16,6 +22,7 @@
 | `sound/` | 音源データ。 |
 | `tools/` | preproc, jsonproc, trainerproc, gfx 変換などのビルド用ツール。 |
 | `dev_scripts/` | 開発補助スクリプト。 |
+| `migration_scripts/` | upstream migration helper。1.15.2 では `migration_scripts/1.15/migrate_incgfx.py` が INCGFX 移行用に追加された。 |
 | `test/` | battle tests, runner, Pokémon data tests など。 |
 | `docs/` | 既存 documentation。今回の調査 docs もここに追加。 |
 
@@ -105,7 +112,7 @@
 | `include/pokemon_icon.h` | `CreateMonIcon`, `LoadMonIconPalettes`, `FreeMonIconPalettes`, `SpriteCB_MonIcon`。 |
 | `src/pokemon_icon.c` | Pokemon icon sprite 作成、palette、frame copy。Party menu / DexNav / storage / custom UI の共通入口。 |
 | `src/graphics.c` | `gMonIconPalettes[][16]`。 |
-| `src/data/graphics/pokemon.h` | species icon graphics の集約。 |
+| `src/data/graphics/pokemon.h` | species icon graphics の集約。1.15.2 では多くの declarations が `INCGFX_*` 形式へ移行する。 |
 | `include/graphics.h` | graphics extern declarations。 |
 
 ### Options / Summary / Status
@@ -124,6 +131,17 @@
 | `src/move_relearner.c` | move relearner UI 本体。`CreateLearnableMovesList`、`GetRelearnerTMMoves`。 |
 | `data/scripts/move_relearner.inc` | script 経由の move relearner flow。 |
 | `data/maps/FallarborTown_MoveRelearnersHouse/scripts.inc` | vanilla Heart Scale relearner 例。 |
+
+### Build / Graphics Pipeline
+
+| File | Important symbols / notes |
+|---|---|
+| `Makefile` | 1.15.2 で `ASSETS_DIR_NAME := $(BUILD_DIR)/assets` が追加され、generated asset dependency の扱いが変わる。 |
+| `graphics_file_rules.mk` | 1.15.2 で多数の explicit graphics rules が削減される。 |
+| `tools/preproc/` | `INCGFX_*` を処理して generated asset を作る経路。 |
+| `tools/scaninc/` | include / asset dependency scan。1.15.2 では generated assets directory を受ける。 |
+| `migration_scripts/1.15/migrate_incgfx.py` | upstream 1.15.2 changelog が示す INCGFX migration helper。clean worktree から使う前提。 |
+| `src/data/graphics/pokemon.h`, `src/graphics.c`, `src/dexnav.c`, `src/battle_interface.c`, `src/move_relearner.c` | 1.15.2 で representative asset declarations が `INCGFX_*` へ変わる。 |
 
 ### Trainer Party Pool / Randomizer
 

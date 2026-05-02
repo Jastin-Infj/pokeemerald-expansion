@@ -26,6 +26,16 @@
 | `include/constants/wild_encounter.h` | `LAND_WILD_COUNT`, `WATER_WILD_COUNT`, `HIDDEN_WILD_COUNT`。 |
 | `src/wild_encounter.c` | 通常野生遭遇の slot 数と抽選。DexNav と同じ wild encounter data を参照する。 |
 
+## 1.15.2 Notes
+
+upstream `expansion/1.15.2` では `src/dexnav.c` が直接変更されている。local source はまだ 1.15.1 baseline のため、merge 後に以下を再確認する。
+
+| Topic | 1.15.2 change | Impact |
+|---|---|---|
+| Encounter header guard | `GetEncounterLevelFromMapData`、`DexNavLoadCapturedAllSymbols`、`DexNavLoadEncounterData`、`TryFindHiddenPokemon` に `HEADER_NONE` guard が追加。 | encounter data がない map で DexNav / detector mode が落ちにくくなる。randomizer や open-world map 追加時に重要。 |
+| Start menu assert / return | `DEXNAV_ENABLED` assert の位置が `Task_OpenDexNavFromStartMenu` から `DexNavGuiInit(callback)` 側へ寄り、失敗時の callback return が明確化。 | Start menu / key item 風 entry を作る場合、DexNav 起動 helper の責務を 1.15.2 で読み直す。 |
+| Assets | DexNav UI assets が `INCBIN_*` ではなく `INCGFX_*` declaration へ移行。 | DexNav 独自 UI asset を追加するなら 1.15.2 の graphics pipeline を基準にする。 |
+
 ## Config and Enable Gates
 
 `include/config/dexnav.h` の現在値:

@@ -8,7 +8,8 @@
 
 - このリポジトリは `README.md` の記述どおり、pret の `pokeemerald` decompilation project をベースにした GBA ROM hack base。
 - `README.md` では、単体で遊ぶゲームではなく、ROM hack 開発者向けの土台と説明されている。
-- ローカルの `README.md` と `docs/changelogs/1.15.x/1.15.1.md` から、現在の調査対象は pokeemerald-expansion 1.15.1 近辺として扱う。
+- ローカルの `README.md` と `docs/changelogs/1.15.x/1.15.1.md` から、初回調査対象は pokeemerald-expansion 1.15.1 近辺として扱う。
+- 2026-05-02 時点で upstream `RHH` には `expansion/1.15.2` tag も存在する。1.15.1 -> 1.15.2 の影響は `docs/upgrades/1_15_1_to_1_15_2_impact.md` に分離して記録する。
 - `FEATURES.md` で確認できる主な拡張領域:
   - Gen IX までのポケモン、わざ、どうぐ、特性、バトルギミック。
   - ダブル野生戦、カスタムマルチ、2 vs 1 / 1 vs 2、Sky Battle などのバトル形式。
@@ -42,7 +43,7 @@
 | Sprite / Graphics | `src/sprite.c`, `src/pokemon_icon.c`, `include/pokemon_icon.h`, `graphics/party_menu/`, `graphics/trainers/` | Party menu、DexNav、相手 party preview 候補の icon 描画。詳細は `docs/flows/pokemon_icon_ui_flow_v15.md`。 |
 | Save Data | `src/load_save.c`, `src/save.c`, `include/save.h`, `include/load_save.h`, `include/global.h` | `SavePlayerParty` / `LoadPlayerParty` と SaveBlock1/2/3。DexNav search levels や独自 option 追加は `docs/flows/save_data_flow_v15.md` 参照。 |
 | Config | `include/config/*.h` | 機能トグルが多い。大型更新では差分確認が必須。 |
-| Build Tools | `Makefile`, `tools/`, `dev_scripts/`, `tools/trainerproc/` | trainer data 生成・変換系がある。今回は読み取りのみ。 |
+| Build Tools | `Makefile`, `tools/`, `dev_scripts/`, `tools/trainerproc/` | trainer data 生成・変換系がある。1.15.2 では INCGFX migration により graphics build pipeline の差分が大きい。今回は読み取りのみ。 |
 | Debug / Test | `src/debug.c`, `test/`, `include/test/` | Debug battle や battle tests がある。将来の検証に使える。 |
 | Callback / Dispatch | `src/main.c`, `include/main.h`, `src/task.c`, `include/task.h`, `src/script.c`, `src/scrcmd.c`, `src/overworld.c` | `SetMainCallback2`、`CB2_*`、`CreateTask`、`ScrCmd_*`、`special`、`gFieldCallback`。改造前に必ず確認する間接実行経路。 |
 
@@ -120,6 +121,7 @@ flowchart TD
   - `include/constants/moves.h`、`src/data/moves_info.h`、`src/data/battle_move_effects.h`、battle script source の move effect。
   - `include/constants/abilities.h`、`src/data/abilities.h`、`src/battle_util.c` の ability behavior。
   - `SetMainCallback2` / `CreateTask` / `ScrCmd_*` / `special` / field callback を使う画面遷移。
+  - 1.15.2 以降では `INCGFX_*` asset declaration、`tools/preproc`、`tools/scaninc`、`Makefile` の generated asset handling。
   - `include/global.h` と `include/save.h` の save block 構造、特に `BattleFrontier.selectedPartyMons` と `struct SaveBlock3`。
   - `src/battle_main.c` の party 作成・battle init。
 
