@@ -16,6 +16,7 @@
 
 - `data/maps/**/*.inc` は数が非常に多いため、今回の詳細確認は `trainerbattle_*`、`ChooseHalfPartyForBattle`、`ChoosePartyForBattleFrontier`、`SavePlayerParty`、`LoadPlayerParty`、facility battle command などの関連 symbol 起点で行った。
 - 全 map script の全行レビューは未実施。必要であれば次回、map group 単位で line-by-line audit を行う。
+- 2026-05-02 追加調査では、`.inc` の生成経路、`map.json`、generated `events.inc`、hand-written `scripts.inc`、flag / var、NPC visibility、item ball / hidden item を確認した。詳細は `docs/flows/map_script_flag_var_flow_v15.md`。
 
 ## `data/scripts/*.inc` Inventory
 
@@ -129,6 +130,51 @@
 ## Future Expansion Script Scan
 
 今回の追加調査で、マート設定、フィールド秘伝技廃止、TM/HM 関連変更に関係する `.inc` 入口も確認した。
+
+### Map Script / Flag / Var Scripts
+
+確認した入口:
+
+| File | Confirmed symbols / behavior |
+|---|---|
+| `data/event_scripts.s` | `asm/macros/event.inc` と `data/maps/*/scripts.inc`、`data/scripts/*.inc` を script data として集約。 |
+| `data/map_events.s` | generated `data/maps/events.inc` を集約。 |
+| `map_data_rules.mk` | `tools/mapjson/mapjson` で `map.json` から generated `.inc` を作る。 |
+| `asm/macros/map.inc` | `map_script`, `map_script_2`, `object_event`, `coord_event`, `bg_hidden_item_event`。 |
+| `include/constants/map_scripts.h` | `MAP_SCRIPT_ON_LOAD`、`MAP_SCRIPT_ON_FRAME_TABLE`、`MAP_SCRIPT_ON_TRANSITION` などの timing。 |
+| `src/script.c` | `MapHeaderCheckScriptTable` が `map_script_2` の var/value 条件を評価。 |
+| `src/field_control_avatar.c` | `ShouldTriggerScriptRun` が coord event trigger を var または flag として処理。 |
+| `src/event_object_movement.c` | object spawn は `!FlagGet(template->flagId)`。`removeobject` は hide flag を set する。 |
+
+代表例:
+
+| File | Notes |
+|---|---|
+| `data/maps/Route101/map.json` | object hide flag、coord event の source data。 |
+| `data/maps/Route101/events.inc` | generated `object_event` / `coord_event` の例。 |
+| `data/maps/Route101/scripts.inc` | `VAR_ROUTE101_STATE`、`map_script_2`、`setobjectxy`、`applymovement` の state-driven 例。 |
+| `data/maps/MossdeepCity_House2/scripts.inc` | `setflag` / `clearflag` / `removeobject` による NPC 移動・消滅例。 |
+| `data/scripts/gabby_and_ty.inc` | 複数 map の NPC hide flags を切り替える例。 |
+
+拡張時の注意:
+
+- `data/maps/*/events.inc` は generated file なので直接編集しない。
+- `removeobject` は object の hide flag を set するが、`addobject` は flag を clear しない。
+- `coord_event` の trigger field は saved var だけでなく flag として解釈されることがある。
+- item ball の item id は object template の `trainerRange_berryTreeId` に入る。
+
+### TM Acquisition Sources
+
+確認した facts:
+
+| Category | Confirmed count / files |
+|---|---|
+| TM definitions | `include/constants/tms_hms.h` の `FOREACH_TM(F)` は 50 entries。 |
+| `FLAG_RECEIVED_TM_*` | `include/constants/flags.h` で 21 definitions。 |
+| visible TM item ball flags | `include/constants/flags.h` で `FLAG_ITEM_*_TM_*` 14 definitions。 |
+| hidden TM item flags | `include/constants/flags.h` で `FLAG_HIDDEN_ITEM_*_TM_*` 1 definition。 |
+
+詳細は `docs/features/tm_shop_migration/investigation.md`。
 
 ### Pokemart Scripts
 

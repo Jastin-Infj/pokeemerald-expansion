@@ -35,6 +35,7 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 | Area | Primary data owner | Runtime entry points | UI / script / tools | Risk |
 |---|---|---|---|---|
 | Pokemart / shop settings | `data/maps/*/scripts.inc`, `src/shop.c` | `ScrCmd_pokemart`, `CreatePokemartMenu`, `Task_BuyMenu` | `asm/macros/event.inc`, `data/script_cmd_table.inc`, `src/shop.c` | Medium |
+| Map scripts / flags / vars | `data/maps/*/map.json`, `data/maps/*/scripts.inc`, `include/constants/flags.h`, `include/constants/vars.h` | `ProcessPlayerFieldInput`, `TryRunOnFrameMapScript`, `ShouldTriggerScriptRun`, `FlagGet`, `VarGet` | `asm/macros/map.inc`, `asm/macros/event.inc`, `map_data_rules.mk`, `tools/mapjson/mapjson` | High |
 | Wild Pokemon / randomizer | `src/data/wild_encounters.json`, generated `src/data/wild_encounters.h` | `StandardWildEncounter`, `TryGenerateWildMon`, `CreateWildMon` | `tools/wild_encounters/wild_encounters_to_header.py`, DexNav, Pokedex area | High |
 | Trainer party pools / trainer randomizer | `src/data/trainers.h`, `src/data/trainers.party`, `src/data/battle_pool_rules.h` | `CreateNPCTrainerPartyFromTrainer`, `DoTrainerPartyPool`, `RandomizePoolIndices` | `tools/trainerproc/main.c`, `include/constants/battle_ai.h` | High |
 | TM/HM / move machines | `include/constants/tms_hms.h`, `include/constants/items.h`, `src/data/items.h` | `ItemUseOutOfBattle_TMHM`, `ItemUseCB_TMHM`, `GetItemTMHMMoveId` | `src/item_menu.c`, `src/party_menu.c`, `test/text.c` | High |
@@ -67,6 +68,31 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 - マートの品揃えを script 固定リストで増やすだけなら `data/maps/.../scripts.inc` 側が中心。
 - ランダム品揃え、条件付き品揃え、独自カテゴリを入れる場合は `ScrCmd_pokemart` と `CreatePokemartMenu` の間、または `SetShopItemsForSale` の前後が候補。ただし script pointer と `ScriptContext_Stop()` の復帰処理を壊さないこと。
 - Shop UI は `src/shop.c` 内の CB2 / Task で動くため、画面遷移を変える場合は `CB2_InitBuyMenu`、`CB2_BuyMenu`、`Task_BuyMenu`、`Task_ExitBuyMenu` を読む。
+
+## Map Scripts / Flags / Vars
+
+確認した入口:
+
+| File | Symbols / facts |
+|---|---|
+| `map_data_rules.mk` | `tools/mapjson/mapjson` で `data/maps/*/map.json` から `header.inc`、`events.inc`、`connections.inc`、`include/constants/map_event_ids.h` を生成。 |
+| `asm/macros/map.inc` | `map_script`, `map_script_2`, `object_event`, `coord_event`, `bg_hidden_item_event`。 |
+| `asm/macros/event.inc` | `setvar`, `setflag`, `clearflag`, `checkflag`, `applymovement`, `removeobject`, `addobject`, `giveitem`, `finditem`。 |
+| `src/event_data.c` | `ClearTempFieldEventData`, `GetVarPointer`, `VarGet`, `VarSet`, `FlagSet`, `FlagClear`, `FlagGet`。 |
+| `src/script.c` | `MapHeaderCheckScriptTable`, `RunOnTransitionMapScript`, `TryRunOnFrameMapScript`。 |
+| `src/field_control_avatar.c` | `ProcessPlayerFieldInput`, `ShouldTriggerScriptRun`, `GetInteractedObjectEventScript`, `GetInteractedBackgroundEventScript`。 |
+| `src/event_object_movement.c` | `TrySpawnObjectEvents`, `RemoveObjectEventByLocalIdAndMap`, `TrySpawnObjectEvent`, `SetObjectInvisibility`。 |
+| `data/scripts/item_ball_scripts.inc` | `Common_EventScript_FindItem`。 |
+| `data/scripts/obtain_item.inc` | `Std_FindItem`, `EventScript_HiddenItemScript`。 |
+
+拡張時の注意:
+
+- generated `data/maps/*/events.inc` / `header.inc` / `connections.inc` は直接編集しない。
+- NPC を消す処理では hide flag、transient invisibility、object template 座標更新を分けて考える。
+- map script の condition は `VAR_TEMP_*` と saved vars の lifetime が違うため、永続状態には temp var を使わない。
+- TM item ball / hidden item を撤去する時は、`FLAG_ITEM_*_TM_*`、`FLAG_HIDDEN_ITEM_*_TM_*`、`FLAG_RECEIVED_TM_*` を混同しない。
+
+詳細は `docs/flows/map_script_flag_var_flow_v15.md`。
 
 ## Wild Pokemon / Randomizer
 
@@ -130,6 +156,7 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 - TM の追加は `FOREACH_TM`、item constants、item data、bag capacity、item menu 表示、text tests に波及する。
 - `include/constants/global.h` の `BAG_TMHM_COUNT` が TM/HM pocket capacity に関係する。
 - 既存には `ITEM_TM100` まで item 定数があるが、`FOREACH_TM` の実際の対応 move 数とは別に確認する必要がある。
+- TM を shop 販売へ寄せる場合、`FOREACH_TM` ではなく取得元を整理する。今回確認した範囲では `FLAG_RECEIVED_TM_*` 21 件、visible TM item ball flag 14 件、hidden TM item flag 1 件。詳細は `docs/features/tm_shop_migration/investigation.md`。
 
 ## Field HM Removal / Field Moves
 

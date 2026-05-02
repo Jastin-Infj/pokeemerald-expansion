@@ -29,12 +29,22 @@
 | `src/scrcmd.c` | `ScrCmd_special`, `ScrCmd_specialvar`, `ScrCmd_waitstate`, `ScrCmd_trainerbattle`, `ScrCmd_dotrainerbattle`, `ScrCmd_gotopostbattlescript`, `ScrCmd_gotobeatenscript` |
 | `data/script_cmd_table.inc` | `gScriptCmdTable`, command ID 0x25 `SCR_OP_SPECIAL`, 0x26 `SCR_OP_SPECIALVAR`, 0x5c `SCR_OP_TRAINERBATTLE`, 0x5d `SCR_OP_DOTRAINERBATTLE` |
 | `asm/macros/event.inc` | `trainerbattle`, `trainerbattle_single`, `trainerbattle_double`, `dotrainerbattle`, `gotopostbattlescript`, `gotobeatenscript`, `special`, `specialvar` macro |
+| `asm/macros/map.inc` | `map_script`, `map_script_2`, `object_event`, `coord_event`, `bg_hidden_item_event`, `map_events` macro |
 | `data/event_scripts.s` | `gSpecialVars`, `gSpecials` include, script data section |
+| `data/map_events.s` | generated map events include。`data/maps/events.inc` を集約。 |
+| `map_data_rules.mk` | `tools/mapjson/mapjson` で `map.json` から `events.inc` / `header.inc` / `connections.inc` を生成。 |
+| `data/maps/*/map.json` | object / warp / coord / bg event の source data。 |
+| `data/maps/*/events.inc` | generated map event data。直接編集しない。 |
+| `data/maps/*/scripts.inc` | hand-written map script。map-specific flag / var / NPC movement / trainerbattle 入口。 |
 | `data/scripts/trainer_battle.inc` | `EventScript_TryDoNormalTrainerBattle`, `EventScript_TryDoDoubleTrainerBattle`, `EventScript_DoTrainerBattle` |
 | `data/scripts/trainer_script.inc` | `EventScript_TryGetTrainerScript`, `EventScript_GotoTrainerScript` |
 | `src/trainer_see.c` | `CheckForTrainersWantingBattle`, `CheckTrainer`, `DoTrainerApproach`, `TryPrepareSecondApproachingTrainer` |
 | `include/constants/vars.h` | `VAR_RESULT`, `VAR_0x8000`.., `VAR_TRAINER_BATTLE_OPPONENT_A` |
 | `src/event_data.c` | `gSpecialVar_Result`, `GetVarPointer`, `VarGet`, `VarSet` |
+| `src/field_control_avatar.c` | `ProcessPlayerFieldInput`, `TryStartCoordEventScript`, `ShouldTriggerScriptRun`, `GetInteractedObjectEventScript`, `GetInteractedBackgroundEventScript` |
+| `src/event_object_movement.c` | `TrySpawnObjectEvents`, `RemoveObjectEventByLocalIdAndMap`, `TrySpawnObjectEvent`, `SetObjectInvisibility` |
+| `src/item_ball.c` | `GetItemBallIdAndAmountFromTemplate`。item ball object template から item / amount を読む。 |
+| `data/scripts/obtain_item.inc` | `Std_FindItem`, `EventScript_HiddenItemScript`。item ball / hidden item 取得 script。 |
 
 ### Trainer Battle
 
@@ -163,6 +173,21 @@
 | `src/pokemon.c` | `IsMoveHM`, `CannotForgetMove`。 |
 | `src/pokemon_summary_screen.c` | HM forget warning window。 |
 
+### Map Script / Flag / Var
+
+| File | Important symbols / notes |
+|---|---|
+| `include/constants/flags.h` | `FLAG_TEMP_*`, `FLAG_HIDDEN_ITEMS_START`, `FLAG_RECEIVED_TM_*`, `FLAG_ITEM_*_TM_*`, `FLAGS_COUNT`。 |
+| `include/constants/flags_frlg.h` | Emerald TM / item flags が `0` に定義される箇所を確認。FRLG compatibility risk。 |
+| `include/constants/vars.h` | `VAR_TEMP_*`, `VAR_OBJ_GFX_ID_*`, story state vars, `VARS_COUNT`。 |
+| `include/global.h` | `struct SaveBlock1.flags`, `struct SaveBlock1.vars`, `objectEventTemplates`。 |
+| `src/event_data.c` | `ClearTempFieldEventData`, `GetVarPointer`, `VarGet`, `VarSet`, `FlagSet`, `FlagClear`, `FlagGet`。 |
+| `src/script.c` | `MapHeaderGetScriptTable`, `MapHeaderCheckScriptTable`, `RunOnTransitionMapScript`, `TryRunOnFrameMapScript`。 |
+| `include/constants/map_scripts.h` | map script type と実行 timing の説明。 |
+| `src/overworld.c` | `LoadObjEventTemplatesFromHeader`, `LoadSaveblockObjEventScripts`, `SetObjEventTemplateCoords`。 |
+| `src/event_object_movement.c` | NPC spawn / hide / remove / transient visibility。 |
+| `src/field_control_avatar.c` | coord event、bg event、hidden item、A button interaction。 |
+
 ### Item / Move / Ability Data
 
 | Area | File | Important symbols / notes |
@@ -240,7 +265,9 @@
 | `docs/flows/battle_ui_flow_v15.md` | battle 開始後の UI / healthbox / battle menu / party status summary。 |
 | `docs/flows/options_status_flow_v15.md` | option menu、battle UI config、summary/status 表示。 |
 | `docs/flows/script_inc_audit_v15.md` | `.inc` script の battle / selection 関連 audit。 |
+| `docs/flows/map_script_flag_var_flow_v15.md` | `map.json`、generated `.inc`、hand-written `scripts.inc`、flag / var、NPC visibility、item ball / hidden item flow。 |
 | `docs/features/battle_selection/opponent_party_and_randomizer.md` | 相手 party preview、Trainer Party Pools、party randomize / reorder。 |
+| `docs/features/tm_shop_migration/` | TM を shop へ寄せるための取得元、flag、map script 影響範囲。 |
 | `docs/overview/extension_impact_map_v15.md` | マート、野生、TM/HM、field move、item、move、ability、species など将来拡張の横断影響範囲。 |
 | `docs/overview/callback_dispatch_map_v15.md` | `SetMainCallback2`、`CB2_*`、`CreateTask`、`ScrCmd_*`、`special`、field callback の間接呼び出し地図。 |
 
