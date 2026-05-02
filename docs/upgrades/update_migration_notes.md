@@ -8,6 +8,8 @@
 
 2026-05-02 に upstream `RHH` remote の `expansion/1.15.2` tag を確認した。local baseline 表記はまだ 1.15.1 だが、main を 1.15.2 へ上げる場合は `docs/upgrades/1_15_1_to_1_15_2_impact.md` を先に確認する。
 
+branch 運用の基本方針は `docs/upgrades/branching_upgrade_policy.md` に分離した。今後の提案では、`main`、`upgrade/*`、`feature/*`、`reference/*`、docs branch の役割をこの方針に合わせる。
+
 ## 1.15.2 Migration Notes
 
 1.15.2 への追従で最初に注意する点:
@@ -20,6 +22,9 @@
 
 ## Migration Principles
 
+- `main` は採用済みの安定ベースとして扱い、直接作業 commit を積まない。
+- upstream 追従は `upgrade/<version>` branch で試し、build / docs impact を確認してから `main` へ入れる。
+- 大型機能や外部実装の検証は `reference/*` / `prototype/*` branch に分け、必要差分だけ `feature/*` branch で採用する。
 - upstream 更新前に local custom feature の入口 file を把握する。
 - `src/battle_setup.c`、`src/party_menu.c`、`src/script_pokemon_util.c` など、upstream 変更が入りやすい file への変更は最小化する。
 - 独自 state は既存 global と混ぜすぎない。
