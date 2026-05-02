@@ -33,7 +33,7 @@
 | Pokemart / Shop | `src/shop.c`, `include/shop.h`, `src/scrcmd.c`, `data/maps/*Mart*/scripts.inc`, `data/maps/*DepartmentStore*/scripts.inc` | `ScrCmd_pokemart`、`CreatePokemartMenu`、`Task_BuyMenu`。品揃えや動的ショップを変える場合の入口。 |
 | Wild Encounter | `src/wild_encounter.c`, `include/wild_encounter.h`, `src/data/wild_encounters.json`, `tools/wild_encounters/wild_encounters_to_header.py` | `StandardWildEncounter`、`TryGenerateWildMon`、`CreateWildMon`。野生ランダム化や出現テーブル変更の中心。 |
 | Item | `src/item.c`, `src/item_use.c`, `src/item_menu.c`, `src/data/items.h`, `include/item.h`, `include/constants/items.h` | item database、bag pocket、field use callback、shop、text test に波及。 |
-| TM/HM / Field Move | `include/constants/tms_hms.h`, `src/field_move.c`, `include/field_move.h`, `data/scripts/field_move_scripts.inc`, `src/party_menu.c` | `FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`。フィールド秘伝技廃止の中心。 |
+| TM/HM / Field Move | `include/constants/tms_hms.h`, `src/field_move.c`, `include/field_move.h`, `data/scripts/field_move_scripts.inc`, `data/scripts/surf.inc`, `src/party_menu.c`, `src/field_effect.c` | `FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CreateFieldMoveTask`、`FldEff_FieldMoveShowMonInit`。field move 廃止 / modernize の中心。詳細は `docs/flows/field_move_hm_flow_v15.md`。 |
 | Move | `include/constants/moves.h`, `include/move.h`, `src/data/moves_info.h`, `src/data/battle_move_effects.h`, `data/battle_scripts_1.s`, `data/battle_scripts_2.s` | 新技追加は data / effect / battle script / animation / AI / tests に波及。 |
 | Ability | `include/constants/abilities.h`, `src/data/abilities.h`, `src/battle_util.c`, `src/battle_ai_main.c`, `src/battle_ai_util.c`, `src/battle_ai_switch.c` | 新特性追加は battle trigger、AI、copy/suppress flags、popup、species 割当へ波及。 |
 | UI / Window | `src/window.c`, `src/text.c`, `src/menu.c`, `src/menu_helpers.c` | 専用 UI を作る段階で重要。MVP では party menu 流用が前提。 |
@@ -86,6 +86,8 @@ flowchart TD
 | `gSprites[MAX_SPRITES + 1]` | `src/sprite.c`, `include/sprite.h` | sprite 管理。 | Medium. 専用選出 UI を作る段階で重要。 |
 | `gSelectedOrderFromParty[MAX_FRONTIER_PARTY_SIZE]` | `src/party_menu.c`, `include/party_menu.h` | choose half / frontier 選出順。値は 1-based party slot。 | Very High. 既存 UI 流用時の中核。 |
 | `gBattleOutcome` | `src/battle_main.c`, `include/battle.h` | 戦闘結果。`gSpecialVar_Result` にコピーされる箇所あり。 | Medium. 終了後復元条件やテストで参照。 |
+| `B_FLAG_NO_WHITEOUT` | `include/config/battle.h` | trainer battle loss 後の whiteout を防ぐための flag config。初期値は `0`。 | High. バトル後回復 / 強制 release の設計候補。ただし party は自動 heal されない。 |
+| `FLAG_SYS_USE_STRENGTH` / `FLAG_SYS_USE_FLASH` | `include/constants/flags.h` から参照される system flags | Strength / Flash の field state。overworld reset 系で clear される。 | High. HM field action を消す場合も map state として残すか要判断。 |
 | `gBattlerPartyIndexes[MAX_BATTLERS_COUNT]` | `src/battle_main.c`; extern in `include/battle.h` | battler と party slot の対応。 | Very High. 一時 party slot と元 party slot mapping を混同しないことが重要。 |
 | `gBattleStruct` | `src/battle_main.c`; extern in `include/battle.h` | battle 中の大規模 state。partyState、itemLost、chosen move、intro state など。 | High. battle UI / party order / battle end 反映の調査対象。 |
 | `gBattlePartyCurrentOrder[PARTY_SIZE / 2]` | `src/party_menu.c`; extern in `include/party_menu.h` | battle 中 party menu の order encoding。 | High. battle 中 switch menu と選出元 slot mapping が重なる。 |
@@ -104,7 +106,8 @@ flowchart TD
   - `src/trainer_pools.c` の trainer party pool / randomize。
   - `src/shop.c` の `CreatePokemartMenu` / `Task_BuyMenu` と `data/maps/*/scripts.inc` の mart lists。
   - `src/wild_encounter.c` と generated `src/data/wild_encounters.h` / source `src/data/wild_encounters.json` の関係。
-  - `include/constants/tms_hms.h`、`src/field_move.c`、`data/scripts/field_move_scripts.inc` の TM/HM / field move policy。
+  - `include/constants/tms_hms.h`、`src/field_move.c`、`data/scripts/field_move_scripts.inc`、`src/field_effect.c`、`src/fldeff_rocksmash.c` の TM/HM / field move policy と animation。
+  - `src/battle_setup.c`、`include/config/battle.h`、`src/script_pokemon_util.c`、`src/pokemon_storage_system.c` の trainer battle aftercare / forced release。
   - `include/constants/items.h`、`src/data/items.h`、`src/item_use.c` の item ID / use callback。
   - `include/constants/moves.h`、`src/data/moves_info.h`、`src/data/battle_move_effects.h`、battle script source の move effect。
   - `include/constants/abilities.h`、`src/data/abilities.h`、`src/battle_util.c` の ability behavior。
@@ -119,3 +122,4 @@ flowchart TD
 - `BATTLE_TYPE_DOUBLE` 判定だけで 4匹選出にしてよいか。`BATTLE_TYPE_MULTI`, `BATTLE_TYPE_TWO_OPPONENTS`, follower partner 戦を対象外にする必要がありそうだが未確定。
 - 野生ランダム化、マート動的品揃え、TM/HM 追加、フィールド秘伝技廃止を build-time data 変更で行うか runtime hook で行うか。
 - 新 option / status 表示を追加する場合、save data layout を変えるか、既存 config compile-time toggle に寄せるか。
+- 全滅時の強制 release は、PC release UI の static task を流用せず専用 helper を作るべきか。現時点では未実装・未決定。

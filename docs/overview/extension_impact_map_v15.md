@@ -39,7 +39,8 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 | Wild Pokemon / randomizer | `src/data/wild_encounters.json`, generated `src/data/wild_encounters.h` | `StandardWildEncounter`, `TryGenerateWildMon`, `CreateWildMon` | `tools/wild_encounters/wild_encounters_to_header.py`, DexNav, Pokedex area | High |
 | Trainer party pools / trainer randomizer | `src/data/trainers.h`, `src/data/trainers.party`, `src/data/battle_pool_rules.h` | `CreateNPCTrainerPartyFromTrainer`, `DoTrainerPartyPool`, `RandomizePoolIndices` | `tools/trainerproc/main.c`, `include/constants/battle_ai.h` | High |
 | TM/HM / move machines | `include/constants/tms_hms.h`, `include/constants/items.h`, `src/data/items.h` | `ItemUseOutOfBattle_TMHM`, `ItemUseCB_TMHM`, `GetItemTMHMMoveId` | `src/item_menu.c`, `src/party_menu.c`, `test/text.c` | High |
-| Field HM removal / field moves | `src/field_move.c`, `include/constants/field_move.h` | `ScrCmd_checkfieldmove`, `CursorCb_FieldMove`, field effect callbacks | `data/scripts/field_move_scripts.inc`, `src/field_control_avatar.c` | Very High |
+| Field HM removal / field moves | `src/field_move.c`, `include/constants/field_move.h` | `ScrCmd_checkfieldmove`, `CursorCb_FieldMove`, field effect callbacks | `data/scripts/field_move_scripts.inc`, `src/field_control_avatar.c`, `src/field_effect.c` | Very High |
+| Trainer battle aftercare / forced release | `src/battle_setup.c`, `src/pokemon_storage_system.c` | `CB2_EndTrainerBattle`, `B_FLAG_NO_WHITEOUT`, `HealPlayerParty`, `NoAliveMonsForPlayer` | `data/specials.inc`, `data/scripts/pkmn_center_nurse.inc`, PC release UI | Very High |
 | Items | `include/constants/items.h`, `src/data/items.h`, `include/item.h` | `AddBagItem`, `RemoveBagItem`, `GetItemFieldFunc`, item use callbacks | `src/item_menu.c`, `src/item_use.c`, shop, text tests | High |
 | Moves | `include/constants/moves.h`, `src/data/moves_info.h`, `src/data/battle_move_effects.h` | `GetMoveEffect`, `GetMoveBattleScript`, battle script commands | `data/battle_scripts_1.s`, `data/battle_scripts_2.s`, move tests | Very High |
 | Abilities | `include/constants/abilities.h`, `src/data/abilities.h` | `GetMonAbility`, `GetSpeciesAbility`, `AbilityBattleEffects` | battle AI, ability popup, text tests | Very High |
@@ -165,14 +166,22 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 | File | Symbols / facts |
 |---|---|
 | `include/constants/field_move.h` | `enum FieldMove`, `FIELD_MOVES_COUNT`。 |
-| `include/field_move.h` | `struct FieldMoveInfo`, `gFieldMoveInfo`, `FieldMove_GetMoveId`, `FieldMove_GetPartyMessage`。 |
+| `include/field_move.h` | `struct FieldMoveInfo`, `gFieldMoveInfo`, `FieldMove_GetMoveId`, `FieldMove_GetPartyMsgID`。 |
 | `src/field_move.c` | `gFieldMoveInfo[FIELD_MOVES_COUNT]`、`SetUpFieldMove_*`、`IsFieldMoveUnlocked_*`。 |
 | `src/scrcmd.c` | `ScrCmd_checkfieldmove`。`IsFieldMoveUnlocked` と `MonKnowsMove` を確認し、`gSpecialVar_Result` を設定する。 |
 | `data/scripts/field_move_scripts.inc` | `EventScript_CutTree`, `EventScript_RockSmash`, `EventScript_StrengthBoulder`, `EventScript_UseWaterfall`, `EventScript_UseDive`, `EventScript_UseDiveUnderwater`, `EventScript_UseDefog`, `EventScript_UseRockClimb`。 |
+| `data/scripts/surf.inc` | `EventScript_UseSurf`。 |
 | `src/field_control_avatar.c` | water interaction / dive / waterfall などの field script 起動。 |
 | `src/party_menu.c` | `SetPartyMonFieldSelectionActions`, `CursorCb_FieldMove`, `SetUpFieldMove`, `DoesSelectedMonKnowHM`, `IsLastMonThatKnowsSurf`。 |
+| `src/fldeff_rocksmash.c` | `CreateFieldMoveTask`, `Task_DoFieldMove_Init`, `Task_DoFieldMove_RunFunc`。 |
+| `src/fldeff_cut.c` | `FldEff_UseCutOnTree`, `FldEff_UseCutOnGrass`。 |
+| `src/fldeff_strength.c` | `SetUpFieldMove_Strength`, `FldEff_UseStrength`。 |
+| `src/fldeff_flash.c` | `SetUpFieldMove_Flash`, `FldEff_UseFlash`。 |
+| `src/field_effect.c` | `FldEff_FieldMoveShowMonInit`, `FldEff_FieldMoveShowMon`, `FldEff_UseSurf`, `FldEff_UseWaterfall`, `FldEff_UseDive`。 |
+| `src/field_player_avatar.c` | `SetPlayerAvatarFieldMove`, `PartyHasMonWithSurf`, `IsPlayerFacingSurfableFishableWater`。 |
 | `src/pokemon.c` | `IsMoveHM`, `CannotForgetMove`。 |
 | `src/pokemon_summary_screen.c` | `ShowCantForgetHMsWindow`, `Task_HandleInputCantForgetHMsMoves`, `PrintHMMovesCantBeForgotten`。 |
+| `src/pokemon_storage_system.c` | `sRestrictedReleaseMoves`, `CompactPartySlots`。 |
 | `include/config/pokemon.h` | `P_CAN_FORGET_HIDDEN_MOVE`。 |
 | `include/config/battle.h` | `B_CATCH_SWAP_CHECK_HMS`。 |
 | `include/config/overworld.h` | `OW_DEFOG_FIELD_MOVE`, `OW_ROCK_CLIMB_FIELD_MOVE`, `OW_FLAG_POKE_RIDER`。 |
@@ -180,8 +189,34 @@ rg -l "SetMainCallback2\\(|CB2_|CreateTask\\(|ScrCmd_|ScriptContext_Stop|trainer
 拡張時の注意:
 
 - 「秘伝技をなくす」は複数の意味に分かれる。フィールドで技所持を不要にする、HM item を消す、忘れられるようにする、badge / flag 解禁だけにする、Poke Rider 化する、は別変更。
-- `ScrCmd_checkfieldmove` だけを変えると party menu の field move action、summary の HM forget 制限、捕獲入れ替え HM check とずれる可能性がある。
+- `ScrCmd_checkfieldmove` だけを変えると party menu の field move action、show-mon animation の party slot 前提、summary の HM forget 制限、捕獲入れ替え HM check とずれる可能性がある。
 - `data/scripts/field_move_scripts.inc` の script flow と `gFieldCallback2` / `gPostMenuFieldCallback` の復帰を確認する。
+- Cut / Rock Smash は `removeobject VAR_LAST_TALKED`、Strength / Flash は `FLAG_SYS_USE_STRENGTH` / `FLAG_SYS_USE_FLASH` を使うため、map object 撤去と system flag は分けて設計する。
+- 詳細は `docs/flows/field_move_hm_flow_v15.md` と `docs/features/field_move_modernization/`。
+
+## Trainer Battle Aftercare / Forced Release
+
+確認した入口:
+
+| File | Symbols / facts |
+|---|---|
+| `src/battle_setup.c` | `CB2_EndTrainerBattle`, `HandleBattleVariantEndParty`, `SaveChangesToPlayerParty`, `LoadPlayerParty`。battle end 後の field return / whiteout / heal hook。 |
+| `src/battle_main.c` | `ReturnFromBattleToOverworld`, `gBattleOutcome`, `HandleEndTurn_BattleWon`, `HandleEndTurn_BattleLost`, `HandleEndTurn_FinishBattle`。 |
+| `src/battle_script_commands.c` | `NoAliveMonsForPlayer`, `BS_JumpIfNoWhiteOut`。 |
+| `include/config/battle.h` | `B_FLAG_NO_WHITEOUT`。trainer loss 後 whiteout しないが party は自動 heal されない。 |
+| `src/overworld.c` | `DoWhiteOut`, `CB2_WhiteOut`, `Overworld_ResetBattleFlagsAndVars`。whiteout flow は `HealPlayerParty` を呼ぶ。 |
+| `src/script_pokemon_util.c` | `HealPlayerParty`。`gPlayerPartyCount` 分を heal。config 次第で boxes も heal。 |
+| `data/specials.inc` | `def_special HealPlayerParty`。 |
+| `src/pokemon_storage_system.c` | `Task_ReleaseMon`, `ReleaseMon`, `PurgeMonOrBoxMon`, `CompactPartySlots`, `sRestrictedReleaseMoves`。 |
+| `include/pokemon_storage_system.h` | `CompactPartySlots`。 |
+
+拡張時の注意:
+
+- `CB2_EndTrainerBattle` には early rival、secret base、forfeit、Pyramid、Trainer Hill、follower battle partner の分岐がある。
+- `B_FLAG_NO_WHITEOUT` は「whiteout しない」だけで、party を自動回復しない。
+- 強制 release で PC release UI の `Task_ReleaseMon` を直接使うのは危険。`Task_ReleaseMon`、`ReleaseMon`、`PurgeMonOrBoxMon` は static / UI state 依存。
+- battle selection と併用する場合、選出個体の状態を元 slot へ反映して元 party を復元した後に heal / release する必要がある。
+- 詳細は `docs/features/trainer_battle_aftercare/`。
 
 ## Items
 

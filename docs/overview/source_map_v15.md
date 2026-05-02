@@ -77,10 +77,11 @@
 | `src/battle_main.c` | `gBattleTypeFlags`, `gBattleOutcome`, `gBattleMons`, `gBattlerPartyIndexes`, `CB2_InitBattle`, `BattleMainCB1`, `BattleMainCB2` |
 | `src/battle_controller_player.c` | `OpenPartyMenuToChooseMon`, `SetBattleEndCallbacks`, `PlayerHandleEndLinkBattle` |
 | `src/battle_controller_opponent.c` | opponent controller. |
-| `src/battle_script_commands.c` | battle script commands。battle 中の party / item / end 処理の参照候補。 |
+| `src/battle_script_commands.c` | battle script commands。battle 中の party / item / end 処理の参照候補。`NoAliveMonsForPlayer`, `BS_JumpIfNoWhiteOut` もここ。 |
 | `src/battle_util.c`, `src/battle_util2.c` | battle utility。 |
 | `src/battle_ai_main.c`, `src/battle_ai_switch.c` | AI と switch 判断。 |
 | `include/constants/battle.h` | `BATTLE_TYPE_*`, `B_OUTCOME_*` |
+| `include/config/battle.h` | `B_FLAG_NO_WHITEOUT`, `B_CATCH_SWAP_CHECK_HMS`。 |
 
 ### Battle UI / Controller
 
@@ -172,6 +173,29 @@
 | `data/scripts/field_move_scripts.inc` | `EventScript_CutTree`, `EventScript_RockSmash`, `EventScript_StrengthBoulder`, `EventScript_UseWaterfall`, `EventScript_UseDive`, `EventScript_UseDefog`, `EventScript_UseRockClimb`。 |
 | `src/pokemon.c` | `IsMoveHM`, `CannotForgetMove`。 |
 | `src/pokemon_summary_screen.c` | HM forget warning window。 |
+| `src/fldeff_rocksmash.c` | `CreateFieldMoveTask`, `Task_DoFieldMove_Init`, `Task_DoFieldMove_RunFunc`。Cut / Rock Smash / Strength などの共通 field move animation path。 |
+| `src/fldeff_cut.c` | `FldEff_UseCutOnTree`, `FldEff_UseCutOnGrass`, `StartCutGrassFieldEffect`。 |
+| `src/fldeff_strength.c` | `SetUpFieldMove_Strength`, `FldEff_UseStrength`。 |
+| `src/fldeff_flash.c` | `SetUpFieldMove_Flash`, `FldEff_UseFlash`。 |
+| `src/field_effect.c` | `FldEff_FieldMoveShowMonInit`, `FldEff_FieldMoveShowMon`, `FldEff_UseSurf`, `FldEff_UseWaterfall`, `FldEff_UseDive`。 |
+| `src/field_player_avatar.c` | `SetPlayerAvatarFieldMove`, `PartyHasMonWithSurf`, `IsPlayerFacingSurfableFishableWater`。 |
+| `src/pokemon_storage_system.c` | `sRestrictedReleaseMoves`, `CompactPartySlots`。PC release softlock と HM 依存。 |
+
+### Battle End / Aftercare / Release
+
+| File | Important symbols / notes |
+|---|---|
+| `src/battle_setup.c` | `CB2_EndTrainerBattle`, `HandleBattleVariantEndParty`, `SaveChangesToPlayerParty`, `B_FLAG_SKY_BATTLE`。trainer battle 後の whiteout / field return / heal hook。 |
+| `src/battle_main.c` | `ReturnFromBattleToOverworld`, `gBattleOutcome`, `HandleEndTurn_BattleWon`, `HandleEndTurn_BattleLost`, `HandleEndTurn_FinishBattle`。 |
+| `src/battle_controller_player.c` | battle end path で `SetMainCallback2(gMain.savedCallback)` を使う。 |
+| `src/battle_script_commands.c` | `NoAliveMonsForPlayer`, `BS_JumpIfNoWhiteOut`。 |
+| `include/config/battle.h` | `B_FLAG_NO_WHITEOUT`。comment 上、trainer loss 後 whiteout しないが party は自動回復されない。 |
+| `src/overworld.c` | `DoWhiteOut`, `CB2_WhiteOut`, `Overworld_ResetBattleFlagsAndVars`。whiteout 時に `HealPlayerParty` を呼ぶ。 |
+| `src/script_pokemon_util.c` | `HealPlayerParty`。`gPlayerPartyCount` 分 `HealPokemon`、config 次第で boxes も heal。 |
+| `data/specials.inc` | `def_special HealPlayerParty`。 |
+| `data/scripts/pkmn_center_nurse.inc`, `data/scripts/pkmn_center_nurse_frlg.inc` | Pokemon Center heal script。 |
+| `src/pokemon_storage_system.c` | `Task_ReleaseMon`, `ReleaseMon`, `PurgeMonOrBoxMon`, `CompactPartySlots`, `sRestrictedReleaseMoves`。PC UI release flow。 |
+| `include/pokemon_storage_system.h` | `CompactPartySlots` public declaration。 |
 
 ### Map Script / Flag / Var
 

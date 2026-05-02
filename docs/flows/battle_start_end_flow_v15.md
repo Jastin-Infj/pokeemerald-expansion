@@ -191,9 +191,53 @@ flowchart TD
 - `gEnemyParty` は battle 終了後に zero されるため、相手 party preview を後から追加する場合は作成 timing が重要。
 - battle outcome が負け/whiteout/forfeit の場合でも、復元は必ず走る必要がある。
 
+## Aftercare / No Whiteout / Forced Release Notes
+
+2026-05-02 追加調査で、trainer battle 後の回復、no-whiteout、強制 release 候補を確認した。
+
+### Confirmed Hook Points
+
+| File | Symbols / facts |
+|---|---|
+| `src/battle_setup.c` | `CB2_EndTrainerBattle` が trainer battle 後の return / whiteout を決める。 |
+| `src/battle_setup.c` | `HandleBattleVariantEndParty()` が先頭で Sky Battle の subset party restore を行う。 |
+| `src/battle_main.c` | `ReturnFromBattleToOverworld` が `gSpecialVar_Result = gBattleOutcome` と `SetMainCallback2(gMain.savedCallback)` を行う。 |
+| `include/config/battle.h` | `B_FLAG_NO_WHITEOUT` は trainer loss の whiteout を防ぐが、comment 上 party は自動回復されない。 |
+| `src/battle_script_commands.c` | `NoAliveMonsForPlayer`, `BS_JumpIfNoWhiteOut`。 |
+| `src/script_pokemon_util.c` | `HealPlayerParty`。 |
+| `src/overworld.c` | `DoWhiteOut` は `HealPlayerParty()` 後に last heal location へ warp。 |
+| `src/pokemon_storage_system.c` | PC release の `Task_ReleaseMon`, `ReleaseMon`, `PurgeMonOrBoxMon`, `CompactPartySlots`, `sRestrictedReleaseMoves`。 |
+
+### Safe Ordering With Battle Selection
+
+選出機能と aftercare を併用するなら、順序は以下が安全候補。
+
+```mermaid
+flowchart TD
+    A[Battle ends] --> B[ReturnFromBattleToOverworld]
+    B --> C[CB2_EndTrainerBattle]
+    C --> D[Restore temporary battle-selection party]
+    D --> E[Apply aftercare policy]
+    E --> F{Policy}
+    F -->|win heal| G[HealPlayerParty or survivor heal]
+    F -->|loss no-whiteout| H[release / heal / field return]
+    F -->|normal whiteout| I[CB2_WhiteOut]
+    G --> J[CB2_ReturnToFieldContinueScriptPlayMapMusic]
+    H --> J
+```
+
+注意:
+
+- release を一時 `gPlayerParty` に対して実行し、その後 `LoadPlayerParty()` すると release が消える可能性がある。
+- `Task_ReleaseMon` は PC UI 内の static task なので、battle end callback から直接使う前提にはしない。
+- 強制 release には、将来専用 helper または post-battle state machine が必要。
+- 詳細は `docs/features/trainer_battle_aftercare/`。
+
 ## Open Questions
 
 - battle 終了時に、選出 Pokémon の進化や move learn がどの timing で `gPlayerParty` へ反映済みになるかは追加調査が必要。
 - `SavePlayerParty` / `LoadPlayerParty` を使うべきか、専用 EWRAM buffer を用意すべきか未決定。
 - battle end callback wrapper を作る場合、`CB2_EndTrainerBattle` の前後どちらへ置くのが安全か未検証。
 - Sky Battle の `B_VAR_SKY_BATTLE` pattern を汎用化できるかは未確認。
+- aftercare を `CB2_EndTrainerBattle` 内に入れるか、専用 wrapper callback に分けるか未決定。
+- 強制 release の対象を「全滅時の手持ち全員」「fainted mons」「battle participants」「選出 mons」のどれにするか未決定。

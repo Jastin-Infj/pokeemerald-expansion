@@ -242,6 +242,7 @@
 - 多くの map object は `data/maps/*/map.json` から `EventScript_CutTree`、`EventScript_RockSmash`、`EventScript_StrengthBoulder` などを参照する。`.inc` だけでなく map JSON も検索対象。
 - フィールド秘伝技を不要にする場合、script の `checkfieldmove`、C 側の `ScrCmd_checkfieldmove`、party menu の `CursorCb_FieldMove`、`src/field_move.c` の `gFieldMoveInfo`、`src/pokemon.c` の `CannotForgetMove` を同時に見る。
 - `checkUnlocked=TRUE` を使う script と使わない script があるため、badge / flag unlock と move 所持のどちらを外すかを分けて設計する。
+- Cut / Rock Smash は `removeobject VAR_LAST_TALKED`、Strength は `FLAG_SYS_USE_STRENGTH`、Flash は `FLAG_SYS_USE_FLASH` を使う。field move animation は `CreateFieldMoveTask` と `FLDEFF_FIELD_MOVE_SHOW_MON_INIT` に依存する。詳細は `docs/flows/field_move_hm_flow_v15.md`。
 
 ## Core Trainer Battle Scripts
 
