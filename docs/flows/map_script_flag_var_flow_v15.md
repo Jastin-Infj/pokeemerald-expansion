@@ -179,6 +179,32 @@ player input 側は `src/field_control_avatar.c` の `ProcessPlayerFieldInput()`
 
 ## NPC Visibility / Movement / Removal
 
+### Interaction Lookup and Special Vars
+
+`TryStartInteractionScript()` は A button interaction の入口で、script lookup の優先順位は以下。
+
+1. object event script
+2. background event script
+3. metatile script
+4. water script
+
+object event が見つかった場合、`GetInteractedObjectEventScript()` は以下を更新する。
+
+| State | Set by | Notes |
+|---|---|---|
+| `gSelectedObjectEvent` | interacted object event id | `faceplayer` など selected object 前提 command に影響。 |
+| `VAR_LAST_TALKED` / `gSpecialVar_LastTalked` | interacted object の local id | `removeobject VAR_LAST_TALKED`、item ball lookup、trainer battle、static Pokemon など多用途。 |
+| `VAR_FACING` / `gSpecialVar_Facing` | player facing direction | 会話後 movement 分岐や Wingull event などで使用。 |
+
+lookup 分岐:
+
+- Trainer Hill 内では `GetTrainerHillTrainerScript()` が優先される。
+- follower NPC を直接調べた場合は `GetFollowerNPCScriptPointer()` が使われる。
+- 通常 object は `GetObjectEventScriptPointerByObjectEventId()`。
+- 最後に `GetRamScript(gSpecialVar_LastTalked, script)` を通るため、RAM script override が存在する object は通常 script から差し替わる。
+
+注意: `VAR_LAST_TALKED` は「最後に話した NPC」だけではなく、item ball、Cut tree、Rock Smash rock、static Pokemon、trainer encounter でも使われる。長い script の途中で `setvar VAR_LAST_TALKED, ...` を手動で行う pattern もあるため、`VAR_LAST_TALKED` 依存の `removeobject` / `applymovement` は直前の代入元を確認する。
+
 ### Spawn and Hide Flag
 
 `src/event_object_movement.c` の `TrySpawnObjectEvents()` は `!FlagGet(template->flagId)` の object だけを spawn する。
@@ -193,6 +219,30 @@ player input 側は `src/field_control_avatar.c` の `ProcessPlayerFieldInput()`
 | live object を一時的に見せる | `showobjectat` -> `SetObjectInvisibility(..., FALSE)` | flag は変えない。 |
 | 座標を一時移動 | `setobjectxy` | live object の移動。template 永続化ではない。 |
 | 座標を template に保存 | `setobjectxyperm` / `copyobjectxytoperm` | `gSaveBlock1Ptr->objectEventTemplates` 側を更新。 |
+
+`TryGetObjectEventIdByLocalIdAndMap()` は `TRUE` を返すと **見つからなかった** という意味。多くの call site は `if (!TryGetObjectEventIdByLocalIdAndMap(...))` の形で成功処理に入るため、通常の bool name と逆向きに読む必要がある。
+
+### Movement and Follower Side Effects
+
+| Command / path | Confirmed behavior | Edit risk |
+|---|---|---|
+| `applymovement localId, movement` | `localId` は `VarGet` を通る。`VAR_LAST_TALKED` など special var を直接渡せる。 | `VAR_LAST_TALKED` が直前に別 object へ上書きされていないか確認する。 |
+| `waitmovement 0` | `LOCALID_NONE` の場合は直前の `sMovingNpcId` を待つ。 | 複数 movement を並べる場合、どの object を待っているか読みにくい。 |
+| follower 以外への `applymovement` | movement script が follower-safe range 外で、`FLAG_SAFE_FOLLOWER_MOVEMENT` が unset なら follower を hide する。 | NPC cutscene で follower が消えるのは不具合ではなく既存仕様の場合がある。 |
+| `applymovement OBJ_EVENT_ID_FOLLOWER` | follower 専用 object に movement を適用できる。 | 通常 movement script は follower を考慮しないものがあるため、docs/tutorials/how_to_follower_npc.md の safe movement を確認する。 |
+| `waitmovement` 後の follower | follower が Pokeball に入る途中なら、`release` で中間状態にならないよう追加で待つ。 | custom command / native callback を挟む場合は follower の held movement を確認する。 |
+| `setobjectxy OBJ_EVENT_ID_NPC_FOLLOWER` | follower post-warp position set を抑制する `FNPC_DATA_COME_OUT_DOOR` を更新する。 | door/warp 後の follower 出現位置に影響する。 |
+
+### Persistent vs Hardware-only Object Changes
+
+`removeobject`、`setobjectxyperm`、`copyobjectxytoperm` は save/template 側に影響する。一方で `hideobjectat` / `showobjectat` は live object の invisibility だけを変える。
+
+Project rule として未決定だが、今後の script review では以下を分けて見る。
+
+- story state として二度と出したくない object: hide flag を `setflag` するか、`removeobject` の flag set に任せる。
+- cutscene 中だけ一時的に消したい object: `hideobjectat` / `showobjectat` を使い、hide flag を触らない。
+- map reload 後も座標を保ちたい object: `setobjectxyperm` / `copyobjectxytoperm` を使う。
+- その場だけ座標を動かす object: `setobjectxy` と movement で済ませる。
 
 ### Representative Patterns
 

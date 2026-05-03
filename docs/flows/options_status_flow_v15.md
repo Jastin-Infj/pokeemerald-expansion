@@ -109,6 +109,8 @@ SaveBlock2 / SaveBlock3 / flag / var の詳細は `docs/flows/save_data_flow_v15
 
 `include/config/summary_screen.h` で確認した config:
 
+EV/IV の表示機構を編集 UI へ拡張する調査は [Champions Training UI Feasibility v15](../overview/champions_training_ui_feasibility_v15.md) へ分離した。現状 summary screen は表示切替が中心で、EV/IV 配分そのものは新規 C 側 UI を `special` + `waitstate` で起動する設計が必要。
+
 | Config | Current value observed | Notes |
 |---|---:|---|
 | `P_SUMMARY_SCREEN_NATURE_COLORS` | `TRUE` | nature color display。 |

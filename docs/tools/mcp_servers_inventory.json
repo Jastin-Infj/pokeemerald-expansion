@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "last_checked": "2026-05-03",
+  "workspace": "/home/jastin/dev/pokeemerald-expansion",
+  "purpose": "Sanitized MCP server inventory for rebuilding Codex tooling without copying secrets.",
+  "secrets_policy": {
+    "do_not_commit": [
+      "API keys",
+      "OAuth tokens",
+      "SEMGREP_APP_TOKEN",
+      "GitHub tokens",
+      "Context7 API keys"
+    ],
+    "placeholder_style": "${ENV_VAR_NAME}",
+    "notes": [
+      "The local Codex config may contain secrets. This JSON intentionally redacts them.",
+      "Prefer environment variables or local-only config for real tokens."
+    ]
+  },
+  "mcpServers": {
+    "context7": {
+      "status": "available",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "${CONTEXT7_API_KEY}"
+      ],
+      "uses_network": true,
+      "auth_required": "API key recommended or required depending on Context7 mode",
+      "project_use": [
+        "Up-to-date documentation lookup for external libraries and tools",
+        "Fallback reference when local source cannot answer tool usage questions"
+      ],
+      "notes": [
+        "Do not copy the real API key from local Codex config into tracked docs."
+      ]
+    },
+    "playwright": {
+      "status": "available",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "uses_network": false,
+      "auth_required": false,
+      "project_use": [
+        "Browser/UI verification for generated documentation sites or web tools",
+        "Screenshot checks when local HTML/mdBook pages are rendered"
+      ],
+      "notes": [
+        "Not normally needed for GBA runtime UI; use mGBA Live MCP for emulator screens."
+      ]
+    },
+    "github": {
+      "status": "available",
+      "command": "managed_by_codex_github_plugin",
+      "args": [],
+      "uses_network": true,
+      "auth_required": true,
+      "project_use": [
+        "Inspect own fork PRs and CI when explicitly requested",
+        "Do not open PRs or push to RH-Hideout upstream without explicit permission and confirmed target"
+      ],
+      "notes": [
+        "Repository policy: upstream/RHH is fetch-only. Pushing or PRs are allowed only to the user's own fork when requested."
+      ]
+    },
+    "agent-lsp": {
+      "status": "available",
+      "command": "agent-lsp",
+      "args": [
+        "c:clangd"
+      ],
+      "uses_network": false,
+      "auth_required": false,
+      "project_use": [
+        "Hover/type information for C symbols",
+        "Definitions and diagnostics when clangd can parse the file",
+        "Quick LSP capability checks"
+      ],
+      "observed": {
+        "detected_languages": [
+          "c",
+          "json",
+          "python",
+          "cpp"
+        ],
+        "installed_servers": [
+          {
+            "language": "c",
+            "server": "clangd",
+            "path": "/usr/bin/clangd",
+            "config_entry": "c:clangd"
+          },
+          {
+            "language": "cpp",
+            "server": "clangd",
+            "path": "/usr/bin/clangd",
+            "config_entry": "cpp:clangd"
+          }
+        ],
+        "not_installed": [
+          "json (vscode-json-language-server)",
+          "python (pyright-langserver)"
+        ],
+        "known_limitations": [
+          "battle_setup.c hover worked for BattleSetup_StartTrainerBattle.",
+          "battle_setup.c diagnostics still reported unknown type name u8, so diagnostics are reference-only until clangd config is improved."
+        ]
+      }
+    },
+    "mgba": {
+      "status": "available",
+      "command": "/home/jastin/.local/bin/uvx",
+      "args": [
+        "mgba-live-mcp"
+      ],
+      "uses_network": false,
+      "auth_required": false,
+      "project_use": [
+        "Runtime smoke tests in mGBA",
+        "Screenshot, OAM, memory, input, and Lua-assisted GBA investigation",
+        "UI transition verification after battle/menu changes"
+      ],
+      "observed": {
+        "mgba_live_mcp_version": "0.5.0",
+        "working_mgba_qt": "/home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt",
+        "working_mgba_qt_version": "0.11-1-b19b557",
+        "system_mgba_qt": "/usr/games/mgba-qt",
+        "system_mgba_qt_version": "0.10.2",
+        "system_mgba_qt_limitation": "Observed package did not support --script for mgba-live bridge startup."
+      },
+      "notes": [
+        "See docs/tools/mgba_live_mcp_rebuild_checklist.md for rebuild details."
+      ]
+    },
+    "serena": {
+      "status": "available",
+      "command": "serena",
+      "args": [
+        "start-mcp-server",
+        "--context=codex",
+        "--project-from-cwd"
+      ],
+      "uses_network": false,
+      "auth_required": false,
+      "project_use": [
+        "Symbol overview for large C files",
+        "Find symbol bodies and textual patterns without reading entire files",
+        "Persist local project memories for investigation continuity"
+      ],
+      "observed": {
+        "version": "1.2.0",
+        "active_project": "pokeemerald-expansion",
+        "language_backend": "LSP",
+        "context": "codex",
+        "active_modes": [
+          "editing",
+          "interactive"
+        ],
+        "memories": [
+          "coding_conventions",
+          "project_overview",
+          "serena_usage_notes",
+          "suggested_commands",
+          "task_completion_checklist"
+        ]
+      },
+      "notes": [
+        ".serena/ is local-only and excluded from git.",
+        "For this project, use Serena mostly read-only unless the user explicitly allows source edits."
+      ]
+    },
+    "semgrep": {
+      "status": "available",
+      "command": "semgrep",
+      "args": [
+        "mcp"
+      ],
+      "uses_network": "only for AppSec Platform findings/auth features; local custom scans can run without auth",
+      "auth_required": "not required for local custom-rule checks; required for platform findings",
+      "project_use": [
+        "Custom static checks over C snippets or selected files",
+        "Detect risky patterns such as callback assignments, global party writes, flag/var access, and direct save writes",
+        "AST inspection for compact parser-level checks"
+      ],
+      "observed": {
+        "version": "1.161.0",
+        "supported_languages_include": [
+          "c",
+          "cpp",
+          "generic",
+          "json",
+          "lua",
+          "python",
+          "yaml"
+        ],
+        "custom_rule_smoke_test": "Passed with relative in-memory file path semgrep-mcp-smoke.c.",
+        "path_scan_limitation": "A direct semgrep_scan path attempt failed in this session with an MCP/RPC connection error. Prefer semgrep_scan_with_custom_rule for targeted checks, or use CLI fallback if needed.",
+        "sandbox_note": "Plain semgrep --version tried to write ~/.semgrep settings in the sandbox; env HOME=/tmp semgrep --version worked."
+      },
+      "notes": [
+        "SEMGREP_APP_TOKEN is not set and should not be committed.",
+        "Use platform findings only after explicit auth decision."
+      ]
+    }
+  },
+  "local_excludes": [
+    ".clangd",
+    "compile_flags.txt",
+    "compile_commands.json",
+    ".cache/",
+    ".serena/"
+  ]
+}

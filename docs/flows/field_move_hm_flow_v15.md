@@ -202,6 +202,16 @@ flowchart TD
 - player field move graphics は `OBJ_EVENT_GFX_BRENDAN_FIELD_MOVE`, `OBJ_EVENT_GFX_MAY_FIELD_MOVE`, `OBJ_EVENT_GFX_RED_FIELD_MOVE`, `OBJ_EVENT_GFX_GREEN_FIELD_MOVE` など。
 - animation table は `src/data/object_events/object_event_anims.h` の `sAnim_FieldMove` / `sAnimTable_FieldMove`。
 
+`CreateFieldMoveTask` の `gFieldEffectArguments[3]` は **player field move pose skip** として使われる。Cut / Rock Smash / Defog / grass cut などの scripts では follower が field move user の場合に arg3 を nonzero にしている。ただしこの branch は `FLDEFF_FIELD_MOVE_SHOW_MON_INIT` を起動するため、Pokemon の show-mon streak animation は残る。
+
+つまり:
+
+| Desired change | Existing support | Notes |
+|---|---|---|
+| player の field move pose を省略 | `gFieldEffectArguments[3]` で一部対応済み | underwater / follower user などで使われる。 |
+| Pokemon が出る streak animation を省略 | Fly out の `gSkipShowMonAnim` 以外は未共通化 | Cut / Rock Smash / Strength / Surf / Waterfall / Dive / Rock Climb には個別対応が必要。 |
+| party slot を要求しない field effect にする | 未対応 | `FldEff_FieldMoveShowMonInit` が `gPlayerParty[(u8)gFieldEffectArguments[0]]` を読むため、Pokemon 表示なし設計では別 path が必要。 |
+
 ### Surf / Waterfall / Dive Are Special
 
 `src/field_effect.c` で Surf / Waterfall / Dive は独自 task を持つ。
@@ -213,6 +223,26 @@ flowchart TD
 | `FldEff_UseDive` | `Task_UseDive`。show-mon 後に `TryDoDiveWarp`。通常の `CreateFieldMoveTask` ではない。 |
 
 Gen7/Gen8 風に field move を Pokemon 技から切り離す場合も、show-mon animation を残すなら `gFieldEffectArguments[0]` へ「どの Pokemon を表示するか」を渡す仕様が残る。Pokemon を表示しない ride/key item animation に変えるなら `FldEff_FieldMoveShowMonInit` の party slot 前提を避ける別 effect が必要。
+
+### Show-Mon Skip Investigation
+
+既存の skip hook:
+
+| Symbol / path | Current scope |
+|---|---|
+| `gSkipShowMonAnim` | Fly out 側で `FLDEFF_FIELD_MOVE_SHOW_MON_INIT` を起動しないための global。`FldEff_FlyIn` で `FALSE` に戻す。 |
+| `gFieldEffectArguments[3]` | `CreateFieldMoveTask` の player pose skip。show-mon skip ではない。 |
+| `SHOW_MON_CRY_NO_DUCKING` | Surf / Rock Climb などが cry ducking を抑制するための high bit。show-mon skip ではない。 |
+
+現時点の安全な実装候補:
+
+1. `ShouldSkipFieldMoveShowMon()` のような小さい判定を追加し、`FieldEffectStart(FLDEFF_FIELD_MOVE_SHOW_MON_INIT)` の直前で見る。
+2. Cut / Rock Smash / Strength 系の `CreateFieldMoveTask` は、skip 時に `Task_DoFieldMove_WaitForMon` 相当の後処理を直接満たす必要がある。具体的には facing direction と player graphics restore を崩さない。
+3. Surf / Waterfall / Dive / Rock Climb は共通 task ではないため、それぞれの `*_ShowMon` / `*_WaitForShowMon` state を確認して bypass する。
+4. Fly は既に `gSkipShowMonAnim` があるため、field move 全体へ流用するか、Fly 専用のまま残すかを設計で決める。
+5. party menu から起動した場合と map object script から起動した場合で、`gFieldEffectArguments[0]` が party slot / species のどちらとして扱われているかを必ず確認する。
+
+この変更は見た目だけでなく wait condition にも影響する。多くの state machine は `!FieldEffectActiveListContains(FLDEFF_FIELD_MOVE_SHOW_MON)` を待って次へ進むため、skip 時は field effect active list を中途半端に残さないこと。
 
 ## Object Removal / Map State Effects
 
@@ -276,6 +306,7 @@ Gen7/Gen8 風に field move を Pokemon 技から切り離す場合も、show-mo
 
 - Gen7/Gen8 風にする時、Cut / Rock Smash / Strength の障害物を「完全撤去」するか「A ボタンで badge/key item 判定して自動処理」するか未決定。
 - show-mon animation を残すか、ride/key item animation に置き換えるか未決定。
+- Badge unlock は `src/field_move.c` の `IsFieldMoveUnlocked_*` に分離済みだが、`ScrCmd_checkfieldmove`、party menu action、Surf の `PartyHasMonWithSurf()`、field effect argument 0 はまだ技所持 / party slot 前提。key item / story flag unlock にする場合はこの coupling を先に設計する。
 - `P_CAN_FORGET_HIDDEN_MOVE` を維持するか、field move 廃止後に HM move 自体を通常 move として扱うか未決定。
 - `B_CATCH_SWAP_CHECK_HMS` と `sRestrictedReleaseMoves` をどう扱うか未決定。HM が不要になれば softlock 防止理由は弱くなるが、Dive / Surf の地形依存が残るなら別制限が必要。
 - Secret Power / secret base は `FIELD_MOVE_SECRET_POWER` を使うが HM ではない。今回の HM 廃止に含めるか未決定。
