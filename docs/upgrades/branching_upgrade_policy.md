@@ -45,6 +45,46 @@ GitHub の Sync fork / Update branch は便利だが、これは「upstream の 
 - upgrade 検証の結果は、まず docs / report として共有する。upstream / shared repo への PR は project owner / upstream maintainer が許可した時だけ作成する。
 - PR #3 は `Jastin-Infj/pokeemerald-expansion` の fork 内に作成された draft PR であり、RH Hideout upstream へは送っていない。ただし誤解を避けるため close 済み。
 
+## Remote Safety Rule
+
+この local repository では remote を以下の役割に固定する。
+
+| Remote | Fetch | Push | Role |
+|---|---|---|---|
+| `RHH` | `https://github.com/rh-hideout/pokeemerald-expansion.git` | `DISABLED` | upstream 読み取り専用。tag / changelog / compare / release 追従用。 |
+| `origin` | `git@github.com:Jastin-Infj/pokeemerald-expansion.git` | `git@github.com:Jastin-Infj/pokeemerald-expansion.git` | 自分の fork。branch push / fork 内 PR 用。 |
+
+`RHH` は fetch 専用にする。設定コマンド:
+
+```bash
+git remote set-url --push RHH DISABLED
+```
+
+確認コマンド:
+
+```bash
+git remote -v
+git remote get-url RHH
+git remote get-url --push RHH
+```
+
+期待値:
+
+```text
+RHH    https://github.com/rh-hideout/pokeemerald-expansion.git (fetch)
+RHH    DISABLED (push)
+origin git@github.com:Jastin-Infj/pokeemerald-expansion.git (fetch)
+origin git@github.com:Jastin-Infj/pokeemerald-expansion.git (push)
+```
+
+operation rule:
+
+- upstream 情報確認は `git fetch RHH` / `git ls-remote RHH ...` / GitHub compare URL を使う。
+- branch 保存や docs / feature work の push は `git push origin <branch>` だけを使う。
+- `git push RHH ...` は実行しない。実行しても `DISABLED` により失敗する状態を維持する。
+- `gh pr create` を使う時は `--repo Jastin-Infj/pokeemerald-expansion` を明示し、`--base` が自分の fork 側 branch であることを確認する。
+- `--repo rh-hideout/pokeemerald-expansion` を指定する PR は、事前許可がある時以外禁止。
+
 ## Branch Roles
 
 推奨 branch 役割:
