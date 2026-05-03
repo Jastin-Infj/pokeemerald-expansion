@@ -128,6 +128,13 @@
       "version": "0.11-1-b19b557",
       "install_source": "local CMake/Ninja build from mGBA upstream master",
       "notes": "Working binary for mgba-live-mcp."
+    },
+    {
+      "name": "mdbook",
+      "path": "mdbook",
+      "version": "0.5.2",
+      "install_source": "local user/system installation",
+      "notes": "Use `mdbook build docs` after docs changes. Build output goes to docs/book. Existing warning remains in docs/CREDITS.md for an unexpected </img> tag."
     }
   ],
   "python_uv_tools": [

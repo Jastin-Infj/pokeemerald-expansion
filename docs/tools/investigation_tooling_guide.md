@@ -2,7 +2,7 @@
 
 ## Purpose
 
-この文書は、今後 pokeemerald-expansion を調査・改造設計するときに、`rg`、Serena、agent-lsp、Semgrep、mGBA Live MCP、Context7、Playwright をどう使い分けるかを整理する。
+この文書は、今後 pokeemerald-expansion を調査・改造設計するときに、`rg`、Serena、agent-lsp、Semgrep、mGBA Live MCP、Context7、Playwright、mdBook をどう使い分けるかを整理する。
 
 原則として、既存 source は読み取り専用で扱う。実装許可が出るまで、`src/`、`include/`、`data/`、`tools/`、`Makefile`、`config` などは編集しない。今回のような調査記録・復旧情報は `docs/` 配下だけに追加する。
 
@@ -25,6 +25,7 @@
 | mGBA Live MCP | 実行時の画面遷移、OAM、memory、input、Lua を確認したい | UI/transition/field/battle runtime 検証に強い | source build の mGBA が必要。session を残さないよう stop が必要。 |
 | Context7 | 外部 tool/library の最新 docs が必要 | current docs の取得に強い | API key を docs に書かない。project source の代替にはしない。 |
 | Playwright MCP | mdBook や Web UI の表示確認が必要 | browser screenshot と DOM 操作に強い | GBA 画面確認には mGBA Live MCP を使う。 |
+| mdBook | `docs/` の SUMMARY / Markdown / local doc site を検証したい | docs build と link structure の基本確認ができる | warning は既存 docs 由来のものと新規 docs 由来のものを切り分ける。 |
 
 ## Recommended Investigation Flow
 
@@ -60,8 +61,15 @@ flowchart TD
 | Semgrep learnset smoke | relative in-memory file `pokemon-learnset-smoke.c` で `CanLearnTeachableMove` style の `MOVE_UNAVAILABLE` sentinel loop 検出に成功。 |
 | mGBA Live MCP | `mgba-live-mcp 0.5.0`。working mGBA は `.cache/mgba-script-build-master/qt/mgba-qt`。 |
 | Node/npm | Node `v24.11.1`、npm `11.6.2`。Context7 / Playwright の `npx` runner に使用。 |
+| mdBook | `mdbook v0.5.2`。`mdbook build docs` は成功し、HTML は `docs/book` に出力される。現時点で残る警告は既存 `docs/CREDITS.md` の `</img>` のみ。 |
 
 ## Known Limitations
+
+### mdBook
+
+`mdbook build docs` は docs-only 変更の軽量検証として使う。今回確認した範囲では build は成功するが、既存 `docs/CREDITS.md` に `unexpected HTML end tag </img>` warning が残っている。
+
+新規 docs では angle bracket placeholder を Markdown link text や prose にそのまま書くと HTML tag として解釈される。例: `<MapName>` は warning になるため、`MapName` や backtick 内の symbol 名に置き換える。
 
 ### agent-lsp / clangd
 
