@@ -26,6 +26,9 @@ Battle Factory / Pokemon Champions / roguelike 的な施設を作る場合に、
 | `docs/features/battle_selection/` | trainer battle 前選出、party 一時保存。 |
 | `docs/flows/party_menu_flow_v15.md` | party menu、held item give/take、choose half。 |
 | `docs/flows/move_relearner_flow_v15.md` | 技思い出し / level 無視 move candidate。 |
+| [`docs/overview/roguelike_npc_capacity_v15.md`](roguelike_npc_capacity_v15.md) | Rogue NPC 100〜300 人計画の object event / flag / save 予算と推奨実装方式。 |
+| [`docs/overview/roguelike_runtime_party_v15.md`](roguelike_runtime_party_v15.md) | Rogue 用 runtime party 生成。`GetTrainerStructFromId` hook + `struct Trainer.poolSize` の活用、Frontier 経路との比較。 |
+| [`docs/overview/roguelike_runtime_hooks_v15.md`](roguelike_runtime_hooks_v15.md) | Battle 終了 callback、wave 帯ごとの AI flag、`SeedRng` / `LocalRandom` の決定論的 RNG、SaveBlock3 への RogueSave 追加候補。各項目で「現時点未実装」を明示。 |
 
 ## Held Item Lock
 
