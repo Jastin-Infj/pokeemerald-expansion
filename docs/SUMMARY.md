@@ -39,6 +39,8 @@
     - [Pokemon Learnset Flow v15](flows/pokemon_learnset_flow_v15.md)
     - [TM/HM Expansion 250 v15](overview/tm_hm_expansion_250_v15.md)
     - [Champions Training UI Feasibility v15](overview/champions_training_ui_feasibility_v15.md)
+    - [Scout Selection and Battlefield Status Design v15](overview/scout_selection_and_battlefield_status_v15.md)
+    - [Champions Challenge Facility](features/champions_challenge/README.md)
     - [Wild Moveset Randomization Feasibility v15](overview/wild_moveset_randomization_v15.md)
     - [Runtime Rule Options Feasibility v15](overview/runtime_rule_options_feasibility_v15.md)
     - [Battle AI Decision Flow v15](flows/battle_ai_decision_flow_v15.md)
