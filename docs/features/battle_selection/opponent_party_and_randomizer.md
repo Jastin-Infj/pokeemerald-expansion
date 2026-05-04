@@ -141,6 +141,62 @@ flowchart TD
 
 Randomizer 風の trainer party 並び替えは、既存の Trainer Party Pools と `AI_FLAG_RANDOMIZE_PARTY_INDICES` でかなり近いことが確認できた。
 
+## 10 Candidates -> Pick 6
+
+ユーザー要望の「trainer.party に 10 匹候補を書き、その中から 6 匹を選ぶ」は、現行 Trainer Party Pools でかなり近い。
+
+`trainers.party` では、trainer に 10 匹定義し、header 側の `Party Size` を 6 にする。`trainerproc` は定義 Pokemon 数より `Party Size` が小さい場合に `.poolSize` を出力し、battle 生成時に `DoTrainerPartyPool()` が pool から実際の party を選ぶ。
+
+```text
+=== TRAINER_EXAMPLE_POOL ===
+Name: Example
+Class: Cooltrainer
+Pic: TRAINER_PIC_COOLTRAINER_M
+Gender: Male
+Party Size: 6
+Pool Rules: Basic
+Pool Pick Functions: Default
+Pool Prune: None
+AI: Smart
+
+Pokemon: SPECIES_...
+Level: 50
+Tags: Lead
+
+Pokemon: SPECIES_...
+Level: 50
+Tags: Ace
+```
+
+既存 tutorial は [How to use Trainer Party Pools](../../tutorials/how_to_trainer_party_pool.md)。Lead / Ace / Weather Setter / Weather Abuser / Support などの tag を付けると、単純な完全 random ではなく「先発候補」「切り札候補」「天候役」のような役割を残せる。
+
+## Runtime Pool vs External Generator
+
+ユーザー案の「外部 service / exe で `trainers.party` を吐き出し、貼り付けて使う」は有力。アップストリーム更新時に C 側 randomizer を毎回追従するより、trainer data format に合わせて生成物を出す方が保守しやすい。
+
+| Approach | Pros | Risks |
+|---|---|---|
+| In-engine Trainer Party Pools | 既存機能を使える。battle ごとの揺らぎを出せる。tag / rule / prune と連動できる。 | Preview UI と本番 party の RNG 同期、replay/debug 再現性、balance check が必要。 |
+| External generator -> static `trainers.party` | C 側変更が少ない。差分 review しやすい。アップストリーム追従時も trainer data format だけ合わせればよい。 | 実行時 random ではない。再生成しない限り team は固定。 |
+| External generator -> Trainer Party Pool blocks | 10 候補から 6 匹選ぶような pool を自動生成できる。engine は既存 TPP を使う。 | generator が `Party Size`、`Pool Rules`、`Tags`、constants を正しく出す必要がある。 |
+
+現時点の推奨は **External generator -> Trainer Party Pool blocks**。engine 側の新規改造を抑えつつ、trainer ごとに 10 候補 / 6 選出 / tag 付き role を作れる。Pokemon Champions 風のルールや randomizer は外部で進化させ、ROM 側は `trainers.party` DSL と Trainer Party Pools の互換を保つ。
+
+## External Generator Contract
+
+外部生成に寄せる場合、最初に固定するべき contract:
+
+| Contract | Reason |
+|---|---|
+| Input constants | `SPECIES_*`, `MOVE_*`, `ITEM_*`, `ABILITY_*`, `TRAINER_*` は repo の constants に合わせる。 |
+| Output format | `tools/trainerproc/main.c` が読める `trainers.party` DSL をそのまま出す。 |
+| Pool metadata | `Party Size`, `Pool Rules`, `Pool Pick Functions`, `Pool Prune`, `Tags` を出せるようにする。 |
+| Validation | species / move / item constants の存在、重複 species / item clause、level、move count を生成時に検査する。 |
+| Deterministic seed | 同じ seed と同じ input なら同じ output を吐く。差分 review と再現性のため。 |
+| Version marker | 生成物 comment に generator version / ruleset / seed を残す。 |
+
+この方式なら、将来 generator 側で「現世代動画や画像 frame から採用した人間味のある構成」「double battle 用 partner 評価」「tier / usage に応じた move weight」を増やしても、ROM 側の変更範囲を小さく保てる。
+
 ## Opponent Party Preview Timing
 
 重要な確認点:

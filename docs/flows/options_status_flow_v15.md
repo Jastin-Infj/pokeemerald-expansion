@@ -66,6 +66,76 @@ flowchart TD
 
 `optionsButtonMode` は `SetDefaultOptions` 内では明示的に設定されていないことを確認した。初期化元は追加調査対象。
 
+## Multi-page Option Menu Feasibility
+
+現行 option menu は single page 前提が強い。`src/option_menu.c` では `MENUITEM_COUNT`、`sOptionMenuItemsNames`、`DrawOptionMenuTexts()`、`Task_OptionMenuProcessInput()` が固定の縦 list として動く。上下で `tMenuSelection` を移動し、左右で現在項目の値を変える。L/R で page を切り替える処理は確認できなかった。
+
+3 page 程度へ増やす場合は、単に `MENUITEM_COUNT` を増やすより、page descriptor を分ける方が安全。
+
+```text
+Page 0: General
+  Text Speed
+  Battle Scene
+  Battle Style
+  Sound
+  Button Mode
+  Frame
+
+Page 1: Battle Display
+  Move Info
+  Type Icons
+  Effectiveness
+  Fast HP
+  Hazard Display
+
+Page 2: Facility / Rules
+  Held Item Lock
+  Wild IV Mode
+  Wild Moveset Mode
+  Battle Item Restore
+```
+
+想定する C-side 設計:
+
+| Component | Role |
+|---|---|
+| `tPage` | 現在 page。L/R で切り替える。 |
+| page item table | page ごとの option item ID と描画位置。 |
+| item descriptor | label、draw function、process input function、save target を持つ。 |
+| redraw helper | page 切替時に window を clear し、label と choices を再描画する。 |
+| save helper | task buffer から SaveBlock / flag / var / config-backed value へ反映する。 |
+
+L/R page 切替は、`optionsButtonMode == OPTIONS_BUTTON_MODE_LR` や `L=A` と混同しやすい。option menu 内では L/R を page command として使えるが、「Button Mode」項目そのものを編集中の左右入力と、page 切替の L/R 入力は明確に分ける必要がある。例えば page 切替は `JOY_NEW(L_BUTTON)` / `JOY_NEW(R_BUTTON)`、値変更は DPAD 左右だけにする。
+
+## Runtime Option Storage Risk
+
+`include/config/battle.h` の多くは compile-time config であり、現行 option save data とは別系統。`Stealth Rock` 表示、battle item restore、held item lock、wild IV mode のような新規 rule を game 内 option にする場合、保存先を決める必要がある。
+
+| Storage | Pros | Risks |
+|---|---|---|
+| Compile-time config | 実装が軽い。save 互換に触らない。 | ゲーム内で切り替えられない。 |
+| Event flag / var | docs の flag/var tutorial と相性が良い。facility / story progress で切替可能。 | option menu から直接編集するなら flag/var ID 管理が必要。 |
+| SaveBlock2 field | option menu らしい。既存 field と近い。 | SaveBlock layout / bitfield / migration リスクがある。 |
+| SaveBlock3 custom field | expansion 独自 save として分離しやすい。 | field 追加、初期化、save migration、docs 整備が必要。 |
+
+初回 MVP では、対戦 rule 系は **compile-time config または event var** に寄せるのが安全。option menu に大量の rule を入れる実装は、page UI と save data policy を固めてから行う。
+
+Nuzlocke、release、難易度、EXP / catch / shiny 倍率、Mega / Z / Dynamax / Terastal、trade、randomizer などをまとめて option 化する候補は [Runtime Rule Options Feasibility v15](../overview/runtime_rule_options_feasibility_v15.md) に分離した。現行 option menu は SaveBlock2 の既存 option を直接編集する構造なので、これらの rule は option menu に直書きせず、SaveBlock3 / event flag / event var / facility state のどれを source of truth にするかを先に決める。
+
+### Rule Pages Candidate
+
+大量の rule を入れるなら、page は次のように分ける。
+
+| Page | Items |
+|---|---|
+| General | Text Speed, Battle Scene, Battle Style, Sound, Button Mode, Frame |
+| Battle Rules | Difficulty, No Bag, Sleep Clause, No Running, No Catching, No Whiteout |
+| Roguelike | Nuzlocke, Release On Loss, Held Item Lock, Item Clause, Battle Item Restore |
+| Growth / Encounter | EXP Multiplier, Catch Rate, Shiny Rolls, Wild IV Mode, Wild Moveset Mode |
+| Gimmicks | Mega, Z-Move, Dynamax, Terastal, Tera No Cost |
+
+`B_VAR_DIFFICULTY`、`B_FLAG_DYNAMAX_BATTLE`、`B_FLAG_TERA_ORB_CHARGED`、`B_FLAG_TERA_ORB_NO_COST`、`B_FLAG_NO_CATCHING`、`B_FLAG_NO_RUNNING`、`B_FLAG_SLEEP_CLAUSE` は既に runtime flag / var pattern がある。Mega off、Z-Move off、EXP 倍率、catch rate 倍率、shiny reroll 倍率、Nuzlocke は追加 gate / 追加 state が必要。
+
 ## Battle UI Config
 
 `include/config/battle.h` で確認した、battle UI / input へ影響する config:

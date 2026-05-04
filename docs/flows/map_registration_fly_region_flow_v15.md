@@ -126,6 +126,7 @@ Fly map の icon 点滅自体は仕様として存在する。`SpriteCB_FlyDestI
 | `setworldmapflag` ではなく `setflag` で FRLG world map flag を扱う | map preview state と world map unlock flow が噛み合わない。 |
 | Emerald build で `FLAG_WORLD_MAP_* == 0` のまま参照する | `FlagGet(0)` 相当になり、判定が無意味化する可能性。FRLG conditional を確認する。 |
 | Fly map cancel / return callback の後に preview / region map BG state を残す | palette/BG/window の復帰漏れでちらつきに見える可能性。 |
+| Town Map / wall region map から R Fly する path の cleanup 差分 | A/B close path と R Fly path で window / icon / buffer 解放順序が違うと、Fly 後の map name popup に BG/window state が残る可能性。設計候補だが未実装。 |
 
 ユーザー報告の「町のアップデート / icon を開いた後に Fly すると点滅」は、現時点では **Fly icon の仕様点滅**と、**world map flag / preview state / region map icon state の不一致**のどちらかを切り分ける必要がある。
 
@@ -180,6 +181,7 @@ Fly 可否そのものは badge unlock (`IsFieldMoveUnlocked_Fly`) と destinati
 ## Open Questions
 
 - 報告された点滅は Fly icon の通常 flicker か、BG/palette/window 復帰漏れか。
+- Town Map / wall region map の R Fly path は、通常 close path と同じ cleanup を通してから `ReturnToFieldFromFlyMapSelect` へ進めるべきか。候補はあるが、現時点では docs のみでコード未変更。
 - 新規 map は Hoenn / Kanto / Sevii / 独自 region のどれに所属させるか。
 - `MAPSEC_*` を既存 city と共有するか、新規 mapsec を切るか。
 - Fly destination は heal location にするか、map warp id にするか、特別 case を `FilterFlyDestination` に足すか。
