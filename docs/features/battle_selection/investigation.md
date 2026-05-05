@@ -277,6 +277,109 @@ MVP では以下を除外候補にするのが安全。
 | Battle UI の 3/4 slot 表示 | `CreatePartyStatusSummarySprites` など battle UI 複数箇所に波及する。MVP は既存 6 slot 表示を許容する。 | `docs/flows/battle_ui_flow_v15.md` |
 | Battle Frontier / link / multi 対応 | 既存 facility rules と通信 battle flow に入るため、通常 trainer battle の後に個別 audit する。 | feature-specific follow-up doc |
 
+## Restore Timing (CB2_EndTrainerBattle)
+
+`src/battle_setup.c:1428-1494` の `CB2_EndTrainerBattle` を読み、battle 終了後の処理順序を確定した。
+
+```text
+DoTrainerBattle()
+   ↓ (battle main loop)
+gMain.savedCallback = CB2_EndTrainerBattle
+   ↓
+CB2_EndTrainerBattle:
+   1. HandleBattleVariantEndParty()        # Sky Battle 等の party swap 復元 hook
+   2. (FollowerNPC) RestorePartyAfterFollowerNPCBattle()
+   3. early-rival branch / forfeit branch / defeat branch / win branch
+   4. SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic)
+        または SetMainCallback2(CB2_WhiteOut)
+   ↓ whiteout の場合
+CB2_WhiteOut:                              # src/overworld.c:1903
+   - 120 frame 待機後に DoWhiteOut()
+   ↓
+DoWhiteOut():                              # src/overworld.c:390
+   - RunScriptImmediately(EventScript_WhiteOut)
+   - HealPlayerParty()                     # 全 party 全回復
+   - Overworld_ResetStateAfterWhiteOut()
+   - SetWarpDestinationToLastHealLocation()
+```
+
+`HandleBattleVariantEndParty` の実装 (src/battle_setup.c:1419-1426):
+
+```c
+static void HandleBattleVariantEndParty(void)
+{
+    if (B_FLAG_SKY_BATTLE == 0 || !FlagGet(B_FLAG_SKY_BATTLE))
+        return;
+    SaveChangesToPlayerParty();   // 参加 mon の battle 後 state を SaveBlock1.playerParty へ書き戻す
+    LoadPlayerParty();             // SaveBlock1.playerParty から live gPlayerParty を復元
+    FlagClear(B_FLAG_SKY_BATTLE);
+}
+```
+
+これは battle_selection MVP がそのまま参考にできる pattern。`B_FLAG_SKY_BATTLE` 相当の `B_FLAG_PARTY_SELECTION_ACTIVE` を作り、`SaveChangesToPlayerParty` 相当 (`gSelectedOrderFromParty[i]` を index として書き戻す) と `LoadPlayerParty` を呼ぶ。
+
+### Critical Finding: Restore は whiteout より前
+
+`HandleBattleVariantEndParty` は `CB2_EndTrainerBattle` の最初に走る。つまり:
+
+1. battle 中に選出 3 匹がすべて瀕死。
+2. `CB2_EndTrainerBattle` 冒頭で **6 匹 full party へ復元**。
+3. 続く defeat 判定で `CB2_WhiteOut` へ遷移。
+4. `DoWhiteOut` の `HealPlayerParty()` が **6 匹全員を全回復**。
+
+これは仕様上の選択肢になる。
+
+| Option | 挙動 | 評価 |
+|---|---|---|
+| MVP 現行案 (whiteout 前に復元) | 全滅後 6 匹全員が pokemon center で healed | Sky Battle と同じ pattern。実装最小。non-選出 mon が「battle 中だった」ことに気付かないが、whiteout は元々 full heal なので破綻しない |
+| 復元を whiteout 後に遅延 | 選出 3 匹だけが healed され、非選出 3 匹は元 HP | 実装重 (CB2_WhiteOut からも hook する)。Frontier の選出感に近い |
+
+MVP は **現行案 (Sky Battle 互換)** で進める。
+
+### `SavePlayerParty` / `LoadPlayerParty` の中身
+
+`src/load_save.c:169-195` と `src/pokemon.c:7371-7374`:
+
+```c
+void SavePlayerParty(void)
+{
+    *GetSavedPlayerPartyCount() = gPlayerPartyCount;
+    for (i = 0; i < PARTY_SIZE; i++)
+        SavePlayerPartyMon(i, &gPlayerParty[i]);
+}
+
+void SavePlayerPartyMon(u32 index, struct Pokemon *mon)
+{
+    gSaveBlock1Ptr->playerParty[index] = *mon;     // !!! これが backup buffer ではなく "本来の slot"
+}
+
+void LoadPlayerParty(void)
+{
+    gPlayerPartyCount = *GetSavedPlayerPartyCount();
+    for (i = 0; i < PARTY_SIZE; i++)
+        gPlayerParty[i] = *GetSavedPlayerPartyMon(i);
+    // ...
+}
+```
+
+**`SaveBlock1.playerParty[]` は backup 用の別 buffer ではなく、保存される本来の party slot。** `SavePlayerParty()` は live `gPlayerParty` (EWRAM) を SaveBlock1 にコピーするだけ。Sky Battle / battle_selection の用途では、
+
+- battle 開始前に `SavePlayerParty()` (= 元 6 匹を SaveBlock1 へ書く)
+- `gPlayerParty` を選出 3 匹に縮約
+- battle 中はずっと `gPlayerParty` = 3 匹、`SaveBlock1.playerParty` = 元 6 匹
+- battle 後に `SaveChangesToPlayerParty()` で参加 3 匹の最新 state を SaveBlock1 の対応 slot へ戻す
+- `LoadPlayerParty()` で SaveBlock1 → `gPlayerParty` に復元
+
+という流れ。SaveBlock1.playerParty が backup の役を兼ねるので、**追加 EWRAM buffer は不要**。
+
+### Risk: Save While Selecting
+
+battle 中に save game (Frontier 等で `SaveGameFrontierLike` を呼ぶ場合) が走ると、`SaveBlock1.playerParty` の現在内容 (= 元 6 匹) が flash に書かれる。つまり battle 中の 3 匹の中間状態は flash に乗らない。これは MVP では問題にならないが、Champions Challenge の party snapshot 設計には大きな制約 → `docs/features/champions_challenge/risks.md` 側に転記が必要。
+
+### Reflection on Open Investigation Queue
+
+`docs/manuals/open_investigation_queue.md` の High Priority に挙げていた「battle selection restore timing」は、本 section で解決。queue 側は本 section へリンクして status を下げる。
+
 ## Open Questions
 
 - `MAX_FRONTIER_PARTY_SIZE` の値と、4 匹選出に使えるかは追加確認が必要。

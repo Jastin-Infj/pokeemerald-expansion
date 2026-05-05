@@ -4,7 +4,8 @@
 
 | Risk | Severity | Affected area | Mitigation |
 |---|---|---|---|
-| 通常 party が復元されない | High | `gPlayerParty`, save buffer, aftercare | start/end helper を一箇所に集約し、power-cut recovery test を作る。 |
+| 通常 party が復元されない | High | `gPlayerParty`, save buffer, aftercare | start/end helper を一箇所に集約し、power-cut recovery test を作る。**詳細は次節 "SaveBlock1.playerParty Conflict" 参照** |
+| Save game 中に通常 party snapshot が失われる | High | `SaveBlock1.playerParty[]`, `SavePlayerParty` 呼び出し | 既存 `SavePlayerParty()` は live `gPlayerParty` を `SaveBlock1.playerParty[]` に書き戻すだけで、別 buffer ではない。challenge 中に save game が走ると challenge mons が persistent slot に固定化し、通常 party snapshot が消える。**通常 party は専用 SaveBlock1 field (新規 `savedNormalParty[PARTY_SIZE]`) に snapshot する必要あり** |
 | 通常 bag が破壊される | High | `gSaveBlock1Ptr->bag`, `gLoadedSaveData.bag`, mail, encryption key | `SavePlayerBag` / `LoadPlayerBag` pattern を尊重し、独自 memcpy を散らさない。 |
 | Challenge bag が save layout を壊す | High | `struct Bag`, SaveBlock1/2/3 | MVP は runtime-only または既存 spare area を調査してから。bag capacity 変更は避ける。 |
 | Lv.50 化で actual EXP / level が壊れる | High | Pokemon data, battle mon setup | actual `MON_DATA_LEVEL` を書き換えず battle-only scaling にする。 |
@@ -44,6 +45,60 @@
 | generator-only と team display 要件が混ざる | High | partygen, opponent preview, UI, RNG | MVP は display 変更なし。preview / team display は別 phase にし、source path / seed / post-pool result の扱いを決めてから実装する。 |
 
 ## Specific Notes
+
+### SaveBlock1.playerParty Conflict
+
+`docs/features/battle_selection/investigation.md#savePlayerParty--LoadPlayerParty-の中身` で確定した動作:
+
+- `SavePlayerParty()` は live `gPlayerParty` を `SaveBlock1.playerParty[]` へ memcpy する。**別 buffer ではなく、保存される本来の slot そのもの**。
+- `LoadPlayerParty()` は `SaveBlock1.playerParty[]` → `gPlayerParty` で復元する。
+
+Sky Battle / Battle Frontier / Pyramid はこれを「一時 party 縮約 → battle → end callback で `SavePlayerParty` で書き戻し → `LoadPlayerParty` で復元」の round-trip として使っている。Battle 中だけの swap なら成立する。
+
+Champions Challenge は **完了まで session が長く、途中で player が save game する**。MVP 想定でも:
+
+| Session phase | live `gPlayerParty` | `SaveBlock1.playerParty` | save game した場合 |
+|---|---|---|---|
+| Reception 前 | 通常 party | 通常 party | OK |
+| `ChampionsChallenge_InitRun` 直後 | 0 匹 (ZeroPlayerPartyMons) | 通常 party (snapshot されたつもり) | flash には 0 匹が書かれる → 通常 party 失われる |
+| 6 匹そろえた | challenge 6 匹 | (前 step で破壊されている) | challenge 6 匹が書かれる |
+| 敗北、復元 | 通常 party (snapshot から戻したつもり) | challenge 6 匹 | snapshot 元が無いので戻せない |
+
+**結論**: 通常 party の snapshot を `SaveBlock1.playerParty` 経由で行ってはいけない。専用 SaveBlock1 field (`savedNormalParty[PARTY_SIZE]` + `savedNormalPartyCount`) を追加し、live `gPlayerParty` と独立に persist する必要がある。
+
+`save_data_flow_v15.md#Champions Challenge Field Sketch` の `ChampionsChallengeState` に `savedParty[PARTY_SIZE]` (≈600 B) を含める設計はこの理由で必要。in-place swap で済ませる案 (`mvp_plan.md` のかつての註釈) は **実現不可**。
+
+### SaveBlock1 Capacity Implication
+
+通常 party snapshot の専用 field を持つと、SaveBlock1 への新規追加は最小でも:
+
+- `struct Pokemon savedNormalParty[PARTY_SIZE]` ≈ `100 B × 6 = 600 B` (`sizeof(struct Pokemon)` を後で実測する)
+- `u8 savedNormalPartyCount` ≈ 1 B
+- `struct ChampionsChallengeState` 制御 fields ≈ 16 B
+
+bag snapshot を SaveBlock1 で持つと `struct Bag` ≈ 700-800 B 追加。これで SaveBlock1 が 1.4-1.5 KB 増える。
+
+`docs/flows/save_data_flow_v15.md#Capacity Audit` より、SaveBlock1 で `FREE_*` toggle を有効化して回収できるのは:
+
+- `FREE_MYSTERY_GIFT` = 876 B
+- `FREE_MYSTERY_EVENT_BUFFERS` = 1104 B
+- `FREE_UNION_ROOM_CHAT` = 212 B
+
+このうち Mystery Gift / Mystery Event を本 fork で使わないなら 1980 B 解放できるので、ChampionsChallengeState は十分収まる。bag snapshot を含めても 1.5 KB なので OK。
+
+ただし、これは **2 つの FREE_ toggle と 1 つの新規 struct を同時に変える PR** になる。save migration 必須、upstream 追従のたびに conflict 候補。実装着手前に migration 方針を `docs/upgrades/` に追記する。
+
+### Alternative: Bag Snapshot を SaveBlock1 に含めない
+
+bag snapshot を SaveBlock1 に常駐させると 1.5 KB 級の常時 cost。代替案:
+
+| Option | Pro | Con |
+|---|---|---|
+| 常駐 (推奨案) | shutdown 中も snapshot 維持。power cut から復帰可能 | 常時 SaveBlock1 を 1.5 KB 占有 |
+| Challenge 中だけ swap (in-place bag swap) | SaveBlock1 cost ゼロ | save game / power cut で snapshot 失われる。runtime memory のみ |
+| SaveBlock3 | SaveBlock1 を増やさない | SaveBlock3 は 1624 B 上限。bag (~700B) + party (~600B) で 1300 B、ほぼ使い切る。DexNav search level (~1500 B) と排他 |
+
+MVP は **常駐案 + Mystery Gift / Mystery Event を FREE 化** が安全。ただし fork で Mystery Gift を使う想定があれば再検討。
 
 ### Bag Freeze
 

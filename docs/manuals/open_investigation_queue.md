@@ -7,18 +7,23 @@
 
 | Topic | Current owner | Why it matters | Next investigation |
 |---|---|---|---|
-| party generator input design | `docs/features/battle_selection/` | global set、blueprint、materialized pool、lint の入力形式が固まらないと実装と運用がぶれる。 | catalog / blueprint / rule dictionary の最小 schema と sample を作る。 |
-| `trainer.party` integration | `docs/features/battle_selection/` | rename / replace 方式と generated file 参照方式で build、review、upstream merge、team display 影響が変わる。 | trainerproc と build path を確認し、Plan A / B の差分を決める。 |
 | opponent preview / team display impact | `docs/features/battle_selection/` | MVP からは分離するが、後続で preview と battle 実体を一致させる必要がある。 | `gEnemyParty` 生成 timing、seed、pool randomize 再現性を調査する。 |
-| battle selection restore timing | `docs/features/battle_selection/` | battle 後の level up、move learn、evolution、whiteout、cancel で party restore が壊れやすい。 | `CB2_EndTrainerBattle` 以降の反映 timing を focused に読む。 |
-| SaveBlock / runtime option policy | `docs/flows/save_data_flow_v15.md` | seed、option、challenge state、no encounter option の保存場所を決める必要がある。 | make output の free space、SaveBlock2/3 の project policy、migration 方針を確認する。 |
+
+### Resolved (2026-05-05)
+
+| Topic | Resolution |
+|---|---|
+| ~~party generator input design~~ | `docs/features/champions_challenge/mvp_plan.md#Catalog Schema (MVP draft)` で sets / blueprints / journey / rulesets の最小 4 種 JSON schema と sample を確定。 |
+| ~~`trainer.party` integration~~ | `docs/features/champions_challenge/mvp_plan.md#trainers.party Integration: Plan A vs Plan B` で `trainer_rules.mk` の build path、CPP `#include` 経由、duplicate id 検出 (`-Werror -Woverride-init`) まで確認し、MVP は Plan A 採用と確定。 |
+| ~~battle selection restore timing~~ | `docs/features/battle_selection/investigation.md#Restore Timing (CB2_EndTrainerBattle)` で `HandleBattleVariantEndParty` / `SavePlayerParty` / `LoadPlayerParty` を確認し、`SaveBlock1.playerParty` が backup buffer ではなく persistent slot 自体だと判明。Sky Battle pattern を流用する方針で確定。 |
+| ~~SaveBlock / runtime option policy~~ | `docs/flows/save_data_flow_v15.md#Allocation Decision Summary` で 4 feature の owner block を確定。SaveBlock1/2/3 上限、`FREE_*` recoverable bytes (3790 B 合計)、saved flag/var headroom を audit 済み。 |
 
 ## Medium Priority
 
 | Topic | Current owner | Why it matters | Next investigation |
 |---|---|---|---|
-| no random encounters scope | `docs/features/no_random_encounters/` | step-only MVP と broad-wild mode の境界を決めないと option 名が曖昧になる。 | Fishing / Sweet Scent / Rock Smash / static wild battle の call path を分ける。 |
-| HM / field move modernization | `docs/features/field_move_modernization/` | field move 廃止、badge/key item 判定、release 制限、Secret Power の扱いが連鎖する。 | Cut / Rock Smash / Strength / Surf / Dive / Waterfall ごとに in/out を決める。 |
+| no random encounters scope | `docs/features/no_random_encounters/` | step-only MVP と broad-wild mode の境界を決めないと option 名が曖昧になる。 | Fishing / Sweet Scent / Rock Smash / static wild battle の call path を分ける。MVP scope は `mvp_plan.md` で確定済み、broad mode の追加 hook は実装着手時に再調査。 |
+| ~~HM / field move modernization scope~~ | `docs/features/field_move_modernization/` | Resolved 2026-05-05: `mvp_plan.md#Per-HM Decision Table` で HM ごとの badge / map obstacle / MVP slice 順序 (Cut → Rock Smash → Strength → Flash → ... → Fly) を確定。 | — |
 | TM shop migration | `docs/features/tm_shop_migration/` | 全 TM の販売時期、既存 reward、visible / hidden item 置換、save flag の扱いが未確定。 | stage unlock、price tier、NPC/gym reward replacement の候補を整理する。 |
 | generated data rebuild flow | `docs/manuals/generated_data_workflow.md` | partygen 以外にも shop / encounter randomizer で同じ問題が起きる。 | CLI doctor / lint / diff / drift check の共通 contract を feature に適用する。 |
 | docs organization | `docs/manuals/docs_navigation.md` | manual / tutorial / feature / overview / flow の境界が曖昧だと重複が増える。 | 移動ではなく index / navigation / template の更新で整理する。 |

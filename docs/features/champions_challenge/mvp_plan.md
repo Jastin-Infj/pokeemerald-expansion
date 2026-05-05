@@ -206,7 +206,7 @@ build path は `trainer_rules.mk` で定義されている:
 | `clean-generated` の対象 | × (普通の source) | ○ (`make clean-generated` で消す。partygen 再実行が前提) |
 | build dependency | partygen に依存しない (ROM build から partygen 切離可能) | `trainers.party` が generated file に depend する → ROM build から partygen が実質必須になる |
 | CI build を partygen に縛りたいか | 縛らない | 縛る (partygen が止まると ROM build も止まる) |
-| 既存 `.party` block の扱い | 既存 block を上書きするので review で消えた / 書き換わった行が見える | 既存 block と並列に新規 generated block を追加 / 上書き。手動 block と重複定義した場合の trainerproc 挙動は未確認 |
+| 既存 `.party` block の扱い | 既存 block を上書きするので review で消えた / 書き換わった行が見える | 既存 block と並列に新規 generated block を追加 / 上書き。手動 block と重複定義した場合は trainerproc は warning を出さずに両方 emit するが、C 側で `-Werror -Woverride-init` が catch して build fail する (確認済み, `tools/trainerproc/main.c:1581-1610`, `Makefile:169`) |
 | 戻し方 | git revert で `.party` を戻す | git revert + `make clean-generated` |
 
 **MVP の選択**: **Plan A** を採用する。理由:
@@ -219,7 +219,7 @@ build path は `trainer_rules.mk` で定義されている:
 
 - partygen の lint / diff / validate が安定して、人間が catalog だけ読めば結果を予測できる状態。
 - `make clean-generated` で generated `.party` を消しても、CI で再生成 → ROM build が green になる。
-- generated `.party` と手動 block の重複定義が trainerproc で error になることを確認済み。
+- 重複定義の検出は **trainerproc 側ではなく C compiler** が行う (`-Werror -Woverride-init`)。partygen に exclusion list (manual block 側で持つ trainer ID は emit しない) を実装してから移行する。エラーが出ても `trainers.h:N: error: initialized field overwritten` という C 出力なので、partygen 側で先に防ぐ方が運用しやすい。
 
 それまでは Plan A で運用し、`src/data/generated/champions_trainers.party` の path だけ予約しておく (空 file でも commit はしない)。
 
