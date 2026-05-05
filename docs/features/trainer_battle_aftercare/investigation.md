@@ -114,6 +114,19 @@
 - `https://github.com/PokemonSanFran/pokeemerald/wiki/No-Whiteout-After-Player-Loss` を確認。No Whiteout 後の heal 注意点はこの repo の `B_FLAG_NO_WHITEOUT` comment と一致する。
 - `https://github.com/Pokabbie/pokeemerald-rogue/` と `https://github.com/DepressoMocha/emerogue` は公開 repo として確認。強制 release の具体実装は未確認。
 
+## Separate Follow-up Investigations
+
+以下は heal-only / no-whiteout MVP から切り出して、別件 docs / task として扱う。
+
+| Topic | Why separate | Suggested doc target |
+|---|---|---|
+| Battle selection restore ordering | 一時 `gPlayerParty` から元 slot へ状態を戻してから heal / release しないと、aftercare の変更が復元で消える。 | `docs/features/battle_selection/investigation.md` |
+| Evolution / move learn timing | battle outcome 後の evolution / learn move callback が party mutation と競合する可能性がある。release や full heal より前後どちらに置くか追加確認が必要。 | follow-up aftercare doc |
+| Forced release helper | PC release task は static UI state 依存で直接使えない。held item、last mon、egg、follower、party compact を専用 helper として設計する。 | `docs/features/trainer_battle_aftercare/mvp_plan.md` |
+| Held item return on release | release 時に item を返す / 失う / challenge 報酬へ変換する仕様は battle-end item restore とは別に決める必要がある。 | `docs/features/battle_item_restore_policy/investigation.md` |
+| Whiteout replacement flow | `DoWhiteOut` は heal と warp を含むため、no-whiteout / custom loss callback / script return のどれを使うかを単独で検証する。 | `docs/features/trainer_battle_aftercare/risks.md` |
+| Facility and link exclusions | Pyramid / Hill / Frontier / follower / link は既存の復元・回復 flow を持つため、通常 trainer aftercare の後で個別に audit する。 | feature-specific follow-up doc |
+
 ## Open Questions
 
 - 全滅時に release する対象は、倒れた Pokemon 全員か、参加 Pokemon だけか、手持ち全員か。

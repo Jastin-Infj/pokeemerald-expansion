@@ -41,12 +41,39 @@ Draft. 実装はまだ行わない。
 最初の generator MVP:
 
 1. `--rom-repo` でこの repo の constants と `src/data/trainers.party` を読む。
-2. 仮 catalog から stage / trainer role / level band / party style を読む。
-3. deterministic seed で generated `.party` fragment を出す。
-4. species / move / item / ability / trainer constants の存在を検査する。
-5. `trainerproc` が読める DSL として validation report / diff report を出す。
+2. `doctor` で repo root、config、trainerproc、constants、output path を確認する。
+3. 仮 catalog から stage / trainer role / level band / party style を読む。
+4. global set library から trainer blueprint に合う候補を選び、local pool に materialize する。通常 trainer は party size 3-4、pool 6-12 程度。party size 6 trainer は明示した場合だけ pool 20 程度まで許可する。
+5. deterministic seed で generated `.party` fragment を出す。
+6. species / move / item / ability / trainer constants の存在を検査する。
+7. role / archetype / constraint の concept validation を report する。
+8. `trainerproc` が読める DSL として validation report / diff report を出す。
+
+入力側 MVP:
+
+- `src/data/trainers.party` は既存 trainer id / header / baseline / source order / diff 対象として読む。
+- 人間が主に編集する file は `catalog/journey.json`、`catalog/groups/*.json`、`catalog/blueprints/*.json`、`catalog/sets/*.json`、`catalog/rulesets.*`、`catalog/overrides/*.json`、`weights/*.json`、`notes/species_roles.*`、`sources/*.json`。
+- default model は `global_materialized_pool`。global set library の stable slug は tool 側 trace 用で、ROM には local pool として materialize した `Pokemon` block / `Party Size` / `Tags` だけを出す。
+- 重要 trainer や concept が崩れやすい trainer は `pinned_materialized_pool` にして、global set から候補を pin / lock して Trainer Party Pool へ出す。完全手書き pool は primary にしない。
+- 個別 override の前に group profile / rank band / availability を適用する。個別 override が多い group は report し、group profile へ昇格できないか見る。
+- 既存 `.party` block を丸ごと copy-paste する運用は primary にしない。参考 template として使う場合も、preset / override / role note に変換する。
+- UI が無い間は `partygen explain`、`partygen render-one`、`partygen validate`、`partygen diff` で入力変更を確認する。
+- 起動は CLI を正にする。Linux / WSL は `tools/champions_partygen/partygen.sh`、Windows は `tools\champions_partygen\partygen.cmd` の thin wrapper を用意する。
+- `config.example.toml` はコメント付きの基準 config として commit し、個人用の `config.local.toml` は local override として扱う。
 
 この段階では generated file を ROM build に自動 include しない。`src/data/generated/champions_trainers.party` 相当を予約出力にし、設計確定後に build integration へ進む。
+
+追加制約:
+
+- MVP は `src/data/trainers.party` の既存 `TRAINER_*` block を置き換えるだけにする。
+- 新規 `TRAINER_*` ID 追加は、trainer defeated flag / `TRAINERS_COUNT` / `MAX_TRAINERS_COUNT` / SaveBlock flag 領域に影響するため別 task にする。
+- generated fragment を `trainers.party` から include する方式は、`trainer_rules.mk` の dependency と `clean-generated` policy を決めてから行う。
+- Makefile target は CLI / wrapper / config / generated drift check が安定してから追加する。初期の通常 ROM build には partygen を依存させない。
+- `src/data/trainers_frlg.party`、`src/data/battle_partners.party`、`test/battle/*.party` は default target にしない。
+- source 順固定の trainer には `Party Size` を出さない。候補数と同数でも pool ordering を意図する trainer には `Party Size` を出してよい。
+- `Ball` は Pokeball enum、Tera と Dynamax / Gmax は排他として validate する。
+- `roles` / `archetypes` / `constraints` は tool 側 vocabulary とし、Trainer Party Pool の `Tags:` へ直接全流ししない。出力直前に Lead / Ace / Support など少数へ map する。
+- lint / validation は MVP から strict にする。unknown label、archetype 逆向き採用、required slot 不足、weather / terrain / Trick Room の片欠け、local pool simulation fallback、`minLocalPoolSize` / `maxLocalPoolSize` 範囲外、valid combination count 不足は error に寄せ、file:line と fix hint を出す。
 
 ## Phase 1: Challenge State
 

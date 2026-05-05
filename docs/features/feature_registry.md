@@ -9,18 +9,55 @@
 | Investigating | 既存コード調査中 |
 | Planned | 設計方針を作成済み、未実装 |
 | Implementing | 実装中 |
-| Testing | 実装済み、検証中 |
-| Shipped | 利用可能 |
+| Testing | 実装済み、検証中。テストで設計ミスが見つかった場合は docs に戻して計画を更新する |
+| Shipped | 利用可能。feature complete として現在の仕様を固定し、以後の変更は別 task / revision として扱う |
 | Paused | 保留 |
+
+## Feature Docs Workflow
+
+feature docs は、実装前の一時メモではなく、その branch で守る作業契約として扱う。
+実装中に判断が変わった場合は、コードだけを進めず、先に owning feature の docs を更新する。
+
+### Branch Loop
+
+| Phase | Branch behavior | Docs update |
+|---|---|---|
+| Investigating | 既存コードと既存 docs を読む。docs-only 指定時はソース変更しない。 | `investigation.md` に実ファイル、symbol、未確認事項を残す。 |
+| Planned | 実装方針を決める。まだ code contract は固定しない。 | `README.md`、`mvp_plan.md`、`risks.md`、`test_plan.md` に current decision と影響範囲を書く。 |
+| Implementing | feature branch で実装する。実装中に方針が変わったら docs を更新してから続ける。 | 設計との差分、採用しなかった案、後続 phase を追記する。 |
+| Testing | focused test / build / manual check を実行する。失敗が実装ミスなら修正し、設計ミスなら Planned に戻す。 | `test_plan.md` に結果を書き、設計へ戻した理由は `risks.md` か `mvp_plan.md` に残す。 |
+| Shipped | feature complete として current behavior を固定する。 | README の current contract、test 結果、残リスク、future work を清書する。 |
+
+### Impact Notes
+
+- 影響範囲は、原則として変更の原因になる owning feature docs に書く。
+- downstream feature の仕様が直接変わる場合だけ、その downstream docs へも短い参照を追加する。
+- 例えば party generator が team display / opponent preview に影響する可能性は、まず battle selection / party generator 側の `risks.md` や調査 docs に Cross-Feature Notes として残す。
+- team display 側の docs は、team display 自体の要件を変更する段階まで無理に更新しない。
+- 長い設計 docs だけに影響範囲を閉じ込めず、feature folder の `README.md` か `risks.md` から辿れるようにする。
+
+### Feature Complete Contract
+
+feature complete は「今後一切変更しない」という意味ではない。
+その時点の仕様、入力、出力、test gate、既知の残リスクを固定し、以後の変更を別 feature / revision として追える状態を指す。
+
+feature complete にする前に、最低限次を確認する。
+
+- `README.md` の current decision が実装済みの挙動と一致している。
+- `test_plan.md` に実行した test / 未実行 test / manual check が残っている。
+- `risks.md` の未解決項目が、blocker、accepted risk、future work に分かれている。
+- 他 feature への影響が `Impact Notes` または `Cross-Feature Notes` から辿れる。
+- registry の `Status` と `Code Status` が現在の branch 状態と矛盾していない。
 
 ## Features
 
 | Feature | Status | Code Status | Docs | Notes |
 |---|---|---|---|---|
-| Project Work Manuals | Investigating | No code changes | `docs/manuals/` | 作業者向けの入口 manual。環境構築、GitHub 運用、データ編集、種族値、技、TM/HM、Map/Fly の初動を整理。 |
+| Project Work Manuals | Investigating | No code changes | `docs/manuals/` | 作業者向けの入口 manual。docs navigation、環境構築、GitHub 運用、データ編集、rebuild/test、generated data workflow、未調査 queue、種族値、技、TM/HM、Map/Fly の初動を整理。 |
 | Trainer Battle Party Selection | Investigating | No code changes | `docs/features/battle_selection/` | 通常 trainer battle 前に 6 匹から 3/4 匹を選出する候補。UI / opponent preview / randomizer は追加調査済みで MVP からは分離。 |
 | Pokemart / Shop Configuration | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | `ScrCmd_pokemart`、`CreatePokemartMenu`、`Task_BuyMenu`、`data/maps/*Mart*/scripts.inc` を入口に調査。 |
 | Wild Pokemon Randomizer | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | `src/wild_encounter.c`、`src/data/wild_encounters.json`、DexNav / Pokedex area への影響を確認済み。build-time か runtime かは未決定。 |
+| No Random Encounters | Planned | No code changes | `docs/features/no_random_encounters/` | `OW_FLAG_NO_ENCOUNTER` を使い、通常歩行中の land / water random encounter を止める候補。MVP は step-only。Fishing / Sweet Scent / Rock Smash / static wild battle / option UI は後続扱い。 |
 | DexNav / Encounter UI | Investigating | No code changes | `docs/flows/dexnav_flow_v15.md` | Start menu DexNav、detector mode、SaveBlock3、12 land slots、Pokemon icon 描画を整理。 |
 | Trainer Party Reorder / Randomizer | Investigating | No code changes | `docs/features/battle_selection/opponent_party_and_randomizer.md` | `DoTrainerPartyPool`、`RandomizePoolIndices`、`AI_FLAG_RANDOMIZE_PARTY_INDICES` を確認。相手 party preview と関係。 |
 | TM/HM and Field Move Policy | Investigating | No code changes | `docs/overview/tm_hm_expansion_250_v15.md` | 250 TM 前提の item ID / bag / relearner / field HM coupling を確認。`FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CannotForgetMove` も継続参照。 |
@@ -49,6 +86,8 @@
 ## Rules for Future Entries
 
 - 実装前に `README.md`、`investigation.md`、`mvp_plan.md`、`risks.md`、`test_plan.md` を用意する。
+- 新規 feature folder は `docs/templates/feature_folder_template.md` を基準に作る。
 - 実装に使う既存 symbol は、推測ではなく実ファイル名と関数名を記録する。
+- 実装 branch では、影響範囲と current decision を owning feature docs に更新しながら進める。
 - upstream 追従で壊れそうなファイルは `docs/upgrades/upstream_diff_checklist.md` に追加する。
 - 未確認事項は各 feature の `Open Questions` に残す。

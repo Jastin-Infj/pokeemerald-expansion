@@ -32,6 +32,10 @@
 | Required party count | `Challenge_CanStartBattle` |
 | Disable EXP | EXP command / battle outcome hook |
 | Loss cleanup | aftercare helper clears challenge party and restores normal state |
+| Partygen fixed party output | Existing fixed trainer output does not gain `Party Size` or pool fields |
+| Partygen pool output | Pool trainer output uses `Party Size` only when pool behavior is intended |
+| Partygen header preserve | Existing `Name` / `Class` / `Pic` / `Music` / `Items` / `Back Pic` stay unchanged unless explicitly overridden |
+| Partygen field validation | Ball uses `BALL_*` / Pokeball names, and Tera is not emitted together with Dynamax / Gigantamax |
 
 ## Regression Tests
 

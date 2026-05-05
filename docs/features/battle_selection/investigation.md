@@ -263,6 +263,20 @@ MVP では以下を除外候補にするのが安全。
 - multi battle
 - scripted party temporary changes that already call `SavePlayerParty`
 
+## Separate Follow-up Investigations
+
+以下は player party 選出 MVP から切り出して、別件 docs / task として扱う。
+
+| Topic | Why separate | Suggested doc target |
+|---|---|---|
+| Opponent party preview | pool / randomize / rematch / difficulty を battle init 前に再現する必要があり、`gEnemyParty` 汚染と RNG 消費のリスクがある。 | `docs/features/battle_selection/opponent_party_and_randomizer.md` |
+| Trainer Party Pools の通常 trainer 展開 | `.party` DSL、`trainerproc`、pool fallback、AI flag の仕様確認が必要。player party 復元とは別の data pipeline。 | `docs/features/battle_selection/opponent_party_and_randomizer.md` |
+| Partygen build integration | generated fragment include は現行 `trainer_rules.mk` の dependency tracking 外。copy-paste MVP 後に Makefile / CI 方針を決める。 | `docs/features/battle_selection/opponent_party_and_randomizer.md` |
+| Battle-end mutation ordering | level up / move learn / evolution / held item restore / whiteout は battle end callback 側の順序問題。選出 UI の入口設計とは分ける。 | `docs/features/trainer_battle_aftercare/investigation.md` |
+| SaveBlock を使う runtime option | option menu / SaveBlock2 / migration を伴う。選出 default を compile-time で始めるなら MVP から外せる。 | `docs/flows/save_data_flow_v15.md` |
+| Battle UI の 3/4 slot 表示 | `CreatePartyStatusSummarySprites` など battle UI 複数箇所に波及する。MVP は既存 6 slot 表示を許容する。 | `docs/flows/battle_ui_flow_v15.md` |
+| Battle Frontier / link / multi 対応 | 既存 facility rules と通信 battle flow に入るため、通常 trainer battle の後に個別 audit する。 | feature-specific follow-up doc |
+
 ## Open Questions
 
 - `MAX_FRONTIER_PARTY_SIZE` の値と、4 匹選出に使えるかは追加確認が必要。

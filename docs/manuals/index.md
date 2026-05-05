@@ -2,19 +2,25 @@
 
 この章は、作業者が「どこから触るか」を決めるための入口です。
 既存の `docs/tutorials/` は実装寄りの手順が多いため、この manual では先に作業順、編集対象、影響範囲を確認します。
+manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](docs_navigation.md) を参照します。
 
 ## 最初に読む順番
 
-1. [Environment Setup](environment_setup.md)
-2. [GitHub Workflow](github_workflow.md)
-3. [Data Editing Overview](data_editing_overview.md)
+1. [Docs Navigation Manual](docs_navigation.md)
+2. [Environment Setup](environment_setup.md)
+3. [GitHub Workflow](github_workflow.md)
+4. [Data Editing Overview](data_editing_overview.md)
 
-この 3 つを確認してから、目的別の manual に進みます。
+この 4 つを確認してから、目的別の manual に進みます。
 
 ## 目的別の入口
 
 | やりたいこと | 最初に読む manual | 主な編集元 |
 | --- | --- | --- |
+| docs の置き場、manual / tutorial / feature の境界を確認したい | [Docs Navigation Manual](docs_navigation.md) | `docs/manuals/`, `docs/tutorials/`, `docs/features/` |
+| build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
+| generated data の入力、lint、出力、差し替えを整理したい | [Generated Data Workflow Manual](generated_data_workflow.md) | `tools/`, generated data, feature docs |
+| 未調査項目の優先順位を確認したい | [Open Investigation Queue](open_investigation_queue.md) | feature docs, overview, flows |
 | 既存ポケモンの種族値、タイプ、特性を変えたい | [Pokemon Stats Manual](pokemon_stats_manual.md) | `src/data/pokemon/species_info/gen_*_families.h` |
 | 既存技の威力、命中、タイプなどを変えたい | [Move Data Manual](move_data_manual.md) | `src/data/moves_info.h` |
 | 技を新しく追加したい | [Move Data Manual](move_data_manual.md) | `include/constants/moves.h`, `src/data/moves_info.h` |
@@ -37,9 +43,13 @@
 作業者は、実装前に次を確認します。
 
 - `git status --short --branch` で現在のブランチと未コミット差分を見る。
+- docs の置き場に迷う場合は [Docs Navigation Manual](docs_navigation.md) を先に確認する。
 - ユーザーが docs-only を指定している場合、ソース、include、data、tools は読み取り専用にする。
 - 既存の未コミット差分はユーザー作業として扱い、勝手に戻さない。
 - 追加や変更が保存データ、ID 幅、アップストリーム追従に関係する場合は、実装前にリスクを docs に書く。
+- feature branch では、影響範囲と current decision を `docs/features/feature_registry.md` と owning feature docs に更新しながら進める。
+- テストで設計ミスが見つかった場合は、実装を重ねる前に `mvp_plan.md` / `risks.md` / `test_plan.md` を更新して設計へ戻す。
+- feature complete にする場合は、README、risks、test plan を清書し、以後の変更は別 task / revision として扱う。
 - 既存 docs と依頼内容が矛盾する場合は、そのまま進めず、どの方針を優先するかを明示して突き返す。
 
 ## 迷ったときの判断
@@ -60,3 +70,4 @@
 - 新規 BGM、新規アイテム追加
 - Battle message、battle effect message、field message、UI-local text の追加・差し替え
 - HM をフィールド技ではなくキーアイテムやフラグ判定へ移す変更
+- generated data を source data へ反映する変更

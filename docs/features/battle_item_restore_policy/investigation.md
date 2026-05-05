@@ -70,6 +70,19 @@ Confirmed symbols:
 
 通常 trainer battle 全体へ item clause を広げる場合は、Frontier 固有 validation をそのまま流用するのではなく、battle selection feature 側の validation policy と分ける必要がある。
 
+## Separate Follow-up Investigations
+
+以下は battle-end held item restore MVP から切り出して、別件 docs / task として扱う。
+
+| Topic | Why separate | Suggested doc target |
+|---|---|---|
+| Trick / Thief / Bestow / Symbiosis final ownership | battle 終了時に original item へ戻すと、戦闘中に移動・取得した item を上書きする可能性がある。仕様を mechanics ごとに決める。 | follow-up item mechanics doc |
+| Link / recorded battle behavior | item restore は同期・再現性に関わる。local trainer battle と同じ policy を入れる前に通信系を分けて確認する。 | feature-specific follow-up doc |
+| Battle Frontier / Factory / Tent policy | 施設側は duplicate item rule と rental generation を持つ。通常 battle 用 restore を施設へ広げるかは別判断。 | `docs/flows/battle_frontier_level_scaling_flow_v15.md` |
+| Item clause for normal trainer selection | held item 復元と duplicate held item validation は別機能。battle selection / partygen 側の eligibility として扱う。 | `docs/features/battle_selection/investigation.md` |
+| Release item policy | forced release 時に held item を bag に返すか失うかは、battle end restore ではなく aftercare / challenge rule。 | `docs/features/trainer_battle_aftercare/investigation.md` |
+| Air Balloon / Corrosive Gas exceptions | battle-end restore で常に original item に戻してよいか、個別 mechanic の世代仕様を追加確認する。 | follow-up item mechanics doc |
+
 ## Open Questions
 
 - 新しい復元 config は `B_RESTORE_HELD_BATTLE_ITEMS` の拡張にするか、別 config にするか。

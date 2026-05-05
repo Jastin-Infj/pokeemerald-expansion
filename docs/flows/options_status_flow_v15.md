@@ -92,6 +92,7 @@ Page 2: Facility / Rules
   Held Item Lock
   Wild IV Mode
   Wild Moveset Mode
+  No Random Encounters
   Battle Item Restore
 ```
 
@@ -131,10 +132,12 @@ Nuzlocke、release、難易度、EXP / catch / shiny 倍率、Mega / Z / Dynamax
 | General | Text Speed, Battle Scene, Battle Style, Sound, Button Mode, Frame |
 | Battle Rules | Difficulty, No Bag, Sleep Clause, No Running, No Catching, No Whiteout |
 | Roguelike | Nuzlocke, Release On Loss, Held Item Lock, Item Clause, Battle Item Restore |
-| Growth / Encounter | EXP Multiplier, Catch Rate, Shiny Rolls, Wild IV Mode, Wild Moveset Mode |
+| Growth / Encounter | EXP Multiplier, Catch Rate, Shiny Rolls, No Random Encounters, Wild IV Mode, Wild Moveset Mode |
 | Gimmicks | Mega, Z-Move, Dynamax, Terastal, Tera No Cost |
 
-`B_VAR_DIFFICULTY`、`B_FLAG_DYNAMAX_BATTLE`、`B_FLAG_TERA_ORB_CHARGED`、`B_FLAG_TERA_ORB_NO_COST`、`B_FLAG_NO_CATCHING`、`B_FLAG_NO_RUNNING`、`B_FLAG_SLEEP_CLAUSE` は既に runtime flag / var pattern がある。Mega off、Z-Move off、EXP 倍率、catch rate 倍率、shiny reroll 倍率、Nuzlocke は追加 gate / 追加 state が必要。
+`B_VAR_DIFFICULTY`、`B_FLAG_DYNAMAX_BATTLE`、`B_FLAG_TERA_ORB_CHARGED`、`B_FLAG_TERA_ORB_NO_COST`、`B_FLAG_NO_CATCHING`、`B_FLAG_NO_RUNNING`、`B_FLAG_SLEEP_CLAUSE`、`OW_FLAG_NO_ENCOUNTER` は既に runtime flag / var pattern がある。Mega off、Z-Move off、EXP 倍率、catch rate 倍率、shiny reroll 倍率、Nuzlocke は追加 gate / 追加 state が必要。
+
+`OW_FLAG_NO_ENCOUNTER` は option menu へ出す前に real flag id を割り当てる必要がある。現行 hook は通常歩行 encounter のみで、Fishing / Sweet Scent / Rock Smash / static wild battle は別扱いにする。
 
 ## Battle UI Config
 

@@ -69,6 +69,10 @@ MVP で触らない予定の領域が壊れていないことを確認する。
 | Frontier regression test | `gSelectedOrderFromParty` 共有による破壊がないか |
 | battle UI regression test | selected party count 変更で healthbox / party status summary が壊れないか |
 | trainer pool determinism test | preview を後続 phase で入れる場合、pool 生成が本戦と一致するか |
+| partygen fixed party test | fixed party には `Party Size` が出ず、pool path に入らないこと |
+| partygen pool party test | pool trainer だけ `Party Size` / `Pool Rules` / `Tags` が出ること |
+| partygen trainerproc edge test | `Copy Pool`、`Macro`、Ball、Tera / Dynamax 排他、header preserve を検査すること |
+| partygen target test | FRLG / battle partner / test `.party` を default で書き換えないこと |
 
 ## Open Questions
 

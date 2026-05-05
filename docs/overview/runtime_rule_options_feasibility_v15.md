@@ -26,6 +26,7 @@ Nuzlocke、難易度、release / wipeout、EXP / catch / shiny、Mega / Z / Dyna
 | Difficulty | `B_VAR_DIFFICULTY`, `src/difficulty.c`, `DIFFICULTY_EASY/NORMAL/HARD` | `0` | Yes, after assigning a var | `gTrainers[DIFFICULTY_COUNT][TRAINERS_COUNT]` に fallback 付きで接続済み。 |
 | No catching | `B_FLAG_NO_CATCHING` | `0` | Yes, after assigning a flag | Ball use rejection、obtainable shiny policy と連動。 |
 | No running | `B_FLAG_NO_RUNNING` | `0` | Yes, after assigning a flag | wild escape / Roar / Whirlwind / Teleport に影響。 |
+| No random encounters | `OW_FLAG_NO_ENCOUNTER` | `0` | Yes, after assigning a flag | `CheckStandardWildEncounter` で通常歩行 encounter を止める。Fishing / Sweet Scent / Rock Smash は別 hook。 |
 | No whiteout | `B_FLAG_NO_WHITEOUT` | `0` | Yes, after assigning a flag | party 自動 heal はされない。release policy と併用注意。 |
 | Sleep clause | `B_FLAG_SLEEP_CLAUSE` or `B_SLEEP_CLAUSE` | `0` / `FALSE` | Flag path exists | AI 理解には `AI_FLAG_CHECK_BAD_MOVE` が必要。 |
 | Dynamax battle | `B_FLAG_DYNAMAX_BATTLE` | `0` | Yes, after assigning a flag | player は `ITEM_DYNAMAX_BAND` も必要。 |
@@ -59,6 +60,7 @@ Nuzlocke、難易度、release / wipeout、EXP / catch / shiny、Mega / Z / Dyna
 | Difficulty Easy/Normal/Hard | `B_VAR_DIFFICULTY` | option menu writes assigned var | Medium |
 | EXP multiplier | SaveBlock3 or event var | `ApplyExperienceMultipliers` extra multiplier | Medium |
 | Catch rate multiplier | SaveBlock3 or event var | `ComputeCaptureOdds` extra multiplier | Medium |
+| No random encounters | assigned overworld flag | assign `OW_FLAG_NO_ENCOUNTER`, script/debug toggles it | Low/Medium |
 | Shiny reroll multiplier | SaveBlock3 or event var | `CreateBoxMon` reroll calculation | Medium |
 | Terastal on/off | assigned flags + optional runtime gate | `B_FLAG_TERA_ORB_CHARGED` / no-cost | Low/Medium |
 | Dynamax on/off | `B_FLAG_DYNAMAX_BATTLE` | assign flag, script / option toggles it | Low |
@@ -111,6 +113,18 @@ Shiny:
 - `CreateBoxMon` で `P_FLAG_FORCE_SHINY` / `P_FLAG_FORCE_NO_SHINY` を見ている。
 - 追加 reroll は Shiny Charm、Lure、Chain Fishing、DexNav の合算。
 - option で「色違い出やすさ」を作るなら、force shiny ではなく extra reroll count か odds multiplier として入れる方が game balance を保ちやすい。
+
+## Encounter Toggle Notes
+
+no random encounters は、既存 `OW_FLAG_NO_ENCOUNTER` を使うのが最小。
+
+- `include/config/overworld.h` の `OW_FLAG_NO_ENCOUNTER` は bool ではなく flag id config。
+- `src/field_control_avatar.c` の `CheckStandardWildEncounter` がこの flag を見て、通常歩行 encounter を止める。
+- `src/debug.c` には debug menu toggle があるが、`OW_FLAG_NO_ENCOUNTER != 0` のときだけ使える。
+- Fishing、Sweet Scent、Rock Smash は現状この flag を見ないため、止めるなら `broad-wild` mode として別 hook を追加する。
+- static `setwildbattle` / `dowildbattle` は story/event 進行を壊しやすいので、runtime option からは止めない方が安全。
+
+詳細は `docs/features/no_random_encounters/` に分離する。
 
 ## Gimmick Notes
 
