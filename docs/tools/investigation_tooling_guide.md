@@ -22,7 +22,7 @@
 | Serena | C symbol の overview、function body、symbol reference を見たい | 大きい C file を読む前の地図作りに強い | `.inc`、macro 展開、callback table は漏れることがある。 |
 | agent-lsp / clangd | hover、definition、diagnostics、型情報を確認したい | C symbol の型や宣言位置をすぐ確認できる | 現状 `u8` 未解決などの diagnostics が残る。診断は参考扱い。 |
 | Semgrep MCP | 危険 pattern や独自 rule を機械的に探したい | `SetMainCallback2($X)` など C pattern の検出に強い | direct path scan は今回 MCP/RPC error が出た。custom rule + relative in-memory path が安定。 |
-| mGBA Live MCP | 実行時の画面遷移、OAM、memory、input、Lua を確認したい | UI/transition/field/battle runtime 検証に強い | source build の mGBA が必要。session を残さないよう stop が必要。 |
+| mGBA Live MCP | 実行時の画面遷移、OAM、memory、input、Lua を確認したい | UI/transition/field/battle runtime 検証に強い | source build の mGBA が必要。session を残さないよう stop が必要。runtime に影響する branch は push 前に mGBA 確認か skip 理由を残す。 |
 | Context7 | 外部 tool/library の最新 docs が必要 | current docs の取得に強い | API key を docs に書かない。project source の代替にはしない。 |
 | Playwright MCP | mdBook や Web UI の表示確認が必要 | browser screenshot と DOM 操作に強い | GBA 画面確認には mGBA Live MCP を使う。 |
 | mdBook | `docs/` の SUMMARY / Markdown / local doc site を検証したい | docs build と link structure の基本確認ができる | warning は既存 docs 由来のものと新規 docs 由来のものを切り分ける。 |
@@ -98,6 +98,8 @@ diagnostics を根拠に source 修正を判断する前に、`rg`、実際の i
 system package の `/usr/games/mgba-qt` は通常 emulator として使えるが、今回確認した範囲では `--script` bridge に不十分だった。runtime 自動検証には `.cache/mgba-script-build-master/qt/mgba-qt` を使う。
 
 session を開始したら、調査終了時に必ず stop する。UI screenshot や memory dump は必要に応じて `/tmp` か local-only artifact に出す。
+
+runtime validation の詳細手順、FPS 制御、offscreen / xcb の現状、Lua の注意点は `docs/tools/mgba_live_runtime_validation.md` を参照する。
 
 ## Feature Investigation Patterns
 

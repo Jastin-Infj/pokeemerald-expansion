@@ -22,6 +22,8 @@ Machine-readable inventory は `docs/tools/mcp_servers_inventory.json` と `docs
 | `mgba-live-mcp` version | `0.5.0` |
 | `mgba-live-cli` path observed | `/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli` |
 | bridge Lua path observed | `/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/lib/python3.12/site-packages/mgba_live_mcp/resources/mgba_live_bridge.lua` |
+| Runtime validation display path observed | `DISPLAY=:0` with Qt/xcb |
+| Runtime validation 60fps config observed | `--fps-target 60 --config videoSync=1` |
 | Former local 0.10.5 archive | `mGBA-0.10.5-ubuntu64-noble.tar.xz` |
 | Former local 0.10.5 archive SHA256 | `0bbf1e7ca511cd4b443239b97546f699df72211241a1db9177e331866031d8e9` |
 | Former local 0.10.5 archive status | Removed from workspace on 2026-05-03 after user-approved cleanup. It was not used by the working live MCP setup. |
@@ -266,7 +268,8 @@ Start:
   --session-id codex-mgba-master-smoke \
   --mgba-path /home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt \
   --ready-timeout 15 \
-  --config audioSync=0
+  --fps-target 60 \
+  --config videoSync=1
 ```
 
 Observed issue:
@@ -274,6 +277,8 @@ Observed issue:
 - `start` once returned `Session created but bridge did not become ready before timeout`.
 - Despite that, `status`, `screenshot`, `input-tap`, `dump-oam`, and `read-range` worked against the session.
 - Treat this as an `Open Question` for the readiness check, not as proof that the bridge is unusable.
+- `QT_QPA_PLATFORM=offscreen` on 2026-05-06 left the process alive but heartbeat stayed `null` and bridge commands timed out. Do not count offscreen as validated until this is fixed.
+- `--fps-target 60` alone still ran at about 405fps in the checked Qt/xcb session. Add `--config videoSync=1` for timing-sensitive validation; a 5 second measurement produced 304 frames, about 60.8fps.
 
 Useful verification commands:
 
@@ -292,6 +297,8 @@ Observed working behavior:
 - `input-tap --key A` advanced from `NEW GAME` to the opening conversation.
 - `dump-oam` returned sprite entries.
 - `read-range --start 0x02000000 --length 16` returned WRAM bytes.
+
+For runtime feature validation policy and Lua pitfalls, see `docs/tools/mgba_live_runtime_validation.md`.
 
 ## Docker Option
 
@@ -330,3 +337,4 @@ When `.cache/` is deleted or a new machine is used:
 - Should Codex config accept a configurable `mgba_path`, or should smoke commands always pass `--mgba-path` explicitly?
 - Is a headless mGBA path possible for CI, or is Qt required for this `mgba-live-mcp` version?
 - Should a Dockerfile be added later, or is this native checklist enough for the current solo/local workflow?
+- Can `QT_QPA_PLATFORM=offscreen` be made to produce heartbeat / screenshots, or should the standard headless path use Xvfb instead?

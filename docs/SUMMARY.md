@@ -22,6 +22,7 @@
 - [Local Tooling]()
     - [Investigation Tooling Guide](tools/investigation_tooling_guide.md)
     - [mGBA Live MCP Rebuild Checklist](tools/mgba_live_mcp_rebuild_checklist.md)
+    - [mGBA Live Runtime Validation](tools/mgba_live_runtime_validation.md)
     - [Tool Inventory Files](tools/tool_inventory_files.md)
     - [Poryscript Integration Status](tools/poryscript_integration_status.md)
 - [Project Manuals]()
