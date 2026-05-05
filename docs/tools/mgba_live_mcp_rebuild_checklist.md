@@ -8,6 +8,8 @@
 
 Machine-readable inventory は `docs/tools/mcp_servers_inventory.json` と `docs/tools/tool_dependency_inventory.json` に分離している。token、API key、login URL は tracked docs に記録しない。
 
+Cache の実体、source clone の clean 状態、backup policy、runtime cache の扱いは `docs/tools/mgba_live_cache_preservation.md` を参照する。
+
 ## Current Verified State
 
 | Item | Value |
@@ -19,6 +21,7 @@ Machine-readable inventory は `docs/tools/mcp_servers_inventory.json` と `docs
 | mGBA binary | `.cache/mgba-script-build-master/qt/mgba-qt` |
 | mGBA commit | `b19b557a78930ede7ee7f5dcbc880f9ff2533ffe` |
 | mGBA version output | `0.11-1-b19b557` |
+| mGBA binary SHA256 observed on 2026-05-06 | `a12307b0eb85412d2fb1fac653cf43d6ff612e5bafb8b3f9cfcbd734315e9acd` |
 | `mgba-live-mcp` version | `0.5.0` |
 | `mgba-live-cli` path observed | `/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli` |
 | bridge Lua path observed | `/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/lib/python3.12/site-packages/mgba_live_mcp/resources/mgba_live_bridge.lua` |

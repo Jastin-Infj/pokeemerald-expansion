@@ -22,6 +22,7 @@
 - [Local Tooling]()
     - [Investigation Tooling Guide](tools/investigation_tooling_guide.md)
     - [mGBA Live MCP Rebuild Checklist](tools/mgba_live_mcp_rebuild_checklist.md)
+    - [mGBA Live Cache Preservation](tools/mgba_live_cache_preservation.md)
     - [mGBA Live Runtime Validation](tools/mgba_live_runtime_validation.md)
     - [mGBA Live Lua Templates](tools/mgba_live_lua_templates.md)
     - [Tool Inventory Files](tools/tool_inventory_files.md)
