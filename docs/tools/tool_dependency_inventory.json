@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "last_checked": "2026-05-03",
+  "workspace": "/home/jastin/dev/pokeemerald-expansion",
+  "purpose": "Dependency inventory for rebuilding local MCP, LSP, Semgrep, and mGBA investigation tooling.",
+  "os_packages": {
+    "source": "dpkg-query on Ubuntu/Noble-like environment",
+    "install_command": [
+      "sudo",
+      "apt",
+      "install",
+      "git",
+      "cmake",
+      "ninja-build",
+      "build-essential",
+      "pkg-config",
+      "qtbase5-dev",
+      "qtmultimedia5-dev",
+      "qttools5-dev-tools",
+      "libqt5opengl5-dev",
+      "libsdl2-dev",
+      "liblua5.4-dev",
+      "libavcodec-dev",
+      "libavfilter-dev",
+      "libavformat-dev",
+      "libavutil-dev",
+      "libswscale-dev",
+      "libswresample-dev",
+      "libzip-dev",
+      "zlib1g-dev",
+      "libpng-dev",
+      "libsqlite3-dev",
+      "libelf-dev",
+      "libedit-dev",
+      "libjson-c-dev",
+      "libfreetype-dev",
+      "mgba-qt"
+    ],
+    "packages": [
+      { "name": "build-essential", "version": "12.10ubuntu1" },
+      { "name": "cmake", "version": "3.28.3-1build7" },
+      { "name": "git", "version": "1:2.43.0-1ubuntu7.3" },
+      { "name": "libavcodec-dev:amd64", "version": "7:6.1.1-3ubuntu5" },
+      { "name": "libavfilter-dev:amd64", "version": "7:6.1.1-3ubuntu5" },
+      { "name": "libavformat-dev:amd64", "version": "7:6.1.1-3ubuntu5" },
+      { "name": "libavutil-dev:amd64", "version": "7:6.1.1-3ubuntu5" },
+      { "name": "libedit-dev:amd64", "version": "3.1-20230828-1build1" },
+      { "name": "libelf-dev:amd64", "version": "0.190-1.1ubuntu0.1" },
+      { "name": "libfreetype-dev:amd64", "version": "2.13.2+dfsg-1ubuntu0.1" },
+      { "name": "libjson-c-dev:amd64", "version": "0.17-1build1" },
+      { "name": "liblua5.4-dev:amd64", "version": "5.4.6-3build2" },
+      { "name": "libpng-dev:amd64", "version": "1.6.43-5ubuntu0.5" },
+      { "name": "libqt5opengl5-dev:amd64", "version": "5.15.13+dfsg-1ubuntu1" },
+      { "name": "libsdl2-dev:amd64", "version": "2.30.0+dfsg-1ubuntu3.1" },
+      { "name": "libsqlite3-dev:amd64", "version": "3.45.1-1ubuntu2.5" },
+      { "name": "libswresample-dev:amd64", "version": "7:6.1.1-3ubuntu5" },
+      { "name": "libswscale-dev:amd64", "version": "7:6.1.1-3ubuntu5" },
+      { "name": "libzip-dev:amd64", "version": "1.7.3-1.1ubuntu2" },
+      { "name": "mgba-qt", "version": "0.10.2+dfsg-1.1build3" },
+      { "name": "ninja-build", "version": "1.11.1-2" },
+      { "name": "pkg-config:amd64", "version": "1.8.1-2build1" },
+      { "name": "qtbase5-dev:amd64", "version": "5.15.13+dfsg-1ubuntu1" },
+      { "name": "qtmultimedia5-dev:amd64", "version": "5.15.13-1" },
+      { "name": "qttools5-dev-tools", "version": "5.15.13-1" },
+      { "name": "zlib1g-dev:amd64", "version": "1:1.3.dfsg-3.1ubuntu2.1" }
+    ]
+  },
+  "command_line_tools": [
+    {
+      "name": "semgrep",
+      "path": "/home/jastin/.local/bin/semgrep",
+      "version": "1.161.0",
+      "install_source": "local user tool installation, likely uv/pipx-managed",
+      "notes": "Use HOME=/tmp in sandboxed shell checks if ~/.semgrep is read-only."
+    },
+    {
+      "name": "clangd",
+      "path": "/usr/bin/clangd",
+      "version": "Ubuntu clangd version 18.1.3 (1ubuntu1)",
+      "install_source": "system package",
+      "notes": "Used by agent-lsp and Serena LSP backend."
+    },
+    {
+      "name": "uvx",
+      "path": "/home/jastin/.local/bin/uvx",
+      "version": "0.11.8",
+      "install_source": "local user tool installation",
+      "notes": "Runs mgba-live-mcp."
+    },
+    {
+      "name": "serena",
+      "path": "/home/jastin/.local/bin/serena",
+      "version": "1.2.0",
+      "install_source": "local user tool installation",
+      "notes": "Project config lives in local-only .serena/."
+    },
+    {
+      "name": "agent-lsp",
+      "path": "/usr/local/bin/agent-lsp",
+      "version": "0.5.0",
+      "install_source": "local/system tool installation",
+      "notes": "Configured as c:clangd."
+    },
+    {
+      "name": "node",
+      "path": "/run/user/1000/fnm_multishells/578_1777777448044/bin/node",
+      "version": "v24.11.1",
+      "install_source": "fnm-managed Node runtime",
+      "notes": "Used by npx-based MCP servers such as Context7 and Playwright."
+    },
+    {
+      "name": "npm",
+      "path": "/run/user/1000/fnm_multishells/578_1777777448044/bin/npm",
+      "version": "11.6.2",
+      "install_source": "fnm-managed Node runtime",
+      "notes": "Used by npx-based MCP servers."
+    },
+    {
+      "name": "mgba-qt",
+      "path": "/usr/games/mgba-qt",
+      "version": "0.10.2",
+      "install_source": "system package",
+      "notes": "Good for normal emulator use; not sufficient for observed mgba-live --script bridge."
+    },
+    {
+      "name": "mgba-qt-script-build",
+      "path": "/home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt",
+      "version": "0.11-1-b19b557",
+      "install_source": "local CMake/Ninja build from mGBA upstream master",
+      "notes": "Working binary for mgba-live-mcp."
+    },
+    {
+      "name": "mdbook",
+      "path": "mdbook",
+      "version": "0.5.2",
+      "install_source": "local user/system installation",
+      "notes": "Use `mdbook build docs` after docs changes. Build output goes to docs/book. Existing warning remains in docs/CREDITS.md for an unexpected </img> tag."
+    }
+  ],
+  "python_uv_tools": [
+    {
+      "name": "mgba-live-mcp",
+      "version": "0.5.0",
+      "runner": "/home/jastin/.local/bin/uvx",
+      "observed_cache_path": "/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg",
+      "important_files": [
+        "/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli",
+        "/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/lib/python3.12/site-packages/mgba_live_mcp/resources/mgba_live_bridge.lua"
+      ]
+    }
+  ],
+  "npm_mcp_tools": [
+    {
+      "name": "@upstash/context7-mcp",
+      "runner": "npx",
+      "version": "not pinned in observed config",
+      "notes": "Pin a version later if reproducibility becomes more important than receiving updates."
+    },
+    {
+      "name": "@playwright/mcp",
+      "runner": "npx",
+      "version": "latest in observed config",
+      "notes": "Pin a version later for reproducible CI or docs rendering tests."
+    }
+  ],
+  "local_artifacts": [
+    {
+      "path": "mGBA-0.10.5-ubuntu64-noble.tar.xz",
+      "status": "removed from workspace on 2026-05-03 after user-approved cleanup",
+      "sha256": "0bbf1e7ca511cd4b443239b97546f699df72211241a1db9177e331866031d8e9",
+      "notes": "Observed packaged mgba-qt did not support --script. Checksum is retained only for future re-identification."
+    },
+    {
+      "path": ".cache/mgba-script-src-master",
+      "status": "local-only excluded cache",
+      "notes": "mGBA source tree for working script-capable build."
+    },
+    {
+      "path": ".cache/mgba-script-build-master",
+      "status": "local-only excluded cache",
+      "notes": "mGBA Qt build output for mgba-live-mcp."
+    },
+    {
+      "path": ".serena",
+      "status": "local-only excluded config/memory",
+      "notes": "Do not commit unless the team intentionally decides to share Serena project config."
+    },
+    {
+      "path": ".clangd",
+      "status": "local-only excluded config",
+      "notes": "Current clangd config is useful but not yet enough to remove all pokeemerald-expansion diagnostics."
+    },
+    {
+      "path": "compile_flags.txt",
+      "status": "local-only excluded config",
+      "notes": "Used for clangd/agent-lsp experiments."
+    },
+    {
+      "path": "compile_commands.json",
+      "status": "local-only excluded config",
+      "notes": "Generated or local compile database for LSP experiments."
+    }
+  ],
+  "optional_future_dependencies": [
+    {
+      "name": "vscode-json-language-server",
+      "reason": "agent-lsp reported JSON LSP as not installed; useful if MCP JSON files become large."
+    },
+    {
+      "name": "pyright-langserver",
+      "reason": "agent-lsp reported Python LSP as not installed; useful for docs/fix_links.py or custom indexing scripts."
+    },
+    {
+      "name": "ast-grep",
+      "reason": "Potentially useful for fast structural search over C-like source, but not required while Semgrep and rg cover current needs."
+    }
+  ]
+}

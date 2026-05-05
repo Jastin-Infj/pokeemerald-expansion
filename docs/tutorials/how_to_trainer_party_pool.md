@@ -4,7 +4,9 @@ Trainer Party Pools (TPP) is a way to introduce a bit of unpredictability to tra
 The maximum number of mons that can be in a single trainer's pool is 255.
 
 ## Turning on TPP with `trainer.sparty`
-To use TPP with `trainers.party`, all that's needed is to define a `Party Size` that's smaller than than the number of defined mons for the trainer.
+To use TPP with `trainers.party`, all that's needed is to define a `Party Size` that's smaller than the number of defined mons for the trainer.
+
+Note that `Party Size` is what makes `trainerproc` emit a pool for `trainers.party`. Do not add `Party Size` to a fixed-order trainer unless pool behavior is intended. If `Party Size` is the same as the number of defined mons, the trainer still uses the pool path instead of a plain fixed party.
 
 ## Turning on TPP with `trainers.h`
 To use TPP with `trainers.h`, the trainer need to have the `.poolSize` field set to a value that's larger than the `.partySize` and equal to the number of mons defined in the trainer.
@@ -69,7 +71,7 @@ Double Battle: Yes
 AI: Check Bad Move
 Party Size: 4
 Pool Rules: Weather Doubles
-Pool Pick Index: Default
+Pool Pick Functions: Default
 
 Zigzagoon
 Level: 4
