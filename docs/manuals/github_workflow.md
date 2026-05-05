@@ -27,6 +27,30 @@ git add docs/manuals/index.md docs/SUMMARY.md
 `git add -A` は、今回の作業範囲が完全に分かっているときだけ使います。
 docs-only の依頼では、docs 以外を stage しません。
 
+## master への docs-only merge policy
+
+`master` は upstream / RHH 由来の source code を基準にする。feature branch や別 project branch の source、include、data、tools、generated files を `master` に混ぜない。
+
+許容するもの:
+
+- `docs/` 配下の調査結果。
+- feature branch で得た設計判断、検証記録、運用ルール。
+- docs navigation、manual、test plan の更新。
+
+禁止するもの:
+
+- feature 実装 commit の merge。
+- source / include / data / tools / generated output を含む branch merge。
+- local save、ROM、screenshot、cache、debug artifact の commit。
+
+`master` に docs を入れる前に必ず確認する。
+
+```sh
+git diff --name-only master..HEAD
+```
+
+出力が `docs/` 以外を含む場合、その branch は merge しない。docs commit だけを cherry-pick するか、`master` から docs-only branch を切り直す。
+
 ## コミット前の確認
 
 ```sh
@@ -69,3 +93,4 @@ PR 説明には次を残します。
 - unrelated files を含む一括コミット
 - アップストリームへの直接 push
 - 未確認の generated file 差分の巻き込み
+- docs-only merge の名目で feature code を `master` に入れること
