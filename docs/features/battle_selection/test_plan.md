@@ -59,7 +59,18 @@ MVP で触らない予定の領域が壊れていないことを確認する。
 
 ## Automated Test Ideas
 
-既存 test framework の詳細は未調査だが、将来的に以下を検討する。
+既存 test framework は `tools/mgba-rom-test-hydra` 経由で in-ROM DSL を実行する。
+実行手順は [docs/tutorials/how_to_testing_system.md](../../tutorials/how_to_testing_system.md) と CLAUDE.md の `Test` 節を参照する。
+代表的な起動例:
+
+- `make check -j$(nproc)` — 全 test
+- `make check TESTS="Trainer Battle Selection"` — prefix filter
+- `make pokeemerald-test.elf TESTS="Trainer Battle Selection"` — mGBA で manual に開く ELF
+
+`test/` 以下に `src/` を mirror した形で `.c` test を置き、`GIVEN` / `WHEN` / `SCENE` パターンと `ASSUME(...)` を使う。
+新規 test を書く場合は、依存する `B_*` / `OW_*` config を `ASSUME(...)` で固定し、unrelated な config 変更で fail しないようにする。
+
+将来的に以下を検討する。
 
 | Test | Purpose |
 |---|---|
@@ -76,8 +87,7 @@ MVP で触らない予定の領域が壊れていないことを確認する。
 
 ## Open Questions
 
-- 既存 repo の automated test 実行方法は未整理。
-- battle 中の evolution / move learn を自動テストでどう扱うか未決定。
+- battle 中の evolution / move learn を automated test でどう扱うか未決定。`test/battle/` 既存 case で `EVOLVE` / `LEARN` を扱っている例を流用できるかは要調査。
 - cancel を許す仕様にする場合、manual test の expected result を更新する必要がある。
 - party status summary を 6 slot 表示のままにするか、3/4 slot 表示へ変えるかで expected result が変わる。
 - opponent party preview を入れる phase では、Trainer Party Pools / RNG / override trainer の専用 test が必要。

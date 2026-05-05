@@ -23,12 +23,13 @@ Draft. 実装はまだ行わない。
 
 ## Implementation Outline
 
-1. 未使用 flag を選ぶ。
-2. `include/config/overworld.h` の `OW_FLAG_NO_ENCOUNTER` にその flag を割り当てる。
-3. debug menu の Encounter toggle が表示 / 動作することを確認する。
-4. 必要な script / facility start で `setflag`、終了処理で `clearflag` を入れる。
+1. `include/constants/flags.h` の `FLAG_UNUSED_0x8E5` を `FLAG_NO_ENCOUNTER` に rename する。新規 `#define` 追加はしない。候補と理由は `investigation.md#Candidate Flag IDs` を参照。
+2. `include/config/overworld.h` の `OW_FLAG_NO_ENCOUNTER` を `FLAG_NO_ENCOUNTER` に変更する。
+3. debug build (`make debug`) で起動し、Debug menu の Encounter toggle が表示 / 動作することを確認する (`OW_FLAG_NO_ENCOUNTER != 0` のときだけ表示される `DebugAction_FlagsVars_EncounterOnOff` の condition を満たす)。
+4. 必要な script / facility start で `setflag FLAG_NO_ENCOUNTER`、終了処理で `clearflag FLAG_NO_ENCOUNTER` を入れる (MVP は script 追加なしで debug toggle のみで足りる)。
 5. 通常 map で草むら / cave / surf を歩き、random encounter が発生しないことを確認する。
-6. Fishing / Sweet Scent / Rock Smash / static encounter が現状どおりか確認する。
+6. Fishing / Sweet Scent / Rock Smash / static encounter が現状どおり発火することを確認する。
+7. Save / Load 経由で flag 状態が persist することを確認する (SYSTEM region の flag を選んでいれば persistent)。
 
 ## Future Broad Mode
 

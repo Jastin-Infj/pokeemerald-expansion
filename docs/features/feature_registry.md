@@ -2,6 +2,24 @@
 
 この docs 配下で管理する独自機能候補の一覧。
 
+## Current Order
+
+実装着手の優先順位。`open_investigation_queue.md` の High Priority と feature の `Status` を組み合わせた snapshot。
+順序は固定ではなく、上から「実装に入る前に詰めるべき」順に並ぶ。新規 task 開始時はここを基準に owning feature docs を更新する。
+
+| # | 対象 | 期待 status 遷移 | Why first | 依存 |
+|---|---|---|---|---|
+| 1 | `docs/flows/save_data_flow_v15.md` | Planned (現状) を維持し、後続の SaveBlock 編集を全部この doc から参照させる | no_random_encounters / champions_challenge / runtime_rule_options / partygen seed の 4 件すべてが SaveBlock 割り当てを必要とする。先に決めないと 4 feature 同時に手戻りが起きる | なし (docs only) |
+| 2 | `docs/features/no_random_encounters/` | Planned → Implementing | 影響範囲が最も狭い (1 flag rename + config 1 行)。先に通せば flag 割り当て / debug toggle / save persistence の作業フローが確立する | save_data flow の flag region 決定 |
+| 3 | `docs/features/battle_selection/` | Investigating → Planned (MVP partygen 抜き) | trainer party selection の MVP は partygen に依存しない。`CB2_EndTrainerBattle` 以降の restore timing を investigation に書き起こすのが最後の docs piece | save_data flow (party snapshot 場所) |
+| 4 | `docs/features/champions_challenge/` partygen CLI | Planned → Implementing (CLI 単体) | catalog schema / Plan A 採用が決定済み。CLI は ROM build と完全に切り離せるので、partygen 単体で先行実装可能 | save_data flow (partygen seed 配置) |
+| 5 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge state を SaveBlock1 に置くか in-place swap にするかの再設計が要る。partygen が生成済みの `.party` を使えるようになってから着手 | save_data flow + partygen CLI + battle_selection の party restore 知見 |
+| 6 | `docs/features/field_move_modernization/` | Investigating → Planned | HM 廃止 / Cut / Rock Smash / Strength / Surf / Dive / Waterfall ごとの in/out を mvp_plan.md に列挙する必要がある | なし (調査のみ) |
+| 7 | `docs/features/tm_shop_migration/` | Investigating → Planned | stage unlock / price tier / NPC reward 置換の候補列挙が必要 | なし (調査のみ) |
+| 8 | runtime rule options | Investigating → Planned | save_data flow の `RuntimeRuleOptions` sketch を実装 spec まで詰める | save_data flow |
+
+このリストは branch 切り替え時に必ず読む。実装着手で順序が変わった場合はこの section を更新する。
+
 ## Status Values
 
 | Status | Meaning |
@@ -79,7 +97,7 @@ feature complete にする前に、最低限次を確認する。
 | Callback / Dispatch Audit | Investigating | No code changes | `docs/overview/callback_dispatch_map_v15.md` | `SetMainCallback2`、`CB2_*`、`CreateTask`、`ScrCmd_*`、`special`、field callback の確認用 docs。 |
 | Map Script / Flag / Var Audit | Investigating | No code changes | `docs/flows/map_script_flag_var_flow_v15.md` | `map.json`、generated `.inc`、hand-written `scripts.inc`、NPC hide flag、coord/bg event、item ball / hidden item flow を整理。 |
 | Move Relearner / Summary Menu | Investigating | No code changes | `docs/flows/move_relearner_flow_v15.md` | summary / party / script からの技思い出し flow、`MAX_RELEARNER_MOVES`、TM 追加リスクを整理。 |
-| Save Data / Runtime Flags | Investigating | No code changes | `docs/flows/save_data_flow_v15.md` | SaveBlock1/2/3、flag / var、DexNav save field、option save field を整理。 |
+| Save Data / Runtime Flags | Planned | No code changes | `docs/flows/save_data_flow_v15.md` | SaveBlock1/2/3 capacity と FREE_* 切り替え分、flag/var 残量、後続 feature の割り当て先 (no encounter / champions challenge / partygen seed / runtime rule options) を確定。実装は伴わない policy doc。 |
 | Pokemon Icon UI | Investigating | No code changes | `docs/flows/pokemon_icon_ui_flow_v15.md` | `CreateMonIcon`、icon palette、sprite lifetime、DexNav / custom UI 影響を整理。 |
 | Upstream 1.15.2 Upgrade Impact | Investigating | No code changes | `docs/upgrades/1_15_1_to_1_15_2_impact.md` | `expansion/1.15.2` tag の差分を確認。INCGFX migration、DexNav、map script、battle engine、SaveBlock3 影響を整理。 |
 

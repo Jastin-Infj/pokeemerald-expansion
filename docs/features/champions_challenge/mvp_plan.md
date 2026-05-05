@@ -63,6 +63,166 @@ Draft. 実装はまだ行わない。
 
 この段階では generated file を ROM build に自動 include しない。`src/data/generated/champions_trainers.party` 相当を予約出力にし、設計確定後に build integration へ進む。
 
+### Catalog Schema (MVP draft)
+
+CLI が読む input file は以下の最小 4 種類で start する。Pokemon Showdown 互換 DSL は **trainerproc 側に任せる**ので、catalog 自体は role / blueprint / set / journey の concept だけを持つ。
+
+```jsonc
+// catalog/sets/standard_attackers.json
+// global set library: 候補 Pokemon の宣言
+{
+  "schemaVersion": 1,
+  "sets": [
+    {
+      "id": "set.salamence.physical_dragon",
+      "species": "SPECIES_SALAMENCE",
+      "ability": "ABILITY_INTIMIDATE",
+      "moves": ["MOVE_DRAGON_CLAW", "MOVE_EARTHQUAKE", "MOVE_DRAGON_DANCE", "MOVE_FLY"],
+      "item": "ITEM_LIFE_ORB",
+      "ivs": "31/31/31/31/31/31",
+      "evs": "0/252/0/4/0/252",
+      "nature": "NATURE_ADAMANT",
+      "ball": "ITEM_ULTRA_BALL",
+      "level": 50,
+      "roles": ["role.physical_attacker", "role.dragon_dance_user"],
+      "archetypes": ["archetype.weather_neutral"],
+      "minLevel": 36,
+      "tags": ["Ace"]
+    }
+  ]
+}
+```
+
+```jsonc
+// catalog/blueprints/champion_late.json
+// trainer blueprint: どの role / archetype / count を要求するか
+{
+  "schemaVersion": 1,
+  "blueprintId": "blueprint.champion_late",
+  "stage": "stage.elite4",
+  "rank": "rank.champion",
+  "partySize": 6,
+  "poolSize": 12,
+  "rulesetId": "POOL_RULESET_BASIC",
+  "required": [
+    {"slot": "lead", "roles": ["role.physical_lead"]},
+    {"slot": "ace", "roles": ["role.win_condition"]}
+  ],
+  "preferred": [
+    {"role": "role.special_wallbreaker", "min": 1, "max": 2},
+    {"role": "role.support_pivot", "min": 1, "max": 2}
+  ],
+  "constraints": {
+    "minLocalPoolSize": 8,
+    "maxLocalPoolSize": 16,
+    "speciesClause": true,
+    "itemClause": true
+  }
+}
+```
+
+```jsonc
+// catalog/journey.json
+// 旅順 / map / trainer override
+{
+  "schemaVersion": 1,
+  "stages": [
+    {
+      "stageId": "stage.elite4",
+      "trainers": [
+        {
+          "trainerConst": "TRAINER_WALLACE",
+          "blueprintId": "blueprint.champion_late",
+          "weights": "weights/champions.json",
+          "overrides": "catalog/overrides/wallace.json"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```jsonc
+// catalog/rulesets.json (任意)
+{
+  "schemaVersion": 1,
+  "rulesetMap": {
+    "POOL_RULESET_BASIC":   {"speciesClause": true,  "itemClause": true},
+    "POOL_RULESET_DOUBLES": {"speciesClause": true,  "itemClause": false}
+  }
+}
+```
+
+CLI は上記 4 種を読んで、最終的に `trainers.party` に貼れる block を出力する。
+
+```text
+=== TRAINER_WALLACE ===
+Name: WALLACE
+Class: Champion
+Pic: Wallace
+Music: Champion
+AI: Check Bad Move / Try To Faint / Check Viability / Smart Switching
+Party Size: 6
+Pool Rules: Basic
+
+Salamence
+Ability: Intimidate
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 4 SpA / 0 SpD / 252 Spe
+Nature: Adamant
+Item: Life Orb
+Ball: Ultra Ball
+Tags: Ace
+- Dragon Claw
+- Earthquake
+- Dragon Dance
+- Fly
+
+(...11 候補。`Tags: Lead` 1 体, `Tags: Ace` 1-2 体, 残りは tagless)
+```
+
+CLI は **trainerproc が読める DSL の subset** だけを出す。新しい keyword は導入しない。tag 名は `tools/trainerproc/main.c:1489` の `Tags` parser が受ける既存の値 (`Lead` / `Ace` / `Weather Setter` / `Weather Abuser` / `Support` / `Tag 5-7`) に map する。
+
+### `trainers.party` Integration: Plan A vs Plan B
+
+build path は `trainer_rules.mk` で定義されている:
+
+```makefile
+%.h: %.party $(TRAINERPROC)
+	$(CPP) $(CPPFLAGS) -traditional-cpp - < $< | $(TRAINERPROC) -o $@ -i $< -
+```
+
+`.party` は `cpp` で preprocess してから trainerproc に渡る。`#include` 指令も解釈される。
+
+| 項目 | Plan A: rename in place | Plan B: generated include |
+|---|---|---|
+| 編集対象 file | `src/data/trainers.party` (既存) を直接書き換え | `src/data/generated/champions_trainers.party` (新規) を partygen が出力。`src/data/trainers.party` から `#include "generated/champions_trainers.party"` で呼び込み |
+| Makefile 変更 | 不要 (既存 rule のまま) | 不要 (CPP `-traditional-cpp` が `#include` を処理する) |
+| trainerproc 変更 | 不要 | 不要 |
+| diff の見え方 | trainer block 単位の rename / replace。GitHub 上で意図がわかりやすい | generated file 全体が大きく入れ替わる。leaf file だけ見ても意味が読みづらい |
+| upstream merge | upstream が同じ trainer block を変えていると毎回 conflict | 既存 trainer block を変えないので衝突しにくい。rename が必要な場合だけ衝突 |
+| review コスト | trainer 単位で diff が読める | generated 全体を読む or 元 catalog file を見ないと意味がわからない |
+| `clean-generated` の対象 | × (普通の source) | ○ (`make clean-generated` で消す。partygen 再実行が前提) |
+| build dependency | partygen に依存しない (ROM build から partygen 切離可能) | `trainers.party` が generated file に depend する → ROM build から partygen が実質必須になる |
+| CI build を partygen に縛りたいか | 縛らない | 縛る (partygen が止まると ROM build も止まる) |
+| 既存 `.party` block の扱い | 既存 block を上書きするので review で消えた / 書き換わった行が見える | 既存 block と並列に新規 generated block を追加 / 上書き。手動 block と重複定義した場合の trainerproc 挙動は未確認 |
+| 戻し方 | git revert で `.party` を戻す | git revert + `make clean-generated` |
+
+**MVP の選択**: **Plan A** を採用する。理由:
+
+- partygen 自体がまだ alpha。ROM build を partygen に縛らず、partygen が壊れても ROM が build できる状態にしたい。
+- generated drift check (input catalog と generated `.party` の整合) が固まる前に build dependency を入れると、build がランダムに壊れる。
+- diff review が trainer 単位で読めるほうが、調整 PR の安全性が上がる。
+
+**Plan B へ移る前提**:
+
+- partygen の lint / diff / validate が安定して、人間が catalog だけ読めば結果を予測できる状態。
+- `make clean-generated` で generated `.party` を消しても、CI で再生成 → ROM build が green になる。
+- generated `.party` と手動 block の重複定義が trainerproc で error になることを確認済み。
+
+それまでは Plan A で運用し、`src/data/generated/champions_trainers.party` の path だけ予約しておく (空 file でも commit はしない)。
+
 追加制約:
 
 - MVP は `src/data/trainers.party` の既存 `TRAINER_*` block を置き換えるだけにする。
