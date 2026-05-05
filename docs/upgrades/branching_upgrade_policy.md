@@ -157,6 +157,93 @@ operation rule:
 
 つまり、docs branch は残すが、確定した docs は節目で `main` へ入れる。`main` に docs を全部入れるか迷う場合は、まず docs-only PR として review し、source 改造 PR と分離する。
 
+## Docs Merge Strategy (master 取り込みの実務)
+
+この fork は upstream RHH の更新が早く、`master` はできるだけ upstream に近い状態を保ちたい。
+一方で、調査・設計 docs は実装ブランチからも参照したいので、最終的には `master` に取り込みたい。
+両立させるための実務手順を定義する。
+
+### 構造上の事実
+
+- upstream RHH (`rh-hideout/pokeemerald-expansion`) は `docs/` 配下を持たない (本 fork で新規作成した tree)。
+- このため `git merge RHH/master` で `docs/` が conflict することは **構造上発生しない**。
+- 残る運用上の noise は次の 2 つだけ:
+  1. `master` log が docs commit 多数で読みにくくなる。
+  2. Codex / Claude Code 等の agent が upstream sync 作業中に `docs/` を index 対象に含めてしまう。
+
+この 2 点を最小化する手順を以下に定める。
+
+### Recommended: Squash docs into master at milestones
+
+per-commit で master へ docs を merge すると log が溢れる。代わりに **節目ごとに squash merge** する。
+
+1. docs branch (`codex-docs-v15-investigation` など) で複数 commit を積む。自由に頻度高く push してよい。
+2. 区切り (例: feature 着手前、月次、調査一段落時) で master へ取り込む時、`gh pr merge --squash` または `git merge --squash` で **1 commit にまとめて** master へ入れる。
+3. master 側に残るのは `docs: snapshot 2026-05-05 - feature workflow + save_data Planned` のような 1 commit。
+4. docs branch はそのまま残し、次の調査を続ける。
+5. 次の squash 時は前回 squash 以降の差分を 1 commit にまとめる。
+
+これで master log は (upstream sync commit) + (月数回の docs squash) だけになる。
+
+### Belt-and-suspenders: `.gitattributes` で docs を ours-merge
+
+将来 upstream が `docs/` 配下を追加した場合に備える保険として:
+
+```
+# .gitattributes
+docs/** merge=ours
+```
+
+`git merge` 時に docs ファイルは常に自分側を優先する。
+現状 upstream は docs を持たないため発火しないが、構造的保証として置く価値はある。
+注意: `merge=ours` driver は `git config --global merge.ours.driver true` を 1 度だけ設定する必要がある。
+
+### IDE noise: upstream sync 中だけ docs を index から外す
+
+upstream sync 作業 (`upgrade/<version>` branch) では `docs/` を agent が index する必要がない。
+agent ごとに以下のいずれかで除外する。
+
+| Agent | 設定方法 |
+|---|---|
+| Claude Code | project `.claude/settings.json` で `additionalDirectories` を限定するか、必要なら ignore 系 hook を入れる |
+| Codex | `.codex/` directory の設定で project-level の watch / skill scope を絞る (詳細は Codex 側 doc を参照) |
+| VSCode | workspace `settings.json` で `"files.exclude"` / `"search.exclude"` に `docs/**` を入れる |
+
+#### Sparse-checkout worktree (より厳格な分離)
+
+upstream sync 専用 worktree を docs 抜きで作る方法。Codex / Claude Code がそもそも `docs/` を見えない物理状態にできる。
+
+```bash
+# upgrade 検証用の worktree を docs 抜きで作る
+git worktree add ../pokeemerald-upgrade upgrade/1.15.3
+cd ../pokeemerald-upgrade
+git sparse-checkout init --cone
+git sparse-checkout set src include data tools Makefile config asm graphics sound test
+# docs/ は checkout されない
+```
+
+この worktree では `docs/` がファイルシステム上に存在しないため、agent が誤って読み込むことがない。
+docs を編集する時はメインの worktree に戻る。
+
+### Anti-patterns
+
+| やってはいけないこと | 理由 |
+|---|---|
+| 個別 docs commit をそのまま per-PR で master に merge | master log が溢れる。upstream sync 結果と docs 更新が history で混ざって読みにくい |
+| docs を完全に master 外に置く | feature branch から docs が見えず、実装中に save_data_flow などを参照できない |
+| upstream sync 後に「邪魔だった docs commit」を revert | squash で取り込んでいれば revert 不要。逆に per-commit 取り込みしているとここで詰む |
+| docs branch を削除して fresh start | 過去の調査経緯と open question の trail が消える |
+
+### Master 取り込みの判断基準
+
+squash merge を master に流す条件 (suggested):
+
+- docs branch 上で **少なくとも 1 feature の Status が前進している** (Investigating → Planned 等)
+- または **複数 feature にまたがる横断 doc** (save_data_flow、open_investigation_queue 等) が実質更新されている
+- かつ、open に書きかけ section (TODO だけのもの、半端な箇条書き) が残っていない
+
+これに当てはまらない、純粋な作業途中の commit はそのまま docs branch に残し、次の milestone まで待つ。
+
 ## PR Policy
 
 PR は target repository で扱いを分ける。
@@ -200,6 +287,8 @@ PR を作らない場合の代替:
 ## Open Questions
 
 - `main` を常に upstream latest release にするか、安定確認済み release で止めるかは運用判断が必要。
-- docs branch をいつ `main` に merge するかの cadence は未決定。
+- ~~docs branch をいつ `main` に merge するかの cadence は未決定。~~ → `Docs Merge Strategy` 節で squash merge milestone 基準を定義済み (2026-05-05)。
 - reference branch の保存期限は未決定。大きく古くなった branch は docs に要点を移して閉じる方がよい可能性がある。
 - `upgrade/1.15.2` branch は検証用に作成済み。PR #3 は運用方針に合わせて close 済み。remote branch を残すか削除するかは owner 判断。
+- `.gitattributes` に `docs/** merge=ours` を実際に追加するかは owner 判断。現状は upstream が docs を持たないため発火しないが、保険として置く価値はある。
+- Codex の project-level docs ignore 設定の具体 syntax は未確認。`.codex/` の skill / rule 設定で対応できるかは Codex 側 doc を参照しながら別 task で詰める。
