@@ -8,17 +8,55 @@ Checks that all documentation pages that should be mentioned in
 import glob
 import re
 import os
+import sys
 from pathlib import Path
 
 errorLines = []
+warnOnly = False
+
+for arg in sys.argv[1:]:
+    if arg == "--warn-only":
+        warnOnly = True
+    else:
+        errorLines.append(f"Unexpected argument: {arg}")
 
 if not os.path.exists("Makefile"):
     errorLines.append("Please run this script from your root folder.")
 
 summaryFile = Path("docs/SUMMARY.md")
+allowlistFile = Path(".github/docs_validate/summary_allowlist.txt")
+
+
+def read_allowlist():
+    allowed = set()
+    if not allowlistFile.is_file():
+        return allowed
+
+    with open(allowlistFile, 'r', encoding='UTF-8') as file:
+        lineNo = 0
+        for rawLine in file:
+            lineNo = lineNo + 1
+            line = rawLine.split("#", 1)[0].strip()
+            if not line:
+                continue
+
+            path = Path(line)
+            if path.is_absolute() or ".." in path.parts:
+                errorLines.append(
+                    f"{allowlistFile}:{lineNo}: invalid docs path `{line}`"
+                )
+            else:
+                allowed.add(path)
+
+    return allowed
+
+
+summaryAllowlist = set()
 if not errorLines:
     if not summaryFile.is_file():
         errorLines.append("docs/SUMMARY.md missing")
+    else:
+        summaryAllowlist = read_allowlist()
 
 summaryContents = []
 if not errorLines:
@@ -38,6 +76,13 @@ if not errorLines:
                 errorLines.append(f"- {lineNo}: {line.strip()}")
 
 if not errorLines:
+    for path in sorted(summaryAllowlist):
+        if not (Path("docs") / path).is_file():
+            errorLines.append(
+                "summary allowlist points at a missing docs file: " + str(path)
+            )
+
+if not errorLines:
     for pathName in glob.glob("**/*.md", root_dir="docs", recursive=True):
         path = Path(pathName)
         if path == Path("SUMMARY.md"):
@@ -45,6 +90,8 @@ if not errorLines:
         elif path == Path("changelogs/template.md"):
             pass
         elif path in summaryContents:
+            pass
+        elif path in summaryAllowlist:
             pass
         else:
             if not errorLines:
@@ -60,5 +107,9 @@ if errorLines:
             for line in errorLines:
                 file.write(line)
                 file.write('\n')
+
+    if warnOnly:
+        print("docs_validate: warning-only mode; not failing this branch check.")
+        quit(0)
 
     quit(1)
