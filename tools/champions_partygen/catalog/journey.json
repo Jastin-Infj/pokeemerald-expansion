@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "stages": [
+    {
+      "stageId": "stage.champion_demo",
+      "trainers": [
+        {
+          "trainerConst": "TRAINER_WALLACE",
+          "blueprintId": "blueprint.champion_demo"
+        }
+      ]
+    }
+  ]
+}

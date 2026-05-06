@@ -6250,54 +6250,79 @@ Items: Full Restore / Full Restore / Full Restore / Full Restore
 Double Battle: No
 AI: Basic Trainer
 Mugshot: Yellow
+Party Size: 3
+Pool Rules: Basic
 
-Wailord
-Level: 57
+SPECIES_MIGHTYENA @ ITEM_SITRUS_BERRY
+Ability: ABILITY_INTIMIDATE
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Rain Dance
-- Water Spout
-- Double Edge
-- Blizzard
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 252 Spe
+Nature: Jolly
+Tags: Lead
+- MOVE_CRUNCH
+- MOVE_TAUNT
+- MOVE_PROTECT
+- MOVE_DOUBLE_EDGE
 
-Tentacruel
-Level: 55
+SPECIES_AGGRON @ ITEM_SITRUS_BERRY
+Ability: ABILITY_ROCK_HEAD
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Toxic
-- Hydro Pump
-- Sludge Bomb
-- Ice Beam
+EVs: 0 HP / 252 Atk / 0 Def / 252 SpA / 0 SpD / 4 Spe
+Nature: Adamant
+Tags: Ace
+- MOVE_THUNDER
+- MOVE_PROTECT
+- MOVE_SOLAR_BEAM
+- MOVE_DRAGON_CLAW
 
-Ludicolo
-Level: 56
+SPECIES_SKARMORY @ ITEM_LEFTOVERS
+Ability: ABILITY_STURDY
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Giga Drain
-- Surf
-- Leech Seed
-- Double Team
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Impish
+Tags: Lead / Support
+- MOVE_TOXIC
+- MOVE_AERIAL_ACE
+- MOVE_PROTECT
+- MOVE_STEEL_WING
 
-Whiscash
-Level: 56
+SPECIES_ZIGZAGOON @ ITEM_SITRUS_BERRY
+Ability: ABILITY_PICKUP
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Earthquake
-- Surf
-- Amnesia
-- Hyper Beam
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 0 SpD / 252 Spe
+Nature: Jolly
+- MOVE_HEADBUTT
+- MOVE_PIN_MISSILE
+- MOVE_PROTECT
+- MOVE_THUNDER_WAVE
 
-Gyarados
-Level: 56
+SPECIES_METANG @ ITEM_SITRUS_BERRY
+Ability: ABILITY_CLEAR_BODY
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Dragon Dance
-- Earthquake
-- Hyper Beam
-- Surf
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Brave
+Tags: Lead / Support
+- MOVE_LIGHT_SCREEN
+- MOVE_PSYCHIC
+- MOVE_REFLECT
+- MOVE_METAL_CLAW
 
-Milotic @ Sitrus Berry
-Level: 58
+SPECIES_WOBBUFFET @ ITEM_LEFTOVERS
+Ability: ABILITY_SHADOW_TAG
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Recover
-- Surf
-- Ice Beam
-- Toxic
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Calm
+Tags: Support
+- MOVE_COUNTER
+- MOVE_MIRROR_COAT
+- MOVE_SAFEGUARD
+- MOVE_DESTINY_BOND
 
 === TRAINER_ANDREW ===
 Name: ANDREW

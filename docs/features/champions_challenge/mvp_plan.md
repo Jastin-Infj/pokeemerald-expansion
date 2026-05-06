@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft. 実装はまだ行わない。
+Generator MVP implemented in `tools/champions_partygen`. Challenge runtime remains draft.
 
 ## MVP Scope
 
