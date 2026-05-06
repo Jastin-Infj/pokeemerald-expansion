@@ -1,0 +1,7 @@
+# Champions party generator baseline config.
+# The MVP CLI keeps generation deterministic through --seed and reads catalog JSON
+# from tools/champions_partygen/catalog by default.
+
+rom_repo = "../.."
+catalog = "catalog"
+default_output = "generated/champions_trainers.party"

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "blueprintId": "blueprint.champion_demo",
+  "stage": "stage.champion_demo",
+  "rank": "rank.champion",
+  "partySize": 3,
+  "poolSize": 6,
+  "rulesetId": "POOL_RULESET_BASIC",
+  "required": [
+    {"slot": "lead", "roles": ["role.sturdy_lead"]},
+    {"slot": "ace", "roles": ["role.win_condition"]}
+  ],
+  "preferred": [
+    {"role": "role.defensive_support", "min": 1, "max": 2}
+  ],
+  "constraints": {
+    "minLocalPoolSize": 6,
+    "maxLocalPoolSize": 12,
+    "speciesClause": true,
+    "itemClause": true
+  }
+}

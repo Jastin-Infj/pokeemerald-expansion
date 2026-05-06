@@ -36,7 +36,7 @@
 | 新規 item | `include/constants/items.h`, `src/data/items.h` | [How to add a new item](../tutorials/how_to_add_new_item.md) |
 | EV/IV/nature/moveset UI | `src/pokemon.c`, `src/party_menu.c`, `src/move_relearner.c` | [Champions Training UI Feasibility](../overview/champions_training_ui_feasibility_v15.md) |
 | 野生初期技 random | `src/wild_encounter.c`, `src/pokemon.c`, `src/move_relearner.c` | [Wild Moveset Randomization Feasibility](../overview/wild_moveset_randomization_v15.md) |
-| trainer party pool / generator | `src/data/trainers.party`, `tools/trainerproc/main.c`, `src/trainer_pools.c` | [Opponent Party Preview and Randomizer Investigation](../features/battle_selection/opponent_party_and_randomizer.md) |
+| trainer party pool / generator | `tools/champions_partygen/`, `src/data/trainers.party`, `tools/trainerproc/main.c`, `src/trainer_pools.c` | [Trainer Partygen Manual](trainer_partygen_manual.md) |
 | option menu / runtime battle options | `src/option_menu.c`, `include/global.h`, `include/config/battle.h` | [Options and Status UI Flow](../flows/options_status_flow_v15.md) |
 | runtime rule options | `include/config/battle.h`, `include/config/pokemon.h`, `include/config/item.h`, `src/difficulty.c` | [Runtime Rule Options Feasibility](../overview/runtime_rule_options_feasibility_v15.md) |
 | NPC battle AI | `include/constants/battle_ai.h`, `include/config/ai.h`, `src/battle_ai_*.c` | [Battle AI Decision Flow](../flows/battle_ai_decision_flow_v15.md) |
