@@ -22,8 +22,13 @@ The tool writes trainerproc-compatible `.party` DSL and supports:
 - `render-one`: render one trainer.
 - `explain`: show selected sets and roles.
 - `validate`: validate generated fragment before applying.
+- `lint`: alias for strict fragment validation.
 - `diff`: compare generated trainer blocks against a `.party` source.
 - `apply`: replace existing trainer blocks in a target `.party` file.
+- `audit show` / `audit list`: inspect generated audit logs.
+- `logs normalize`: convert raw mGBA-style battle logs to normalized JSONL.
+- `profile build` / `profile show` / `profile diff`: build and inspect
+  catalog-pinned player profiles.
 
 The first applied data change is `TRAINER_WALLACE`, converted from a fixed six-Pokemon party to a Trainer Party Pool:
 
@@ -41,6 +46,40 @@ The generated output is intentionally Plan A replacement. `src/data/trainers.par
 `Party Size` has behavioral meaning. For `trainers.party`, adding `Party Size` makes trainerproc emit pool data. Do not add it to fixed-order trainers unless pool selection is intended.
 
 Trainer header fields still matter. `Name`, `Class`, `Pic`, `Gender`, `Music`, `Items`, `Double Battle`, `AI`, and `Mugshot` are preserved by the MVP and continue to control non-party battle behavior.
+
+## Scope Decisions
+
+Partygen owns Champions Challenge opponent party data first. It does not try
+to batch-replace normal route trainers in the MVP. Normal route trainer
+replacement can be a later catalog mode after the Champions flow is stable.
+
+MVP data changes use existing trainer IDs and replace existing trainer blocks.
+New trainer IDs are avoided for now because each new trainer tends to pull in
+NPC placement, defeated flags, script references, story gates, and map cleanup
+work. The catalog marks owned trainers with journey-level tags such as
+`champions_challenge` and `partygen_owned`; these tags are written to audit logs
+so reviewers can tell which generated blocks are intentionally managed by this
+feature.
+
+Generated includes remain deferred. `apply` keeps doing direct block
+replacement into `src/data/trainers.party`, with `diff`, audit logs, and mGBA
+checks as the review path. Generated includes can be revisited only after drift
+checks exist and reviewers can prove that included data still matches the ROM
+source expected by scripts and constants.
+
+NPC deletion / replacement is a separate feature boundary. Removing or
+replacing field NPCs requires a map-script audit of `events.inc`,
+`scripts.inc`, object hide flags, movement scripts, story flags, defeated
+trainer flags, and map-specific state. Team Aqua / Team Magma trainers need
+extra care because their trainer constants and map scripts are easy to confuse
+and may be tied to story progression. Partygen may point at existing trainer
+slots, but it does not delete field objects or allocate new NPC sprite/image
+resources.
+
+New external NPC art, sprite capacity, palette capacity, and object-event slot
+capacity are future resource work. The current partygen branch uses existing
+trainer/NPC assets and keeps sprite expansion or cleanup in a separate
+capacity/asset feature.
 
 ## Confirmed Behavior
 
@@ -62,13 +101,28 @@ This PR is trainer party generation only. It does not implement:
 - challenge party / bag save-restore.
 - no-EXP challenge mode.
 - reward / prize policy.
-- player playstyle logging.
-- adaptive difficulty.
+- Champions Challenge runtime player profile state.
+- ROM-side adaptive difficulty.
 - new trainer ID allocation.
 - new NPC placement or new map trainer event flow.
+- NPC removal, route cleanup, or story flag rewiring.
 - generated drift checking in CI.
 
 ## Remaining Work
+
+The next implementation phase is now tracked by two design documents. The
+current branch implements their first code pass; each doc now marks what is
+implemented and what is still planned.
+
+- Lint and audit log: [partygen_lint_spec.md](partygen_lint_spec.md).
+  Covers doubles vs singles consistency, rank band / power budget, weather
+  setter / abuser pairing, item duplication, required slot health, light
+  coverage check, cross-trainer drift, audit log schema, severity model, and
+  exit behavior per CLI.
+- Player style logging: [partygen_player_style_logging.md](partygen_player_style_logging.md).
+  Covers raw mGBA log capture, normalize step (JSONL), profile build step,
+  weight feedback into `partygen generate`, file locations, commit policy,
+  privacy boundaries, and failure modes.
 
 Catalog completeness:
 
@@ -76,38 +130,51 @@ Catalog completeness:
 - Add group profiles for route trainers, Gym Leaders, Elite Four, Champion, rivals, grunts, and special fights.
 - Expand curated set libraries beyond the current Hoenn demo sets.
 - Add source notes for why each set exists.
+- Author against the new `mode`, `rank`, `minRank`, `maxRank`, and
+  `bstBudget` fields introduced in `partygen_lint_spec.md` so catalog growth
+  does not have to be re-shaped after the lint lands.
 
 Battle mode separation:
 
-- Add explicit singles and doubles blueprint families.
-- Enforce `Double Battle: Yes` / `No` consistency against blueprint mode.
-- Map doubles-specific tags and constraints separately from singles.
-- Add lint for required lead count, support count, spread move mix, and double battle partner interactions.
+- See `partygen_lint_spec.md` "Doubles vs Singles" for required catalog
+  fields (`mode`, `requireSpreadMove`, `doublesSpreadMove`) and the `DBL00x`
+  check ids. Implementation work for this section is grouped with the lint
+  layer below.
 
 Power / quality control:
 
-- Add rank bands and power budgets.
-- Add lint for underbuilt sets, empty coverage, illegal move constants, item duplication, and missing synergy.
-- Add explain output that shows why a set was chosen and which rule accepted it.
+- See `partygen_lint_spec.md` "Rank Band / Power Budget", "Item Duplication",
+  "Move Coverage (light)", and "Cross-Trainer Aggregate" for catalog fields,
+  check ids, and severity defaults.
+- `explain` enrichment (why a set was chosen) is folded into the audit log
+  schema in `partygen_lint_spec.md` rather than a separate command surface.
 
 Player style logging:
 
-- Store raw play logs outside save data first.
-- Normalize logs into JSONL or CSV.
-- Feed only summarized profile data into generator weights.
-- Keep adaptation weak until enough runs exist.
+- See `partygen_player_style_logging.md` for the four-stage pipeline (raw →
+  normalized JSONL → profile → weight feedback), the new CLI subcommands
+  (`logs normalize`, `profile build`, `profile show`, `profile diff`,
+  `generate --profile`, `audit show --run`), and the `[profile]` config
+  block.
+- `minimum_adaptation_runs`, `weakness_bonus`, `archetype_cooldown`,
+  `exploration_rate`, `weakness_threshold`, and `min_sample_count` defaults
+  live in that doc and in `config.example.toml`.
 
 Data management:
 
 - Keep `config.local.toml`, raw logs, generated reports, and generated fragments out of commits unless they are intended review artifacts.
 - Commit source catalog changes and applied `.party` changes together when the data is meant to ship.
 - Prefer `partygen diff` before `partygen apply`.
+- `tools/champions_partygen/local/` is gitignored for logs, audit files, and
+  active profiles.
 
 Manual / onboarding:
 
 - Keep `docs/manuals/trainer_partygen_manual.md` as the day-to-day guide.
 - Link new trainer / NPC addition work back to trainer ID capacity and defeated flag usage.
 - Document mGBA verification whenever generated trainer data is applied to ROM data.
+- Keep lint and player-style CLI examples in the manual as the implementation
+  changes.
 
 ## Prize Money Note
 
@@ -144,8 +211,6 @@ Challenge-specific EXP on/off or EXP multiplier should be a separate runtime bat
 
 ## Open Questions
 
-- Should partygen own only Champions Challenge trainers, or also offer batch replacement for normal route trainers?
-- Should generated trainer blocks always replace existing blocks, or should Plan B generated includes be revisited after drift checks exist?
-- How much player style data is enough before adaptive weighting stops being noise?
-- Should prize money be reported as a lint warning when generated final pool level changes a major trainer reward?
-- Should new trainer IDs be avoided entirely for Champions MVP, using existing trainer slots only?
+- How much player style data is enough before adaptive weighting stops being noise? (Tracked alongside `minimum_adaptation_runs` default in `partygen_player_style_logging.md`.)
+- Should reward / economy reporting get its own lint family outside partygen
+  once Champions reward policy is designed?

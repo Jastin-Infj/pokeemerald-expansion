@@ -58,25 +58,32 @@ rtk tools/champions_partygen/partygen.sh generate --seed 1234 --out /tmp/champio
 rtk tools/champions_partygen/partygen.sh validate --input /tmp/champions_trainers.party
 ```
 
-4. Review the diff:
+4. Inspect the latest audit log if lint output needs detail:
+
+```sh
+rtk tools/champions_partygen/partygen.sh audit list
+rtk tools/champions_partygen/partygen.sh audit show --run RUN_ID
+```
+
+5. Review the diff:
 
 ```sh
 rtk tools/champions_partygen/partygen.sh diff --input /tmp/champions_trainers.party --against src/data/trainers.party
 ```
 
-5. Apply to a temp file first:
+6. Apply to a temp file first:
 
 ```sh
 rtk tools/champions_partygen/partygen.sh apply --input /tmp/champions_trainers.party --target src/data/trainers.party --out /tmp/trainers.party
 ```
 
-6. Apply to source only after review:
+7. Apply to source only after review:
 
 ```sh
 rtk tools/champions_partygen/partygen.sh apply --input /tmp/champions_trainers.party --target src/data/trainers.party --out src/data/trainers.party
 ```
 
-7. Build and runtime-check:
+8. Build and runtime-check:
 
 ```sh
 rtk make -j4
@@ -94,11 +101,18 @@ Each journey trainer must point to:
 - an existing `TRAINER_*` constant;
 - a `blueprintId`.
 
+Journey trainer entries may also include ownership tags. Use tags such as
+`champions_challenge` and `partygen_owned` for trainer slots that this feature
+is allowed to replace. These tags are not emitted to `trainers.party`; they are
+written to audit logs for review.
+
 Blueprints define:
 
 - `partySize`: number of mons selected at runtime by Trainer Party Pool;
 - `poolSize`: number of candidate mons materialized into `trainers.party`;
 - `rulesetId`: existing pool rule, for example `POOL_RULESET_BASIC`;
+- `mode`: `single` or `double`;
+- `rank`: `early`, `mid`, `late`, or `champion`;
 - required slots such as lead or ace;
 - preferred roles;
 - pool size constraints.
@@ -114,6 +128,7 @@ Sets define:
 - nature;
 - level;
 - roles and archetypes for tool-side selection;
+- `minRank` and `maxRank` for rank-band filtering;
 - final `Tags` that trainerproc understands.
 
 Only these final pool tags are emitted to `trainers.party`:
@@ -143,7 +158,14 @@ Doubles blueprints should explicitly model:
 - partner anti-synergy;
 - `Double Battle: Yes` in the trainer header.
 
-The current MVP does not enforce header-vs-blueprint battle mode yet. Until that lint exists, manually check generated trainers before applying.
+Partygen now enforces header-vs-blueprint mode with `DBL001` during
+`generate`. It also checks spread move presence for doubles pools when
+`requireSpreadMove` is true.
+
+The full lint design and implementation status (including doubles consistency
+check ids `DBL001`-`DBL006`, rank band, weather pair, item duplication,
+cross-trainer checks, and the audit log format) lives in
+`docs/features/champions_challenge/partygen_lint_spec.md`.
 
 ## Existing Trainer Replacement
 
@@ -219,16 +241,24 @@ Challenge no-EXP, half-EXP, double-EXP, or profile-based EXP rules should be imp
 
 ## Player Style Logs
 
-Player style logging is related to partygen because it can later affect weights, but it should not be stored in `trainers.party`.
+Player style logging is related to partygen because it can affect weights, but it should not be stored in `trainers.party`.
 
-Recommended staged design:
+Implemented staged flow:
 
-1. raw log: mGBA / debug / battle summary text in `/tmp` or a local profile directory;
-2. normalized log: JSONL rows with battle id, trainer id, team, outcome, turns, faint order, switches, items, and key moves;
-3. profile summary: compact JSON with archetype success rates, repeated weaknesses, preferred tempo, and difficulty tolerance;
-4. generator input: weights derived from profile summary only.
+1. raw log: mGBA / debug / battle summary text under `tools/champions_partygen/local/logs/raw/`;
+2. normalized log: JSONL rows built with `partygen logs normalize --input RAW --out LOGS.jsonl`;
+3. profile summary: compact JSON built with `partygen profile build --input LOGS.jsonl --out PROFILE.json`;
+4. generator input: catalog-pinned weights via `partygen generate --profile PROFILE.json`.
 
-Do not put raw logs in SaveBlock. Do not make generation depend on logs until no-log fallback stays deterministic.
+Do not put raw logs in SaveBlock. Profile input is opt-in; no-log generation
+stays deterministic from `--seed`.
+
+The full design and implementation status (file layout under
+`tools/champions_partygen/local/`, JSONL schema, profile schema,
+`logs normalize` / `profile build` / `generate --profile` CLI surface,
+defaults for `minimum_adaptation_runs`, `exploration_rate`, and friends, and
+privacy boundaries) lives in
+`docs/features/champions_challenge/partygen_player_style_logging.md`.
 
 ## Review Checklist
 

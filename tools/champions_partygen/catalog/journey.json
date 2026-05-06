@@ -6,7 +6,8 @@
       "trainers": [
         {
           "trainerConst": "TRAINER_WALLACE",
-          "blueprintId": "blueprint.champion_demo"
+          "blueprintId": "blueprint.champion_demo",
+          "tags": ["champions_challenge", "partygen_owned"]
         }
       ]
     }

@@ -11,6 +11,11 @@ The MVP is intentionally build-adjacent rather than build-required:
 - `apply` replaces matching trainer blocks in a target `.party` file when a
   branch is ready to commit data changes.
 
+The default catalog owns Champions Challenge trainer slots only. Add
+journey-level tags such as `champions_challenge` and `partygen_owned` when a
+trainer block is intentionally managed by partygen; the tags are recorded in
+audit logs and are not emitted to `trainers.party`.
+
 Examples:
 
 ```sh
@@ -20,4 +25,8 @@ tools/champions_partygen/partygen.sh generate --seed 1234 --out /tmp/champions_t
 tools/champions_partygen/partygen.sh validate --input /tmp/champions_trainers.party
 tools/champions_partygen/partygen.sh diff --input /tmp/champions_trainers.party --against src/data/trainers.party
 tools/champions_partygen/partygen.sh apply --input /tmp/champions_trainers.party --target src/data/trainers.party --out /tmp/trainers.party
+tools/champions_partygen/partygen.sh audit list
+tools/champions_partygen/partygen.sh logs normalize --input tools/champions_partygen/tests/fixtures/raw_log_example.log --out /tmp/partygen_logs.jsonl
+tools/champions_partygen/partygen.sh profile build --input /tmp/partygen_logs.jsonl --out /tmp/player_profile.json
+tools/champions_partygen/partygen.sh generate --seed 1234 --profile tools/champions_partygen/profiles/example_profile.json --out /tmp/champions_trainers.party
 ```

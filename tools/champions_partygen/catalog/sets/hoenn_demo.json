@@ -13,6 +13,8 @@
       "level": 50,
       "roles": ["role.sturdy_lead", "role.defensive_support"],
       "archetypes": ["archetype.balance"],
+      "minRank": "late",
+      "maxRank": "champion",
       "tags": ["Lead", "Support"]
     },
     {
@@ -27,6 +29,8 @@
       "level": 50,
       "roles": ["role.defensive_support", "role.sturdy_lead"],
       "archetypes": ["archetype.balance"],
+      "minRank": "late",
+      "maxRank": "champion",
       "tags": ["Lead", "Support"]
     },
     {
@@ -41,6 +45,8 @@
       "level": 50,
       "roles": ["role.win_condition", "role.mixed_attacker"],
       "archetypes": ["archetype.balance"],
+      "minRank": "late",
+      "maxRank": "champion",
       "tags": ["Ace"]
     },
     {
@@ -55,6 +61,8 @@
       "level": 50,
       "roles": ["role.sturdy_lead", "role.physical_attacker"],
       "archetypes": ["archetype.balance"],
+      "minRank": "mid",
+      "maxRank": "champion",
       "tags": ["Lead"]
     },
     {
@@ -69,6 +77,8 @@
       "level": 50,
       "roles": ["role.defensive_support"],
       "archetypes": ["archetype.balance"],
+      "minRank": "late",
+      "maxRank": "champion",
       "tags": ["Support"]
     },
     {
@@ -83,6 +93,8 @@
       "level": 50,
       "roles": ["role.physical_attacker"],
       "archetypes": ["archetype.balance"],
+      "minRank": "early",
+      "maxRank": "champion",
       "tags": []
     },
     {
@@ -97,6 +109,8 @@
       "level": 50,
       "roles": ["role.physical_attacker"],
       "archetypes": ["archetype.balance"],
+      "minRank": "early",
+      "maxRank": "champion",
       "tags": []
     }
   ]
