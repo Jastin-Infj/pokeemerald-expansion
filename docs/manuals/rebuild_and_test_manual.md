@@ -30,6 +30,12 @@ runtime に影響する source change は、push 前に mGBA Live CLI / MCP で 
 `make` の出力で save block や free space に関する情報が出る場合は、feature docs の `investigation.md` か `test_plan.md` に残す。
 SaveBlock 変更、large generated table、new option を触る branch では特に記録する。
 
+### Parallelism
+
+2026-05-06 の確認では、20 logical workers の local environment で `make -j16` と `make debug -j16` が成功した。`make -j4` は保守的な fallback として残し、通常の local validation は host に余裕があるなら `-j16` を使ってよい。
+
+resource-related failure が疑わしい場合は `-j16` と `-j4` の両方を記録し、CPU count、失敗した command、failure excerpt を test result に残す。
+
 ## When to Use Clean Rebuild
 
 clean rebuild は時間がかかるため、毎回必須にはしない。
