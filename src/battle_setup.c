@@ -79,6 +79,8 @@ static void CB2_StartFirstBattle(void);
 static void CB2_EndFirstBattle(void);
 static void SaveChangesToPlayerParty(void);
 static void HandleBattleVariantEndParty(void);
+static bool32 TrainerBattleAftercare_ShouldApply(void);
+static void TrainerBattleAftercare_ApplyIfEnabled(void);
 static void CB2_EndTrainerBattle(void);
 static bool32 IsPlayerDefeated(u32 battleOutcome);
 #if FREE_MATCH_CALL == FALSE
@@ -1425,6 +1427,37 @@ static void HandleBattleVariantEndParty(void)
     FlagClear(B_FLAG_SKY_BATTLE);
 }
 
+static bool32 TrainerBattleAftercare_ShouldApply(void)
+{
+    if (B_TRAINER_BATTLE_AFTERCARE == FALSE)
+        return FALSE;
+    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
+        return FALSE;
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED_LINK | BATTLE_TYPE_FRONTIER))
+        return FALSE;
+    if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || InTrainerHillChallenge())
+        return FALSE;
+    if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
+        return FALSE;
+    if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
+        return FALSE;
+    if (FollowerNPCIsBattlePartner())
+        return FALSE;
+    if (DidPlayerForfeitNormalTrainerBattle())
+        return FALSE;
+    return TRUE;
+}
+
+static void TrainerBattleAftercare_ApplyIfEnabled(void)
+{
+    if (!TrainerBattleAftercare_ShouldApply())
+        return;
+    if (IsPlayerDefeated(gBattleOutcome) == TRUE)
+        return;
+
+    HealPlayerParty();
+}
+
 static void CB2_EndTrainerBattle(void)
 {
     HandleBattleVariantEndParty();
@@ -1438,6 +1471,8 @@ static void CB2_EndTrainerBattle(void)
          || FlagGet(FNPC_FLAG_HEAL_AFTER_FOLLOWER_BATTLE)))
             HealPlayerParty();
     }
+
+    TrainerBattleAftercare_ApplyIfEnabled();
 
     if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
     {
@@ -2130,4 +2165,3 @@ void SetMultiTrainerBattle(struct ScriptContext *ctx)
     TRAINER_BATTLE_PARAM.defeatTextB = (u8*)ScriptReadWord(ctx);
     gPartnerTrainerId = TRAINER_PARTNER(ScriptReadHalfword(ctx));
 };
-
