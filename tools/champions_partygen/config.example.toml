@@ -1,0 +1,33 @@
+# Champions party generator baseline config.
+# The MVP CLI keeps generation deterministic through --seed and reads catalog JSON
+# from tools/champions_partygen/catalog by default.
+
+rom_repo = "../.."
+catalog = "catalog"
+default_output = "generated/champions_trainers.party"
+
+[lint]
+strict = false
+item_duplication_limit = 1
+shareable_items = ["ITEM_LUM_BERRY", "ITEM_LEFTOVERS", "ITEM_SITRUS_BERRY"]
+bst_budget_tolerance = 35
+xtr_set_reuse_threshold = 3
+spread_moves_path = "catalog/lint/spread_moves.json"
+weather_pairs_path = "catalog/lint/weather_pairs.json"
+battlefield_pairs_path = "catalog/lint/battlefield_pairs.json"
+items_blocklist_path = "catalog/lint/items_blocklist.json"
+
+[profile]
+path = "local/profiles/active.json"
+# Use a separate explicit file such as local/profiles/challenge_profile.json
+# for Champions Challenge runs if casual-play logs should not affect them.
+minimum_adaptation_runs = 25
+weakness_bonus = 1.5
+archetype_cooldown = 3
+exploration_rate = 0.2
+weakness_threshold = 0.5
+min_sample_count = 5
+profile_max_age_days = 60
+
+[audit]
+dir = "local/audit"

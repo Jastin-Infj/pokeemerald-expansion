@@ -16,6 +16,16 @@
 3. Forced release helper without UI.
 4. Battle selection restore と統合。
 
+この feature 群全体では、実装順を以下に寄せる。
+
+1. Trainer Battle Aftercare の heal-only hook。
+2. Battle Item Restore Policy の battle-end restore 拡張。
+3. Trainer Battle Party Selection。
+
+理由: aftercare hook は `CB2_EndTrainerBattle` の終端 policy を集約する
+最小 slice で、item restore と battle selection の後続順序を決める土台になる。
+Battle selection は一時 party と callback chain を持つため最後に回す。
+
 ## Hook Design Candidate
 
 未実装の設計候補:
@@ -26,6 +36,44 @@
 4. release が必要なら専用 post-battle callback へ遷移する。
 5. release 完了後に `HealPlayerParty` または survivor heal を行う。
 6. `CB2_ReturnToFieldContinueScriptPlayMapMusic` へ戻すか、既存 `CB2_WhiteOut` に任せる。
+
+初回 implementation の具体化:
+
+```c
+static bool32 TrainerBattleAftercare_ShouldApply(void)
+{
+    if (B_TRAINER_BATTLE_AFTERCARE == FALSE)
+        return FALSE;
+    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
+        return FALSE;
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED_LINK | BATTLE_TYPE_FRONTIER))
+        return FALSE;
+    if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || InTrainerHillChallenge())
+        return FALSE;
+    if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
+        return FALSE;
+    if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
+        return FALSE;
+    if (FollowerNPCIsBattlePartner())
+        return FALSE;
+    return TRUE;
+}
+```
+
+上記は設計 sketch。実装時は現行 `battle_setup.c` の include / symbol
+visibility に合わせて調整する。将来 Champions Challenge runtime が入ったら、
+`ChampionsChallenge_IsActive()` をこの helper の前段に追加し、challenge
+専用 aftercare に分岐させる。
+
+配置順の初期 contract:
+
+1. `HandleBattleVariantEndParty()`
+2. 将来 `TrainerBattleSelection_RestoreIfActive()`
+3. `TrainerBattleAftercare_ApplyIfEnabled()`
+4. 既存の early rival / secret base / forfeit / defeat / win 分岐
+
+heal-only MVP では `SetMainCallback2` の行き先を変えない。loss を field
+return に変える no-whiteout policy は phase 2 で扱う。
 
 ## Release Helper Candidate
 
@@ -51,6 +99,17 @@ PC storage の `Task_ReleaseMon` は static UI task なので、将来は別 hel
 | Last mon | release しない、run failure、starter replacement、game over |
 | Boxes | party only、boxes included、future optional |
 | Facilities | exclude Frontier / Hill / Pyramid / link、include later |
+
+## Applied / Not Applied Cases
+
+| Runtime state | Aftercare MVP |
+|---|---|
+| Config off | No-op。通常 ROM と同じ。 |
+| Config on, normal route trainer | win path の heal-only 対象。loss path は phase 2 まで既存挙動。 |
+| Config on, partygen-owned Elite Four / Wallace | 通常 trainer と同じ。現時点では Champions runtime が無いため別扱いしない。 |
+| Future Champions runtime active | 通常 trainer aftercare を bypass し、challenge loss/win policy に渡す。 |
+| Future battle selection active | selection restore 完了後に適用する。 |
+| Facility / link / special trainer | MVP では除外。 |
 
 ## Integration With Battle Selection
 

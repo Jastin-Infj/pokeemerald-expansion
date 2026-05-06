@@ -42,6 +42,10 @@
 - secret base trainer。
 - early rival。
 - follower partner battle。
+- partygen-owned Elite Four / Wallace は、Champions runtime 未実装時には
+  通常 trainer と同じ対象/非対象になること。
+- 将来 `ChampionsChallenge_IsActive()` が true の時、通常 trainer
+  aftercare が二重に走らないこと。
 
 ## Visual / Script Return Tests
 

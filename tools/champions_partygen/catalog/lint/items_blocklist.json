@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "blocked": [
+  ],
+  "shareable": [
+    "ITEM_LUM_BERRY",
+    "ITEM_LEFTOVERS",
+    "ITEM_SITRUS_BERRY"
+  ]
+}

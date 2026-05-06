@@ -1,0 +1,17 @@
+2026-05-06T10:00:00Z	session_start	schemaVersion=1	source=battle_log.lua
+2026-05-06T10:00:05Z	battle_start	battleId=1	trainerConst=TRAINER_WALLACE	format=single
+2026-05-06T10:00:06Z	turn_start	turn=1
+2026-05-06T10:00:07Z	move_used	side=player	slot=0	move=MOVE_DRAGON_DANCE
+2026-05-06T10:00:08Z	move_used	side=opponent	slot=0	move=MOVE_TAUNT
+2026-05-06T10:00:10Z	turn_start	turn=2
+2026-05-06T10:00:11Z	move_used	side=player	slot=0	move=MOVE_FLARE_BLITZ
+2026-05-06T10:00:12Z	faint	side=opponent	slot=0	species=SPECIES_MIGHTYENA
+2026-05-06T10:00:14Z	switch	side=opponent	from=SPECIES_MIGHTYENA	to=SPECIES_AGGRON
+2026-05-06T10:00:15Z	turn_start	turn=3
+2026-05-06T10:00:16Z	move_used	side=player	slot=0	move=MOVE_CLOSE_COMBAT
+2026-05-06T10:00:17Z	faint	side=opponent	slot=0	species=SPECIES_AGGRON
+2026-05-06T10:00:19Z	switch	side=opponent	from=SPECIES_AGGRON	to=SPECIES_SKARMORY
+2026-05-06T10:00:20Z	turn_start	turn=4
+2026-05-06T10:00:21Z	move_used	side=player	slot=0	move=MOVE_THUNDER_PUNCH
+2026-05-06T10:00:22Z	faint	side=opponent	slot=0	species=SPECIES_SKARMORY
+2026-05-06T10:00:23Z	battle_end	outcome=win	turns=4

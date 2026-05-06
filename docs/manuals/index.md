@@ -20,6 +20,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | docs の置き場、manual / tutorial / feature の境界を確認したい | [Docs Navigation Manual](docs_navigation.md) | `docs/manuals/`, `docs/tutorials/`, `docs/features/` |
 | build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
 | generated data の入力、lint、出力、差し替えを整理したい | [Generated Data Workflow Manual](generated_data_workflow.md) | `tools/`, generated data, feature docs |
+| trainer.party generator の更新手順を確認したい | [Trainer Partygen Manual](trainer_partygen_manual.md) | `tools/champions_partygen/`, `src/data/trainers.party` |
 | 未調査項目の優先順位を確認したい | [Open Investigation Queue](open_investigation_queue.md) | feature docs, overview, flows |
 | 既存ポケモンの種族値、タイプ、特性を変えたい | [Pokemon Stats Manual](pokemon_stats_manual.md) | `src/data/pokemon/species_info/gen_*_families.h` |
 | 既存技の威力、命中、タイプなどを変えたい | [Move Data Manual](move_data_manual.md) | `src/data/moves_info.h` |
@@ -30,7 +31,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | NPC の配置、移動、条件付きタイル変更を調べたい | [Map Script Flow](../flows/map_script_flow_v15.md) / [NPC Object Event Flow](../flows/npc_object_event_flow_v15.md) | `data/maps/*/events.inc`, `data/maps/*/scripts.inc` |
 | 性格、EV、IV、技を Champions 風に調整したい | [Champions Training UI Feasibility](../overview/champions_training_ui_feasibility_v15.md) | `src/pokemon.c`, `src/party_menu.c`, `src/move_relearner.c` |
 | 野生 Pokemon の初期技を重み付き random にしたい | [Wild Moveset Randomization Feasibility](../overview/wild_moveset_randomization_v15.md) | `src/wild_encounter.c`, `src/pokemon.c`, `src/move_relearner.c` |
-| trainer.party で候補 pool や外部 generator を使いたい | [Opponent Party Preview and Randomizer Investigation](../features/battle_selection/opponent_party_and_randomizer.md) / [Trainer Party Pools](../tutorials/how_to_trainer_party_pool.md) | `src/data/trainers.party`, `tools/trainerproc/main.c` |
+| trainer.party で候補 pool や外部 generator を使いたい | [Trainer Partygen Manual](trainer_partygen_manual.md) / [Trainer Party Pools](../tutorials/how_to_trainer_party_pool.md) | `tools/champions_partygen/`, `src/data/trainers.party`, `tools/trainerproc/main.c` |
 | option menu を複数 page にしたい、battle option を増やしたい | [Options and Status UI Flow](../flows/options_status_flow_v15.md) | `src/option_menu.c`, `include/global.h`, `include/config/battle.h` |
 | Nuzlocke、release、難易度、EXP/catch/shiny、gimmick on/off を option 化したい | [Runtime Rule Options Feasibility](../overview/runtime_rule_options_feasibility_v15.md) | `include/config/battle.h`, `include/config/pokemon.h`, `include/config/item.h`, `src/difficulty.c` |
 | NPC AI、交代、double battle の挙動を調べたい | [Battle AI Decision Flow](../flows/battle_ai_decision_flow_v15.md) | `src/battle_ai_main.c`, `src/battle_ai_switch.c`, `include/config/ai.h` |

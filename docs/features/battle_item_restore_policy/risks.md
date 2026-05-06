@@ -15,3 +15,11 @@
 Battle 中は item を消費する。Battle 後に戻す。
 
 この分離を崩すと、消費済み item を参照する既存 mechanics が連鎖的に壊れる。
+
+## Cross-Feature Risks
+
+| Risk | Severity | Notes |
+|---|---|---|
+| partygen-owned trainer の berry-heavy pool と復元 policy が噛み合わない | Medium | Wallace demo のように berry が多い pool では、通常 trainer 戦後に berry を戻すかどうかで連戦 difficulty が変わる。config default off で導入する。 |
+| Champions Challenge loss policy と item restore が二重適用される | High | loss 時に restore してから challenge party を削除するのか、削除優先かを challenge policy で固定する。通常 restore helper は `ChampionsChallenge_IsActive()` で bypass する。 |
+| Trainer Party Pool item clause と battle-end restore を混同する | Medium | duplicate held item validation は partygen / battle selection 側、battle-end restore は battle_util 側で分ける。 |

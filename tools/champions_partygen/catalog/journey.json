@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "stages": [
+    {
+      "stageId": "stage.elite_four",
+      "trainers": [
+        {
+          "trainerConst": "TRAINER_SIDNEY",
+          "blueprintId": "blueprint.elite_four.sidney",
+          "tags": ["champions_challenge", "partygen_owned", "elite_four"]
+        },
+        {
+          "trainerConst": "TRAINER_PHOEBE",
+          "blueprintId": "blueprint.elite_four.phoebe",
+          "tags": ["champions_challenge", "partygen_owned", "elite_four"]
+        },
+        {
+          "trainerConst": "TRAINER_GLACIA",
+          "blueprintId": "blueprint.elite_four.glacia",
+          "tags": ["champions_challenge", "partygen_owned", "elite_four"]
+        },
+        {
+          "trainerConst": "TRAINER_DRAKE",
+          "blueprintId": "blueprint.elite_four.drake",
+          "tags": ["champions_challenge", "partygen_owned", "elite_four"]
+        }
+      ]
+    },
+    {
+      "stageId": "stage.champion_demo",
+      "trainers": [
+        {
+          "trainerConst": "TRAINER_WALLACE",
+          "blueprintId": "blueprint.champion_demo",
+          "tags": ["champions_challenge", "partygen_owned"]
+        }
+      ]
+    }
+  ]
+}

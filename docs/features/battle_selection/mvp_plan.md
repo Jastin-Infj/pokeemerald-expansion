@@ -144,6 +144,27 @@ flowchart TD
 7. Add manual tests and automated tests where possible.
 8. Only after MVP is stable, design custom UI / opponent preview.
 
+`CB2_EndTrainerBattle` integration は aftercare hook と同じ順序 contract を使う。
+
+1. Sky Battle / existing variant restore.
+2. `TrainerBattleSelection_RestoreIfActive()`.
+3. `TrainerBattleAftercare_ApplyIfEnabled()`.
+4. existing whiteout / return / trainer flag flow.
+
+この順序にしないと、一時 `gPlayerParty` に対する heal / release / item policy
+が元 party 復元で消える可能性がある。
+
+selection 側の入口も helper に集約する。
+
+```c
+static bool32 TrainerBattleSelection_ShouldOffer(void);
+static u8 TrainerBattleSelection_GetRequiredCount(void);
+```
+
+初期 helper は Frontier / cable / Union Room / link / follower / multi /
+special trainer を除外する。将来 `ChampionsChallenge_IsActive()` が true
+なら通常 selection を bypass し、challenge 専用 menu に任せる。
+
 ## Deferred Follow-Up Phases
 
 | Phase | Description | Blocking research |
