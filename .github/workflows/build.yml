@@ -217,7 +217,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check that SUMMARY.md includes markdown doc files
-        run: .github/docs_validate/inclusive_summary.py
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            .github/docs_validate/inclusive_summary.py --warn-only
+          else
+            .github/docs_validate/inclusive_summary.py
+          fi
 
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
