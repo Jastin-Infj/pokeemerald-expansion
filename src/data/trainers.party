@@ -4594,46 +4594,78 @@ Items: Full Restore / Full Restore
 Double Battle: No
 AI: Basic Trainer / Force Setup First Turn
 Mugshot: Purple
+Party Size: 5
+Pool Rules: Basic
 
-Mightyena
-Level: 46
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Roar
-- Double Edge
-- Sand Attack
-- Crunch
-
-Shiftry
-Level: 48
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Torment
-- Double Team
-- Swagger
-- Extrasensory
-
-Cacturne
-Level: 46
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Leech Seed
-- Feint Attack
-- Needle Arm
-- Cotton Spore
-
-Crawdaunt
-Level: 48
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Surf
-- Swords Dance
-- Strength
-- Facade
-
-Absol @ Sitrus Berry
-Level: 49
+SPECIES_MIGHTYENA @ ITEM_BLACK_GLASSES
+Ability: ABILITY_INTIMIDATE
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Aerial Ace
-- Rock Slide
-- Swords Dance
-- Slash
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tags: Lead
+- MOVE_CRUNCH
+- MOVE_TAUNT
+- MOVE_SUCKER_PUNCH
+- MOVE_PLAY_ROUGH
+
+SPECIES_ABSOL @ ITEM_SCOPE_LENS
+Ability: ABILITY_SUPER_LUCK
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tags: Ace
+- MOVE_NIGHT_SLASH
+- MOVE_ROCK_SLIDE
+- MOVE_SWORDS_DANCE
+- MOVE_SLASH
+
+SPECIES_CACTURNE @ ITEM_FOCUS_SASH
+Ability: ABILITY_SAND_VEIL
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 0 Spe
+Nature: Adamant
+Tags: Support
+- MOVE_SPIKES
+- MOVE_LEECH_SEED
+- MOVE_SUCKER_PUNCH
+- MOVE_NEEDLE_ARM
+
+SPECIES_CRAWDAUNT @ ITEM_MYSTIC_WATER
+Ability: ABILITY_ADAPTABILITY
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Adamant
+Tags: Ace
+- MOVE_WATERFALL
+- MOVE_CRUNCH
+- MOVE_SWORDS_DANCE
+- MOVE_AQUA_JET
+
+SPECIES_SHIFTRY @ ITEM_LIFE_ORB
+Ability: ABILITY_CHLOROPHYLL
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 4 Atk / 0 Def / 252 SpA / 0 SpD / 252 Spe
+Nature: Naive
+- MOVE_SUNNY_DAY
+- MOVE_SOLAR_BEAM
+- MOVE_DARK_PULSE
+- MOVE_SUCKER_PUNCH
+
+SPECIES_SHARPEDO @ ITEM_WHITE_HERB
+Ability: ABILITY_SPEED_BOOST
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 4 SpA / 0 SpD / 252 Spe
+Nature: Naive
+- MOVE_WATERFALL
+- MOVE_CRUNCH
+- MOVE_ICE_BEAM
+- MOVE_PROTECT
 
 === TRAINER_PHOEBE ===
 Name: PHOEBE
@@ -4645,46 +4677,79 @@ Items: Full Restore / Full Restore
 Double Battle: No
 AI: Basic Trainer
 Mugshot: Green
+Party Size: 5
+Pool Rules: Basic
 
-Dusclops
-Level: 48
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Punch
-- Confuse Ray
-- Curse
-- Protect
-
-Banette
-Level: 49
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Ball
-- Grudge
-- Will O Wisp
-- Feint Attack
-
-Sableye
+SPECIES_BANETTE @ ITEM_SPELL_TAG
+Ability: ABILITY_INSOMNIA
 Level: 50
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Ball
-- Double Team
-- Night Shade
-- Feint Attack
-
-Banette
-Level: 49
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Ball
-- Psychic
-- Thunderbolt
-- Facade
-
-Dusclops @ Sitrus Berry
-Level: 51
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Shadow Ball
-- Ice Beam
-- Rock Slide
-- Earthquake
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tags: Lead
+- MOVE_SHADOW_CLAW
+- MOVE_SUCKER_PUNCH
+- MOVE_WILL_O_WISP
+- MOVE_DESTINY_BOND
+
+SPECIES_MISMAGIUS @ ITEM_CHOICE_SPECS
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+Tags: Ace
+- MOVE_SHADOW_BALL
+- MOVE_PSYCHIC
+- MOVE_THUNDERBOLT
+- MOVE_ENERGY_BALL
+
+SPECIES_DUSCLOPS @ ITEM_LEFTOVERS
+Ability: ABILITY_PRESSURE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Calm
+Tags: Lead / Support
+- MOVE_SHADOW_PUNCH
+- MOVE_WILL_O_WISP
+- MOVE_PAIN_SPLIT
+- MOVE_PROTECT
+
+SPECIES_BANETTE @ ITEM_FOCUS_SASH
+Ability: ABILITY_FRISK
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Adamant
+- MOVE_POLTERGEIST
+- MOVE_SHADOW_SNEAK
+- MOVE_KNOCK_OFF
+- MOVE_DESTINY_BOND
+
+SPECIES_DUSKNOIR @ ITEM_SITRUS_BERRY
+Ability: ABILITY_PRESSURE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 0 Spe
+Nature: Brave
+Tags: Ace
+- MOVE_TRICK_ROOM
+- MOVE_SHADOW_SNEAK
+- MOVE_EARTHQUAKE
+- MOVE_ROCK_SLIDE
+
+SPECIES_SABLEYE @ ITEM_LUM_BERRY
+Ability: ABILITY_PRANKSTER
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Careful
+Tags: Lead / Support
+- MOVE_FOUL_PLAY
+- MOVE_WILL_O_WISP
+- MOVE_TAUNT
+- MOVE_RECOVER
 
 === TRAINER_GLACIA ===
 Name: GLACIA
@@ -4696,46 +4761,79 @@ Items: Full Restore / Full Restore
 Double Battle: No
 AI: Basic Trainer
 Mugshot: Pink
+Party Size: 5
+Pool Rules: Basic
 
-Sealeo
+SPECIES_ABOMASNOW @ ITEM_ICY_ROCK
+Ability: ABILITY_SNOW_WARNING
 Level: 50
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Encore
-- Body Slam
-- Hail
-- Ice Ball
-
-Glalie
-Level: 50
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Light Screen
-- Crunch
-- Icy Wind
-- Ice Beam
-
-Sealeo
-Level: 52
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Attract
-- Double Edge
-- Hail
-- Blizzard
-
-Glalie
-Level: 52
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Ball
-- Explosion
-- Hail
-- Ice Beam
-
-Walrein @ Sitrus Berry
-Level: 53
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Surf
-- Body Slam
-- Ice Beam
-- Sheer Cold
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Quiet
+Tags: Lead / Support
+- MOVE_AURORA_VEIL
+- MOVE_BLIZZARD
+- MOVE_GIGA_DRAIN
+- MOVE_ICE_SHARD
+
+SPECIES_WALREIN @ ITEM_LEFTOVERS
+Ability: ABILITY_ICE_BODY
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Calm
+Tags: Ace / Support
+- MOVE_SURF
+- MOVE_ICE_BEAM
+- MOVE_BODY_SLAM
+- MOVE_PROTECT
+
+SPECIES_FROSLASS @ ITEM_FOCUS_SASH
+Ability: ABILITY_SNOW_CLOAK
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+Tags: Lead
+- MOVE_BLIZZARD
+- MOVE_SHADOW_BALL
+- MOVE_SPIKES
+- MOVE_DESTINY_BOND
+
+SPECIES_GLALIE @ ITEM_WHITE_HERB
+Ability: ABILITY_INNER_FOCUS
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 252 SpA / 0 SpD / 4 Spe
+Nature: Naive
+Tags: Support
+- MOVE_FREEZE_DRY
+- MOVE_CRUNCH
+- MOVE_SPIKES
+- MOVE_EXPLOSION
+
+SPECIES_GLALIE @ ITEM_NEVER_MELT_ICE
+Ability: ABILITY_INNER_FOCUS
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 252 SpA / 0 SpD / 4 Spe
+Nature: Naive
+- MOVE_BLIZZARD
+- MOVE_SHADOW_BALL
+- MOVE_ICE_SHARD
+- MOVE_PROTECT
+
+SPECIES_SEALEO @ ITEM_SITRUS_BERRY
+Ability: ABILITY_THICK_FAT
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Bold
+Tags: Support
+- MOVE_ENCORE
+- MOVE_SURF
+- MOVE_ICY_WIND
+- MOVE_PROTECT
 
 === TRAINER_DRAKE ===
 Name: DRAKE
@@ -4747,46 +4845,78 @@ Items: Full Restore / Full Restore
 Double Battle: No
 AI: Basic Trainer
 Mugshot: Blue
+Party Size: 5
+Pool Rules: Basic
 
-Shelgon
-Level: 52
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Rock Tomb
-- Dragon Claw
-- Protect
-- Double Edge
-
-Altaria
-Level: 54
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Double Edge
-- Dragon Breath
-- Dragon Dance
-- Aerial Ace
-
-Kingdra
-Level: 53
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Smokescreen
-- Dragon Dance
-- Surf
-- Body Slam
-
-Flygon
-Level: 53
-IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Flamethrower
-- Crunch
-- Dragon Breath
-- Earthquake
-
-Salamence @ Sitrus Berry
-Level: 55
+SPECIES_ALTARIA @ ITEM_LEFTOVERS
+Ability: ABILITY_NATURAL_CURE
+Level: 50
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-- Flamethrower
-- Dragon Claw
-- Rock Slide
-- Crunch
+EVs: 252 HP / 0 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tags: Lead / Ace
+- MOVE_DRAGON_DANCE
+- MOVE_DRAGON_CLAW
+- MOVE_EARTHQUAKE
+- MOVE_ROOST
+
+SPECIES_SALAMENCE @ ITEM_LUM_BERRY
+Ability: ABILITY_INTIMIDATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 4 SpA / 0 SpD / 252 Spe
+Nature: Naive
+Tags: Ace
+- MOVE_DRAGON_DANCE
+- MOVE_DRAGON_CLAW
+- MOVE_EARTHQUAKE
+- MOVE_FLAMETHROWER
+
+SPECIES_KINGDRA @ ITEM_MYSTIC_WATER
+Ability: ABILITY_SNIPER
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 4 SpA / 0 SpD / 252 Spe
+Nature: Naive
+- MOVE_SURF
+- MOVE_DRAGON_DANCE
+- MOVE_ICE_BEAM
+- MOVE_BODY_SLAM
+
+SPECIES_SHELGON @ ITEM_HABAN_BERRY
+Ability: ABILITY_ROCK_HEAD
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 0 Spe
+Nature: Adamant
+Tags: Lead
+- MOVE_DRAGON_CLAW
+- MOVE_ROCK_SLIDE
+- MOVE_PROTECT
+- MOVE_DOUBLE_EDGE
+
+SPECIES_FLYGON @ ITEM_LIFE_ORB
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 4 SpA / 0 SpD / 252 Spe
+Nature: Naive
+- MOVE_EARTHQUAKE
+- MOVE_DRAGON_CLAW
+- MOVE_FIRE_BLAST
+- MOVE_ROCK_SLIDE
+
+SPECIES_GARCHOMP @ ITEM_YACHE_BERRY
+Ability: ABILITY_ROUGH_SKIN
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tags: Ace
+- MOVE_EARTHQUAKE
+- MOVE_DRAGON_CLAW
+- MOVE_SWORDS_DANCE
+- MOVE_STONE_EDGE
 
 === TRAINER_ROXANNE_1 ===
 Name: ROXANNE

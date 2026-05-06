@@ -119,7 +119,7 @@ with old normalized files without breaking the profile build step.
 ```jsonc
 {
   "schemaVersion": 1,
-  "catalogVersion": "fnv64:193f7331e67a9698",
+  "catalogVersion": "fnv64:385fe0c879672609",
   "generatedAt": "2026-05-06T11:04:55Z",
   "confidence": {
     "totalBattles": 120,

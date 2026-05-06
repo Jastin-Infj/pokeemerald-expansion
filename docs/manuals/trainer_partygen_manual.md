@@ -130,6 +130,8 @@ Sets define:
 - level;
 - roles and archetypes for tool-side selection;
 - `groups`: catalog-only pool groups such as `pool.champion_demo`;
+- `lintTags`: catalog-only tags for lint concepts such as `Weather Setter:
+  Snow` or `Terrain Abuser: Electric`;
 - `minRank` and `maxRank` for rank-band filtering;
 - final `Tags` that trainerproc understands.
 
@@ -144,7 +146,9 @@ Only these final pool tags are emitted to `trainers.party`:
 - `Tag 6`
 - `Tag 7`
 
-Do not dump every role or archetype into `Tags`. Roles and archetypes are tool vocabulary; `Tags` are ROM pool selection vocabulary.
+Do not dump every role, archetype, weather, or terrain concept into `Tags`.
+Roles, archetypes, and `lintTags` are tool vocabulary; `Tags` are ROM pool
+selection vocabulary.
 
 ## Singles And Doubles
 
@@ -165,9 +169,20 @@ Partygen now enforces header-vs-blueprint mode with `DBL001` during
 `requireSpreadMove` is true.
 
 The full lint design and implementation status (including doubles consistency
-check ids `DBL001`-`DBL006`, rank band, weather pair, item duplication,
-cross-trainer checks, and the audit log format) lives in
+check ids `DBL001`-`DBL006`, rank band, weather / terrain / pledge battlefield
+pairs, item duplication, cross-trainer checks, and the audit log format) lives in
 `docs/features/champions_challenge/partygen_lint_spec.md`.
+
+## Battlefield Pair Lint
+
+`catalog/lint/battlefield_pairs.json` reserves matched setter / abuser pairs
+for weather, terrain, and pledge-side effects. The file currently covers sun,
+rain, sand, snow, Electric / Grassy / Misty / Psychic Terrain, Rainbow, Sea of
+Fire, and Swamp.
+
+Use `lintTags` for these concepts unless the tag must be emitted to ROM pool
+selection. Example: a Glacia snow set can carry `lintTags: ["Weather Setter:
+Snow", "Weather Abuser: Snow"]` while still emitting only `Lead / Support`.
 
 ## Existing Trainer Replacement
 

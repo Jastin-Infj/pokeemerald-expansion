@@ -19,6 +19,13 @@ audit logs and are not emitted to `trainers.party`.
 Blueprint `setGroups` and set `groups` are catalog-only filters. Use them to
 keep one trainer's pool from drawing sets intended for another trainer.
 
+Set `lintTags` are also catalog-only. Use them for weather, terrain, and
+pledge-side concepts that should be linted but should not be emitted to
+trainerproc `Tags`.
+
+The default catalog currently owns the Elite Four run-up
+(`TRAINER_SIDNEY` through `TRAINER_DRAKE`) plus the Wallace demo slot.
+
 Examples:
 
 ```sh

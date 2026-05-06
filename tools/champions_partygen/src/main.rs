@@ -1781,12 +1781,8 @@ fn run_trainer_lints(
         }
     }
 
-    let has_setter = sets
-        .iter()
-        .any(|s| s.tags.iter().any(|t| t == "Weather Setter"));
-    let has_abuser = sets
-        .iter()
-        .any(|s| s.tags.iter().any(|t| t == "Weather Abuser"));
+    let has_setter = sets.iter().any(|s| set_has_tag(s, "Weather Setter"));
+    let has_abuser = sets.iter().any(|s| set_has_tag(s, "Weather Abuser"));
     if has_setter && !has_abuser {
         out.push(LintIssue::error_(
             "WTH001",
@@ -1801,6 +1797,7 @@ fn run_trainer_lints(
             "pool has Weather Abuser but zero Weather Setter",
         ));
     }
+    run_battlefield_pair_lints(source, sets, lint_cfg, out);
 
     let offensive_types = sets
         .iter()
@@ -1825,6 +1822,82 @@ fn run_trainer_lints(
             "blueprint partySize is zero",
         ));
     }
+}
+
+fn run_battlefield_pair_lints(
+    source: &PartyBlock,
+    sets: &[&Set],
+    lint_cfg: &LintConfig,
+    out: &mut Vec<LintIssue>,
+) {
+    for pair in &lint_cfg.battlefield_pairs {
+        let has_setter = sets
+            .iter()
+            .any(|s| set_matches_battlefield_side(s, pair, true));
+        let has_abuser = sets
+            .iter()
+            .any(|s| set_matches_battlefield_side(s, pair, false));
+        let (setter_id, abuser_id) = if pair.kind == "weather" {
+            ("WTH001", "WTH002")
+        } else {
+            ("BFL001", "BFL002")
+        };
+        if has_setter && !has_abuser {
+            out.push(LintIssue::error_(
+                setter_id,
+                Some(&source.name),
+                &format!(
+                    "pool has {} setter but zero matching abuser ({})",
+                    pair.label, pair.id
+                ),
+            ));
+        }
+        if has_abuser && !has_setter {
+            out.push(LintIssue::error_(
+                abuser_id,
+                Some(&source.name),
+                &format!(
+                    "pool has {} abuser but zero matching setter ({})",
+                    pair.label, pair.id
+                ),
+            ));
+        }
+    }
+}
+
+fn set_matches_battlefield_side(set: &Set, pair: &BattlefieldPair, setter: bool) -> bool {
+    let tags = if setter {
+        &pair.setter_tags
+    } else {
+        &pair.abuser_tags
+    };
+    if tags.iter().any(|tag| set_has_tag(set, tag)) {
+        return true;
+    }
+
+    let moves = if setter {
+        &pair.setter_moves
+    } else {
+        &pair.abuser_moves
+    };
+    if pair.detect_moves && moves.iter().any(|m| set.moves.contains(m)) {
+        return true;
+    }
+
+    let abilities = if setter {
+        &pair.setter_abilities
+    } else {
+        &pair.abuser_abilities
+    };
+    pair.detect_abilities
+        && set
+            .ability
+            .as_ref()
+            .is_some_and(|ability| abilities.contains(ability))
+}
+
+fn set_has_tag(set: &Set, tag: &str) -> bool {
+    set.tags.iter().any(|t| t == tag) || set.lint_tags.iter().any(|t| t == tag)
 }
 
 fn lint_generated_fragment(block: &str, constants: &ConstantIndex) -> Vec<LintIssue> {
@@ -1927,6 +2000,7 @@ struct Set {
     roles: Vec<String>,
     archetypes: Vec<String>,
     groups: Vec<String>,
+    lint_tags: Vec<String>,
     tags: Vec<String>,
     min_rank: String,
     max_rank: String,
@@ -1988,6 +2062,21 @@ struct LintConfig {
     blocked_items: BTreeSet<String>,
     shareable_items: BTreeSet<String>,
     item_duplication_limit: usize,
+    battlefield_pairs: Vec<BattlefieldPair>,
+}
+
+struct BattlefieldPair {
+    id: String,
+    label: String,
+    kind: String,
+    setter_tags: Vec<String>,
+    abuser_tags: Vec<String>,
+    setter_moves: Vec<String>,
+    setter_abilities: Vec<String>,
+    abuser_moves: Vec<String>,
+    abuser_abilities: Vec<String>,
+    detect_moves: bool,
+    detect_abilities: bool,
 }
 
 impl Catalog {
@@ -2037,6 +2126,29 @@ fn load_lint_config(catalog: &Path) -> Result<LintConfig> {
     let weather = lint_dir.join("weather_pairs.json");
     if weather.exists() {
         let _ = read_versioned_json(&weather)?;
+    }
+    let battlefield = lint_dir.join("battlefield_pairs.json");
+    if battlefield.exists() {
+        let json = read_versioned_json(&battlefield)?;
+        for v in json.obj()?.get_array_default("pairs")? {
+            let obj = v.obj()?;
+            let id = obj.get_string("id")?.to_string();
+            cfg.battlefield_pairs.push(BattlefieldPair {
+                id: id.clone(),
+                label: obj.get_optional_string("label")?.unwrap_or(id),
+                kind: obj
+                    .get_optional_string("kind")?
+                    .unwrap_or_else(|| "battlefield".to_string()),
+                setter_tags: obj.get_string_array_default("setterTags")?,
+                abuser_tags: obj.get_string_array_default("abuserTags")?,
+                setter_moves: obj.get_string_array_default("setterMoves")?,
+                setter_abilities: obj.get_string_array_default("setterAbilities")?,
+                abuser_moves: obj.get_string_array_default("abuserMoves")?,
+                abuser_abilities: obj.get_string_array_default("abuserAbilities")?,
+                detect_moves: obj.get_bool_default("detectMoves", false)?,
+                detect_abilities: obj.get_bool_default("detectAbilities", false)?,
+            });
+        }
     }
     let block = lint_dir.join("items_blocklist.json");
     if block.exists() {
@@ -2190,6 +2302,7 @@ fn parse_sets(json: &Json) -> Result<Vec<Set>> {
                 roles: obj.get_string_array_default("roles")?,
                 archetypes: obj.get_string_array_default("archetypes")?,
                 groups: obj.get_string_array_default("groups")?,
+                lint_tags: obj.get_string_array_default("lintTags")?,
                 tags: obj.get_string_array_default("tags")?,
                 min_rank: obj.get_string_default("minRank", "early")?.to_string(),
                 max_rank: obj.get_string_default("maxRank", "champion")?.to_string(),
@@ -3905,6 +4018,7 @@ mod tests {
             roles: vec![],
             archetypes: vec![],
             groups: vec![],
+            lint_tags: vec![],
             tags: vec!["Weather Setter".to_string()],
             min_rank: "early".to_string(),
             max_rank: "champion".to_string(),
@@ -3919,6 +4033,67 @@ mod tests {
         let mut issues = Vec::new();
         run_trainer_lints(&blueprint, &source, &[&setter], &cfg, &mut issues);
         assert!(issues.iter().any(|i| i.id == "WTH001"));
+    }
+
+    #[test]
+    fn lint_detects_battlefield_pair_imbalance() {
+        let blueprint = Blueprint {
+            id: "b1".to_string(),
+            party_size: 3,
+            pool_size: 3,
+            ruleset_id: "POOL_RULESET_BASIC".to_string(),
+            required: vec![],
+            preferred: vec![],
+            constraints: Constraints::default(),
+            mode: "single".to_string(),
+            rank: "champion".to_string(),
+            set_groups: vec![],
+            require_spread_move: true,
+            allow_species_duplicate: false,
+        };
+        let setter = Set {
+            id: "s.setter".to_string(),
+            species: "SPECIES_PINCURCHIN".to_string(),
+            ability: None,
+            moves: vec![],
+            item: None,
+            ivs: "31/31/31/31/31/31".to_string(),
+            evs: "0/0/0/0/0/0".to_string(),
+            nature: None,
+            level: 50,
+            roles: vec![],
+            archetypes: vec![],
+            groups: vec![],
+            lint_tags: vec!["Terrain Setter: Electric".to_string()],
+            tags: vec![],
+            min_rank: "early".to_string(),
+            max_rank: "champion".to_string(),
+            doubles_spread_move: false,
+        };
+        let source = PartyBlock {
+            name: "TRAINER_X".to_string(),
+            text: "=== TRAINER_X ===\nName: X\n".to_string(),
+            header_lines: vec!["Name: X".to_string()],
+        };
+        let cfg = LintConfig {
+            battlefield_pairs: vec![BattlefieldPair {
+                id: "terrain.electric".to_string(),
+                label: "electric terrain".to_string(),
+                kind: "terrain".to_string(),
+                setter_tags: vec!["Terrain Setter: Electric".to_string()],
+                abuser_tags: vec!["Terrain Abuser: Electric".to_string()],
+                setter_moves: vec![],
+                setter_abilities: vec![],
+                abuser_moves: vec![],
+                abuser_abilities: vec![],
+                detect_moves: false,
+                detect_abilities: false,
+            }],
+            ..LintConfig::default()
+        };
+        let mut issues = Vec::new();
+        run_trainer_lints(&blueprint, &source, &[&setter], &cfg, &mut issues);
+        assert!(issues.iter().any(|i| i.id == "BFL001"));
     }
 
     #[test]
@@ -3950,6 +4125,7 @@ mod tests {
             roles: vec![],
             archetypes: vec![],
             groups: vec!["pool.other".to_string()],
+            lint_tags: vec![],
             tags: vec![],
             min_rank: "early".to_string(),
             max_rank: "champion".to_string(),
@@ -3968,6 +4144,7 @@ mod tests {
             roles: vec![],
             archetypes: vec![],
             groups: vec!["pool.allowed".to_string()],
+            lint_tags: vec![],
             tags: vec![],
             min_rank: "early".to_string(),
             max_rank: "champion".to_string(),

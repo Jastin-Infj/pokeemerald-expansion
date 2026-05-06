@@ -30,12 +30,25 @@ The tool writes trainerproc-compatible `.party` DSL and supports:
 - `profile build` / `profile show` / `profile diff`: build and inspect
   catalog-pinned player profiles.
 
-The first applied data change is `TRAINER_WALLACE`, converted from a fixed six-Pokemon party to a Trainer Party Pool:
+The first applied data change was `TRAINER_WALLACE`, converted from a fixed six-Pokemon party to a Trainer Party Pool:
 
 - `Party Size: 3`
 - `Pool Rules: Basic`
 - pool size 6
 - Lead / Ace / Support tags emitted through existing trainerproc syntax
+
+The catalog expansion branch then adds the Elite Four run-up:
+
+- `TRAINER_SIDNEY`
+- `TRAINER_PHOEBE`
+- `TRAINER_GLACIA`
+- `TRAINER_DRAKE`
+
+Each Elite Four trainer keeps the existing trainer ID, script references,
+class, items, and battle mode, then replaces only the party block with
+`Party Size: 5`, `Pool Rules: Basic`, and six catalog-selected pool members.
+The catalog uses trainer-specific `setGroups` to keep each Elite Four pool
+isolated.
 
 ## Impact
 
@@ -78,8 +91,8 @@ resources.
 
 New external NPC art, sprite capacity, palette capacity, and object-event slot
 capacity are future resource work. The current partygen branch uses existing
-trainer/NPC assets and keeps sprite expansion or cleanup in a separate
-capacity/asset feature.
+trainer slots and does not allocate new field NPC assets. Sprite expansion or
+cleanup stays in a separate capacity/asset feature.
 
 ## Confirmed Behavior
 

@@ -109,10 +109,10 @@ once at startup by reading `src/data/pokemon/species_info/` and is cached
 in-memory. There is no separate JSON to maintain because the species file is
 already authoritative.
 
-## Weather And Terrain Pair
+## Battlefield Pair
 
-Goal: a pool that sets weather but has no abuser is a dead concept; the
-opposite (abusers with no setter) is also dead. Same for terrain.
+Goal: a pool that sets weather / terrain / pledge-side status but has no
+abuser is a dead concept; the opposite is also dead.
 
 ### Checks
 
@@ -120,12 +120,20 @@ opposite (abusers with no setter) is also dead. Same for terrain.
 |---|---|---|---|
 | `WTH001` | L4 | error | Pool has any set tagged `Weather Setter` but zero sets tagged `Weather Abuser`. |
 | `WTH002` | L4 | error | Pool has any set tagged `Weather Abuser` but zero sets tagged `Weather Setter`. |
-| `WTH003` | L4 | warning | Pool has setter / abuser of incompatible weathers (e.g. rain dance setter + Chlorophyll abuser). Compatibility table at `tools/champions_partygen/catalog/lint/weather_pairs.json`. |
-| `WTH004` | L4 | warning | Pool has terrain setter (Electric / Grassy / Misty / Psychic Terrain user) and zero matched terrain abuser. Terrain has no dedicated tags, detection is by move/ability presence. |
+| `WTH003` | L4 | warning | Pool has setter / abuser of incompatible weathers (e.g. rain dance setter + Chlorophyll abuser). Compatibility table at `tools/champions_partygen/catalog/lint/weather_pairs.json`. Not yet implemented. |
+| `BFL001` | L4 | error | Pool has a configured non-weather battlefield setter but zero matching abuser. |
+| `BFL002` | L4 | error | Pool has a configured non-weather battlefield abuser but zero matching setter. |
 
-`Weather Setter` and `Weather Abuser` are already in the engine pool tag
-allowlist. The catalog uses them as-is; lint just enforces that they appear
-in pairs.
+`Weather Setter` and `Weather Abuser` remain supported for legacy general
+weather checks. Specific concepts should use catalog-only `lintTags`, for
+example `Weather Setter: Snow`, `Terrain Setter: Electric`, or `Pledge Setter:
+Sea Of Fire`. `lintTags` are not emitted to `trainers.party`.
+
+The versioned `tools/champions_partygen/catalog/lint/battlefield_pairs.json`
+file reserves sun, rain, sand, snow, Electric / Grassy / Misty / Psychic
+Terrain, Rainbow, Sea of Fire, and Swamp. Move / ability lists are present in
+the data, but `detectMoves` / `detectAbilities` default to false so a stray
+`Thunder` or `Solar Beam` does not automatically make a pool a weather concept.
 
 ## Item Duplication
 
@@ -247,6 +255,7 @@ bst_budget_tolerance = 35
 xtr_set_reuse_threshold = 3
 spread_moves_path = "catalog/lint/spread_moves.json"
 weather_pairs_path = "catalog/lint/weather_pairs.json"
+battlefield_pairs_path = "catalog/lint/battlefield_pairs.json"
 items_blocklist_path = "catalog/lint/items_blocklist.json"
 ```
 
@@ -282,18 +291,20 @@ Implemented now:
 - severity model and audit log schema;
 - `DBL001`-`DBL005`;
 - rank-band hard filtering through `minRank` / `maxRank`;
-- `WTH001` / `WTH002`;
+- `WTH001` / `WTH002` and configured `BFL001` / `BFL002`;
 - `ITM001` / `ITM003`;
 - `SLT001` / `SLT002` / `SLT004`;
 - lightweight `CVR001` using catalog offensive type archetypes;
 - `XTR001` and `XTR002`;
 - `schemaVersion` enforcement for `spread_moves.json`,
-  `weather_pairs.json`, and `items_blocklist.json`.
+  `weather_pairs.json`, `battlefield_pairs.json`, and
+  `items_blocklist.json`.
 
 Still planned:
 
 - BST budget checks (`RNK002`-`RNK005`);
-- weather / terrain compatibility beyond the basic setter-abuser pair;
+- weather / terrain compatibility beyond the basic configured setter-abuser
+  pair;
 - `DBL006`, `ITM002`, `SLT003`, `CVR002`, and `XTR003`.
 
 ## Test Plan (for the implementation PR)

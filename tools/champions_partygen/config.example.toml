@@ -14,6 +14,7 @@ bst_budget_tolerance = 35
 xtr_set_reuse_threshold = 3
 spread_moves_path = "catalog/lint/spread_moves.json"
 weather_pairs_path = "catalog/lint/weather_pairs.json"
+battlefield_pairs_path = "catalog/lint/battlefield_pairs.json"
 items_blocklist_path = "catalog/lint/items_blocklist.json"
 
 [profile]
