@@ -342,6 +342,28 @@ Lv.50 は actual party data を直接書き換えない。`docs/flows/battle_fro
 4. challenge state を clear。
 5. lobby / reception へ戻す。
 
+### Integration Guard
+
+Challenge runtime が active の時は、通常 trainer battle 用の aftercare /
+item restore / battle selection と二重適用しない。後続実装では以下の
+helper を runtime 側の public contract にする。
+
+```c
+bool32 ChampionsChallenge_IsActive(void);
+```
+
+active なら:
+
+- `TrainerBattleAftercare_ShouldApply()` は false を返し、challenge
+  aftercare が win/loss を処理する。
+- 通常 trainer の held item restore policy は bypass し、challenge 側の
+  item policy で restore / delete / reward conversion を決める。
+- 通常 trainer battle selection は bypass し、challenge 専用 preparation
+  / roster menu を使う。
+
+inactive なら、partygen が適用済みの Elite Four / Wallace も通常 trainer
+battle として扱う。
+
 ## Phase 7: Test Harness
 
 実装が入ったら、最初に以下を automated / manual で押さえる。

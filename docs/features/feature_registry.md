@@ -11,12 +11,14 @@
 |---|---|---|---|---|
 | 1 | `docs/flows/save_data_flow_v15.md` | Planned (現状) を維持し、後続の SaveBlock 編集を全部この doc から参照させる | no_random_encounters / champions_challenge / runtime_rule_options / partygen seed の 4 件すべてが SaveBlock 割り当てを必要とする。先に決めないと 4 feature 同時に手戻りが起きる | なし (docs only) |
 | 2 | `docs/features/no_random_encounters/` | Planned → Implementing | 影響範囲が最も狭い (1 flag rename + config 1 行)。先に通せば flag 割り当て / debug toggle / save persistence の作業フローが確立する | save_data flow の flag region 決定 |
-| 3 | `docs/features/battle_selection/` | Investigating → Planned (MVP partygen 抜き) | trainer party selection の MVP は partygen に依存しない。`CB2_EndTrainerBattle` 以降の restore timing を investigation に書き起こすのが最後の docs piece | save_data flow (party snapshot 場所) |
-| 4 | `docs/features/champions_challenge/` partygen CLI | Planned → Implementing (CLI 単体) | catalog schema / Plan A 採用が決定済み。CLI は ROM build と完全に切り離せるので、partygen 単体で先行実装可能 | save_data flow (partygen seed 配置) |
-| 5 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge state を SaveBlock1 に置くか in-place swap にするかの再設計が要る。partygen が生成済みの `.party` を使えるようになってから着手 | save_data flow + partygen CLI + battle_selection の party restore 知見 |
-| 6 | `docs/features/field_move_modernization/` | Investigating → Planned | HM 廃止 / Cut / Rock Smash / Strength / Surf / Dive / Waterfall ごとの in/out を mvp_plan.md に列挙する必要がある | なし (調査のみ) |
-| 7 | `docs/features/tm_shop_migration/` | Investigating → Planned | stage unlock / price tier / NPC reward 置換の候補列挙が必要 | なし (調査のみ) |
-| 8 | runtime rule options | Investigating → Planned | save_data flow の `RuntimeRuleOptions` sketch を実装 spec まで詰める | save_data flow |
+| 3 | `docs/features/champions_challenge/` partygen CLI | Planned → Implementing (CLI 単体) | catalog schema / Plan A 採用が決定済み。CLI は ROM build と完全に切り離せるので、partygen 単体で先行実装可能 | save_data flow (partygen seed 配置) |
+| 4 | `docs/features/trainer_battle_aftercare/` | Investigating → Planned / Implementing heal-only | `CB2_EndTrainerBattle` の終端 policy を最小 helper に集約できる。item restore と battle selection の順序 contract の土台になる | champions partygen runtime guard contract |
+| 5 | `docs/features/battle_item_restore_policy/` | Investigating → Planned | battle 中の消費処理を変えず、battle-end restore だけを policy 化する。berry-heavy partygen pool への影響を guard で分ける | aftercare guard contract |
+| 6 | `docs/features/battle_selection/` | Investigating → Planned (MVP partygen 抜き) | trainer party selection は一時 party と callback chain を持つため重い。aftercare / item restore の終端順が固まってから着手する | save_data flow + aftercare ordering |
+| 7 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge state を SaveBlock1 に置くか in-place swap にするかの再設計が要る。partygen が生成済みの `.party` を使えるようになってから着手 | save_data flow + partygen CLI + battle_selection の party restore 知見 |
+| 8 | `docs/features/field_move_modernization/` | Investigating → Planned | HM 廃止 / Cut / Rock Smash / Strength / Surf / Dive / Waterfall ごとの in/out を mvp_plan.md に列挙する必要がある | なし (調査のみ) |
+| 9 | `docs/features/tm_shop_migration/` | Investigating → Planned | stage unlock / price tier / NPC reward 置換の候補列挙が必要 | なし (調査のみ) |
+| 10 | runtime rule options | Investigating → Planned | save_data flow の `RuntimeRuleOptions` sketch を実装 spec まで詰める | save_data flow |
 
 このリストは branch 切り替え時に必ず読む。実装着手で順序が変わった場合はこの section を更新する。
 

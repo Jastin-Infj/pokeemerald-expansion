@@ -36,3 +36,17 @@
 - forced release は PC UI の static function を呼ばず、専用 helper を作る。
 - battle selection restore 後に aftercare を行う。
 - Battle Frontier / Trainer Hill / Pyramid / link は MVP では明示除外する。
+- Champions partygen 管理 trainer は、challenge runtime が入るまでは通常
+  trainer として扱う。将来 `ChampionsChallenge_IsActive()` が入ったら
+  normal aftercare を bypass して challenge policy へ渡す。
+- `CB2_EndTrainerBattle` へ長い条件式を直接散らさず、
+  `TrainerBattleAftercare_ShouldApply()` のような helper に集約する。
+
+## Cross-Feature Risks
+
+| Risk | Severity | Notes |
+|---|---|---|
+| Champions partygen trainer が意図せず heal-only 対象になる | Medium | 現在の E4 / Wallace は通常 trainer battle として動く。config default off なら無影響。config on では通常 trainer と同じ扱いにするか、明示 exclude flag を追加する。 |
+| 将来の Champions Challenge runtime と通常 aftercare が二重適用される | High | `ChampionsChallenge_IsActive()` を aftercare guard の先頭で見て、challenge policy に一本化する。 |
+| Battle item restore と release の順序が混ざる | Medium | heal-only MVP では release しない。release phase では item restore policy と challenge loss policy を別 table にする。 |
+| Battle selection restore 前に aftercare が走る | High | 選出 party の一時 slot に heal/release してから元 party を復元すると変更が消える。restore-first を contract にする。 |

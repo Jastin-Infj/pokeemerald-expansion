@@ -50,3 +50,23 @@ Investigating. 現時点では実装しない。
 - 4 匹選出が `MAX_FRONTIER_PARTY_SIZE` などの既存制限に当たらないか。
 - battle 終了後の復元は `CB2_EndTrainerBattle` 前に wrapper callback で行うべきか、既存 callback 内へ統合すべきか。
 - 相手 party preview を実装する場合、Trainer Party Pools / randomize / override 反映済み party をどの timing で安全に得るか。
+
+## Cross-Feature Notes
+
+Champions partygen が置き換えた Elite Four / Wallace は、現時点では通常
+trainer battle として開始する。Battle selection MVP は player party の
+選出と復元だけを扱い、相手 party pool の preview や再抽選は扱わない。
+
+guard 方針:
+
+| Case | Selection MVP |
+|---|---|
+| config off | No-op。通常 trainer battle flow を維持。 |
+| normal trainer battle | 対象候補。single 3 / double 4 を選出。 |
+| partygen-owned trainer | runtime 上は normal trainer と同じ。相手 preview は出さない。 |
+| future Champions runtime active | challenge 専用 pre-battle menu / roster policy が優先。通常 selection は bypass。 |
+| Frontier / cable / Union Room / link | 既存 choose-half flow を壊さないため除外。 |
+
+`partygen_owned` tag は ROM runtime guard に使わない。将来 Champions runtime
+が入った時だけ `ChampionsChallenge_IsActive()` のような explicit helper を
+判定に使う。
