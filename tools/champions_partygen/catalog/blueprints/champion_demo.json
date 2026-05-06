@@ -3,6 +3,7 @@
   "blueprintId": "blueprint.champion_demo",
   "stage": "stage.champion_demo",
   "rank": "champion",
+  "setGroups": ["pool.champion_demo"],
   "mode": "single",
   "requireSpreadMove": false,
   "allowSpeciesDuplicate": false,

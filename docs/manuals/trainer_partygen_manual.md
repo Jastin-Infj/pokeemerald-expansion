@@ -113,6 +113,7 @@ Blueprints define:
 - `rulesetId`: existing pool rule, for example `POOL_RULESET_BASIC`;
 - `mode`: `single` or `double`;
 - `rank`: `early`, `mid`, `late`, or `champion`;
+- `setGroups`: catalog-only pool groups that this blueprint may draw from;
 - required slots such as lead or ace;
 - preferred roles;
 - pool size constraints.
@@ -128,6 +129,7 @@ Sets define:
 - nature;
 - level;
 - roles and archetypes for tool-side selection;
+- `groups`: catalog-only pool groups such as `pool.champion_demo`;
 - `minRank` and `maxRank` for rank-band filtering;
 - final `Tags` that trainerproc understands.
 

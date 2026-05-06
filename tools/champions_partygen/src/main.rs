@@ -1097,7 +1097,7 @@ fn select_sets<'a>(
         let candidates: Vec<&Set> = sets
             .iter()
             .filter(|set| !used.contains(&set.id))
-            .filter(|set| rank_compatible(blueprint, set))
+            .filter(|set| set_allowed_for_blueprint(blueprint, set))
             .filter(|set| req.roles.iter().any(|role| set.roles.contains(role)))
             .filter(|set| match req.slot.as_str() {
                 "lead" => set.tags.iter().any(|tag| tag == "Lead"),
@@ -1134,7 +1134,7 @@ fn select_sets<'a>(
             let candidates: Vec<&Set> = sets
                 .iter()
                 .filter(|set| !used.contains(&set.id))
-                .filter(|set| rank_compatible(blueprint, set))
+                .filter(|set| set_allowed_for_blueprint(blueprint, set))
                 .filter(|set| set.roles.contains(&pref.role))
                 .collect();
             let Some(picked) = pick_weighted(candidates, profile, rng) else {
@@ -1158,7 +1158,7 @@ fn select_sets<'a>(
         let candidates: Vec<&Set> = sets
             .iter()
             .filter(|set| !used.contains(&set.id))
-            .filter(|set| rank_compatible(blueprint, set))
+            .filter(|set| set_allowed_for_blueprint(blueprint, set))
             .collect();
         let Some(picked) = pick_weighted(candidates, profile, rng) else {
             return Err(format!(
@@ -1189,6 +1189,19 @@ fn rank_compatible(blueprint: &Blueprint, set: &Set) -> bool {
     let lo = rank_to_index(&set.min_rank);
     let hi = rank_to_index(&set.max_rank);
     bp >= lo && bp <= hi
+}
+
+fn set_allowed_for_blueprint(blueprint: &Blueprint, set: &Set) -> bool {
+    if !rank_compatible(blueprint, set) {
+        return false;
+    }
+    if blueprint.set_groups.is_empty() {
+        return true;
+    }
+    blueprint
+        .set_groups
+        .iter()
+        .any(|group| set.groups.contains(group))
 }
 
 fn rank_to_index(rank: &str) -> i32 {
@@ -1326,6 +1339,19 @@ fn validate_catalog(
                 "{} rank '{}' must be one of {:?}",
                 blueprint.id, blueprint.rank, VALID_RANKS
             ));
+        }
+        if !blueprint.set_groups.is_empty() {
+            let candidates = catalog
+                .sets
+                .iter()
+                .filter(|set| set_allowed_for_blueprint(blueprint, set))
+                .count();
+            if candidates < blueprint.pool_size {
+                report.error(format!(
+                    "{} setGroups {:?} expose only {} compatible set(s), below poolSize {}",
+                    blueprint.id, blueprint.set_groups, candidates, blueprint.pool_size
+                ));
+            }
         }
         for pref in &blueprint.preferred {
             if pref.max < pref.min {
@@ -1900,6 +1926,7 @@ struct Set {
     level: u16,
     roles: Vec<String>,
     archetypes: Vec<String>,
+    groups: Vec<String>,
     tags: Vec<String>,
     min_rank: String,
     max_rank: String,
@@ -1916,6 +1943,7 @@ struct Blueprint {
     constraints: Constraints,
     mode: String,
     rank: String,
+    set_groups: Vec<String>,
     require_spread_move: bool,
     allow_species_duplicate: bool,
 }
@@ -2135,6 +2163,7 @@ fn parse_blueprint(json: &Json) -> Result<Blueprint> {
         constraints,
         mode: obj.get_string_default("mode", "single")?.to_string(),
         rank: obj.get_string_default("rank", "mid")?.to_string(),
+        set_groups: obj.get_string_array_default("setGroups")?,
         require_spread_move: obj.get_bool_default("requireSpreadMove", true)?,
         allow_species_duplicate: obj.get_bool_default("allowSpeciesDuplicate", false)?,
     })
@@ -2160,6 +2189,7 @@ fn parse_sets(json: &Json) -> Result<Vec<Set>> {
                 level: obj.get_usize_default("level", 50)? as u16,
                 roles: obj.get_string_array_default("roles")?,
                 archetypes: obj.get_string_array_default("archetypes")?,
+                groups: obj.get_string_array_default("groups")?,
                 tags: obj.get_string_array_default("tags")?,
                 min_rank: obj.get_string_default("minRank", "early")?.to_string(),
                 max_rank: obj.get_string_default("maxRank", "champion")?.to_string(),
@@ -3858,6 +3888,7 @@ mod tests {
             constraints: Constraints::default(),
             mode: "single".to_string(),
             rank: "champion".to_string(),
+            set_groups: vec![],
             require_spread_move: true,
             allow_species_duplicate: false,
         };
@@ -3873,6 +3904,7 @@ mod tests {
             level: 50,
             roles: vec![],
             archetypes: vec![],
+            groups: vec![],
             tags: vec!["Weather Setter".to_string()],
             min_rank: "early".to_string(),
             max_rank: "champion".to_string(),
@@ -3890,6 +3922,64 @@ mod tests {
     }
 
     #[test]
+    fn set_groups_keep_blueprint_pools_separate() {
+        let blueprint = Blueprint {
+            id: "b.grouped".to_string(),
+            party_size: 1,
+            pool_size: 1,
+            ruleset_id: "POOL_RULESET_BASIC".to_string(),
+            required: vec![],
+            preferred: vec![],
+            constraints: Constraints::default(),
+            mode: "single".to_string(),
+            rank: "champion".to_string(),
+            set_groups: vec!["pool.allowed".to_string()],
+            require_spread_move: false,
+            allow_species_duplicate: false,
+        };
+        let blocked = Set {
+            id: "s.blocked".to_string(),
+            species: "SPECIES_ABSOL".to_string(),
+            ability: None,
+            moves: vec![],
+            item: None,
+            ivs: "31/31/31/31/31/31".to_string(),
+            evs: "0/0/0/0/0/0".to_string(),
+            nature: None,
+            level: 50,
+            roles: vec![],
+            archetypes: vec![],
+            groups: vec!["pool.other".to_string()],
+            tags: vec![],
+            min_rank: "early".to_string(),
+            max_rank: "champion".to_string(),
+            doubles_spread_move: false,
+        };
+        let allowed = Set {
+            id: "s.allowed".to_string(),
+            species: "SPECIES_METANG".to_string(),
+            ability: None,
+            moves: vec![],
+            item: None,
+            ivs: "31/31/31/31/31/31".to_string(),
+            evs: "0/0/0/0/0/0".to_string(),
+            nature: None,
+            level: 50,
+            roles: vec![],
+            archetypes: vec![],
+            groups: vec!["pool.allowed".to_string()],
+            tags: vec![],
+            min_rank: "early".to_string(),
+            max_rank: "champion".to_string(),
+            doubles_spread_move: false,
+        };
+        let sets = vec![blocked, allowed];
+        let mut rng = Rng::new(1);
+        let selection = select_sets(&blueprint, &sets, None, &mut rng).unwrap();
+        assert_eq!(selection.sets[0].id, "s.allowed");
+    }
+
+    #[test]
     fn lint_detects_doubles_mode_mismatch() {
         let blueprint = Blueprint {
             id: "b1".to_string(),
@@ -3901,6 +3991,7 @@ mod tests {
             constraints: Constraints::default(),
             mode: "double".to_string(),
             rank: "champion".to_string(),
+            set_groups: vec![],
             require_spread_move: false,
             allow_species_duplicate: false,
         };

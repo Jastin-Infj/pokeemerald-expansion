@@ -82,6 +82,10 @@ Required catalog additions:
 - Blueprint gains `rank: "early" | "mid" | "late" | "champion"`. Catalog
   entries should set it explicitly; the CLI keeps a backward-compatible `"mid"`
   default for old fixtures.
+- Blueprint may set `setGroups: ["pool.foo"]` to restrict selection to sets
+  whose catalog-only `groups` array intersects those values. This keeps
+  Sidney / Phoebe / Champion libraries from leaking into each other when they
+  share the same rank band.
 - Set gains optional `minRank` and `maxRank` strings using the same band
   values. Default: `minRank = "early"`, `maxRank = "champion"`.
 - Optional set field `bst` (base stat total override) for sets that come

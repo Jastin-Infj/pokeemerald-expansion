@@ -16,6 +16,9 @@ journey-level tags such as `champions_challenge` and `partygen_owned` when a
 trainer block is intentionally managed by partygen; the tags are recorded in
 audit logs and are not emitted to `trainers.party`.
 
+Blueprint `setGroups` and set `groups` are catalog-only filters. Use them to
+keep one trainer's pool from drawing sets intended for another trainer.
+
 Examples:
 
 ```sh

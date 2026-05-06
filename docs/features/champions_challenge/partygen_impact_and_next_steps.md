@@ -126,6 +126,8 @@ implemented and what is still planned.
 
 Catalog completeness:
 
+- Keep each trainer / stage library isolated with blueprint `setGroups` and
+  set `groups` before adding more Elite Four or route trainer sets.
 - Fill real journey stages.
 - Add group profiles for route trainers, Gym Leaders, Elite Four, Champion, rivals, grunts, and special fights.
 - Expand curated set libraries beyond the current Hoenn demo sets.
