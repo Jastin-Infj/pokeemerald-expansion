@@ -80,6 +80,28 @@ If an exact sibling save does exist and must be detached, rename only that artif
 
 No in-game save was performed in this validation, so the temporary directory still had no `.sav` after cleanup. If a future check needs save/load behavior, force an in-game save in the temporary ROM directory and record that the generated `.sav` is a local artifact only.
 
+## Repeating This Check
+
+この clean-start route は重いので、毎回フルに繰り返す必要はない。2 回目以降は、対象 branch が save block layout を変えていないことを確認し、前回または user 提供の `.sav` を `/tmp` の ROM copy と同じ basename に置いて `CONTINUE` できるかを見る。
+
+ただし次の場合は clean start に戻す。
+
+- SaveBlock1 / SaveBlock2 / SaveBlock3 の field、party data、item storage、flag / var ID の追加・移動がある。
+- `.sav` は存在するが title screen に `CONTINUE` が出ない。
+- 読み込めても party、map、coords、event flags が想定と違う。
+- 初期化時の挙動そのものが検証対象である。
+
+save reuse で進める場合の短い report 項目:
+
+- 対象 commit / branch。
+- ROM copy path と save copy path。
+- `CONTINUE` が出たか。
+- 開始 map group / map num / coords。
+- party が valid species か。`????` や invalid placeholder があれば中断する。
+- Debug menu を使った setup と、実画面で確認した behavior を分けて書く。
+
+Debug menu は今後も積極的に使ってよい。warp、flag / var、party setup、debug battle は setup 時間を減らせる。ただし user が実画面で後から確認する前提の branch では、Debug menu で状態を作ったことを隠さず report に残す。
+
 ## New Game And Debug Setup Notes
 
 From a clean save, mGBA does not start in a useful field state. The observed route was:

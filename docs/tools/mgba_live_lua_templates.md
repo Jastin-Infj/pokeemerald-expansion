@@ -44,6 +44,13 @@ This text can contain ]=] safely.
 ]==]
 ```
 
+実務上の rule:
+
+- `--code` は one-liner の read-only check に寄せる。
+- input macro、memory write、SaveBlock 操作、複数行 return table は `/tmp/*.lua` に出して `--file` で実行する。
+- shell escaping で詰まったら Lua を直す前に `--file` へ切り替える。
+- Lua file には session 固有の absolute path、symbol address、branch 名をコメントで残す。ただし file 自体は commit しない。
+
 ## File-Based Execution
 
 複雑な script は `/tmp` に置いて実行する。
@@ -250,3 +257,17 @@ Before runtime validation, record one of these:
 If the test needs grass, water, cave, battle, or a specific NPC, confirm the map and coords before starting input. A screenshot at the wrong place is not evidence.
 
 Debug menu can usually solve map setup after field control is available. It may not bypass the earliest intro text before the player can open menus. If a test must start after intro, ask for a prepared save or explicitly spend the setup time and record it.
+
+## Report Checklist For Lua-Assisted Validation
+
+Lua で状態を作ると、後から「実際に画面で起きたのか」「memory を書いただけなのか」が分かりにくくなる。report では次を分ける。
+
+| Item | Record |
+|---|---|
+| Setup method | Debug menu、Lua memory write、manual input、save reuse のどれか。 |
+| State proof | map / coords、callback、flag / var、party species などの read result。 |
+| Visual proof | screenshot path、または user が実画面で確認した画面名。 |
+| Behavior proof | wild battle 発生、trainer battle 発生、menu open、sound timing など実際に起きた結果。 |
+| Cleanup | `input-clear` と `status --all` の final result。 |
+
+Debug menu や Lua は検証の準備として使ってよい。ただし feature の合否は、対象 behavior が実画面または runtime state で確認できたかで判断する。
