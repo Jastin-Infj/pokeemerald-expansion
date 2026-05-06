@@ -121,6 +121,17 @@ This PR is trainer party generation only. It does not implement:
 - NPC removal, route cleanup, or story flag rewiring.
 - generated drift checking in CI.
 
+Because the current partygen output is ordinary `trainers.party` data, the
+generated Elite Four and Wallace blocks still enter the normal trainer battle
+runtime. Until Champions Challenge runtime exists, aftercare, held item
+restore, and battle selection features must treat those trainers as normal
+trainers unless their own config says otherwise.
+
+Do not use `partygen_owned` or `champions_challenge` catalog tags as ROM-side
+guards. Those tags are emitted to audit logs for tooling and review only. When
+runtime needs a Champions-specific branch, add an explicit helper such as
+`ChampionsChallenge_IsActive()` and make inactive builds return false.
+
 ## Remaining Work
 
 The next implementation phase is now tracked by two design documents. The
@@ -190,6 +201,15 @@ Manual / onboarding:
 - Document mGBA verification whenever generated trainer data is applied to ROM data.
 - Keep lint and player-style CLI examples in the manual as the implementation
   changes.
+
+Cross-feature runtime guards:
+
+- Trainer Battle Aftercare should land first as heal-only, default off, with
+  a `TrainerBattleAftercare_ShouldApply()` helper.
+- Battle Item Restore should keep battle-time consumption unchanged and add
+  battle-end restore policy behind a helper/config.
+- Battle Selection should run after party restore ordering is fixed and should
+  bypass itself when future Champions Challenge runtime is active.
 
 ## Prize Money Note
 
