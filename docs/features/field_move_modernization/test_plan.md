@@ -60,7 +60,16 @@
   - Standard black window border palette in cave / dark-map contexts: PASS.
   - Teleport / Dig direct utility start without field brightness flash: PASS.
   - Fly night fade into region map: PASS.
-  - Remaining visual item: replace placeholder Field Kit item icon / palette.
+  - Icon / palette follow-up: Field Kit now uses `field_styler.png` / `field_styler.pal`; manual bag visual confirmation is still useful after rebuild.
+- Field Kit icon / palette wiring:
+  - PNG format check: `field_styler.png` is 24x24, 4-bit indexed, 16 palette entries, non-interlaced, with transparent palette index 0.
+  - Palette format check: `field_styler.pal` is JASC-PAL 0100 with 16 RGB rows matching the PNG palette.
+  - Item data check: `ITEM_FIELD_KIT` uses `gItemIcon_FieldStyler` / `gItemIconPalette_FieldStyler`, not `gItemIcon_QuestionMark`.
+  - `rtk make -j16 -O all`: PASS on 2026-05-09.
+  - `rtk make -j16 -O debug`: PASS on 2026-05-09.
+  - `rtk make -j16 -O check`: PASS on 2026-05-09.
+  - mGBA Live boot / input check: PASS on 2026-05-09. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the rebuilt ROM, accepted Start input, and showed the continue menu screenshot at `/tmp/field_kit_icon_wiring_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
+  - Manual bag visual confirmation after rebuild: pending user check.
 
 ## Manual Tests
 
@@ -68,7 +77,7 @@
 
 - `Scripts... > Field Kit Full` shows the FIELD KIT completion message.
 - `Scripts... > Field Kit Item`, `Field Kit Flags`, and `Field Kit Clear` show their completion messages.
-- Key Items contains `ITEM_FIELD_KIT` with the placeholder question mark icon.
+- Key Items contains `ITEM_FIELD_KIT` with the Field Styler icon / palette, not the placeholder question mark icon.
 - Cut / Rock Smash / Strength / Surf / Waterfall can be checked immediately from suitable maps.
 - Dive / Surface still keep yes/no prompts after the shortcut.
 - Flash still auto-lights a `requires_flash: true` cave after the shortcut.

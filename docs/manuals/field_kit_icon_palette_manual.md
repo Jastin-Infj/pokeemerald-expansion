@@ -6,21 +6,23 @@
 |---|---|
 | Last reviewed | 2026-05-09 |
 | Baseline | `feature/field-move-toolkit-item` |
-| Code status | Field Kit runtime implemented; icon remains placeholder |
+| Code status | Field Kit runtime implemented; icon / palette wired |
 | Provenance | Local project overlay |
 
-この manual は、一時的な Field Kit question mark icon を正式な icon / palette に差し替えるための handoff です。
+この manual は、Field Kit icon / palette の形式確認と将来差し替えの handoff です。
 Field Kit の runtime behavior は変更しません。
 
 ## Current State
 
-`ITEM_FIELD_KIT` は現時点で generic question mark graphics を使っています。
+`ITEM_FIELD_KIT` は Field Kit 専用 graphics を使っています。
 
 - item entry: `src/data/items.h`
-- icon pointer: `gItemIcon_QuestionMark`
-- palette pointer: `gItemIconPalette_QuestionMark`
+- icon pointer: `gItemIcon_FieldStyler`
+- palette pointer: `gItemIconPalette_FieldStyler`
+- icon source: `graphics/items/icons/field_styler.png`
+- palette source: `graphics/items/icon_palettes/field_styler.pal`
 
-icon art と palette が用意できたら、この 2 つの pointer を Field Kit 専用 symbol に差し替えます。
+将来 art を差し替える場合は、この 2 つの pointer と source asset を同じ形式で維持します。
 
 ## Asset Shape
 
@@ -43,10 +45,10 @@ icon art と palette が用意できたら、この 2 つの pointer を Field K
 
 後で検索しやすいよう、Field Kit 専用名で揃えます。
 
-- `graphics/items/icons/field_kit.png`
-- `graphics/items/icon_palettes/field_kit.pal`
-- `gItemIcon_FieldKit`
-- `gItemIconPalette_FieldKit`
+- `graphics/items/icons/field_styler.png`
+- `graphics/items/icon_palettes/field_styler.pal`
+- `gItemIcon_FieldStyler`
+- `gItemIconPalette_FieldStyler`
 
 ## Implementation Steps
 
@@ -54,22 +56,22 @@ icon art と palette が用意できたら、この 2 つの pointer を Field K
 2. `include/graphics.h` に extern declaration を追加する。
 
 ```c
-extern const u32 gItemIcon_FieldKit[];
-extern const u16 gItemIconPalette_FieldKit[];
+extern const u32 gItemIcon_FieldStyler[];
+extern const u16 gItemIconPalette_FieldStyler[];
 ```
 
 3. `src/data/graphics/items.h` に graphics definition を追加する。置き場は generic / key item icon 群の近くでよい。
 
 ```c
-const u32 gItemIcon_FieldKit[] = INCGFX_U32("graphics/items/icons/field_kit.png", ".4bpp.smol");
-const u16 gItemIconPalette_FieldKit[] = INCGFX_U16("graphics/items/icon_palettes/field_kit.pal", ".gbapal");
+const u32 gItemIcon_FieldStyler[] = INCGFX_U32("graphics/items/icons/field_styler.png", ".4bpp.smol");
+const u16 gItemIconPalette_FieldStyler[] = INCGFX_U16("graphics/items/icon_palettes/field_styler.pal", ".gbapal");
 ```
 
 4. `src/data/items.h` の `ITEM_FIELD_KIT` を差し替える。
 
 ```c
-.iconPic = gItemIcon_FieldKit,
-.iconPalette = gItemIconPalette_FieldKit,
+.iconPic = gItemIcon_FieldStyler,
+.iconPalette = gItemIconPalette_FieldStyler,
 ```
 
 ## Validation

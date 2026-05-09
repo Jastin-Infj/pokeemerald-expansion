@@ -60,7 +60,7 @@ Code status: Runtime slice on `feature/field-move-modernization-mvp`, Field Kit 
 | Dive controls | Dive down は A button、underwater Surface は B button。party menu 入口は Dive / Surface 両対応。 |
 | Flash | unlock 済みなら cave map load 時に `FLAG_SYS_USE_FLASH` を自動 set する。manual Flash animation は map load 競合を避けるため今回は起動しない。 |
 | Field Kit | `feature/field-move-toolkit-item` で単一 Key Item `ITEM_FIELD_KIT` を追加。既存 `FLAG_RECEIVED_HM_*` を capability flags として再利用する。 |
-| Icon | Field Kit icon は一旦 question mark placeholder。後で生成画像へ差し替える。 |
+| Icon | Field Kit icon は `field_styler.png` / `field_styler.pal` の専用 asset を使う。 |
 | Field Kit use | Key Items pocket の「使う」と SELECT registered shortcut は Field Kit menu を開く。順番は Fly / Teleport / Dig。Fly は capability / badge gate を満たす時だけ表示し、Teleport / Dig は既存 map gate に従う utility shortcut として扱う。 |
 
 ## MVP Stages
