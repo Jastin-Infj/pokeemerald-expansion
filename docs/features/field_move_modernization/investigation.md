@@ -82,7 +82,7 @@
 | `src/item.c` | `gBagPockets[POCKET_KEY_ITEMS]` は `gSaveBlock1Ptr->bag.keyItems` と `BAG_KEYITEMS_COUNT` を使う。 |
 | `src/debug.c` | debug item grant も Key Items pocket の空き確認に依存する。 |
 
-per-HM key item や field toolkit item を採用する場合、Key Items pocket の容量不足が先に問題になり得る。bag 拡張は save layout、item menu、debug grant、migration に波及する大型改修なので、この feature では実装せず別 feature として扱う。
+per-HM key item や field toolkit item を採用する場合、Key Items pocket の容量不足が先に問題になり得る。[Bag Expansion](../bag_expansion/README.md) は save layout、item menu、debug grant、migration に波及する大型改修なので、この feature では実装せず別 feature として扱う。
 
 長期方針としては per-HM key item より、単一 field toolkit key item + capability flags が扱いやすい。key item は所持物として UI / story の anchor にし、実際の Cut / Surf / Dive などの可否は個別 flag で管理する。badge-only はこの MVP の暫定条件としては安全だが、最終設計では story flag / upgrade flag の一種として扱う方が自由度が高い。
 
@@ -131,7 +131,7 @@ Field Kit の capability flags は新規 save flag を増やさず、既存 `FLA
 - Cut / Rock Smash object は削除するのか、自動処理するのか、key item unlock で処理するのか。
 - `sRestrictedReleaseMoves` と `B_CATCH_SWAP_CHECK_HMS` は HM 廃止後に残すか。
 - Secret Power / secret base を HM modernize の範囲に含めるか。
-- bag 拡張 feature で Key Items pocket をどこまで増やすか。field move modernization では bag 拡張を前提にしない。
+- [Bag Expansion](../bag_expansion/README.md) feature で Key Items pocket をどこまで増やすか。field move modernization では bag 拡張を前提にしない。
 - 単一 field toolkit key item の入手タイミングと、各 capability flag をどの story event / badge / item upgrade で立てるか。
 - Field Kit icon は専用 asset に差し替え済み。今後は art iteration / naming のみ残る。
 
