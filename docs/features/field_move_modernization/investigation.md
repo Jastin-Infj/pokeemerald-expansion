@@ -2,6 +2,8 @@
 
 調査日: 2026-05-02
 
+再調査: 2026-05-09 (`master` `4af2beb493` 起点)
+
 ## Confirmed Source Facts
 
 ### TM / HM Constants
@@ -61,6 +63,33 @@
 | Flash | `FldEff_UseFlash` が `FLAG_SYS_USE_FLASH`。 |
 | Reset | `Overworld_ResetStateAfterWhiteOut` などが `FLAG_SYS_USE_STRENGTH` / `FLAG_SYS_USE_FLASH` を clear。 |
 
+### Dive Controls
+
+| Path | Facts |
+|---|---|
+| `src/field_control_avatar.c` | `pressedAButton && TrySetupDiveDownScript()` で Dive down。 |
+| `src/field_control_avatar.c` | `pressedBButton && TrySetupDiveEmergeScript()` で underwater Surface。 |
+| `src/party_menu.c` | `SetUpFieldMove_Dive()` は `TrySetDiveWarp()` の戻り値で Dive / Surface どちらも許可する。 |
+
+現行入力では、地上/水上の Dive は A、underwater の Surface は B。Surface でも yes/no prompt の決定は通常 UI どおり A になるため、B で浮上 prompt を開いて A で確定する形になる。
+
+### Bag / Key Item Capacity
+
+| File | Facts |
+|---|---|
+| `include/constants/global.h` | `BAG_KEYITEMS_COUNT` は 30。 |
+| `include/global.h` | save block の bag は `keyItems[BAG_KEYITEMS_COUNT]` の固定長配列。 |
+| `src/item.c` | `gBagPockets[POCKET_KEY_ITEMS]` は `gSaveBlock1Ptr->bag.keyItems` と `BAG_KEYITEMS_COUNT` を使う。 |
+| `src/debug.c` | debug item grant も Key Items pocket の空き確認に依存する。 |
+
+per-HM key item や field toolkit item を採用する場合、Key Items pocket の容量不足が先に問題になり得る。bag 拡張は save layout、item menu、debug grant、migration に波及する大型改修なので、この feature では実装せず別 feature として扱う。
+
+長期方針としては per-HM key item より、単一 field toolkit key item + capability flags が扱いやすい。key item は所持物として UI / story の anchor にし、実際の Cut / Surf / Dive などの可否は個別 flag で管理する。badge-only はこの MVP の暫定条件としては安全だが、最終設計では story flag / upgrade flag の一種として扱う方が自由度が高い。
+
+2026-05-09 の Field Kit itemization slice では、Key Item `ITEM_FIELD_KIT` を item id 874 として `ITEMS_COUNT` 直前に追加した。既存 item id の大きな番号ずらしを避けるため、Key Items section の途中には挿入していない。icon は専用の `gItemIcon_FieldStyler` / `gItemIconPalette_FieldStyler` に差し替え済み。
+
+Field Kit の capability flags は新規 save flag を増やさず、既存 `FLAG_RECEIVED_HM_CUT` / `FLASH` / `ROCK_SMASH` / `STRENGTH` / `SURF` / `FLY` / `DIVE` / `WATERFALL` を再利用する。FRLG 側の `FLAG_RECEIVED_HM_*` は placeholder 0 なので、この slice では FRLG に Field Kit requirement を適用しない。
+
 ### Forget and Softlock Prevention
 
 | Area | Facts |
@@ -102,3 +131,15 @@
 - Cut / Rock Smash object は削除するのか、自動処理するのか、key item unlock で処理するのか。
 - `sRestrictedReleaseMoves` と `B_CATCH_SWAP_CHECK_HMS` は HM 廃止後に残すか。
 - Secret Power / secret base を HM modernize の範囲に含めるか。
+- bag 拡張 feature で Key Items pocket をどこまで増やすか。field move modernization では bag 拡張を前提にしない。
+- 単一 field toolkit key item の入手タイミングと、各 capability flag をどの story event / badge / item upgrade で立てるか。
+- Field Kit icon は専用 asset に差し替え済み。今後は art iteration / naming のみ残る。
+
+## 2026-05-09 Recheck Notes
+
+- `FLDEFF_FIELD_MOVE_SHOW_MON_INIT` の呼び出し元は common field move task、Surf、Waterfall、Dive、Fly、Rock Climb に残っている。削除ではなく effect 側の即完了化が安全。
+- Surf の A ボタン入口は `field_control_avatar.c` の `PartyHasMonWithSurf()` gate が残るため、`checkfieldmove` だけを modernize しても水面 interaction は解禁されない。
+- Dive / Waterfall は C 側入口が badge / tile / surf state を見てから script に入る。script 側の `checkfieldmove` を modernize すれば move 所持不要化できる。
+- Cut / Rock Smash / Strength は map object script の `checkfieldmove ..., TRUE` が primary gate。map object removal と session flag は既存挙動を維持できる。
+- Party menu は `SetPartyMonFieldSelectionActions` が move-owned action のまま。代替 UI がない Fly を壊さないため、初期 slice では変更しない。
+- Flash は `SetDefaultFlashLevel()` が `FLAG_SYS_USE_FLASH` を見る。manual Flash field effect を map load 中に走らせず、unlock 済みなら同関数の前段で flag を立てる方が callback / fade 競合が少ない。

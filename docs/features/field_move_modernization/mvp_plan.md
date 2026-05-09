@@ -1,8 +1,8 @@
 # Field Move Modernization MVP Plan
 
-Status: Planned (per-HM scope decided)
-Code status: No code changes
-最終更新: 2026-05-05
+Status: Initial MVP implemented; Field Kit itemization and utility menu user-directed
+Code status: Runtime slice on `feature/field-move-modernization-mvp`, Field Kit itemization / menu on `feature/field-move-toolkit-item`
+最終更新: 2026-05-09
 
 ## Per-HM Decision Table
 
@@ -31,8 +31,8 @@ Code status: No code changes
 
 | Field move | 性格 | 扱い |
 |---|---|---|
-| `FIELD_MOVE_TELEPORT` | move 所持 + map type | 既存挙動を維持 |
-| `FIELD_MOVE_DIG` | move 所持 + map type | 既存挙動を維持 |
+| `FIELD_MOVE_TELEPORT` | move 所持 + map type | HM modernize 対象外。party menu は既存挙動のまま、Field Kit menu からは existing map gate を通して utility shortcut として呼ぶ |
+| `FIELD_MOVE_DIG` | move 所持 + map type | HM modernize 対象外。party menu は既存挙動のまま、Field Kit menu からは existing map gate を通して utility shortcut として呼ぶ |
 | `FIELD_MOVE_SECRET_POWER` | move 所持 + secret base | 別 feature (secret base) と連動するため触らない |
 | `FIELD_MOVE_MILK_DRINK` / `SOFT_BOILED` | party heal | 触らない |
 | `FIELD_MOVE_SWEET_SCENT` | wild encounter trigger | `no_random_encounters` 側で扱うか別 mode |
@@ -43,6 +43,25 @@ Code status: No code changes
 - `FIELD_MOVE_*` table をいきなり削除しない。
 - Dig / Teleport / Secret Power / Soft-Boiled など、HM ではない field utility を巻き込まない。
 - `VAR_RESULT` が party slot を返す前提を壊す場合は、animation 側の代替も同時に用意する。
+
+## Implemented MVP Policy
+
+2026-05-09 の初期実装では、以下を runtime 方針として採用した。
+
+| Topic | Decision |
+|---|---|
+| Unlock source | HM field move は既存 badge flag を維持し、`MonKnowsMove` は要求しない。 |
+| Script return | 既存互換のため `VAR_RESULT` は party slot 形を維持する。 |
+| Animation | Pokemon show-mon banner / 黒背景 cut-in は `OW_FIELD_MOVE_SHOW_MON_EFFECT` で無効化する。 |
+| Party menu | 現行の move-owned action を残す。key item / ride UI は後段。 |
+| HM moves | 忘却不可、Move Deleter、release、catch-swap policy はこの slice では未変更。 |
+| Obstacles | Cut tree / Rock Smash rock / Strength boulder の map object と removal/session flag は維持。 |
+| Success messages | Cut / Rock Smash / Strength / Surf / Waterfall は成功時 prompt / 使用メッセージを省略する。Dive / Surface は誤操作防止の確認を残す。 |
+| Dive controls | Dive down は A button、underwater Surface は B button。party menu 入口は Dive / Surface 両対応。 |
+| Flash | unlock 済みなら cave map load 時に `FLAG_SYS_USE_FLASH` を自動 set する。manual Flash animation は map load 競合を避けるため今回は起動しない。 |
+| Field Kit | `feature/field-move-toolkit-item` で単一 Key Item `ITEM_FIELD_KIT` を追加。既存 `FLAG_RECEIVED_HM_*` を capability flags として再利用する。 |
+| Icon | Field Kit icon は `field_styler.png` / `field_styler.pal` の専用 asset を使う。 |
+| Field Kit use | Key Items pocket の「使う」と SELECT registered shortcut は Field Kit menu を開く。順番は Fly / Teleport / Dig。Fly は capability / badge gate を満たす時だけ表示し、Teleport / Dig は既存 map gate に従う utility shortcut として扱う。 |
 
 ## MVP Stages
 
@@ -65,6 +84,8 @@ Code status: No code changes
 - `CanUseFieldMoveModern(fieldMove)` のような共通 helper。
 - `MonKnowsMove` を使う path と、badge/key item unlock だけを使う path を明示分離。
 - `FIELD_MOVE_SURF` など水上移動は follower flag / metatile / map type check を残す。
+- badge-only から story flag / key item / field toolkit power-up へ移行できる unlock source layer。
+- 長期推奨は単一 key item + capability flags。key item は UI / story 上の所持物、実際の使用可否は field move ごとの flag で見る。
 
 危険な避け方:
 
@@ -117,16 +138,32 @@ HM move を field requirement から外した後、以下を見直す。
 
 ## Suggested First Implementation Slice
 
-未実装の提案:
+初期実装済み:
 
-1. Cut tree だけを対象にする。
-2. `EventScript_CutTree` の visible behavior を維持する。
+1. `checkfieldmove` の HM path を badge unlock 化する。
+2. `EventScript_CutTree` / Rock Smash / Strength / Surf / Waterfall / Dive の visible behavior を維持する。
 3. party move 所持ではなく unlock flag で許可する。
-4. show-mon animation を残す場合は、先頭 non-egg party mon など display mon の決定規則を明文化する。
-5. その後 Rock Smash、Strength、Surf の順に広げる。
+4. show-mon banner は表示しない。待機 task は active list 即解除で進める。
+5. map object removal / Rock Smash encounter / Strength session flag は既存挙動を維持する。
 
 ## Open Questions
 
 - field move 表示用 Pokemon を「先頭」「選択」「ride partner」「表示なし」のどれにするか。
 - Cut / Rock Smash obstacle を全撤去する場合、map JSON 編集をどの単位で行うか。
 - HM item を完全削除するか、店売り/通常技 machine として残すか。
+- HM 解禁を per-HM key item にするか、単一 field toolkit / power-up item に集約するか。
+- Key Items pocket は現状 `BAG_KEYITEMS_COUNT 30` なので、key item 方式の前に bag capacity / save layout / debug grant の改修が必要。bag 拡張は別 feature の大型改修として分離する。
+
+## Recommended Unlock Direction
+
+Hidden Machine という概念は長期的には field progression の所持条件から外す。badge-only は暫定実装として安全だが、ジムバッジ以外の story event や任意順進行で解禁しづらい。per-HM key item は直感的だが Key Items pocket と item list を増やしすぎる。
+
+推奨方針:
+
+- 単一 key item を player に持たせる。
+- key item の内部 upgrade / capability flags として Cut / Surf / Dive などを解禁する。
+- field move 判定は Field Kit 所持 + capability flags を見る。
+- 初期実装では進行順維持のため既存 badge gate も残す。`OW_FIELD_MOVE_TOOLKIT_BADGES` を FALSE にすれば capability-only に移行できる。
+- Field Kit の bag field use は Field Kit menu として扱い、Fly の UI 入口と Teleport / Dig utility shortcut を Key Item に集約する。
+- Field Kit menu は SELECT registered key item からも起動できる。Fly は先頭、Teleport / Dig は常設 utility shortcut。
+- bag 拡張は別 feature の大型改修で扱い、この feature は単一 key item 以上の bag pressure を前提にしない。

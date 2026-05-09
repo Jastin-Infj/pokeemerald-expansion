@@ -38,6 +38,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | 既存技の威力、命中、タイプなどを変えたい | [Move Data Manual](move_data_manual.md) | `src/data/moves_info.h` |
 | 技を新しく追加したい | [Move Data Manual](move_data_manual.md) | `include/constants/moves.h`, `src/data/moves_info.h` |
 | TM/HM を増やしたい、フィールド技を整理したい | [TM/HM Manual](tm_hm_manual.md) | `include/constants/tms_hms.h` |
+| Field Kit のアイコンやパレットを差し替えたい | [Field Kit Icon And Palette Manual](field_kit_icon_palette_manual.md) | `graphics/items/icons/`, `graphics/items/icon_palettes/`, `src/data/items.h` |
 | 新規マップ、タウンマップ、Fly 登録を整理したい | [Map / Fly Manual](map_fly_manual.md) | map data, region map data, Fly flags |
 | Battle message、field message、UI text の影響範囲を整理したい | [Message Text Manual](message_text_manual.md) | `src/battle_message.c`, `data/battle_scripts_*.s`, `src/field_message_box.c` |
 | NPC の配置、移動、条件付きタイル変更を調べたい | [Map Script Flow](../flows/map_script_flow_v15.md) / [NPC Object Event Flow](../flows/npc_object_event_flow_v15.md) | `data/maps/*/events.inc`, `data/maps/*/scripts.inc` |
