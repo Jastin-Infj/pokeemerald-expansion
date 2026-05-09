@@ -10,9 +10,9 @@
 | script waitstate softlock | High | `ScriptContext_Stop`, `ScriptContext_Enable`, `CB2_ReturnToFieldContinueScriptPlayMapMusic` | UI 終了時に script を正しく再開できないと停止する |
 | double 判定ずれ | High | `TRAINER_BATTLE_PARAM`, `GetTrainerBattleType`, `gBattleTypeFlags` | 選出数 3/4 を間違えると battle party が不正になる |
 | existing facilities 破壊 | High | `VAR_FRONTIER_FACILITY`, `gSelectedOrderFromParty`, `frontier_util.c` | choose half は Frontier / cable club でも使用中 |
-| 4 匹選出制限 | Medium | `MAX_FRONTIER_PARTY_SIZE`, `gSelectedOrderFromParty` | double battle 4 匹選出に既存配列長が足りるか確認必要 |
+| 4 匹選出制限 | Low | `MAX_FRONTIER_PARTY_SIZE`, `gSelectedOrderFromParty` | `MAX_FRONTIER_PARTY_SIZE` は 4 で、double MVP の 4 匹選出に足りることを確認済み。 |
 | duplicate validation が不適切 | Medium | `Task_ValidateChosenHalfParty`, `CheckBattleEntriesAndGetMessage` | Frontier ルールが通常 trainer battle に混ざる可能性 |
-| cancel handling | Medium | `CB2_ReturnFromChooseHalfParty`, `gSpecialVar_Result` | 通常 trainer encounter で cancel をどう扱うか未定 |
+| cancel handling | Medium | `HandleChooseMonCancel`, `gSpecialVar_Result` | MVP では trainer battle selection 中の Cancel / B を無効化。将来許可するなら script 復帰先を再設計する。 |
 | special vars 汚染 | Medium | `gSpecialVar_Result`, `gSpecialVar_0x8004`, `gSpecialVar_0x8005` | trainer battle scripts も `VAR_RESULT` を使う |
 | battle outcome 分岐漏れ | High | `gBattleOutcome`, `CB2_EndTrainerBattle` | 勝利以外でも復元が必要 |
 | form/evolution/move learn | Medium | battle end / evolution flow | 状態反映 timing が未確認 |
@@ -69,9 +69,12 @@
 
 ### Battle Type
 
-`BATTLE_TYPE_DOUBLE` は `BattleSetup_StartTrainerBattle` 内で設定される。選出 UI はその前に起動する可能性が高いため、`gBattleTypeFlags` だけに依存して選出数を決める設計は危険。
+`BATTLE_TYPE_DOUBLE` は `BattleSetup_StartTrainerBattle` 内で設定される。MVP は
+`gBattleTypeFlags` を確定した後、`DoTrainerBattle()` の前に selection gate を置くため、
+single / double count は `BATTLE_TYPE_DOUBLE` から決める。
 
-`TRAINER_BATTLE_PARAM.mode` や `GetTrainerBattleType(TRAINER_BATTLE_PARAM.opponentA)` から同等の判定を行う必要がある可能性がある。
+`TRAINER_BATTLE_PARAM.mode` や `GetTrainerBattleType(TRAINER_BATTLE_PARAM.opponentA)` から
+UI 起動前に判定する設計は今回は採用していない。
 
 ### Battle UI
 
@@ -204,10 +207,9 @@ Pokemon field では v15 の `Ball` は item ではなく Pokeball enum。genera
 
 ## Open Questions
 
-- `MAX_FRONTIER_PARTY_SIZE` が double 4 匹選出に十分か未確認。
 - battle 後 evolution / move learn のタイミングと復元タイミングの相互作用は未確認。
-- whiteout 時の復元 ordering は未確認。
-- cancel を禁止する場合、既存 party menu の B button behavior をどう変えるべきか未決定。
+- whiteout 時の復元 ordering は manual runtime check 未実施。
+- cancel は trainer battle selection 中だけ無効化した。通常 trainer battle として自然か manual 確認が必要。
 - battle 中 party status summary の 6 slot 表示を仕様として受け入れるか未決定。
 - 相手 party preview で trainer pool の randomize を正確に再現する方法は未決定。
 - Champions / Rogue runtime state を保存する場合、`RogueSave` / `ChampionsSave` をどの SaveBlock に置くか未決定。

@@ -2,9 +2,10 @@
 
 ## Status
 
-Draft. 実装はまだ行わない。
+Implemented on `feature/battle-selection-mvp`.
 
-この plan は、将来実装する場合の最小構成案を整理するもの。
+この plan は、MVP 実装の設計根拠として残す。実装結果と validation は
+`implementation.md` と `test_plan.md` を参照する。
 
 ## MVP Scope
 
@@ -26,7 +27,7 @@ Draft. 実装はまだ行わない。
 - battle 開始後の healthbox / party status summary / action menu layout 変更。
 - runtime option 追加。
 
-## Proposed Phases
+## Implemented Phases
 
 ### Phase 1: State Design
 
@@ -43,11 +44,14 @@ Draft. 実装はまだ行わない。
 | `selectedCount` | 3 or 4 |
 | `isDouble` | 選出数や validation 用 |
 
-既存の `SavePlayerParty` / `LoadPlayerParty` は参考になるが、通常 trainer battle 用には専用 buffer の方が事故が少ない可能性が高い。
+実装では `src/trainer_battle_selection.c` に専用 EWRAM state を置いた。
+`SavePlayerParty` / `LoadPlayerParty` は使わず、`originalParty[PARTY_SIZE]` に
+元 party を保存する。
 
 ### Phase 2: Selection Count Decision
 
-`gTrainerBattleParameter` と trainer data から、battle が single か double かを決める helper を検討する。
+`BattleSetup_StartTrainerBattle()` が `gBattleTypeFlags` を確定した後に selection gate
+を評価するため、実装では `BATTLE_TYPE_DOUBLE` から required count を決める。
 
 確認済みの関係 symbol:
 
@@ -61,7 +65,7 @@ Draft. 実装はまだ行わない。
 
 ### Phase 3: Reuse Existing Choose Half UI
 
-最初は `party_menu` の choose half UI を流用する。
+最初の MVP は `party_menu` の choose half UI を流用する。
 
 必要になりそうな調整:
 
@@ -69,6 +73,10 @@ Draft. 実装はまだ行わない。
 - duplicate species/item validation を無効または分離する方法。
 - fainted / egg の扱いを仕様化する。
 - cancel を許すか、confirm 必須にするか決める。
+
+実装では trainer battle selection mode を追加し、通常 trainer battle では
+egg / fainted / empty slot を選出不可、duplicate species / duplicate item rule は
+適用しない。
 
 既存流用候補:
 
@@ -88,7 +96,8 @@ Draft. 実装はまだ行わない。
 5. `CalculatePlayerPartyCount()`
 6. 既存 trainer battle start へ進める。
 
-`ReducePlayerPartyToSelectedMons` は参考になるが、`MAX_FRONTIER_PARTY_SIZE` と復元 state の制約があるため、直接利用するかは要検証。
+実装では `ReducePlayerPartyToSelectedMons` は直接使わず、
+`TrainerBattleSelection_StartBattleFromSelection()` が選出順の一時 party を構築する。
 
 ### Phase 5: Restore After Battle
 
@@ -109,7 +118,8 @@ placement 候補:
 | `gMain.savedCallback` wrapper | 既存 callback を包めるが、callback chain の管理が複雑 |
 | battle controller end 付近 | battle 種別が広く影響するため危険 |
 
-MVP では trainer battle 専用 wrapper または `CB2_EndTrainerBattle` 直前/先頭が候補。
+実装では `CB2_EndTrainerBattle` の先頭で `HandleBattleVariantEndParty()` の直後に
+`TrainerBattleSelection_RestoreIfActive()` を呼ぶ。
 
 ## Mermaid Draft
 
@@ -133,16 +143,16 @@ flowchart TD
     N --> O
 ```
 
-## Implementation Order When Approved
+## Implementation Order Completed
 
-1. Add docs-backed feature flag/config decision.
-2. Add dedicated selection state and helper prototypes.
-3. Add helper to determine required selection count.
-4. Add trainer-battle-only choose half entrypoint.
-5. Add temporary party build and restore helpers.
-6. Wire into trainer battle flow for normal single/double only.
-7. Add manual tests and automated tests where possible.
-8. Only after MVP is stable, design custom UI / opponent preview.
+1. Added `B_TRAINER_BATTLE_SELECTION`.
+2. Added dedicated selection state and helper prototypes.
+3. Added helper to determine required selection count.
+4. Added trainer-battle-only choose half entrypoint.
+5. Added temporary party build and restore helpers.
+6. Wired into trainer battle flow for normal single/double only.
+7. Recorded build / check / mGBA smoke validation.
+8. Deferred custom UI / opponent preview.
 
 `CB2_EndTrainerBattle` integration は aftercare hook と同じ順序 contract を使う。
 
@@ -176,7 +186,7 @@ special trainer を除外する。将来 `ChampionsChallenge_IsActive()` が tru
 
 ## Open Questions
 
-- どの symbol/file に state を置くべきか未決定。
-- `party_menu.c` へ通常 trainer battle 用 branch を足すか、新 wrapper で existing globals を設定するか未決定。
-- battle 終了後復元の最適 placement は未検証。
-- whiteout 時にも選出状態を元 slot へ戻してから whiteout 処理へ進むべきか、具体的な ordering は要検証。
+- direct selection-screen runtime validation は prepared save / savestate が必要。
+- whiteout 時の復元 ordering は build 上は通っているが、manual runtime check は未実施。
+- battle 中 evolution / move learn / move reorder が元 slot に期待通り戻るかは manual / focused test が必要。
+- custom UI / opponent party preview は後続 phase。

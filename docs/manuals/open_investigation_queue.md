@@ -35,7 +35,7 @@
 | Topic | Current owner | Why it matters | Next investigation |
 |---|---|---|---|
 | battle UI party status display | `docs/flows/battle_ui_flow_v15.md` | 選出後に 3/4 匹表示にするか、既存 6 slot 表示を許容するかで UI 変更量が変わる。 | MVP では既存表示を許容し、後続 UI branch で再調査する。 |
-| custom selection UI | `docs/features/battle_selection/` | Champions 風 UI は見た目と input state の設計が重い。 | 既存 party menu branch で足りるか、専用 UI が必要かを確認する。 |
+| custom selection UI | `docs/features/battle_selection/` | Champions 風 UI は見た目と input state の設計が重い。MVP は既存 choose-half UI で成立した。 | `feature/party-select-ui` は古い `vanilla/v14_1` 系 prototype として参考に留め、専用 UI が必要になった時だけ現行 branch へ再設計する。 |
 | external rogue references | `docs/features/trainer_battle_aftercare/` | 強制 release / wipeout 実装の参考になる可能性がある。 | 必要になった段階で external repo の source path を確認する。 |
 
 ## How to Use This Queue
