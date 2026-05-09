@@ -25,7 +25,11 @@
   - `rtk make -j16 -O check`: PASS.
   - `rtk make -j16 -O all`: PASS.
   - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, accepted Start input, and showed the continue menu screenshot at `/tmp/field_kit_debug_script_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
-  - Manual execution of the four debug shortcut entries remains for user validation.
+- Manual user validation: PASS. Field Kit itemization and debug shortcut behavior matched the intended behavior.
+- Accepted next direction:
+  - `ITEM_FIELD_KIT` bag field use should become the Fly launcher / region map entry.
+  - Fly use should remain gated by Field Kit + `FLAG_RECEIVED_HM_FLY` + badge policy while `OW_FIELD_MOVE_TOOLKIT_BADGES == TRUE`.
+  - Teleport / Dig are not part of the Field Kit item-use path.
 
 ## Manual Tests
 
@@ -118,6 +122,7 @@
 - Route 119 rival gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_FLY`.
 - If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_FLY` is not set.
 - Fly remains gated by Field Kit + Fly capability + Fortree badge while `OW_FIELD_MOVE_TOOLKIT_BADGES == TRUE`.
+- Next slice: using `ITEM_FIELD_KIT` from the Key Items pocket should open the Fly launcher / region map when Fly is available.
 
 ### Move Forget / HM Restriction
 
