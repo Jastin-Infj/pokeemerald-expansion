@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `8d2664af9a`; GitHub PR queue checked 2026-05-09 |
+| Baseline | `master` `050a5ab7a3`; GitHub PR queue checked 2026-05-09 |
 | Code status | Docs-only workflow manual |
 | Provenance | Local project overlay |
 
@@ -37,7 +37,26 @@ git add docs/manuals/index.md docs/SUMMARY.md
 docs-only の依頼では、docs 以外を stage しません。
 `AGENTS.md` は agent-facing documentation として扱い、ユーザーが運用ルール更新を求めた場合だけ docs-only 作業に含めます。
 
-## master への docs-only merge policy
+## Branch Roles
+
+この repository では、`master` を「upstream 追従の受け皿」として扱う。
+local feature implementation を直接 `master` に積むと、upstream upgrade 時に
+source conflict と再適用判断が増えるため、通常の開発 branch と分ける。
+
+| Branch kind | Role | Allowed content |
+|---|---|---|
+| `master` | upstream / RHH 由来の source baseline + local docs overlay | `docs/`, workflow-only `AGENTS.md`; source-like tree は原則触らない |
+| `docs/*` | `master` へ入れる調査・運用・handoff docs | `docs/`, 必要な `AGENTS.md` |
+| `feature/*` | 1 feature の実装と検証 | source / include / data / tools を含んでよい。`master` へは直接 merge しない |
+| `integration/*` | 複数 feature を重ねた playable / review 用 branch | current `master` から作り直し、必要な slice だけ再適用する |
+| upstream remote | 新バージョン取り込み元 | fetch / compare only。push しない |
+
+GitHub の fork sync や upstream merge は便利だが、local implementation を含む
+`master` で実行すると source baseline が壊れやすい。sync 前に `master` が
+docs-only baseline であることを確認する。local 実装を遊べる状態で残したい場合は
+`integration/*` に積み、upstream 更新後に current `master` から作り直す。
+
+## Master Docs-Only Merge Policy
 
 `master` は upstream / RHH 由来の source code を基準にする。feature branch や別 project branch の source、include、data、tools、generated files を `master` に混ぜない。
 
@@ -66,6 +85,12 @@ feature 実装が完了した branch では、merge 前に owning feature の
 `implementation.md`、`test_plan.md`、必要な manual を更新する。実装 commit
 を `master` に入れない運用の場合でも、設計判断、検証結果、manual check、
 GitHub Actions を再待機しなかった理由は docs-only commit として残す。
+
+validated branch が存在する場合も、`master` に持ち込むのは evidence と判断だけにする。
+たとえば `feature/no-random-encounters` のように 3 file 実装と mGBA evidence が
+ある branch でも、docs-only 依頼では `include/` や `src/` を cherry-pick しない。
+runtime 実装が必要になった時点で、current `master` から新しい `feature/*` または
+`integration/*` branch を切り、必要な source slice だけ再適用して検証する。
 
 merge checklist は `docs/team_procedures/merge_checklist.md` の
 Local docs-only merge note を使う。
@@ -107,18 +132,29 @@ merge button や `gh pr merge` は使わない。
 remote branch は慎重に扱う。fully superseded / merged / unique work なしなら
 削除してよい。unique work が残る draft は、PR だけ close して branch は残す。
 
-### Open PR から master へ入れる手順
+### Open PR から master へ docs を入れる手順
 
 1. `docs/features/feature_registry.md` の順序と owning feature docs を確認する。
-2. PR が現在の `master` に clean merge できるか確認する。
-3. planned order と PR の粒度がずれている場合は、PR を直接 merge せず、
-   current `master` から fresh branch を切る。
-4. 必要な commit / file だけを cherry-pick または再実装する。
-5. source / data / config 変更なら local make、focused check、可能なら mGBA
-   runtime validation を行う。
-6. `implementation.md` / `test_plan.md` / registry の status を更新する。
+2. PR が source / include / data / tools / generated files を含むか確認する。
+3. source-like files を含む PR は直接 merge しない。
+4. current `master` から docs-only branch を切り、必要な docs / `AGENTS.md`
+   だけを cherry-pick または再編集する。
+5. 実装 branch の commit、diff scope、validation evidence、未反映理由を
+   `implementation.md` / `test_plan.md` / registry に記録する。
+6. `rtk git diff --name-only master..HEAD` が `docs/` と `AGENTS.md` だけで
+   あることを確認する。
 7. ユーザーが明示した場合だけ merge する。長い GitHub Actions は待ち続けず、
    local validation と未待機理由を handoff に残す。
+
+### 実装を試す / 遊べる状態へ持っていく手順
+
+1. current `master` から `feature/<name>` または `integration/<name>` を切る。
+2. validated branch から必要な source slice だけを cherry-pick / re-apply する。
+3. 古い docs を持ち込んで current docs を巻き戻さない。
+4. source / data / config 変更に応じて local make、focused check、可能なら
+   mGBA runtime validation を行う。
+5. 検証結果を owning feature docs に追記する。
+6. 実装 PR は staging shelf として扱い、`master` merge は別途ユーザー確認を取る。
 
 PR 説明には次を残します。
 
