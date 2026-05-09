@@ -1,4 +1,11 @@
 @ Interact with cuttable tree
+Common_EventScript_GiveFieldKit::
+	checkitem ITEM_FIELD_KIT
+	goto_if_eq VAR_RESULT, TRUE, Common_EventScript_GiveFieldKitEnd
+	giveitem ITEM_FIELD_KIT
+Common_EventScript_GiveFieldKitEnd::
+	return
+
 EventScript_CutTree::
 	lockall
 	checkfieldmove FIELD_MOVE_CUT, TRUE

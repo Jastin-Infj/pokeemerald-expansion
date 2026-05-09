@@ -13,11 +13,18 @@
   - `rtk make -j16 -O all`: PASS.
   - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba`, accepted Start input, and showed the continue menu screenshot at `/tmp/field_move_modernization_post_prompt_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
 - Focused no-HM route check: not yet performed; needs a prepared save/debug route with badges and no HM moves.
+- Field Kit itemization update:
+  - `rtk make -j16 -O check`: PASS.
+  - `rtk make -j16 -O all`: PASS.
+  - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba`, accepted Start input, and showed the continue menu screenshot at `/tmp/field_move_toolkit_item_final_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
 
 ## Manual Tests
 
 ### Cut
 
+- Cutter's House gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_CUT`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_CUT` is not set.
+- Cut remains blocked without Field Kit, without `FLAG_RECEIVED_HM_CUT`, or without the Stone Badge while `OW_FIELD_MOVE_TOOLKIT_BADGES == TRUE`.
 - Cut tree interaction before unlock.
 - Cut tree interaction after unlock with no success prompt/message.
 - Cut tree object removal and map reload behavior.
@@ -26,6 +33,8 @@
 
 ### Rock Smash
 
+- Rock Smash Dude gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_ROCK_SMASH`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_ROCK_SMASH` is not set.
 - Rock Smash before unlock.
 - Rock Smash after unlock with no success prompt/message.
 - Rock object removal.
@@ -35,6 +44,8 @@
 
 ### Strength
 
+- Rusturf Tunnel reunion gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_STRENGTH`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_STRENGTH` is not set.
 - Strength before unlock.
 - Strength activation after unlock with no success prompt/message.
 - Already-active boulder interaction produces no success message.
@@ -43,6 +54,8 @@
 
 ### Surf
 
+- Wally's Dad gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_SURF`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_SURF` is not set.
 - A-button water interaction.
 - party menu Surf if enabled.
 - no party mon with Surf under modern mode.
@@ -53,6 +66,8 @@
 
 ### Waterfall
 
+- Wallace gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_WATERFALL`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_WATERFALL` is not set.
 - waterfall when not surfing north.
 - waterfall when surfing north.
 - successful Waterfall starts without yes/no prompt or success message.
@@ -61,6 +76,8 @@
 
 ### Dive
 
+- Steven gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_DIVE`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_DIVE` is not set.
 - A button dive down from a diveable tile.
 - B button opens Surface prompt underwater.
 - party menu Dive works for both Dive down and Surface when `TrySetDiveWarp()` allows it.
@@ -70,11 +87,19 @@
 
 ### Flash
 
+- Granite Cave hiker gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_FLASH`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_FLASH` is not set.
 - cave with `requires_flash: true`.
 - unlock済みなら cave 入場時に自動で明るくなること。
 - manual Flash field effect is not auto-started during map load; only `FLAG_SYS_USE_FLASH` is set.
 - cave already flashed.
 - whiteout / fly / teleport / dig clears `FLAG_SYS_USE_FLASH`.
+
+### Fly
+
+- Route 119 rival gives `ITEM_FIELD_KIT` if missing and sets `FLAG_RECEIVED_HM_FLY`.
+- If Field Kit cannot be added, bag full message is shown and `FLAG_RECEIVED_HM_FLY` is not set.
+- Fly remains gated by Field Kit + Fly capability + Fortree badge while `OW_FIELD_MOVE_TOOLKIT_BADGES == TRUE`.
 
 ### Move Forget / HM Restriction
 

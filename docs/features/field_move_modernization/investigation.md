@@ -86,6 +86,10 @@ per-HM key item や field toolkit item を採用する場合、Key Items pocket 
 
 長期方針としては per-HM key item より、単一 field toolkit key item + capability flags が扱いやすい。key item は所持物として UI / story の anchor にし、実際の Cut / Surf / Dive などの可否は個別 flag で管理する。badge-only はこの MVP の暫定条件としては安全だが、最終設計では story flag / upgrade flag の一種として扱う方が自由度が高い。
 
+2026-05-09 の Field Kit itemization slice では、Key Item `ITEM_FIELD_KIT` を item id 874 として `ITEMS_COUNT` 直前に追加した。既存 item id の大きな番号ずらしを避けるため、Key Items section の途中には挿入していない。icon は `gItemIcon_QuestionMark` を placeholder にしている。
+
+Field Kit の capability flags は新規 save flag を増やさず、既存 `FLAG_RECEIVED_HM_CUT` / `FLASH` / `ROCK_SMASH` / `STRENGTH` / `SURF` / `FLY` / `DIVE` / `WATERFALL` を再利用する。FRLG 側の `FLAG_RECEIVED_HM_*` は placeholder 0 なので、この slice では FRLG に Field Kit requirement を適用しない。
+
 ### Forget and Softlock Prevention
 
 | Area | Facts |
@@ -129,6 +133,7 @@ per-HM key item や field toolkit item を採用する場合、Key Items pocket 
 - Secret Power / secret base を HM modernize の範囲に含めるか。
 - bag 拡張 feature で Key Items pocket をどこまで増やすか。field move modernization では bag 拡張を前提にしない。
 - 単一 field toolkit key item の入手タイミングと、各 capability flag をどの story event / badge / item upgrade で立てるか。
+- Field Kit icon を final art に差し替えるタイミング。現時点は question mark placeholder で許容。
 
 ## 2026-05-09 Recheck Notes
 

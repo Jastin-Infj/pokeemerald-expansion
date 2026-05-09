@@ -24,6 +24,8 @@
 | Rock Smash encounters | `RockSmashWildEncounter` は wild encounter randomizer と関係。 |
 | Poke Rider | `OW_FLAG_POKE_RIDER` は Fly 系の別導線候補だが、初期値 0 で未設定。 |
 | Key item unlock capacity | `BAG_KEYITEMS_COUNT 30` の固定長 pocket。per-HM key item 追加は bag / save / debug grant に波及するため、bag 拡張は別 feature の大型改修として扱う。 |
+| Field Kit migration | Existing saves with HM receipt flags but no Field Kit will fail modernized HM checks until the item is granted. First-time grant scripts avoid setting capability flags if the Field Kit cannot be added. |
+| Item id churn | Key Item section 途中に挿入すると後続 item ids が大きくずれる。Field Kit は `ITEMS_COUNT` 直前に追加して churn を抑える。 |
 
 ## Specific Failure Modes
 
@@ -41,8 +43,9 @@
 - party menu action はまだ move-owned のまま。HM 技を忘れる policy と Fly 代替 UI が固まるまで、party menu を badge-only にしない。
 - HM forget / Move Deleter / release / catch-swap は未変更。field progression は技所持不要になったが、HM move の通常技化は別 slice。
 - `VAR_RESULT` は互換のため party slot を返す。show-mon が無効でも follower check と既存 script shape を維持するため。
-- unlock source はまだ badge-only。key item / field toolkit 方式は別 feature の bag 拡張整理後に設計する。
+- unlock source は Field Kit + capability flags に移行した。初期値では既存 badge gate も維持する。
 - long-term unlock は badge-only より単一 field toolkit key item + capability flags を推奨。per-HM key item は bag pressure が高い。
+- Field Kit itemization は初期値で badge gate も維持する。`OW_FIELD_MOVE_TOOLKIT_BADGES == FALSE` にすると progression が capability-only になり、Cut / Flash / Rock Smash などの使用タイミングが早まる可能性がある。
 
 ## Upstream Risks
 
