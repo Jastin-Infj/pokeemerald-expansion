@@ -36,6 +36,14 @@
   - `rtk make -j16 -O check`: PASS.
   - `rtk make -j16 -O debug`: PASS.
   - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, loaded the save, reached the field, and SELECT without a registered item still showed the existing guidance message. Screenshot at `/tmp/field_kit_menu_final_boot.png`; session stopped cleanly. `pgrep` showed no `mgba-qt` ROM process after stop.
+- Field Kit menu polish:
+  - Expected Fly-unavailable menu frame height: 2 rows for Teleport / Dig, not a 3-row frame.
+  - Expected Teleport / Dig behavior: no return-to-field fade flash between choosing the option and starting the field move effect.
+  - Expected frame palette: standard black window frame in caves / dark maps after Field Kit menu opens.
+  - `rtk make -j16 -O all`: PASS.
+  - `rtk make -j16 -O check`: PASS.
+  - `rtk make -j16 -O debug`: PASS.
+  - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, loaded the save, reached the field, and SELECT without a registered item still showed the existing guidance message. Screenshot at `/tmp/field_kit_menu_polish_boot.png`; session stopped cleanly. `pgrep` showed no `mgba-qt` ROM process after stop.
 
 ## Manual Tests
 
@@ -53,11 +61,13 @@
 - Register `ITEM_FIELD_KIT` to SELECT; pressing SELECT on the field opens the Field Kit menu.
 - Use `ITEM_FIELD_KIT` from the Key Items pocket; it opens the same Field Kit menu.
 - With `Field Kit Full`, menu order is Fly / Teleport / Dig and Fly is highlighted in red.
-- With only `Field Kit Item`, Fly is hidden and the menu shows Teleport / Dig.
+- With only `Field Kit Item`, Fly is hidden and the menu shows Teleport / Dig in a 2-row frame.
 - Fly opens the region map when Field Kit + Fly capability + badge policy are satisfied.
 - B on the Fly region map returns to the field, not the party menu.
 - B on the Field Kit menu closes it and returns control to the player.
 - Teleport and Dig obey their existing map restrictions; invalid maps show the cannot-use message and return control.
+- Teleport and Dig begin directly from the Field Kit menu without the field briefly flashing brighter on night maps.
+- Field Kit menu frame keeps the standard black palette in caves and dark maps.
 - Confirm follower leave restrictions still block Fly / Teleport where `CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_LEAVE_ROUTE)` fails.
 
 ### Cut

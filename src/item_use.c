@@ -88,7 +88,6 @@ static void ItemUseOnFieldCB_Honey(u8 taskId);
 static void ItemUseOnFieldCB_FieldKit(u8 taskId);
 static void Task_FieldKitMenuHandleInput(u8 taskId);
 static void Task_FieldKitMenuOpenFlyMap(u8 taskId);
-static void Task_FieldKitMenuReturnToField(u8 taskId);
 static bool32 IsValidLocationForVsSeeker(void);
 
 static const u8 sText_CantDismountBike[] = _("You can't dismount your BIKE here.{PAUSE_UNTIL_PRESS}");
@@ -1622,12 +1621,15 @@ static void FieldKit_ShowCannotUseMessage(u8 taskId)
     DisplayDadsAdviceCannotUseItemMessage(taskId, TRUE);
 }
 
-static void FieldKit_StartFieldCallback(u8 taskId)
+static void FieldKit_StartFieldMove(u8 taskId)
 {
     FieldKit_CloseMenuWindow(taskId);
     FieldKit_InitSelectedMon();
-    BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
-    gTasks[taskId].func = Task_FieldKitMenuReturnToField;
+    if (gPostMenuFieldCallback != NULL)
+        gPostMenuFieldCallback();
+    gFieldCallback2 = NULL;
+    gPostMenuFieldCallback = NULL;
+    DestroyTask(taskId);
 }
 
 static void FieldKit_StartFlyMap(u8 taskId)
@@ -1643,15 +1645,6 @@ static void Task_FieldKitMenuOpenFlyMap(u8 taskId)
     if (!gPaletteFade.active)
     {
         SetMainCallback2(CB2_OpenFlyMapFromField);
-        DestroyTask(taskId);
-    }
-}
-
-static void Task_FieldKitMenuReturnToField(u8 taskId)
-{
-    if (!gPaletteFade.active)
-    {
-        SetMainCallback2(CB2_ReturnToField);
         DestroyTask(taskId);
     }
 }
@@ -1679,13 +1672,13 @@ static void Task_FieldKitMenuHandleInput(u8 taskId)
         break;
     case FIELD_KIT_ACTION_TELEPORT:
         if (SetUpFieldMove_Teleport())
-            FieldKit_StartFieldCallback(taskId);
+            FieldKit_StartFieldMove(taskId);
         else
             FieldKit_ShowCannotUseMessage(taskId);
         break;
     case FIELD_KIT_ACTION_DIG:
         if (SetUpFieldMove_Dig())
-            FieldKit_StartFieldCallback(taskId);
+            FieldKit_StartFieldMove(taskId);
         else
             FieldKit_ShowCannotUseMessage(taskId);
         break;
@@ -1703,8 +1696,9 @@ static void ItemUseOnFieldCB_FieldKit(u8 taskId)
     FieldKit_AddMenuAction(task, FIELD_KIT_ACTION_TELEPORT);
     FieldKit_AddMenuAction(task, FIELD_KIT_ACTION_DIG);
 
-    windowTemplate.height = 2 + (task->tFieldKitActionCount * 2);
+    windowTemplate.height = task->tFieldKitActionCount * 2;
     task->tFieldKitWindowId = AddWindow(&windowTemplate);
+    LoadMessageBoxAndBorderGfx();
     DrawStdWindowFrame(task->tFieldKitWindowId, FALSE);
     FieldKit_PrintMenuActions(taskId);
     InitMenuNormal(task->tFieldKitWindowId, FONT_NORMAL, 0, 1, 16, task->tFieldKitActionCount, 0);

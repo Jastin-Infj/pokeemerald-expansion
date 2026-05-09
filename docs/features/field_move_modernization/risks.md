@@ -25,6 +25,8 @@
 | Poke Rider | `OW_FLAG_POKE_RIDER` は Fly 系の別導線候補だが、初期値 0 で未設定。 |
 | Fly entry point | HM 技所持を外すと Fly の入口が曖昧になる。現行 slice では `ITEM_FIELD_KIT` menu の Fly option へ寄せたが、region map cancel / invalid map / registered shortcut は regression 対象。 |
 | Field Kit utility menu | Key Item use と SELECT registered use の両方から同じ field menu を出すため、window cleanup、control lock、cannot-use message 後の task cleanup が壊れると field control を失う。 |
+| Field Kit direct utility start | Teleport / Dig は Field Kit からは return-to-field fade を挟まず `gPostMenuFieldCallback` を直接呼ぶ。party menu 経由とは違うため、script lock / follower hide / warp state は manual regression 対象。 |
+| Window palette reuse | Field menu は map palette state の影響を受けやすい。Field Kit menu は標準 border palette を再ロードするが、cave / dark map / Flash state で frame 色を確認する。 |
 | Key item unlock capacity | `BAG_KEYITEMS_COUNT 30` の固定長 pocket。per-HM key item 追加は bag / save / debug grant に波及するため、bag 拡張は別 feature の大型改修として扱う。 |
 | Field Kit migration | Existing saves with HM receipt flags but no Field Kit will fail modernized HM checks until the item is granted. First-time grant scripts avoid setting capability flags if the Field Kit cannot be added. |
 | Item id churn | Key Item section 途中に挿入すると後続 item ids が大きくずれる。Field Kit は `ITEMS_COUNT` 直前に追加して churn を抑える。 |
