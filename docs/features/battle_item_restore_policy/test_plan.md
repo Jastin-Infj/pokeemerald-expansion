@@ -68,6 +68,26 @@ Re-check if this area changes again:
     `/tmp/mgba-battle-item-restore-smoke-continue.png`.
   - `mgba_live_stop` returned `alive_before: true`, `alive_after: false`, and
     `stopped: true`.
+- Follow-up focused mGBA Live MCP check:
+  - The earlier normal ROM title / continue check only proved MCP boot/input,
+    not the item-restore feature behavior.
+  - `pokeemerald-test.elf` was confirmed to have `gTestRunnerArgv` patched to
+    `test/battle/hold_effect/battle_item_restore.c`.
+  - `mgba_live_start` launched that test ELF in session
+    `battle-item-restore-test-runner`.
+  - Lua memory read of `gTestRunnerState` after execution returned:
+    `runner_state = 5` (`STATE_EXIT`), `exit_code = 0`,
+    `result = 1` (`TEST_RESULT_PASS`), `expected = 1`, and
+    `test_ptr = __stop_tests`.
+  - The filter `argv` read back as
+    `test/battle/hold_effect/battle_item_restore.c`, which is the full battle
+    Oran Berry consume / battle-end restore test.
+  - Screenshot artifact:
+    `/tmp/mgba-battle-item-restore-test-runner-exit.png`. The screenshot is a
+    black post-exit frame; the meaningful evidence is the test-runner memory
+    state above.
+  - `mgba_live_stop` returned `alive_before: true`, `alive_after: false`, and
+    `stopped: true`; CLI `mgba-live-cli status --all` returned `[]`.
 - GitHub Actions were not waited for this handoff. Local make and MCP evidence
   above are the current validation basis.
 

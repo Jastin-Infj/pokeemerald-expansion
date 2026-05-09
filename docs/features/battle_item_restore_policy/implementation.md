@@ -73,6 +73,13 @@ Results:
 - mGBA Live MCP boot/input smoke check reached title screen, accepted `A`,
   reached the continue menu, exported `/tmp/mgba-battle-item-restore-smoke-continue.png`,
   and `mgba_live_stop` reported `stopped: true`.
+- Follow-up focused mGBA Live MCP check ran `pokeemerald-test.elf` filtered to
+  `test/battle/hold_effect/battle_item_restore.c`. Lua memory read of
+  `gTestRunnerState` reported `runner_state = STATE_EXIT`, `exit_code = 0`,
+  `result = TEST_RESULT_PASS`, `argv = test/battle/hold_effect/battle_item_restore.c`.
+  This is the feature-specific MCP evidence for the Oran Berry consume and
+  battle-end restore path. The earlier normal ROM title / continue check should
+  be treated only as an MCP boot/input smoke check.
 
 GitHub Actions were not waited during the agent handoff because the long jobs
 can take roughly 20-30 minutes. The branch handoff uses local make, focused
