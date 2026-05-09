@@ -1,7 +1,7 @@
 # Battle Item Restore Policy
 
-Status: Implementing
-Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HELD_BATTLE_BERRIES`
+Status: Shipped
+Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HELD_BATTLE_BERRIES` and user-confirmed in game
 
 ## Goal
 
@@ -17,6 +17,7 @@ Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HE
 ## Primary Docs
 
 - `docs/features/battle_item_restore_policy/investigation.md`
+- `docs/features/battle_item_restore_policy/implementation.md`
 - `docs/features/battle_item_restore_policy/mvp_plan.md`
 - `docs/features/battle_item_restore_policy/risks.md`
 - `docs/features/battle_item_restore_policy/test_plan.md`
@@ -32,6 +33,10 @@ Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HE
 `TryRestoreHeldItems()` は戦闘開始時に保存された
 `itemLost[B_SIDE_PLAYER][slot].originalItem` を source of truth として、
 きのみも戦闘終了時に元の party slot へ戻す。
+
+2026-05-09 時点で、直接 unit test、mGBA headless の full battle test、
+mGBA Live MCP boot/input smoke、user の実機/実画面確認で動作確認済み。
+実装内容と merge handoff は `implementation.md` に固定する。
 
 ただし、きのみを戦闘中に「消費しない」扱いへ変えるのは危険。`usedHeldItem` は `Recycle`、`Pickup`、`Harvest`、`Cud Chew`、`G-Max Replenish` の runtime state として使われている。安全な方向は、battle 中は今まで通り消費済みとして扱い、battle end aftercare で元の held item を復元する設計。
 

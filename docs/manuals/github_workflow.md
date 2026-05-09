@@ -51,6 +51,14 @@ git diff --name-only master..HEAD
 
 出力が `docs/` 以外を含む場合、その branch は merge しない。docs commit だけを cherry-pick するか、`master` から docs-only branch を切り直す。
 
+feature 実装が完了した branch では、merge 前に owning feature の
+`implementation.md`、`test_plan.md`、必要な manual を更新する。実装 commit
+を `master` に入れない運用の場合でも、設計判断、検証結果、manual check、
+GitHub Actions を再待機しなかった理由は docs-only commit として残す。
+
+merge checklist は `docs/team_procedures/merge_checklist.md` の
+Local docs-only merge note を使う。
+
 ## コミット前の確認
 
 ```sh

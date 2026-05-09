@@ -6,6 +6,24 @@ This document is a guide for maintainers to account for all the reccomended step
 
 # Checklist
 
+## Local docs-only merge note
+
+For this local project workflow, a feature branch that contains source or test
+changes must not be merged into `master` when the requested merge is docs-only.
+Use a docs-only branch from `master` or cherry-pick only the documentation
+commits intended for `master`.
+
+Before a docs-only merge, check:
+
+- [ ] `git diff --name-only master..HEAD` contains only `docs/` paths.
+- [ ] Feature implementation details are recorded in the owning feature docs,
+      usually `docs/features/<feature>/implementation.md`.
+- [ ] Setup or operation changes are recorded in the relevant manual under
+      `docs/manuals/` and linked from `docs/SUMMARY.md`.
+- [ ] Runtime checks, user manual checks, skipped GitHub Actions waits, and
+      remaining risks are recorded in the feature `test_plan.md`.
+- [ ] Local docs build was attempted, and any pre-existing warnings are noted.
+
 ## Is the branch's theoretical functionality in scope?
 If you're not sure if a branch's functionality is [in scope](scope.md), start a conversation on Discord to resolve.
 

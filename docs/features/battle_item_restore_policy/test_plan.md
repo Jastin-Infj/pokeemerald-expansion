@@ -30,6 +30,12 @@
 
 ## Manual Checks
 
+Confirmed:
+
+- User confirmed in game that the related battle flow works and berry restoration works after battle.
+
+Re-check if this area changes again:
+
 - Bag quantity is not changed by held item restore.
 - Held item icon in party menu is correct after battle.
 - Summary screen held item is correct after battle.
@@ -49,7 +55,7 @@
   - Clean-start route reached field control, opened debug menu with `R+START`, then started `Party... > Start Debug Battle`.
   - Visible battle intro reached: `You are challenged by PKMN TRAINER Debugger!`; `gBattleTypeFlags` at `0x020000B8` read `12`.
   - Screenshot artifact: `/tmp/mgba-aftercare-live/debug-trainer-battle.png`.
-- Focused Live mGBA item-screen/manual held item icon check: still pending for this item-restore slice. Needs a compatible save / savestate or debug route that creates a berry-holder party, consumes the berry in a trainer battle, then checks party menu / summary after battle.
+- Focused Live mGBA item-screen/manual held item icon check was pending during the agent run. User later confirmed the real in-game behavior after push: the related battle flow and berry restore both worked.
 
 2026-05-09:
 
@@ -65,3 +71,7 @@
   - `mgba-live-cli stop` did not immediately mark the session stopped; the mGBA child appeared as a zombie under the MCP parent. Treat cleanup as stale-session cleanup risk, not as a failed runtime boot/input check.
   - Follow-up standardized `/home/jastin/.local/bin/mgba-qt` as the default wrapper. `mgba_live_start` without `mgba_path` then reached title screen, accepted A input, reached continue menu, and `mgba_live_stop` cleaned the session (`status --all` returned `[]`).
 - GitHub Actions were not re-waited for this handoff. Local make and MCP evidence above are the current validation basis.
+- User manual confirmation after push:
+  - The related battle flow worked.
+  - Berry restore worked in game.
+  - Treat the item-restore slice as implementation-confirmed for this branch.

@@ -22,3 +22,20 @@
 - Stop mGBA Live sessions after validation. If `mgba-live-cli stop` leaves a
   stale entry or zombie child, record that cleanup state in the relevant docs
   instead of treating the runtime check as fully clean.
+
+## Documentation Handoff
+
+- When a feature implementation is completed or user-confirmed, update the
+  owning feature docs with an implementation summary. Prefer
+  `docs/features/<feature>/implementation.md` for what changed, why, validation,
+  manual checks, remaining risks, and merge handoff notes.
+- When setup, tooling, mGBA Live MCP, GitHub workflow, or merge operation rules
+  change, update the matching manual under `docs/manuals/` and link it from
+  `docs/SUMMARY.md`.
+- For docs-only merge work, do not merge an implementation branch that contains
+  source / include / data / tools / generated changes into `master`. Use a
+  docs-only branch from `master` or cherry-pick only docs commits, then check
+  `rtk git diff --name-only master..HEAD` before merging.
+- Before handoff, ensure the feature `test_plan.md` records local make results,
+  mGBA Live / manual evidence, skipped long GitHub Actions waits, and any
+  accepted remaining risk.
