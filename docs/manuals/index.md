@@ -1,5 +1,14 @@
 # Project Work Manuals
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; `git describe` = `expansion/1.15.2-24-g8d2664af9a` |
+| Code status | Docs-only manual index |
+| Provenance | Local project overlay |
+
 この章は、作業者が「どこから触るか」を決めるための入口です。
 既存の `docs/tutorials/` は実装寄りの手順が多いため、この manual では先に作業順、編集対象、影響範囲を確認します。
 manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](docs_navigation.md) を参照します。
@@ -18,6 +27,8 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | やりたいこと | 最初に読む manual | 主な編集元 |
 | --- | --- | --- |
 | docs の置き場、manual / tutorial / feature の境界を確認したい | [Docs Navigation Manual](docs_navigation.md) | `docs/manuals/`, `docs/tutorials/`, `docs/features/` |
+| docs の調査日、baseline、由来、GitHub で見やすい Markdown ルールを確認したい | [Docs Markdown Policy](docs_markdown_policy.md) | `docs/manuals/`, `docs/features/`, `docs/flows/` |
+| 最新 docs audit と既知の矛盾修正を確認したい | [Docs Audit 2026-05-09](docs_audit_2026_05_09.md) | docs metadata, baseline notes |
 | build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
 | mGBA Live MCP の設定、起動確認、失敗時の記録方法を確認したい | [mGBA Live MCP Manual](mgba_live_mcp_manual.md) | `docs/tools/mgba_live_*`, feature `test_plan.md` |
 | generated data の入力、lint、出力、差し替えを整理したい | [Generated Data Workflow Manual](generated_data_workflow.md) | `tools/`, generated data, feature docs |

@@ -1,8 +1,18 @@
 # Battle Item Restore Policy Implementation
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; implementation branch `feature/trainer-battle-aftercare-heal` |
+| Code status | Shipped on branch, not present in `master` source |
+| Provenance | Feature handoff |
+
 ## Status
 
-Status: Shipped on `feature/trainer-battle-aftercare-heal`
+Status: Shipped on `feature/trainer-battle-aftercare-heal`; not yet present in
+`master` source as of 2026-05-09 (`master` `8d2664af9a`)
 
 The berry-inclusive battle-end restore path is implemented, locally tested,
 verified through mGBA headless battle tests, and user-confirmed in game.

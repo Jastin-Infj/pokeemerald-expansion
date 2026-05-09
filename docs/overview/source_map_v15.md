@@ -1,13 +1,15 @@
 # Source Map v15
 
 調査日: 2026-05-01
+最終 baseline 確認: 2026-05-09 (`master` `8d2664af9a`, `git describe` = `expansion/1.15.2-24-g8d2664af9a`)
 
 この文書は今後の改造時に参照するソースコード地図です。ファイル名とシンボルは実際に確認したものを記載しています。
 
 ## Version Notes
 
 - 初回 source map は local 1.15.1 baseline を読んで作成した。
-- 2026-05-02 に upstream `expansion/1.15.2` tag を確認した。1.15.2 では `INCBIN_*` graphics declarations から `INCGFX_*` への移行が大きく、`Makefile`、`graphics_file_rules.mk`、`tools/preproc`、`tools/scaninc`、`migration_scripts/1.15/migrate_incgfx.py` が重要になる。
+- 2026-05-09 時点の current `master` は `expansion/1.15.2` tag 後の commit を含む。README は 1.15.2 credit example、`include/constants/expansion.h` は patch `3` / `EXPANSION_TAGGED_RELEASE FALSE`。
+- 1.15.2 では `INCBIN_*` graphics declarations から `INCGFX_*` への移行が大きく、`Makefile`、`graphics_file_rules.mk`、`tools/preproc`、`tools/scaninc`、`migration_scripts/1.15/migrate_incgfx.py` が重要になる。
 - 1.15.1 -> 1.15.2 の詳細は `docs/upgrades/1_15_1_to_1_15_2_impact.md` を参照。
 
 ## Directory Overview

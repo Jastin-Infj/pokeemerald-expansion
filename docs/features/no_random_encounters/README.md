@@ -1,7 +1,16 @@
 # No Random Encounters
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; branch implementation exists on `feature/no-random-encounters` |
+| Code status | Not on `master`; validated branch exists |
+| Provenance | Local project feature docs |
+
 Status: Planned
-Code status: No code changes
+Code status: not on `master`; 3 file implementation exists on `feature/no-random-encounters`
 
 ## Goal
 
@@ -11,7 +20,7 @@ Code status: No code changes
 
 ## Current Baseline
 
-現行 repo にはすでに `OW_FLAG_NO_ENCOUNTER` がある。
+現行 `master` にはすでに `OW_FLAG_NO_ENCOUNTER` がある。
 
 | Area | Existing behavior |
 |---|---|
@@ -20,7 +29,7 @@ Code status: No code changes
 | Debug menu | `src/debug.c` に toggle がある。ただし `OW_FLAG_NO_ENCOUNTER != 0` のときだけ有効。 |
 | Wild tables | `src/data/wild_encounters.json` / `.h` は変更不要。 |
 
-MVP は既存 flag を使う。新しい encounter table や randomizer と混ぜない。
+MVP は既存 flag を使う。新しい encounter table や randomizer と混ぜない。`feature/no-random-encounters` では `FLAG_UNUSED_0x8E5` を `FLAG_NO_ENCOUNTER` に rename し、`OW_FLAG_NO_ENCOUNTER` へ割り当てる 3 file 実装まで検証済み。
 
 ## Recommended Shape
 

@@ -1,7 +1,16 @@
 # Battle Item Restore Policy
 
-Status: Shipped
-Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HELD_BATTLE_BERRIES` and user-confirmed in game
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
+| Code status | Not on `master`; validated branch exists |
+| Provenance | Local project feature docs / feature handoff |
+
+Status: Validated branch
+Code status: not on `master`; berry-inclusive battle-end restore exists on `feature/trainer-battle-aftercare-heal` behind `B_RESTORE_HELD_BATTLE_BERRIES` and was user-confirmed in game
 
 ## Goal
 
@@ -29,7 +38,7 @@ Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HE
 
 既存実装では、`B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9` でも、戦闘後に復元されるのは基本的に非きのみの single-use item だけだった。`src/battle_util.c` の `TryRestoreHeldItems` は、元の持ち物が Berry pocket の場合に復元対象から外していた。
 
-今回の実装では `include/config/battle.h` に
+`feature/trainer-battle-aftercare-heal` の実装では `include/config/battle.h` に
 `B_RESTORE_HELD_BATTLE_BERRIES` を追加した。`TRUE` の場合、
 `TryRestoreHeldItems()` は戦闘開始時に保存された
 `itemLost[B_SIDE_PLAYER][slot].originalItem` を source of truth として、

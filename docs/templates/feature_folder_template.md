@@ -2,6 +2,7 @@
 
 この template は、`docs/features/<feature>/` を作る時の最小構成。
 必要な section だけを残してよいが、実装前に README / investigation / mvp_plan / risks / test_plan の役割は分ける。
+metadata の書き方は `docs/manuals/docs_markdown_policy.md` を参照する。
 
 ## Folder Layout
 
@@ -19,10 +20,18 @@ docs/features/<feature>/
 ````markdown
 # <Feature Name>
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | YYYY-MM-DD |
+| Baseline | `master` `<commit>`; upstream `expansion/<version>` |
+| Code status | No code changes / Branch implementation / Implemented / Shipped |
+| Provenance | Local project overlay / Feature handoff |
+
 ## Status
 
 Status: Investigating / Planned / Implementing / Testing / Shipped / Paused
-Code Status: No code changes / In progress / Implemented / Shipped
 
 ## Goal
 
@@ -60,6 +69,15 @@ Code Status: No code changes / In progress / Implemented / Shipped
 
 ````markdown
 # <Feature Name> Investigation
+
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | YYYY-MM-DD |
+| Baseline | `master` `<commit>`; upstream `expansion/<version>` |
+| Code status | Docs-only investigation |
+| Provenance | Local project overlay |
 
 ## Existing Files
 

@@ -1,7 +1,16 @@
 # Trainer Battle Aftercare / Forced Release
 
-Status: Implementing
-Code status: Heal-only MVP implemented behind `B_TRAINER_BATTLE_AFTERCARE`
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
+| Code status | Not on `master`; branch implementation exists |
+| Provenance | Local project feature docs / feature handoff |
+
+Status: Planned / branch implementation exists
+Code status: not on `master`; heal-only MVP exists on `feature/trainer-battle-aftercare-heal` behind `B_TRAINER_BATTLE_AFTERCARE`
 
 ## Goal
 
@@ -26,7 +35,11 @@ Code status: Heal-only MVP implemented behind `B_TRAINER_BATTLE_AFTERCARE`
 
 ただし、PC の release UI は `src/pokemon_storage_system.c` 内の static task / static helper に強く依存しているため、battle end からそのまま呼ぶ設計は危険。強制 release 用には、将来 public helper を切り出すか、専用の post-battle state machine を作る方が安全。
 
-## Implemented MVP
+## Branch MVP Shape (`feature/trainer-battle-aftercare-heal`)
+
+2026-05-09 `master` baseline note: the code described below is not present on
+`master` yet. Treat it as the validated branch shape to re-apply or cherry-pick
+when this feature becomes the active implementation branch.
 
 `include/config/battle.h` に `B_TRAINER_BATTLE_AFTERCARE` を追加した。
 default は `FALSE` なので既存 ROM 挙動は変わらない。
