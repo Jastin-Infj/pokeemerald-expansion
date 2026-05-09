@@ -6,10 +6,11 @@
 
 - `test/battle_item_restore.c`: `B_RESTORE_HELD_BATTLE_BERRIES == TRUE` で original Oran Berry が battle-end restore に含まれる。
 - `test/battle_item_restore.c`: 既存の non-berry restore behavior が維持される。
+- `test/battle/hold_effect/battle_item_restore.c`: full battle で Oran Berry を消費し、battle end 後に party held item へ戻る。
 
 追加したい test:
 
-- Oran Berry / Sitrus Berry is consumed during a full battle but restored after battle under the new policy.
+- Sitrus Berry is consumed during a full battle but restored after battle under the new policy.
 - Leppa Berry can still be restored by Recycle during battle.
 - Harvest still restores a consumed berry during battle.
 - Cud Chew still reuses the consumed berry on the next turn.
@@ -55,10 +56,12 @@
 - `rtk make -j16 -O all`: passed.
 - `rtk make -j16 -O debug`: passed.
 - `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed, 2 tests.
+- `rtk make -j16 -O check TESTS=test/battle/hold_effect/battle_item_restore.c`: passed.
 - mGBA Live MCP check:
   - Initial `mgba_live_start` with default `/usr/games/mgba-qt` failed because that binary does not support `--script`.
   - `mgba_live_start` with `.cache/mgba-script-build-master/qt/mgba-qt` failed without display configuration.
   - `mgba_live_start` succeeded through `/tmp/mgba-live-display-wrapper`, which exports `DISPLAY=:0` and execs the script-capable mGBA binary.
   - `mgba_live_get_view` captured the title screen. `mgba_live_input_set` / `mgba_live_input_clear` accepted input and the next view reached the continue menu.
   - `mgba-live-cli stop` did not immediately mark the session stopped; the mGBA child appeared as a zombie under the MCP parent. Treat cleanup as stale-session cleanup risk, not as a failed runtime boot/input check.
+  - Follow-up standardized `/home/jastin/.local/bin/mgba-qt` as the default wrapper. `mgba_live_start` without `mgba_path` then reached title screen, accepted A input, reached continue menu, and `mgba_live_stop` cleaned the session (`status --all` returned `[]`).
 - GitHub Actions were not re-waited for this handoff. Local make and MCP evidence above are the current validation basis.

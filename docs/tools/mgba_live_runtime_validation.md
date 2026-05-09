@@ -58,8 +58,16 @@ Codex から MCP を使う場合は、最初に一度だけ起動確認を試み
 Notes:
 
 - `DISPLAY=:0` が使える環境では、この path が bridge ready になった。
+- 2026-05-09 以降は `/home/jastin/.local/bin/mgba-qt` を wrapper として置き、
+  `DISPLAY="${DISPLAY:-:0}"` を設定してから
+  `/home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt`
+  を exec する。`mgba-live-mcp` の default binary detection は
+  `PATH` 上のこの wrapper を拾うため、通常は MCP tool に `mgba_path` を渡さなくてよい。
 - 2026-05-08 の item-restore branch でも、`DISPLAY=:0 mgba-live-cli start` で title screen、clean-start field control、debug menu、debug trainer battle intro まで確認できた。
 - 2026-05-09 の MCP check では、default `/usr/games/mgba-qt` は `--script` unsupported で失敗し、script 対応 binary を直接渡すと display 未設定で失敗した。`DISPLAY=:0` を設定する wrapper 経由で `mgba_live_start`、`mgba_live_get_view`、`mgba_live_input_set`、`mgba_live_input_clear` が成功し、title screen と continue menu を取得できた。`mgba-live-cli stop` 後に MCP parent 配下の zombie / stale session 表示が残ったため、cleanup は要確認として扱う。
+- 同日後続の修正で `/home/jastin/.local/bin/mgba-qt` wrapper を標準化した後、
+  `mgba_path` なしの `mgba_live_start` が成功し、title screen、A input、continue menu まで確認できた。
+  cleanup は MCP の `mgba_live_stop` で `stopped:true`、CLI `status --all` で `[]` まで確認済み。
 - `QT_QPA_PLATFORM=offscreen` は process が残るが heartbeat が出ず、bridge command が timeout した。現時点では offscreen を成功扱いにしない。
 - `xvfb-run` / `Xvfb` はこの環境では未検出。CI / headless 専用にするなら別途導入候補。
 

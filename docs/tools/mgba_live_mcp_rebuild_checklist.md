@@ -19,6 +19,7 @@ Cache の実体、source clone の clean 状態、backup policy、runtime cache 
 | mGBA source used for live MCP | `.cache/mgba-script-src-master` |
 | mGBA build dir | `.cache/mgba-script-build-master` |
 | mGBA binary | `.cache/mgba-script-build-master/qt/mgba-qt` |
+| Default `mgba-qt` wrapper | `/home/jastin/.local/bin/mgba-qt` |
 | mGBA commit | `b19b557a78930ede7ee7f5dcbc880f9ff2533ffe` |
 | mGBA version output | `0.11-1-b19b557` |
 | mGBA binary SHA256 observed on 2026-05-06 | `a12307b0eb85412d2fb1fac653cf43d6ff612e5bafb8b3f9cfcbd734315e9acd` |
@@ -72,6 +73,23 @@ mGBA-0.10.5-ubuntu64-noble/mgba-sdl.deb
 3. `mGBA-0.10.5-ubuntu64-noble.tar.xz` は今回の live MCP には不十分だったため workspace から削除済み。必要になった場合は checksum を使って再取得物を照合する。
 4. `mgba-live-mcp` の `uv` cache は absolute path が変わる可能性があるため、path 固定の運用にしすぎない。再構築時は `uvx mgba-live-mcp` または新しい archive path を確認する。
 5. 大きな binary cache や build tree は通常 commit しない。必要なら Git LFS、release artifact、private storage などを使う。
+
+### Local Wrapper
+
+`mgba-live-mcp` の default binary detection は `PATH` 上の `mgba-qt` を探す。
+system package の `/usr/games/mgba-qt` は `--script` 非対応なので、この workspace
+では `/home/jastin/.local/bin/mgba-qt` を wrapper として置く。
+
+```sh
+#!/bin/sh
+export DISPLAY="${DISPLAY:-:0}"
+exec /home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt "$@"
+```
+
+これにより Codex MCP tool から `mgba_path` を毎回渡さなくても、
+script 対応 mGBA と Qt/xcb display が使われる。
+2026-05-09 に `mgba_path` なしの `mgba_live_start`、screenshot、input、
+continue menu 表示、`mgba_live_stop` cleanup を確認した。
 
 ### Suggested Backup Targets
 
@@ -328,16 +346,17 @@ When `.cache/` is deleted or a new machine is used:
 6. Confirm `--script` works.
 7. Reinstall or refresh `mgba-live-mcp` with `uvx`.
 8. Confirm the bridge Lua path.
-9. Start a smoke session with a copied ROM under `/tmp`.
-10. Verify screenshot, A input, OAM dump, and WRAM read.
-11. Stop the smoke session.
-12. Record any changed versions or paths in this document.
+9. Recreate `/home/jastin/.local/bin/mgba-qt` wrapper if missing.
+10. Start a smoke session with a copied ROM under `/tmp`.
+11. Verify screenshot, A input, OAM dump, and WRAM read.
+12. Stop the smoke session.
+13. Record any changed versions or paths in this document.
 
 ## Open Questions
 
 - Why did `mgba-live-cli start` report readiness timeout even though later commands worked?
 - Should the project standardize a private artifact location for `.cache/mgba-script-build-master`?
-- Should Codex config accept a configurable `mgba_path`, or should smoke commands always pass `--mgba-path` explicitly?
+- Long-term, should Codex config support a per-tool default `mgba_path`, or is the `~/.local/bin/mgba-qt` wrapper sufficient?
 - Is a headless mGBA path possible for CI, or is Qt required for this `mgba-live-mcp` version?
 - Should a Dockerfile be added later, or is this native checklist enough for the current solo/local workflow?
 - Can `QT_QPA_PLATFORM=offscreen` be made to produce heartbeat / screenshots, or should the standard headless path use Xvfb instead?
