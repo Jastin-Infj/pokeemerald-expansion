@@ -2,9 +2,14 @@
 
 ## Unit / Battle Tests
 
+追加済み:
+
+- `test/battle_item_restore.c`: `B_RESTORE_HELD_BATTLE_BERRIES == TRUE` で original Oran Berry が battle-end restore に含まれる。
+- `test/battle_item_restore.c`: 既存の non-berry restore behavior が維持される。
+
 追加したい test:
 
-- Oran Berry / Sitrus Berry is consumed during battle but restored after battle under the new policy.
+- Oran Berry / Sitrus Berry is consumed during a full battle but restored after battle under the new policy.
 - Leppa Berry can still be restored by Recycle during battle.
 - Harvest still restores a consumed berry during battle.
 - Cud Chew still reuses the consumed berry on the next turn.
@@ -28,3 +33,32 @@
 - Held item icon in party menu is correct after battle.
 - Summary screen held item is correct after battle.
 - Link / recorded battle behavior is explicitly accepted or excluded.
+
+## Validation Log
+
+2026-05-08:
+
+- `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed.
+- `rtk make -j16 -O all`: passed.
+- `rtk make -j16 -O check`: passed. This includes mGBA headless through `mgba-rom-test-hydra`.
+- `rtk make -j16 -O debug`: passed.
+- Live mGBA focused runtime check:
+  - `DISPLAY=:0 mgba-live-cli start` worked with the local Qt mGBA binary. MCP/offscreen wrapper startup did not become bridge-ready in this environment, so do not count offscreen startup as validated.
+  - Reused local `.sav` candidates from `/tmp/mgba-aftercare-live`, but title screen showed only `NEW GAME` / `OPTION`; no `CONTINUE` was available.
+  - Clean-start route reached field control, opened debug menu with `R+START`, then started `Party... > Start Debug Battle`.
+  - Visible battle intro reached: `You are challenged by PKMN TRAINER Debugger!`; `gBattleTypeFlags` at `0x020000B8` read `12`.
+  - Screenshot artifact: `/tmp/mgba-aftercare-live/debug-trainer-battle.png`.
+- Focused Live mGBA item-screen/manual held item icon check: still pending for this item-restore slice. Needs a compatible save / savestate or debug route that creates a berry-holder party, consumes the berry in a trainer battle, then checks party menu / summary after battle.
+
+2026-05-09:
+
+- `rtk make -j16 -O all`: passed.
+- `rtk make -j16 -O debug`: passed.
+- `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed, 2 tests.
+- mGBA Live MCP check:
+  - Initial `mgba_live_start` with default `/usr/games/mgba-qt` failed because that binary does not support `--script`.
+  - `mgba_live_start` with `.cache/mgba-script-build-master/qt/mgba-qt` failed without display configuration.
+  - `mgba_live_start` succeeded through `/tmp/mgba-live-display-wrapper`, which exports `DISPLAY=:0` and execs the script-capable mGBA binary.
+  - `mgba_live_get_view` captured the title screen. `mgba_live_input_set` / `mgba_live_input_clear` accepted input and the next view reached the continue menu.
+  - `mgba-live-cli stop` did not immediately mark the session stopped; the mGBA child appeared as a zombie under the MCP parent. Treat cleanup as stale-session cleanup risk, not as a failed runtime boot/input check.
+- GitHub Actions were not re-waited for this handoff. Local make and MCP evidence above are the current validation basis.
