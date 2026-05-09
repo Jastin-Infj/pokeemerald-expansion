@@ -14,7 +14,9 @@
 | Test | Steps | Expected |
 |---|---|---|
 | SaveBlock size | Compare `sizeof(struct SaveBlock1)` against `test/save.c`. | Any size change is intentional and documented. |
+| Save sector format | If `SAVE_BLOCK_3_CHUNK_SIZE` / `SECTOR_DATA_SIZE` changes, save a file and reload it across reset. | SaveBlock1, SaveBlock2, PokemonStorage, and relocated/removed SaveBlock3 data remain valid. |
 | Affected pocket fill | Add enough distinct items to fill the expanded pocket. | `CheckBagHasSpace` returns false only when the new capacity is reached. |
+| TM/HM 350 fill | Fill TM/HM to 350 entries plus Cancel and scroll/sort the full list. | No `u8` wrap, list truncation, cursor corruption, or wrong item selection. |
 | Sort affected pocket | Fill and sort the expanded pocket by each available sort mode. | No crash, lost item, duplicate item, or cursor corruption. |
 | Save/load bag | Fill affected pocket, save, reload. | Item IDs, quantities, cursor positions, and registered item state remain valid. |
 
@@ -40,7 +42,8 @@
 ## Feature Complete Gate
 
 - Target pocket counts and save compatibility policy are documented.
-- Any target above 255 has an explicit ROM header plan; any target above 1023 has an explicit `BagPocket.capacity` redesign.
+- Any pocket target above 255 has explicit ROM header and bag UI count-width changes; any target above 1023 has an explicit `BagPocket.capacity` redesign.
+- A 1000-slot raw bag target has an explicit SaveBlock1 `FREE_*` plus SaveBlock3 chunk reclaim or equivalent save-space plan.
 - Any large item-ID increase has an explicit Pokemon `heldItem:10` / `ITEMS_COUNT < 1024` plan.
 - `test/save.c` either remains unchanged or has an intentional expected-size update.
 - `rtk make -j16 -O all`, `rtk make -j16 -O check`, and required focused save tests pass.

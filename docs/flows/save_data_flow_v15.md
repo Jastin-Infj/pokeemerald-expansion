@@ -304,7 +304,7 @@ struct RuntimeRuleOptions
 | champions_challenge runtime flags | flag (SYSTEM) 連続帯 | `0x8E6`–`0x8EE` rename | bit 単位の状態。 |
 | champions_challenge eligibility / bag mode | saved var | `VAR_UNUSED_0x40DB` 付近 | enum で複数値。 |
 | champions_challenge struct (party/bag snapshot 含む) | SaveBlock1 dedicated | 新規 struct + FREE_* 切り替え | 現状 sketch は約 1.4 KB + metadata。bag_expansion 後は再計算必須。SaveBlock3 には向かない。 |
-| bag_expansion | SaveBlock1 `struct Bag` | `BAG_*_COUNT` 変更 | 1 slot 約 4 B。current SaveBlock1 spare 304 B。TM/HM 250 slot 化は別設計または FREE_* が必要。 |
+| bag_expansion | SaveBlock1 `struct Bag` | `BAG_*_COUNT` 変更 | 1 slot 約 4 B。1000 total slots / TM-HM 350 slots は約 +3256 B。current spare 304 B + SaveBlock1 `FREE_*` 2516 B だけでは約 436 B 不足し、SaveBlock3 chunk reclaim か追加削減が必要。 |
 | partygen seed | SaveBlock3 | `u32` 1 個 | 4 byte。SaveBlock3 末尾に追加可能。 |
 | runtime_rule_options | SaveBlock2 dedicated | 新規 struct (約 8 B) | option menu と連動。 |
 

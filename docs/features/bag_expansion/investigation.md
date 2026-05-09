@@ -22,7 +22,7 @@
 | `src/debug.c` | `DebugAction_PCBag_Fill_Pocket*` | Debug fill uses `CheckBagHasSpace` / `AddBagItem`; larger pockets affect fill runtime and validation. |
 | `test/save.c` | `T_SAVEBLOCK1_SIZE`, `T_SAVEBLOCK2_SIZE`, `T_SAVEBLOCK3_SIZE` | Current compatibility expected sizes are SaveBlock1 `15568`, SaveBlock2 `3884`, SaveBlock3 `4`. |
 | `docs/features/field_move_modernization/*` | Bag / Key Item Capacity notes | Field Kit docs explicitly split bag expansion out as a separate feature. |
-| `docs/overview/tm_hm_expansion_250_v15.md` | Bag capacity / save layout | TM/HM pocket `64` is a blocker if all 250 TMs are stored as item slots. |
+| `docs/overview/tm_hm_expansion_250_v15.md` | Bag capacity / save layout | TM/HM pocket `64` is a blocker for the older 250-TM sketch and for the current 350-TM target if stored as item slots. |
 | `docs/features/champions_challenge/*` | Bag snapshot / restore | Normal bag snapshot uses `struct Bag`; saved challenge state competes for SaveBlock1 capacity. |
 
 ## Existing Flow
@@ -65,8 +65,17 @@ Bag expansion consumes SaveBlock1. SaveBlock3 free space is not a normal-bag sol
 
 ## Current Item Catalog Pressure
 
-Static parsing of `src/data/items.h` on the 2026-05-09 baseline gives this current
-catalog pressure, excluding `ITEM_NONE` and `ITEM_FIELD_ARROW`:
+The canonical item count comes from `include/constants/items.h`, not from a loose
+scan of the item data table. On the 2026-05-09 baseline:
+
+- `ITEM_NONE = 0`
+- `ITEM_GLIMMORANITE = 873`
+- `ITEMS_COUNT = 874`
+- `ITEM_FIELD_ARROW = ITEMS_COUNT`
+
+That means the current real item ID catalog is 873 items, excluding `ITEM_NONE`.
+The data table classification still matters for pocket pressure, because
+`src/data/items.h` controls each item's `.pocket`.
 
 | Pocket | Current slots | Current item definitions | Extra slots to hold every defined item | Approx SaveBlock1 growth |
 |---|---:|---:|---:|---:|
@@ -82,6 +91,32 @@ Raw "one slot for every current item definition" storage would grow SaveBlock1 f
 `15872` byte SaveBlock1 sector budget. The Items pocket alone would need about
 `2260` bytes, so "all normal tools/items fit at once" is not viable as a small
 constant-only change.
+
+## 1000-Slot Target
+
+The working target is roughly 1000 total normal bag slots across Items, Key Items,
+Poke Balls, TM/HM, and Berries, with TM/HM around 350 slots.
+
+| Target | Slots | Extra slots over current 186 | Approx SaveBlock1 growth |
+|---|---:|---:|---:|
+| Total normal bag | 1000 | 814 | 3256 B |
+| TM/HM only | 350 | 286 over current 64 | 1144 B |
+| Non-TM pockets after TM/HM 350 | 650 total | 528 over current 122 | 2112 B |
+
+Capacity sources:
+
+| Source | Available bytes for SaveBlock1 growth | Max total slots from current 186 | Result for 1000-slot target |
+|---|---:|---:|---|
+| Current spare only | 304 B | 262 | Not enough |
+| Current spare + all SaveBlock1 `FREE_*` toggles | 2820 B | 891 | Short by 436 B |
+| Current spare + all SaveBlock1 `FREE_*` + reclaim SaveBlock3 chunk bytes | 3284 B | 1007 | Fits by about 28 B |
+
+The last row is the only current path that makes 1000 raw slots fit without finding
+new SaveBlock1 savings elsewhere. It is a save-format decision, not just a bag
+constant change: `include/save.h` currently reserves `SAVE_BLOCK_3_CHUNK_SIZE 116`
+bytes per sector. Reclaiming those bytes would require removing or relocating the
+current `struct SaveBlock3` data, updating `SECTOR_DATA_SIZE`, and validating the
+save/load format. Current `test/save.c` records `sizeof(struct SaveBlock3) == 4`.
 
 The TM/HM data has a second split to account for:
 
@@ -99,6 +134,7 @@ The TM/HM data has a second split to account for:
 | TM/HM 64 -> 128 | 64 | 256 B | Yes, but leaves little spare | Still not enough for 250 TMs. |
 | TM/HM 64 -> 250 | 186 | 744 B | No | Needs FREE_* capacity, migration, or virtual TM ownership. |
 | TM/HM 64 -> 300 | 236 | 944 B | No | Also exceeds the current GF ROM header `u8` count field. |
+| TM/HM 64 -> 350 | 286 | 1144 B | No | Within `BagPocket.capacity:10`, but requires UI count and ROM header fixes. |
 | TM/HM 64 -> 2300 | 2236 | 8944 B | No | Also exceeds `BagPocket.capacity:10`; not viable without structural redesign. |
 | Add 100 slots across pockets | 100 | 400 B | No | Requires capacity recovery or a save-breaking layout plan. |
 | Fit every currently defined catalog item | 687 | 2748 B | No | SaveBlock1 would exceed the sector budget by about 2444 B. |
@@ -167,6 +203,12 @@ The heap is `HEAP_SIZE 0x1C500` (115968 B). A 2300-slot pocket would consume alm
 the whole heap during bag sorting, in addition to already exceeding save and bitfield
 limits.
 
+Counts above 255 also expose UI integer limits. `struct BagMenu` stores
+`numItemStacks[POCKETS_COUNT]` and `numShownItems[POCKETS_COUNT]` as `u8`, and
+`SetItemListPerPageCount()` takes `u8 slotsCount` / `u8 *totalItems`. A 350-slot
+TM/HM pocket therefore needs those bag/list count paths widened to `u16` or another
+safe type before runtime validation.
+
 ## Source-Wide Impact Check
 
 | Check | Result / notes |
@@ -178,6 +220,7 @@ limits.
 | Callback / task | Direct UI impact: `src/item_menu.c` list buffers, sorting, Wally tutorial bag setup, registered item return paths. |
 | Save / runtime state | High impact: `struct Bag` changes `struct SaveBlock1`; `LoadPlayerBag` / `SavePlayerBag` copy size changes. |
 | UI / window / sprite / text | Medium impact: larger pockets stress list buffers and scrolling; no immediate text change expected. |
+| UI count widths | Direct impact for any pocket above 255: `BagMenu.numItemStacks`, `numShownItems`, and list helper signatures use `u8`. |
 | Battle / AI | Indirect impact: battle bag item availability and held item give/switch paths use the same bag helpers. |
 | Pokemon held-item save bits | High impact for new item IDs: `heldItem:10` and `ITEMS_COUNT < 1024` cap all item IDs, not only holdable ones. |
 | Build tools / generated files | No generated data identified for normal bag counts. `rom_header_gf.c` exposes counts to external tooling. |
