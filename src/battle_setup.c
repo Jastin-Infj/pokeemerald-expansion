@@ -87,6 +87,7 @@ static u8 TrainerBattleSelection_GetRequiredCount(void);
 #if B_TRAINER_BATTLE_SELECTION
 static u8 TrainerBattleSelection_CountEligibleMons(void);
 #endif
+static void FieldCB_StartTrainerBattleAfterPartySelection(void);
 static bool32 IsPlayerDefeated(u32 battleOutcome);
 #if FREE_MATCH_CALL == FALSE
 static u16 GetRematchTrainerId(u16 trainerId);
@@ -458,6 +459,12 @@ static void DoTrainerBattle(void)
 }
 
 static void CB2_StartTrainerBattleAfterPartySelection(void)
+{
+    gFieldCallback = FieldCB_StartTrainerBattleAfterPartySelection;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
+static void FieldCB_StartTrainerBattleAfterPartySelection(void)
 {
     TrainerBattleSelection_StartBattleFromSelection();
     DoTrainerBattle();

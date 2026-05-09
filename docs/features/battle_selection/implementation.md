@@ -65,6 +65,30 @@ trainer battle selection restore はその後に置く。
 | mGBA Live smoke | Pass | session `codex-battle-selection-smoke-20260509c`。script-capable wrapper `/home/jastin/.local/bin/mgba-qt` で boot、Lua START/A input、New Game / Option menu screenshot。 |
 | mGBA cleanup | Pass | `mgba-live-cli status --all` returned `[]`。 |
 
+## 2026-05-09 Runtime Fix
+
+User runtime check confirmed that single battle selection UI appears and allows 3 mons,
+but the game blacked out with a sustained beep after confirming selection.
+
+Root cause: the party menu exit callback was a `MainCallback`, so
+`CB2_StartTrainerBattleAfterPartySelection()` ran every frame. The old code called
+`DoTrainerBattle()` directly from that callback, creating repeated battle start tasks
+while the screen was transitioning.
+
+Fix: the party menu exit callback now sets `gFieldCallback` and returns through
+`CB2_ReturnToField`. The field callback runs once after overworld state is restored,
+then calls `TrainerBattleSelection_StartBattleFromSelection()` and `DoTrainerBattle()`.
+
+Post-fix validation:
+
+| Command / Check | Result | Notes |
+|---|---|---|
+| `rtk git diff --check` | Pass | whitespace check。 |
+| `rtk make -j16 -O all` | Pass | battle setup callback fix compiled. |
+| `rtk make -j16 -O check` | Pass | test runner output includes existing expected / known-failing tests. |
+| mGBA Live boot/input smoke | Pass | session `codex-battle-selection-smoke-fix-20260509`。New Game / Option menu screenshot。 |
+| mGBA cleanup | Pass | `mgba-live-cli status --all` returned `[]`。 |
+
 Direct selection-screen runtime validation は未実施。prepared save / savestate が無く、
 new-game setup から対象 trainer まで進める手順をこの turn では作っていないため。
 

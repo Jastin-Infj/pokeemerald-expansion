@@ -14,6 +14,10 @@ Direct selection-screen manual validation remains open.
 | 2026-05-09 | `rtk make -j16 -O check` | Pass | test runner build warning と linker RWX warning は既存。 |
 | 2026-05-09 | mGBA Live boot/input smoke | Pass | session `codex-battle-selection-smoke-20260509c`。New Game / Option menu まで Lua input で到達。 |
 | 2026-05-09 | mGBA cleanup | Pass | `mgba-live-cli status --all` returned `[]`。 |
+| 2026-05-09 | user runtime check | Fail before fix | single trainer battle で 3 匹選出 UI は出たが、confirm 後の battle transition で black screen + sustained beep。 |
+| 2026-05-09 | callback fix `rtk make -j16 -O all` | Pass | party menu exit callback から直接 battle start を作らず、field callback 経由に修正。 |
+| 2026-05-09 | callback fix `rtk make -j16 -O check` | Pass | existing expected / known-failing tests のみ。 |
+| 2026-05-09 | callback fix mGBA boot/input smoke | Pass | session `codex-battle-selection-smoke-fix-20260509`。New Game / Option menu まで Lua input で到達。 |
 
 初回 mGBA attempt は direct `mgba_path` 指定で `DISPLAY` が無く SIGABRT した。
 script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成功した。
