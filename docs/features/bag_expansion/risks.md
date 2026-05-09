@@ -12,12 +12,15 @@
 | 1000 total raw slots | High | 1000 total slots need about +3256 bytes. Current spare + all SaveBlock1 `FREE_*` reaches only about 891 total slots. | Either reclaim SaveBlock3 chunk bytes / find another 436+ bytes, or lower the raw-slot target. |
 | TM/HM 350 as raw slots | High | 350 is within `BagPocket.capacity:10`, but exceeds current SaveBlock1 spare, `u8` ROM header counts, and bag UI `u8` count caches. | Widen UI counts, redesign/clamp ROM header counts, and pair with a save-space plan. |
 | Very large TM/HM counts | High | 2300 slots exceeds `BagPocket.capacity:10` and consumes almost the whole heap in bag UI buffers. | Use a virtual TM registry / bitset or hard cap raw pocket counts below structural limits. |
+| DexNav vs SaveBlock3 reclaim | High | DexNav search levels need `NUM_SPECIES` bytes; current `NUM_SPECIES` is 1573, nearly all of SaveBlock3. | If DexNav search levels are required, keep SaveBlock3 and use another save-capacity path. |
+| Save slot sector expansion | High | Growing the normal save slot from 14 to 15 sectors can solve 1000 raw slots, but consumes Hall of Fame sectors and changes save rotation layout. | Treat as a major save-format migration with explicit HOF/special-sector policy. |
 | Item ID ceiling | High | `heldItem:10` and `ITEMS_COUNT < 1024` leave only about 149 new item IDs from the current catalog. | Reuse existing TM item IDs, avoid item-per-rule explosions, or plan a Pokemon save-layout migration. |
 | ROM header count width | Medium | `rom_header_gf.c` uses `u8` bag count fields. Counts above 255 truncate or need redesign. | Keep MVP counts <= 255. |
 | Bag menu memory growth | Medium | `MAX_POCKET_ITEMS`, item name buffers, and sort temp allocations scale with largest pocket. | Check heap use and scrolling after any large pocket target. |
 | Bag UI count width | Medium | `BagMenu.numItemStacks`, `numShownItems`, and `SetItemListPerPageCount()` use `u8` counts. | Widen count types before any pocket can exceed 255 entries including Cancel. |
 | Debug fill behavior | Medium | Debug fill can add many more items and expose slow paths or full-pocket assumptions. | Add debug fill manual checks to the test plan. |
 | SaveBlock3 chunk reclaim | Medium | Reclaiming the 116-byte per-sector SaveBlock3 chunk changes the save sector format and current SaveBlock3 handling. | Treat as a save-format migration; relocate or remove current SaveBlock3 data before changing `SAVE_BLOCK_3_CHUNK_SIZE`. |
+| Special-sector custom storage | Medium | Trainer Hill / Recorded Battle / Hall of Fame sectors are outside the normal double-slot save path. | Only use with custom checksum/mirroring/load policy and after disabling the feature that owns the sector. |
 | Treating sort groups as pockets | Medium | Held items, Mega Stones, Z-Crystals, and battle items are currently `sortType` groups inside `POCKET_ITEMS`, not save-backed pockets. | Prefer Items-pocket filtering unless the feature explicitly accepts new pocket UI and save migration. |
 | Downstream docs drift | Medium | Field Kit, TM, and Champions docs may keep old capacity assumptions. | Link this feature from affected docs and update owning docs when source changes. |
 | Battle Pyramid confusion | Low | Pyramid bag uses separate `PYRAMID_BAG_ITEMS_COUNT` and Frontier state. | Do not change Pyramid bag as part of normal bag expansion. |
@@ -30,6 +33,7 @@
 - Held-item / battle-item / Mega Stone style organization can be a UI filter over `sortType`; splitting those into true pockets is a separate save/UI expansion.
 - Champions Challenge bag snapshot size will grow whenever `struct Bag` grows, so its SaveBlock1 budget must be recalculated after this feature.
 - Runtime rule options and partygen seed should not compete with normal bag storage; those belong to SaveBlock2 / SaveBlock3 policy docs.
+- `u8` -> `u16` helps list counts and ROM header representation, but it does not create more save sectors. Save capacity requires `FREE_*`, compact storage, sector reallocation, or a custom external storage path.
 
 ## Accepted Risks
 
@@ -43,4 +47,5 @@
 - Is save compatibility required for this fork, or can feature branches be clean-save only?
 - Should the TM/HM pocket remain an item list at 350 entries, or should ownership become virtual storage?
 - Should the 1000-slot target use SaveBlock3 chunk reclaim, or should the target be capped around 891 slots with only SaveBlock1 `FREE_*`?
+- If DexNav search levels are required, should bag expansion consume Hall of Fame sectors through a 15-sector normal save layout?
 - Should held-item / Mega Stone / battle-item organization be a filter, a sort mode, or real pockets?

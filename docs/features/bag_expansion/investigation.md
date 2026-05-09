@@ -118,6 +118,51 @@ bytes per sector. Reclaiming those bytes would require removing or relocating th
 current `struct SaveBlock3` data, updating `SECTOR_DATA_SIZE`, and validating the
 save/load format. Current `test/save.c` records `sizeof(struct SaveBlock3) == 4`.
 
+This option conflicts with larger SaveBlock3 features. `USE_DEXNAV_SEARCH_LEVELS`
+stores `NUM_SPECIES` bytes; the current `NUM_SPECIES` is `1573`, so DexNav search
+levels plus `dexNavChain` need about `1574` bytes of the `1624` byte SaveBlock3
+budget. Enabling first-time item description flags would add about `110` more bytes
+at the current `ITEMS_COUNT`, which would overflow SaveBlock3 unless another field
+is removed or relocated. If DexNav search levels are part of the target build,
+do not plan on reclaiming SaveBlock3 chunk bytes for bag storage.
+
+## Can The SaveBlock1 Frame Grow?
+
+Yes, but not by changing an `u8` to `u16`. The normal save area is constrained by
+the 32 physical 4 KiB flash sectors and the current two-slot layout:
+
+| Area | Physical sectors | Current role |
+|---|---:|---|
+| Save slot 1 | 0-13 | 14 rotating normal-save sectors |
+| Save slot 2 | 14-27 | 14 rotating normal-save sectors |
+| Hall of Fame | 28-29 | Special sectors |
+| Trainer Hill | 30 | Special sector |
+| Recorded Battle | 31 | Special sector |
+
+Within each 14-sector normal save slot, the current allocation is:
+
+| Data | Sectors | Current max |
+|---|---:|---:|
+| SaveBlock2 | 1 | 3968 B |
+| SaveBlock1 | 4 | 15872 B |
+| PokemonStorage | 9 | 35712 B |
+
+The practical options are:
+
+| Option | What it gives | Cost / risk |
+|---|---:|---|
+| Widen `u8` counters only | Fixes UI/list counts above 255 | Does not add any save capacity. |
+| Reclaim SaveBlock3 chunk bytes | +464 B to SaveBlock1 across its 4 sectors | Removes the 1624 B SaveBlock3 feature area; conflicts with DexNav search levels. |
+| Increase normal save slot 14 -> 15 sectors | Adds one full normal sector per save slot; SaveBlock1 could grow by +3968 B while keeping SaveBlock3 chunks | Consumes the two Hall of Fame sectors and changes the save slot layout; save-breaking and needs HOF policy. |
+| Increase normal save slot 14 -> 16 sectors | Adds two normal sectors per save slot | Consumes Hall of Fame, Trainer Hill, and Recorded Battle sectors; largest save-format rewrite while keeping two-slot redundancy. |
+| Take a sector from PokemonStorage | Gives SaveBlock1 one more sector inside the current 14-sector slot | Requires shrinking PokemonStorage. Reducing from 14 to 13 PC boxes is roughly one-sector savings, but this is a major gameplay/UI change. |
+| Use special sectors as custom bag-extension storage | Up to several KiB outside SaveBlock1 | Not part of normal rotating save slots; needs custom mirroring/checksum/load/save and gives up the special feature using that sector. |
+
+The current code uses `u8` for some sector IDs and loops, but sector IDs are only
+0-31. Widening those types is not the blocker. The blocker is allocating physical
+sectors while preserving two save slots, checksums, rotation, special-sector policy,
+and old save migration.
+
 The TM/HM data has a second split to account for:
 
 - `src/data/items.h` defines `POCKET_TM_HM` entries through `ITEM_TM100` plus
