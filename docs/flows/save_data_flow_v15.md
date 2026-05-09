@@ -164,6 +164,14 @@ Current normal save layout is two rotating 14-sector save slots:
 - sector 30: Trainer Hill
 - sector 31: Recorded Battle
 
+The flash implementation is also part of this limit. The current ROM uses the
+standard `FLASH1M_V103` path, with `FLASH_ROM_SIZE_1M` = 131072 bytes and
+`SECTORS_COUNT` = 32. An emulator-only build could theoretically target a larger
+custom save device, but that is not a one-line capacity change: it needs a custom
+flash type / emulator configuration, save driver changes, and a new sector layout.
+For mGBA-only development, the practical first expansion path is to keep the 128 KiB
+flash image and repurpose existing special sectors.
+
 `SaveBlock1` cannot grow past 4 sectors unless one of these policies changes:
 
 - reclaim `SAVE_BLOCK_3_CHUNK_SIZE` by removing the SaveBlock3 area (`SECTOR_DATA_SIZE`

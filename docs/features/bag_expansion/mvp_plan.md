@@ -49,6 +49,7 @@ Recommended first slice:
 - A 1000-slot raw bag target needs about 3256 bytes. It only fits the known budget if SaveBlock3 chunk bytes are reclaimed or another 436+ bytes are found.
 - If DexNav search levels are enabled, SaveBlock3 chunk reclaim should be treated as unavailable. `NUM_SPECIES` is currently 1573, so DexNav search levels plus chain state nearly fill the 1624 B SaveBlock3 budget.
 - A 14 -> 15 normal-save-sector layout can give SaveBlock1 one extra sector while preserving SaveBlock3, but it consumes the Hall of Fame special sectors and is save-breaking.
+- mGBA-only support does not remove the save-layout work. The current save driver is still the standard `FLASH1M_V103` / 128 KiB / 32-sector path; a larger emulator-only flash target would be a nonstandard driver and emulator-configuration project. For this fork, consuming special sectors is the more practical large raw-slot path.
 - Counts at or below 255 fit the current `rom_header_gf.c` count field type and current bag UI count cache. Counts above 255 are out of contract until those are widened/redesigned.
 - `BagPocket.capacity` is currently a 10-bit field, so raw pocket capacities above 1023 are out of contract.
 - `ITEMS_COUNT` must stay below 1024 unless the Pokemon held-item save layout changes.
@@ -77,6 +78,7 @@ Recommended first slice:
 
 - Should the first implementation go directly to 1000 total slots, or land the save-format changes first?
 - If DexNav search levels are required, should this feature use a 15-sector normal save layout instead of SaveBlock3 reclaim?
+- If the build is mGBA-only, is losing Hall of Fame storage acceptable for the first implementation?
 - Should TM/HM 350 be raw item slots, or a virtual ownership registry rendered through the bag?
 - Is this fork allowed to break existing save files for local feature branches?
 - Should the first user-facing organization change be Items-pocket filters instead of new pockets?

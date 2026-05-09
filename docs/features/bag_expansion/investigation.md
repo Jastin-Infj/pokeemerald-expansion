@@ -163,6 +163,17 @@ The current code uses `u8` for some sector IDs and loops, but sector IDs are onl
 sectors while preserving two save slots, checksums, rotation, special-sector policy,
 and old save migration.
 
+mGBA-only support does not make SaveBlock1 growth automatic. The current ROM advertises
+and implements the standard `FLASH1M_V103` / 1 Mbit flash path: `FLASH_ROM_SIZE_1M`
+is 131072 bytes, `SECTORS_COUNT` is 32, and the save code maps those sectors into
+the two normal slots plus special sectors listed above. A larger emulator-only save
+chip would therefore require a nonstandard flash type / emulator configuration plus
+save driver and layout changes, not just a bag constant change. For an mGBA-only fork,
+the lower-risk route is still to stay inside the 128 KiB save and repurpose sectors:
+a 15-sector normal save layout can keep SaveBlock3 available for DexNav while giving
+SaveBlock1 one full extra sector, at the cost of Hall of Fame storage and save
+compatibility.
+
 The TM/HM data has a second split to account for:
 
 - `src/data/items.h` defines `POCKET_TM_HM` entries through `ITEM_TM100` plus

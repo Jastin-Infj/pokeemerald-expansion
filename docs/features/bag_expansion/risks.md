@@ -14,6 +14,7 @@
 | Very large TM/HM counts | High | 2300 slots exceeds `BagPocket.capacity:10` and consumes almost the whole heap in bag UI buffers. | Use a virtual TM registry / bitset or hard cap raw pocket counts below structural limits. |
 | DexNav vs SaveBlock3 reclaim | High | DexNav search levels need `NUM_SPECIES` bytes; current `NUM_SPECIES` is 1573, nearly all of SaveBlock3. | If DexNav search levels are required, keep SaveBlock3 and use another save-capacity path. |
 | Save slot sector expansion | High | Growing the normal save slot from 14 to 15 sectors can solve 1000 raw slots, but consumes Hall of Fame sectors and changes save rotation layout. | Treat as a major save-format migration with explicit HOF/special-sector policy. |
+| Nonstandard emulator-only flash size | High | The code currently targets `FLASH1M_V103` / 128 KiB / 32 sectors; larger mGBA-only saves need save driver, layout, and emulator configuration changes. | Prefer staying inside 128 KiB and repurposing special sectors before attempting a custom flash target. |
 | Item ID ceiling | High | `heldItem:10` and `ITEMS_COUNT < 1024` leave only about 149 new item IDs from the current catalog. | Reuse existing TM item IDs, avoid item-per-rule explosions, or plan a Pokemon save-layout migration. |
 | ROM header count width | Medium | `rom_header_gf.c` uses `u8` bag count fields. Counts above 255 truncate or need redesign. | Keep MVP counts <= 255. |
 | Bag menu memory growth | Medium | `MAX_POCKET_ITEMS`, item name buffers, and sort temp allocations scale with largest pocket. | Check heap use and scrolling after any large pocket target. |
@@ -34,6 +35,7 @@
 - Champions Challenge bag snapshot size will grow whenever `struct Bag` grows, so its SaveBlock1 budget must be recalculated after this feature.
 - Runtime rule options and partygen seed should not compete with normal bag storage; those belong to SaveBlock2 / SaveBlock3 policy docs.
 - `u8` -> `u16` helps list counts and ROM header representation, but it does not create more save sectors. Save capacity requires `FREE_*`, compact storage, sector reallocation, or a custom external storage path.
+- mGBA-only removes real-cartridge compatibility as a product constraint, but it does not remove the in-ROM save driver and sector layout constraints. The first practical mGBA-only expansion path is still a save-layout change inside the 128 KiB flash image, usually by consuming Hall of Fame / special sectors.
 
 ## Accepted Risks
 
@@ -48,4 +50,5 @@
 - Should the TM/HM pocket remain an item list at 350 entries, or should ownership become virtual storage?
 - Should the 1000-slot target use SaveBlock3 chunk reclaim, or should the target be capped around 891 slots with only SaveBlock1 `FREE_*`?
 - If DexNav search levels are required, should bag expansion consume Hall of Fame sectors through a 15-sector normal save layout?
+- For an mGBA-only build, is a nonstandard flash driver worth the extra risk, or should the feature stay on the 128 KiB `FLASH1M` path and repurpose existing sectors?
 - Should held-item / Mega Stone / battle-item organization be a filter, a sort mode, or real pockets?
