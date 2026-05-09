@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `f5a3b7b6c2`; `git describe` = `expansion/1.15.2-27-gf5a3b7b6c2` |
+| Baseline | `master` `835520e444`; `git describe` = `expansion/1.15.2-32-g835520e444` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -28,6 +28,7 @@
 | No Random Encounters | `feature/no-random-encounters-step-only` に current `master` から切り直した 3 file の flag 割り当て実装がある。`master` の `OW_FLAG_NO_ENCOUNTER` はまだ `0`。 | 通常の feature PR 候補。実装は `master` へ直接入れず、PR上で build / mGBA evidence を確認する。 |
 | Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
+| Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
 
 ### GitHub PR Queue Snapshot (2026-05-09)
 
@@ -61,10 +62,11 @@ close する。
 | 3 | `docs/features/trainer_battle_aftercare/` | Planned / branch implementation → Testing | default off の heal-only hook。battle selection / Champions runtime より先に `CB2_EndTrainerBattle` の guard helper を固める。ただし focused test gate を追加してから採用する。 | battle item restore の取り込み後に競合を避ける |
 | 4 | `docs/features/champions_challenge/` partygen CLI + catalog | Branch implementation → Review / Testing | ROM runtime とは切り離せるが、Rust CLI、catalog、`src/data/trainers.party` の大型差分を含む。generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
 | 5 | `docs/features/battle_selection/` | Planned → Testing | `feature/battle-selection-mvp` に normal trainer battle の 3/4 匹選出 MVP がある。selection UI runtime manual check と restore matrix を残して testing に進める。 | save_data flow + battle-end restore ordering |
-| 6 | `docs/features/field_move_modernization/` | Planned → Slice 1 Implementing | Cut / Rock Smash / Strength / Flash の object interaction から小さく進められる。battle 系とは独立だが field runtime と HM forget policy の確認が必要。 | なし |
-| 7 | `docs/features/tm_shop_migration/` | Investigating → Planned | data / script 変更中心だが、販売時期、NPC reward 置換、item ball flag との整合を先に詰める。 | なし |
-| 8 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
-| 9 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + partygen CLI + battle_selection / aftercare ordering |
+| 6 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
+| 7 | `docs/features/field_move_modernization/` | Planned → Slice 1 Implementing | Cut / Rock Smash / Strength / Flash の object interaction から小さく進められる。battle 系とは独立だが field runtime と HM forget policy の確認が必要。 | bag_expansion は per-HM item 化する場合のみ先行 |
+| 8 | `docs/features/tm_shop_migration/` | Investigating → Planned | data / script 変更中心だが、販売時期、NPC reward 置換、item ball flag、TM/HM pocket model の整合を先に詰める。 | bag_expansion または virtual TM ownership decision |
+| 9 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
+| 10 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / aftercare ordering |
 
 このリストは branch 切り替え時に必ず読む。実装着手で順序が変わった場合はこの section を更新する。
 
@@ -129,6 +131,7 @@ feature complete にする前に、最低限次を確認する。
 | DexNav / Encounter UI | Investigating | No code changes | `docs/flows/dexnav_flow_v15.md` | Start menu DexNav、detector mode、SaveBlock3、12 land slots、Pokemon icon 描画を整理。 |
 | Trainer Party Reorder / Randomizer | Investigating | No code changes | `docs/features/battle_selection/opponent_party_and_randomizer.md` | `DoTrainerPartyPool`、`RandomizePoolIndices`、`AI_FLAG_RANDOMIZE_PARTY_INDICES` を確認。相手 party preview と関係。 |
 | TM/HM and Field Move Policy | Investigating | No code changes | `docs/overview/tm_hm_expansion_250_v15.md` | 250 TM 前提の item ID / bag / relearner / field HM coupling を確認。`FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CannotForgetMove` も継続参照。 |
+| Bag Expansion | Investigating | No code changes | `docs/features/bag_expansion/` | 通常 bag pocket capacity の新規 feature。`struct Bag` は SaveBlock1 layout なので、Key Items / TM-HM pocket 拡張は save compatibility、bag UI、debug fill、ROM header count、`test/save.c` に波及する。 |
 | Field Move Modernization / HM Removal | Planned | No code changes | `docs/features/field_move_modernization/` | Gen7/Gen8 風に HM 技所持へ依存しない field move / obstacle / animation / forget restriction を調査。HM ごとの badge / map obstacle / MVP slice 表を `mvp_plan.md` に確定。Slice 1: Cut → Slice 4: Flash まで object interaction で揃えてから、Surf / Waterfall / Dive / Fly を Phase 2-3 で扱う方針。 |
 | Champions-style EV/IV Training UI | Investigating | No code changes | `docs/overview/champions_training_ui_feasibility_v15.md` | EV/IV/nature/moveset 編集 UI は実装可能。32 point EV は UI 表示と内部 EV 変換を分ける方針が安全。EV total 518 と wild IV mode も調査済み。 |
 | Scout Selection / Starting Battlefield Status | Investigating | No code changes | `docs/overview/scout_selection_and_battlefield_status_v15.md` | Battle Factory / Champions 風の候補 Pokemon 選択 UI、gift mon 付与 flow、trainer flag cleanup、Frontier 風 save / pause / power-cut recovery、held item duplicate restriction、post-battle heal / item restore / PP-EP policy、pickup object / sprite / UI asset 注意点、starting status、PB / ability 強化の調査観点を整理。 |
