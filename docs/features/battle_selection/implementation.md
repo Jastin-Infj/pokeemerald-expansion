@@ -19,6 +19,8 @@ single trainer battle は 3 匹、double trainer battle は 4 匹を選出する
 battle 中は選出順に詰めた一時 `gPlayerParty` だけを使い、battle end で
 選出 Pokémon の battle 後状態を元 slot に戻してから、元の party 順へ復元する。
 
+設定と運用手順は [Trainer Battle Selection Manual](../../manuals/trainer_battle_selection_manual.md) を参照する。
+
 ## Code Changes
 
 | File | Change |
@@ -27,6 +29,16 @@ battle 中は選出順に詰めた一時 `gPlayerParty` だけを使い、battle
 | `include/party_menu.h` / `src/party_menu.c` | trainer battle selection 用の choose-half entrypoint と専用 validation mode を追加。 |
 | `include/trainer_battle_selection.h` / `src/trainer_battle_selection.c` | 元 party 保存、選出 party 構築、battle end restore の state helper を追加。 |
 | `src/battle_setup.c` | 通常 trainer battle flow に selection gate を追加し、`CB2_EndTrainerBattle` で restore を呼ぶ。 |
+
+## Configuration Decision
+
+| Question | Decision |
+|---|---|
+| On/off control | `include/config/battle.h` の `B_TRAINER_BATTLE_SELECTION` で build-time 切り替え。 |
+| Runtime option | MVP では追加しない。 |
+| SaveBlock migration | 不要。 |
+| saved flag / var | 不要。 |
+| temporary state | EWRAM state only。battle end restore 後に clear。 |
 
 ## Runtime Gate
 
@@ -89,16 +101,21 @@ Post-fix validation:
 | mGBA Live boot/input smoke | Pass | session `codex-battle-selection-smoke-fix-20260509`。New Game / Option menu screenshot。 |
 | mGBA cleanup | Pass | `mgba-live-cli status --all` returned `[]`。 |
 
-Direct selection-screen runtime validation は未実施。prepared save / savestate が無く、
-new-game setup から対象 trainer まで進める手順をこの turn では作っていないため。
+## Manual Validation
 
-## Remaining Manual Checks
+User confirmed after fix:
+
+| Check | Result |
+|---|---|
+| single trainer battle | Pass。3 匹選出、battle start、battle end、party restore を確認。 |
+| double trainer battle | Pass。4 匹選出、battle start、battle end、party restore を確認。 |
+| party restore | Pass。手持ちが元に戻ることを確認。 |
+| transition animation | Accepted cosmetic issue。player / NPC trainer sprite が一瞬黒い影のように見える。 |
+
+## Remaining Checks
 
 | Check | Expected |
 |---|---|
-| single trainer with 6 eligible mons | selection UI が出て 3 匹選出後に single battle が始まる。 |
-| double trainer with 6 eligible mons | selection UI が出て 4 匹選出後に double battle が始まる。 |
-| party restore | slot 2/5/6 など非連続 selection 後、battle 後に元 party 順へ戻る。 |
 | HP / PP / status / level changes | selected original slot に battle 後状態が反映される。 |
 | Cancel behavior | B / Cancel で selection UI から抜けず、encounter を中断しない。 |
 | excluded flows | Frontier / link / follower partner / two trainers / Pyramid / Hill では selection UI が出ない。 |

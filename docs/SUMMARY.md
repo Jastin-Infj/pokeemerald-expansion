@@ -40,6 +40,7 @@
     - [mGBA Live MCP Manual](manuals/mgba_live_mcp_manual.md)
     - [Generated Data Workflow Manual](manuals/generated_data_workflow.md)
     - [Trainer Partygen Manual](manuals/trainer_partygen_manual.md)
+    - [Trainer Battle Selection Manual](manuals/trainer_battle_selection_manual.md)
     - [Open Investigation Queue](manuals/open_investigation_queue.md)
     - [Pokemon Stats Manual](manuals/pokemon_stats_manual.md)
     - [Move Data Manual](manuals/move_data_manual.md)

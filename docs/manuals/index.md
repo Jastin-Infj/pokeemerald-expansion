@@ -32,6 +32,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
 | mGBA Live MCP の設定、起動確認、失敗時の記録方法を確認したい | [mGBA Live MCP Manual](mgba_live_mcp_manual.md) | `docs/tools/mgba_live_*`, feature `test_plan.md` |
 | generated data の入力、lint、出力、差し替えを整理したい | [Generated Data Workflow Manual](generated_data_workflow.md) | `tools/`, generated data, feature docs |
+| 通常 trainer battle 前の 3/4 匹選出の設定と flow を確認したい | [Trainer Battle Selection Manual](trainer_battle_selection_manual.md) | `include/config/battle.h`, `src/battle_setup.c`, `src/trainer_battle_selection.c`, `src/party_menu.c` |
 | 未調査項目の優先順位を確認したい | [Open Investigation Queue](open_investigation_queue.md) | feature docs, overview, flows |
 | 既存ポケモンの種族値、タイプ、特性を変えたい | [Pokemon Stats Manual](pokemon_stats_manual.md) | `src/data/pokemon/species_info/gen_*_families.h` |
 | 既存技の威力、命中、タイプなどを変えたい | [Move Data Manual](move_data_manual.md) | `src/data/moves_info.h` |

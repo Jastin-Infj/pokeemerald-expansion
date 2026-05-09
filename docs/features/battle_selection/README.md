@@ -2,7 +2,7 @@
 
 ## Status
 
-MVP implemented on `feature/battle-selection-mvp`.
+Validated branch on `feature/battle-selection-mvp`.
 
 現行 `master` ベースの branch で、通常 trainer battle 前に既存
 `choose half` party menu を流用して player party から battle 参加 Pokémon を
@@ -68,12 +68,16 @@ MVP implemented on `feature/battle-selection-mvp`.
 にしている。最終統合時に default を `FALSE` に戻すかどうかは integration branch
 で判断する。
 
+## Manual
+
+設定、処理 flow、flag / save policy は
+[Trainer Battle Selection Manual](../../manuals/trainer_battle_selection_manual.md) を参照する。
+
 ## Open Questions
 
-- 既存 `PARTY_MENU_TYPE_CHOOSE_HALF` を通常 trainer battle 用にそのまま使えるか。
-- 4 匹選出が `MAX_FRONTIER_PARTY_SIZE` などの既存制限に当たらないか。
-- battle 終了後の復元は `CB2_EndTrainerBattle` 前に wrapper callback で行うべきか、既存 callback 内へ統合すべきか。
+- battle transition animation 中に player / NPC trainer sprite が一瞬黒い影のように見える cosmetic issue を polish するか。
 - 相手 party preview を実装する場合、Trainer Party Pools / randomize / override 反映済み party をどの timing で安全に得るか。
+- custom selection UI を作る場合、既存 choose-half UI からどこまで置き換えるか。
 
 ## Cross-Feature Notes
 
