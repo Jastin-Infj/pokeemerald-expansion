@@ -69,6 +69,7 @@
     - [Roguelike Runtime Party Generation v15](overview/roguelike_runtime_party_v15.md)
     - [Roguelike Runtime Hooks Investigation v15](overview/roguelike_runtime_hooks_v15.md)
     - [Battle Item Restore Policy](features/battle_item_restore_policy/README.md)
+    - [Battle-End Adoption Investigation 2026-05-09](features/battle_item_restore_policy/adoption_investigation_2026_05_09.md)
     - [Battle Item Restore Policy Implementation](features/battle_item_restore_policy/implementation.md)
     - [Battle Item Restore Policy Impact Scope](features/battle_item_restore_policy/impact_scope.md)
     - [Map Registration / Region Map / Fly Flow v15](flows/map_registration_fly_region_flow_v15.md)

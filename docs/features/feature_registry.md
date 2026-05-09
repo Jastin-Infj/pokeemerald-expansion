@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `050a5ab7a3`; `git describe` = `expansion/1.15.2-25-g050a5ab7a3` |
+| Baseline | `master` `6d0578c188`; `git describe` = `expansion/1.15.2-26-g6d0578c188` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -44,8 +44,8 @@ close する。
 
 | PR | Branch | State | Action |
 |---|---|---|---|
-| #10 `Add trainer battle aftercare heal hook` | `feature/trainer-battle-aftercare-heal` | Open, non-draft, mergeable clean after stale PR cleanup. CI long `test` job was still pending when first checked; do not block on it. | 採用候補として残す。ただし item restore と aftercare を分けるなら direct merge ではなく fresh branch で分割する。 |
-| #7 `Add Elite Four partygen pools and battlefield lint` | `feature/trainer-partygen-catalog-expansion` | Open, non-draft, checks passed, merge state dirty against current `master`. | 大型 tool/data PR として残す。実装順では no_random / battle-end policy の後。current `master` へ更新してから判断する。 |
+| #10 `Add trainer battle aftercare heal hook` | `feature/trainer-battle-aftercare-heal` | Open, non-draft. CI checks later completed successfully, but merge state is unknown after docs-only `master` updates. | 採用候補として残す。ただし item restore と aftercare は direct merge ではなく fresh branch で分割する。詳細は `battle_item_restore_policy/adoption_investigation_2026_05_09.md`。 |
+| #7 `Add Elite Four partygen pools and battlefield lint` | `feature/trainer-partygen-catalog-expansion` | Open, non-draft, checks passed on 2026-05-06. Merge state is unknown / stale after current `master` docs updates. | 大型 tool/data PR として残す。実装順では no_random / battle-end policy の後。current `master` へ更新してから判断する。 |
 | #5 `Add trainer party generator MVP` | `feature/trainer-party-generator` | Closed 2026-05-09, remote branch deleted. | #7 が後継で同一 MVP commit を含むため superseded。 |
 | #4 `Add Rouge Cave map draft` | `feature/new-map-test-v15` | Closed 2026-05-09, branch preserved. | CI failure 付き draft map work。今回の feature queue からは外し、再開時は新 branch で復帰する。 |
 | #2 `Document v15 source investigation` | `codex-docs-v15-investigation` | Closed 2026-05-09, remote branch deleted. | docs は後続 snapshot / handoff で `master` に反映済み。古い branch は stale diff が大きいため閉じた。 |
@@ -56,8 +56,8 @@ close する。
 |---|---|---|---|---|
 | 0 | `docs/flows/save_data_flow_v15.md` | Planned を維持 | 既に SaveBlock / saved flag 方針は決定済み。実装 item ではなく、各 branch の gate として参照する。 | なし (docs only) |
 | 1 | `docs/features/no_random_encounters/` | Planned → Validated branch / Integration candidate | 影響範囲が最小。`feature/no-random-encounters` の差分は flag rename と config 割り当てのみで、既存 gate / debug toggle を使う。`master` へは実装を入れない。 | save_data flow の flag region 決定済み |
-| 2 | `docs/features/battle_item_restore_policy/` | Validated branch → Integration candidate | focused tests と mGBA / manual evidence が既にある。battle 中の item consumption を変えず、battle-end restore policy だけを入れる。`master` へは実装を入れない。 | なし。aftercare と同一 branch 由来だが独立して取り込む |
-| 3 | `docs/features/trainer_battle_aftercare/` | Planned / branch implementation → Testing | default off の heal-only hook。battle selection / Champions runtime より先に `CB2_EndTrainerBattle` の guard helper を固める。 | battle item restore の取り込み後に競合を避ける |
+| 2 | `docs/features/battle_item_restore_policy/` | Validated branch → Integration candidate | focused tests と mGBA / manual evidence が既にある。battle 中の item consumption を変えず、battle-end restore policy だけを入れる。`master` へは実装を入れない。default TRUE/FALSE は実装前に明示確認する。 | なし。aftercare と同一 branch 由来だが独立して取り込む |
+| 3 | `docs/features/trainer_battle_aftercare/` | Planned / branch implementation → Testing | default off の heal-only hook。battle selection / Champions runtime より先に `CB2_EndTrainerBattle` の guard helper を固める。ただし focused test gate を追加してから採用する。 | battle item restore の取り込み後に競合を避ける |
 | 4 | `docs/features/champions_challenge/` partygen CLI + catalog | Branch implementation → Review / Testing | ROM runtime とは切り離せるが、Rust CLI、catalog、`src/data/trainers.party` の大型差分を含む。generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
 | 5 | `docs/features/battle_selection/` | Investigating → Planned (MVP partygen 抜き) | 一時 `gPlayerParty`、callback chain、battle-end restore ordering が絡むため、aftercare helper が固まってから着手する。 | save_data flow + aftercare ordering |
 | 6 | `docs/features/field_move_modernization/` | Planned → Slice 1 Implementing | Cut / Rock Smash / Strength / Flash の object interaction から小さく進められる。battle 系とは独立だが field runtime と HM forget policy の確認が必要。 | なし |

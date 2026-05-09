@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `8d2664af9a`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
+| Baseline | `master` `6d0578c188`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
 | Code status | Not on `master`; branch implementation exists |
 | Provenance | Local project feature docs / feature handoff |
 
@@ -24,6 +24,7 @@ Code status: not on `master`; heal-only MVP exists on `feature/trainer-battle-af
 ## Primary Docs
 
 - `docs/flows/battle_start_end_flow_v15.md`
+- `docs/features/battle_item_restore_policy/adoption_investigation_2026_05_09.md`
 - `docs/features/trainer_battle_aftercare/investigation.md`
 - `docs/features/trainer_battle_aftercare/mvp_plan.md`
 - `docs/features/trainer_battle_aftercare/risks.md`
@@ -55,6 +56,11 @@ default は `FALSE` なので既存 ROM 挙動は変わらない。
 - loss / no-whiteout / forced release はまだ実装しない。
 - Frontier / Pyramid / Trainer Hill / link / recorded link / secret base /
   early rival / follower partner / forfeit は除外する。
+
+Adoption note: this slice should not be merged with battle item restore by
+default. Re-apply it on a fresh feature / integration branch only after the item
+restore policy is settled and after adding a focused config-off / normal-win /
+excluded-branch test gate.
 
 ## Cross-Feature Guard Contract
 
