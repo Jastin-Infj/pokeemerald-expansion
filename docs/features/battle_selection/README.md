@@ -2,7 +2,13 @@
 
 ## Status
 
-Investigating. 現時点では実装しない。
+Validated branch on `feature/battle-selection-mvp`.
+
+現行 `master` ベースの branch で、通常 trainer battle 前に既存
+`choose half` party menu を流用して player party から battle 参加 Pokémon を
+選出する最小実装を入れた。`feature/party-select-ui` の専用 UI branch は
+`vanilla/v14_1` ベースで古いため、差分は参考に留め、現行 code へ丸ごと
+取り込んでいない。
 
 この directory は、通常 trainer battle 前に player party から battle 参加 Pokémon を選出する機能の調査・設計メモを管理する。
 
@@ -24,6 +30,7 @@ Investigating. 現時点では実装しない。
 |---|---|
 | `investigation.md` | 既存コード調査結果 |
 | `mvp_plan.md` | 実装する場合の最小構成案 |
+| `implementation.md` | 現行 MVP 実装、validation、残リスク |
 | `risks.md` | 危険箇所と対策候補 |
 | `test_plan.md` | 将来実装時の検証項目 |
 | `opponent_party_and_randomizer.md` | 相手 party preview、Trainer Party Pools、party randomize / reorder 調査 |
@@ -44,12 +51,33 @@ Investigating. 現時点では実装しない。
 - battle 開始後の healthbox / party status summary / action menu layout 変更。
 - runtime option の追加。
 
+## Current MVP Contract
+
+| Case | Behavior |
+|---|---|
+| `B_TRAINER_BATTLE_SELECTION == FALSE` | 通常 trainer battle flow を維持する no-op。 |
+| normal single trainer battle | eligible party が 4 匹以上なら 3 匹を選出してから battle を開始する。 |
+| normal double trainer battle | eligible party が 5 匹以上なら 4 匹を選出してから battle を開始する。 |
+| egg / fainted / empty slot | 通常 trainer battle selection では選出不可。 |
+| selected mons | battle 中だけ `gPlayerParty[0..selectedCount-1]` に詰める。 |
+| Cancel / B button | 通常 trainer encounter の script 復帰先が曖昧なため、trainer battle selection 中は無効。 |
+| battle end | battle 後状態を元 slot へ反映し、元 party 順へ復元する。 |
+| Frontier / link / Union Room / partner / two trainers / Pyramid / Hill | MVP 対象外として既存 flow を維持する。 |
+
+この branch では feature を試せるように `B_TRAINER_BATTLE_SELECTION` を `TRUE`
+にしている。最終統合時に default を `FALSE` に戻すかどうかは integration branch
+で判断する。
+
+## Manual
+
+設定、処理 flow、flag / save policy は
+[Trainer Battle Selection Manual](../../manuals/trainer_battle_selection_manual.md) を参照する。
+
 ## Open Questions
 
-- 既存 `PARTY_MENU_TYPE_CHOOSE_HALF` を通常 trainer battle 用にそのまま使えるか。
-- 4 匹選出が `MAX_FRONTIER_PARTY_SIZE` などの既存制限に当たらないか。
-- battle 終了後の復元は `CB2_EndTrainerBattle` 前に wrapper callback で行うべきか、既存 callback 内へ統合すべきか。
+- battle transition animation 中に player / NPC trainer sprite が一瞬黒い影のように見える cosmetic issue を polish するか。
 - 相手 party preview を実装する場合、Trainer Party Pools / randomize / override 反映済み party をどの timing で安全に得るか。
+- custom selection UI を作る場合、既存 choose-half UI からどこまで置き換えるか。
 
 ## Cross-Feature Notes
 
