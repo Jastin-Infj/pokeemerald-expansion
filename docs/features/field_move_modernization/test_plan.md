@@ -70,6 +70,26 @@
   - `rtk make -j16 -O check`: PASS on 2026-05-09.
   - mGBA Live boot / input check: PASS on 2026-05-09. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the rebuilt ROM, accepted Start input, and showed the continue menu screenshot at `/tmp/field_kit_icon_wiring_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
   - Manual bag visual confirmation after rebuild: pending user check.
+- Capture Styler reference art revision:
+  - Expected visual change: reduce the heavy black outer border, make the gray strap read more like a tilted ring / bracelet, and keep the top body closer to the official Capture Styler angle with a red shell, gold ring, and blue lens.
+  - Cleanup pass: reduce roughness by removing isolated pixels, simplifying the ring into larger gray clusters, and keeping highlights as small blocks instead of scattered 1px noise.
+  - Original-reference refit: recheck Nintendo's `img_capture.gif` and bias the icon back toward the source image's longer slanted red top shell, right-side red cover, high blue lens, and wider U-shaped strap.
+  - Gap pass: carve a deliberate transparent opening between the upper body and the lower U-shaped strap so the bracelet ring has visible negative space like the source art.
+  - Lower-ring pass: make the bracelet loop itself more true-circle-like and reduce the flat-bottom strap read while preserving the body/ring gap.
+  - XLSX half-scale pass: read the user-provided 48x48 cell-art rough, use `A2:AV49` as the source crop, flood-fill only border-connected black as transparency, and downsample 2x2 source blocks into a 24x24 test icon.
+  - XLSX stylized pass: use the 48x48 cell art as a rough shape / line reference, then redraw the final 24x24 icon with broader GBA item-icon clusters instead of preserving every half-scale source detail. The source rough is intentionally not committed.
+  - PNG / palette format check: PASS. `field_styler.png` remains 24x24 4-bit indexed with 16 palette entries and transparent palette index 0; `field_styler.pal` still matches the PNG palette.
+  - `rtk make -j16 -O all`: PASS on 2026-05-09.
+  - `rtk make -j16 -O debug`: PASS on 2026-05-09.
+  - mGBA Live boot / input check: PASS on 2026-05-09. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the rebuilt ROM, accepted Start input, and showed the continue menu screenshot at `/tmp/field_styler_reference_art_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
+  - Ring-angle follow-up mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_ring_angle_boot.png`; session stopped cleanly.
+  - Cleanup follow-up mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_cleanup_boot.png`; session stopped cleanly.
+  - Original-reference refit mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_original_refit_boot.png`; session stopped cleanly.
+  - Gap pass mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_gap_pass_boot.png`; session stopped cleanly.
+  - Lower-ring pass mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_round_ring_boot.png`; session stopped cleanly.
+  - XLSX half-scale pass mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_xlsx_half_boot.png`; session stopped cleanly.
+  - XLSX stylized pass mGBA Live boot / input check: PASS on 2026-05-09. Screenshot at `/tmp/field_styler_xlsx_stylized_boot.png`; session stopped cleanly.
+  - Manual bag visual confirmation after rebuild: pending user check.
 
 ## Manual Tests
 
