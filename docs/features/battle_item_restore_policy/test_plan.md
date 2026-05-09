@@ -48,6 +48,49 @@ Re-check if this area changes again:
 
 ## Validation Log
 
+2026-05-09 (`feature/battle-item-restore-policy`, baseline `master`
+`f5a3b7b6c2`):
+
+- `rtk git diff --check`: passed.
+- `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed, 2 tests.
+- `rtk make -j16 -O check TESTS=test/battle/hold_effect/battle_item_restore.c`: passed.
+- `rtk make -j16 -O all`: passed. Existing linker warning about a LOAD segment
+  with RWX permissions was observed.
+- `rtk make -j16 -O debug`: passed. Existing linker warning about a LOAD
+  segment with RWX permissions was observed.
+- mGBA Live MCP check:
+  - `mgba_live_start` used `/home/jastin/.local/bin/mgba-qt` with
+    `pokeemerald.gba` and session name `battle-item-restore-smoke`.
+  - `mgba_live_get_view` captured the title screen.
+  - `mgba_live_input_set` / `mgba_live_input_clear` accepted `A` input and the
+    next view reached the continue menu.
+  - Screenshot artifact:
+    `/tmp/mgba-battle-item-restore-smoke-continue.png`.
+  - `mgba_live_stop` returned `alive_before: true`, `alive_after: false`, and
+    `stopped: true`.
+- Follow-up focused mGBA Live MCP check:
+  - The earlier normal ROM title / continue check only proved MCP boot/input,
+    not the item-restore feature behavior.
+  - `pokeemerald-test.elf` was confirmed to have `gTestRunnerArgv` patched to
+    `test/battle/hold_effect/battle_item_restore.c`.
+  - `mgba_live_start` launched that test ELF in session
+    `battle-item-restore-test-runner`.
+  - Lua memory read of `gTestRunnerState` after execution returned:
+    `runner_state = 5` (`STATE_EXIT`), `exit_code = 0`,
+    `result = 1` (`TEST_RESULT_PASS`), `expected = 1`, and
+    `test_ptr = __stop_tests`.
+  - The filter `argv` read back as
+    `test/battle/hold_effect/battle_item_restore.c`, which is the full battle
+    Oran Berry consume / battle-end restore test.
+  - Screenshot artifact:
+    `/tmp/mgba-battle-item-restore-test-runner-exit.png`. The screenshot is a
+    black post-exit frame; the meaningful evidence is the test-runner memory
+    state above.
+  - `mgba_live_stop` returned `alive_before: true`, `alive_after: false`, and
+    `stopped: true`; CLI `mgba-live-cli status --all` returned `[]`.
+- GitHub Actions were not waited for this handoff. Local make and MCP evidence
+  above are the current validation basis.
+
 2026-05-08:
 
 - `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed.

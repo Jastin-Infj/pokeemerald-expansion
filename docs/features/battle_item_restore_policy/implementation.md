@@ -5,17 +5,18 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `8d2664af9a`; implementation branch `feature/trainer-battle-aftercare-heal` |
-| Code status | Shipped on branch, not present in `master` source |
+| Baseline | `master` `f5a3b7b6c2`; implementation branch `feature/battle-item-restore-policy` |
+| Code status | Implemented and locally validated on feature branch; not present in `master` source |
 | Provenance | Feature handoff |
 
 ## Status
 
-Status: Shipped on `feature/trainer-battle-aftercare-heal`; not yet present in
-`master` source as of 2026-05-09 (`master` `8d2664af9a`)
+Status: Implemented on `feature/battle-item-restore-policy`; not yet present in
+`master` source as of 2026-05-09 (`master` `f5a3b7b6c2`)
 
-The berry-inclusive battle-end restore path is implemented, locally tested,
-verified through mGBA headless battle tests, and user-confirmed in game.
+The berry-inclusive battle-end restore path is implemented, locally tested, and
+verified through mGBA headless battle tests plus an mGBA Live MCP boot/input
+smoke check.
 
 ## Implemented Behavior
 
@@ -44,7 +45,7 @@ coverage areas, not as battle-time behavior changes in this slice.
 
 | File | Change |
 |---|---|
-| `include/config/battle.h` | Added `B_RESTORE_HELD_BATTLE_BERRIES`, defaulting to `TRUE` for this branch. |
+| `include/config/battle.h` | Added `B_RESTORE_HELD_BATTLE_BERRIES`, defaulting to `TRUE` for this feature branch. |
 | `src/battle_util.c` | Added the restore policy helper and allowed berry restore when the new config is enabled. |
 | `src/battle_main.c` | Calls `TryRestoreHeldItems()` when non-berry restore, knock-off restore, or berry restore policy requires it. |
 | `test/battle_item_restore.c` | Direct tests for berry restore and existing non-berry restore. |
@@ -55,24 +56,34 @@ coverage areas, not as battle-time behavior changes in this slice.
 Confirmed commands:
 
 ```sh
-rtk make -j16 -O all
-rtk make -j16 -O debug
+rtk git diff --check
 rtk make -j16 -O check TESTS=test/battle_item_restore.c
 rtk make -j16 -O check TESTS=test/battle/hold_effect/battle_item_restore.c
+rtk make -j16 -O all
+rtk make -j16 -O debug
 ```
 
 Results:
 
+- `rtk git diff --check`: passed.
 - `test/battle_item_restore.c`: passed, 2 tests.
 - `test/battle/hold_effect/battle_item_restore.c`: passed.
-- mGBA Live MCP boot/input smoke check reached title screen and continue menu,
-  then cleaned up with `status --all == []`.
-- User confirmed the real in-game behavior after push: the related battle flow
-  and berry restoration both worked, including the berry returning after battle.
+- `rtk make -j16 -O all`: passed.
+- `rtk make -j16 -O debug`: passed.
+- mGBA Live MCP boot/input smoke check reached title screen, accepted `A`,
+  reached the continue menu, exported `/tmp/mgba-battle-item-restore-smoke-continue.png`,
+  and `mgba_live_stop` reported `stopped: true`.
+- Follow-up focused mGBA Live MCP check ran `pokeemerald-test.elf` filtered to
+  `test/battle/hold_effect/battle_item_restore.c`. Lua memory read of
+  `gTestRunnerState` reported `runner_state = STATE_EXIT`, `exit_code = 0`,
+  `result = TEST_RESULT_PASS`, `argv = test/battle/hold_effect/battle_item_restore.c`.
+  This is the feature-specific MCP evidence for the Oran Berry consume and
+  battle-end restore path. The earlier normal ROM title / continue check should
+  be treated only as an MCP boot/input smoke check.
 
-GitHub Actions were not re-waited during the agent handoff because the long
-jobs can take roughly 20-30 minutes. The branch handoff used local make,
-focused mGBA tests, mGBA Live MCP evidence, and user manual confirmation.
+GitHub Actions were not waited during the agent handoff because the long jobs
+can take roughly 20-30 minutes. The branch handoff uses local make, focused
+mGBA tests, and mGBA Live MCP evidence.
 
 ## mGBA Live Setup Used
 
@@ -94,10 +105,15 @@ in the confirmed environment.
 
 ## Merge Handoff Notes
 
-This implementation branch contains source and test changes. If updating
-`master` under the local docs-only policy, do not merge the entire branch into
-`master`. Create a docs-only branch from `master` or cherry-pick only the docs
-commits that are meant to land there.
+This implementation branch contains source and test changes. Do not merge it
+into `master` as part of the docs-only upstream intake lane. When this feature
+is intentionally adopted, review and merge the feature PR explicitly.
+
+Draft PR: #14 `feature/battle-item-restore-policy` -> `master`.
+
+If updating `master` under the local docs-only policy, do not merge the entire
+branch into `master`. Create a docs-only branch from `master` or cherry-pick
+only the docs commits that are meant to land there.
 
 Before a docs-only merge, run:
 
