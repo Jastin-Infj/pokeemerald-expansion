@@ -2,7 +2,8 @@
 
 ## Status
 
-Draft. 実装はまだ行わない。
+Implemented and locally validated on `feature/no-random-encounters-step-only`.
+Source changes are still not on `master`.
 
 ## MVP Scope
 
