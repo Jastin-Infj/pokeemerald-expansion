@@ -1,7 +1,7 @@
 # Battle Item Restore Policy
 
-Status: Investigating
-Code status: No code changes
+Status: Shipped
+Code status: Berry-inclusive battle-end restore implemented behind `B_RESTORE_HELD_BATTLE_BERRIES` and user-confirmed in game
 
 ## Goal
 
@@ -17,6 +17,8 @@ Code status: No code changes
 ## Primary Docs
 
 - `docs/features/battle_item_restore_policy/investigation.md`
+- `docs/features/battle_item_restore_policy/implementation.md`
+- `docs/features/battle_item_restore_policy/impact_scope.md`
 - `docs/features/battle_item_restore_policy/mvp_plan.md`
 - `docs/features/battle_item_restore_policy/risks.md`
 - `docs/features/battle_item_restore_policy/test_plan.md`
@@ -25,13 +27,28 @@ Code status: No code changes
 
 ## Current Conclusion
 
-現在の実装では、`B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9` でも、戦闘後に復元されるのは基本的に非きのみの single-use item だけ。`src/battle_util.c` の `TryRestoreHeldItems` は、元の持ち物が Berry pocket の場合に復元対象から外している。
+既存実装では、`B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9` でも、戦闘後に復元されるのは基本的に非きのみの single-use item だけだった。`src/battle_util.c` の `TryRestoreHeldItems` は、元の持ち物が Berry pocket の場合に復元対象から外していた。
+
+今回の実装では `include/config/battle.h` に
+`B_RESTORE_HELD_BATTLE_BERRIES` を追加した。`TRUE` の場合、
+`TryRestoreHeldItems()` は戦闘開始時に保存された
+`itemLost[B_SIDE_PLAYER][slot].originalItem` を source of truth として、
+きのみも戦闘終了時に元の party slot へ戻す。
+
+2026-05-09 時点で、直接 unit test、mGBA headless の full battle test、
+mGBA Live MCP boot/input smoke、user の実機/実画面確認で動作確認済み。
+実装内容と merge handoff は `implementation.md` に固定する。
 
 ただし、きのみを戦闘中に「消費しない」扱いへ変えるのは危険。`usedHeldItem` は `Recycle`、`Pickup`、`Harvest`、`Cud Chew`、`G-Max Replenish` の runtime state として使われている。安全な方向は、battle 中は今まで通り消費済みとして扱い、battle end aftercare で元の held item を復元する設計。
 
+追加の影響範囲として、Natural Gift、Fling、Bug Bite / Pluck、
+Knock Off、Thief / Covet、Trick / Switcheroo、Bestow、Symbiosis、
+Pickpocket、Magician、Corrosive Gas、Air Balloon、Unburden、Belch は
+`impact_scope.md` に整理した。今回の shipped slice は battle-time behavior を
+変えず、battle-end restore のみを変更する。
+
 ## Non-goals for now
 
-- この段階では C 実装をしない。
 - Town Map / Field Region Map の R Fly cleanup もこの feature では実装しない。
 - Bag item quantity の無限化や shop economy は別 feature として扱う。
 
@@ -46,15 +63,17 @@ partygen-owned trainer の連戦体験にも影響する。
 `canPickupItem`、`Recycle`、`Harvest`、`Cud Chew`、`Pickup` などの
 runtime state を維持し、battle 終了時の復元 policy だけを helper に寄せる。
 
-適用条件は aftercare と同じ考え方にする。
+適用場所は trainer aftercare helper ではなく、既存の battle-end
+held item restore path に置く。これにより通常 trainer 専用ではなく、
+`TryRestoreHeldItems()` を呼ぶ battle end path で同じ policy を使える。
 
 | Case | Restore MVP |
 |---|---|
-| config off | 既存 `B_RESTORE_HELD_BATTLE_ITEMS` 挙動を維持。 |
-| config on, normal trainer | battle-end policy に従って player party の original held item を復元。 |
+| config off | 既存 `B_RESTORE_HELD_BATTLE_ITEMS` の非きのみ復元を維持。 |
+| config on | battle-end policy に従って player party の original held item をきのみ込みで復元。 |
 | partygen-owned trainer | Champions runtime 未実装時は normal trainer と同じ。 |
 | future Champions runtime active | challenge item policy を優先し、通常 restore と二重適用しない。 |
-| link / recorded / facility | MVP では除外候補。通信同期と施設ルールを別途見る。 |
+| link / recorded / facility | 既存 `TryRestoreHeldItems()` 呼び出し経路に従う。個別施設が後段で上書きする場合は施設 policy を優先して確認する。 |
 
 `partygen_owned` tag は tool-side metadata なので、C 側の if には使わない。
 将来 runtime 判定が必要な場合は `ChampionsChallenge_IsActive()` のような

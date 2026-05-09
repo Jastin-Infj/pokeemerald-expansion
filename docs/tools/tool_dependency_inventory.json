@@ -130,6 +130,13 @@
       "notes": "Working binary for mgba-live-mcp."
     },
     {
+      "name": "mgba-qt-wrapper",
+      "path": "/home/jastin/.local/bin/mgba-qt",
+      "version": "wrapper",
+      "install_source": "local shell wrapper",
+      "notes": "Sets DISPLAY=${DISPLAY:-:0} and execs the script-capable mGBA build so mgba-live-mcp default binary detection works without passing mgba_path."
+    },
+    {
       "name": "mdbook",
       "path": "mdbook",
       "version": "0.5.2",

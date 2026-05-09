@@ -6,6 +6,10 @@
 | `Harvest` / `Cud Chew` regression | High | Berry pocket 判定と delayed berry reuse が壊れやすい。 |
 | `Pickup` target mismatch | Medium | `canPickupItem` と他 battler の `usedHeldItem` を参照する。 |
 | Battle end overwrite | High | battle 中に Trick / Thief / Bestow / Symbiosis で item が移動した後、original item で上書きしてよいか仕様判断が必要。 |
+| Natural Gift / Fling ownership | Medium | berry/item を技コストとして消費した後、battle end で original item を戻すのは競技ルールとしては自然だが、RPG 的な item loss とは異なる。 |
+| Bug Bite / Pluck target berry | Medium | target berry を相手が食べる処理は通常の remove item path と異なる。player original berry を battle end で戻すかは policy 明記が必要。 |
+| Corrosive Gas / Air Balloon exception | Medium | battle-time state では `usedHeldItem` に保存しない例外。battle-end original restore がこの例外を上書きしてよいか確認が必要。 |
+| Unburden / Belch state mismatch | Medium | battle 中の item loss / berry consumed state に依存する。battle-end restore を早く走らせると final callback/test expectation と噛み合わない可能性がある。 |
 | Facility rules mismatch | Medium | Frontier / Factory / Tent は既に duplicate held item rule を持つ。通常 battle に混ぜると既存ルールが変わる。 |
 | Link battle mismatch | High | link / recorded battle は state 同期と再現性が重要。 |
 | Test expectation changes | Medium | 既存 tests は「消費された」「Recycle できる」「Pickup できる」ことを確認している。battle end restore だけを見分ける test が必要。 |
@@ -15,6 +19,8 @@
 Battle 中は item を消費する。Battle 後に戻す。
 
 この分離を崩すと、消費済み item を参照する既存 mechanics が連鎖的に壊れる。
+
+Detailed matrix: `docs/features/battle_item_restore_policy/impact_scope.md`
 
 ## Cross-Feature Risks
 

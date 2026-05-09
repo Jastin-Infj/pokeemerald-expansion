@@ -2,6 +2,10 @@
 
 ## Heal After Trainer Battle
 
+- `B_TRAINER_BATTLE_AFTERCARE == FALSE` で通常 trainer battle の win / loss
+  挙動が既存と同じこと。
+- `B_TRAINER_BATTLE_AFTERCARE == TRUE` で通常 trainer battle 勝利後だけ
+  `HealPlayerParty()` 相当が走ること。
 - 通常 trainer battle に勝利後、HP / PP / status が回復するか。
 - 通常 trainer battle に敗北後、whiteout しない mode で回復するか。
 - `OW_PC_HEAL` の設定で boxes も回復するか、意図通りか。

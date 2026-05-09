@@ -26,6 +26,7 @@ git add docs/manuals/index.md docs/SUMMARY.md
 
 `git add -A` は、今回の作業範囲が完全に分かっているときだけ使います。
 docs-only の依頼では、docs 以外を stage しません。
+`AGENTS.md` は agent-facing documentation として扱い、ユーザーが運用ルール更新を求めた場合だけ docs-only 作業に含めます。
 
 ## master への docs-only merge policy
 
@@ -34,6 +35,7 @@ docs-only の依頼では、docs 以外を stage しません。
 許容するもの:
 
 - `docs/` 配下の調査結果。
+- `AGENTS.md` の agent-facing workflow instruction。source / build rule を変えず、作業手順だけを更新する場合に限る。
 - feature branch で得た設計判断、検証記録、運用ルール。
 - docs navigation、manual、test plan の更新。
 
@@ -49,7 +51,15 @@ docs-only の依頼では、docs 以外を stage しません。
 git diff --name-only master..HEAD
 ```
 
-出力が `docs/` 以外を含む場合、その branch は merge しない。docs commit だけを cherry-pick するか、`master` から docs-only branch を切り直す。
+出力が `docs/` と `AGENTS.md` 以外を含む場合、その branch は merge しない。docs commit だけを cherry-pick するか、`master` から docs-only branch を切り直す。
+
+feature 実装が完了した branch では、merge 前に owning feature の
+`implementation.md`、`test_plan.md`、必要な manual を更新する。実装 commit
+を `master` に入れない運用の場合でも、設計判断、検証結果、manual check、
+GitHub Actions を再待機しなかった理由は docs-only commit として残す。
+
+merge checklist は `docs/team_procedures/merge_checklist.md` の
+Local docs-only merge note を使う。
 
 ## コミット前の確認
 

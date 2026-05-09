@@ -19,6 +19,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | --- | --- | --- |
 | docs の置き場、manual / tutorial / feature の境界を確認したい | [Docs Navigation Manual](docs_navigation.md) | `docs/manuals/`, `docs/tutorials/`, `docs/features/` |
 | build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
+| mGBA Live MCP の設定、起動確認、失敗時の記録方法を確認したい | [mGBA Live MCP Manual](mgba_live_mcp_manual.md) | `docs/tools/mgba_live_*`, feature `test_plan.md` |
 | generated data の入力、lint、出力、差し替えを整理したい | [Generated Data Workflow Manual](generated_data_workflow.md) | `tools/`, generated data, feature docs |
 | 未調査項目の優先順位を確認したい | [Open Investigation Queue](open_investigation_queue.md) | feature docs, overview, flows |
 | 既存ポケモンの種族値、タイプ、特性を変えたい | [Pokemon Stats Manual](pokemon_stats_manual.md) | `src/data/pokemon/species_info/gen_*_families.h` |
@@ -48,6 +49,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 - 既存の未コミット差分はユーザー作業として扱い、勝手に戻さない。
 - 追加や変更が保存データ、ID 幅、アップストリーム追従に関係する場合は、実装前にリスクを docs に書く。
 - feature branch では、影響範囲と current decision を `docs/features/feature_registry.md` と owning feature docs に更新しながら進める。
+- runtime / setup / merge 運用が変わった場合は、manual と implementation MD を更新し、`docs/SUMMARY.md` から辿れるようにする。
 - テストで設計ミスが見つかった場合は、実装を重ねる前に `mvp_plan.md` / `risks.md` / `test_plan.md` を更新して設計へ戻す。
 - feature complete にする場合は、README、risks、test plan を清書し、以後の変更は別 task / revision として扱う。
 - 既存 docs と依頼内容が矛盾する場合は、そのまま進めず、どの方針を優先するかを明示して突き返す。

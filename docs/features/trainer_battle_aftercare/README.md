@@ -1,7 +1,7 @@
 # Trainer Battle Aftercare / Forced Release
 
-Status: Investigating
-Code status: No code changes
+Status: Implementing
+Code status: Heal-only MVP implemented behind `B_TRAINER_BATTLE_AFTERCARE`
 
 ## Goal
 
@@ -26,6 +26,23 @@ Code status: No code changes
 
 ただし、PC の release UI は `src/pokemon_storage_system.c` 内の static task / static helper に強く依存しているため、battle end からそのまま呼ぶ設計は危険。強制 release 用には、将来 public helper を切り出すか、専用の post-battle state machine を作る方が安全。
 
+## Implemented MVP
+
+`include/config/battle.h` に `B_TRAINER_BATTLE_AFTERCARE` を追加した。
+default は `FALSE` なので既存 ROM 挙動は変わらない。
+
+`src/battle_setup.c` では `CB2_EndTrainerBattle` の
+`HandleBattleVariantEndParty()` と follower partner restore の後に
+`TrainerBattleAftercare_ApplyIfEnabled()` を呼ぶ。
+
+現在の実装は heal-only:
+
+- config が `TRUE` の時だけ動く。
+- player が通常 trainer battle に勝った時だけ `HealPlayerParty()` を呼ぶ。
+- loss / no-whiteout / forced release はまだ実装しない。
+- Frontier / Pyramid / Trainer Hill / link / recorded link / secret base /
+  early rival / follower partner / forfeit は除外する。
+
 ## Cross-Feature Guard Contract
 
 Champions partygen の現行 branch は、`src/data/trainers.party` の既存
@@ -39,7 +56,7 @@ battle と同じ `CB2_EndTrainerBattle` flow に入る。
 
 ```c
 static bool32 TrainerBattleAftercare_ShouldApply(void);
-static void TrainerBattleAftercare_Apply(void);
+static void TrainerBattleAftercare_ApplyIfEnabled(void);
 ```
 
 判定 helper の初期 contract:

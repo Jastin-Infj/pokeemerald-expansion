@@ -8,17 +8,38 @@ source change を push する前に、build だけで判断しない。field flo
 
 ## Push Gate Policy
 
-runtime に影響する branch では、push 前に次を確認する。
+runtime に影響する branch では、push 前に `make -j16` 系の local validation と mGBA 確認をセットで行う。
+Codex 作業では、source / data / config が runtime に触れる限り、このセットを毎回実施する。特に画面、menu、battle text、party menu、held item icon、field return、NPC、animation、sound timing に見える変更は、headless `make check` とは別に focused mGBA Live check を行う。
 
 | Step | Required? | Notes |
 |---|---|---|
-| `make` | Required unless docs-only | ROM が作れることを確認する。 |
-| `make debug` | Required for debug menu / debug symbol dependent checks | debug menu や memory symbol を使う branch では特に必要。 |
-| focused mGBA check | Required when behavior is visible in-game | screenshot、input、memory、Lua のいずれかで確認する。 |
+| `rtk make -j16 -O all` | Required unless docs-only | ROM が作れることを確認する。 |
+| `rtk make -j16 -O debug` | Required for debug menu / debug symbol dependent checks | debug menu や memory symbol を使う branch では特に必要。 |
+| `rtk make -j16 -O check` or focused `TESTS=...` | Required for battle / item / Pokemon runtime logic | `mgba-rom-test-hydra` 経由の mGBA headless test。 |
+| focused mGBA Live check | Required when behavior is visible in-game | screenshot、input、memory、Lua のいずれかで確認する。 |
 | skipped runtime check note | Required if mGBA check cannot run | missing display、missing save、missing test map、未実装 path などを記録する。 |
 | session cleanup | Required | `mgba-live-cli status --all` が `[]` になるまで stop する。 |
 
-「必ずすべてのテストを通す」ではなく、「push 前に妥当な runtime 確認を試み、できないことを明記する」を基準にする。
+`make check` が通っても、実画面の trainer battle end、party menu、
+held item icon、field return、save/load などは自動的に確認済みにはしない。
+対象 behavior が画面や操作に出る場合は、mGBA Live の focused check を別に行う。
+見た目に関係する変更は、単なる起動確認ではなく、該当画面まで進めて focused evidence を残す。
+到達できない場合は、必要な save / savestate / debug route と残リスクを feature 側の `test_plan.md` に書く。
+
+Docs-only / pure investigation では full runtime check を必須にしない。
+source / data / config を触った branch では、「push 前に妥当な runtime 確認を試み、
+できないことを明記する」を基準にする。
+
+GitHub Actions の長時間 job は mGBA Live の代替にはしない。Actions は
+20-30 分程度かかることがあるため、agent 作業では再待機でブロックせず、
+local `make` と mGBA Live CLI / MCP の evidence を残して push する。
+Actions を待たなかった場合は、待機を省略した理由を docs / PR / final
+summary に残す。
+
+Codex から MCP を使う場合は、最初に一度だけ起動確認を試みる。
+失敗した場合は、成功扱いにせず、stderr と必要な fallback
+(`--mgba-path`、`DISPLAY=:0`、save / savestate など) を feature
+`test_plan.md` に記録する。
 
 ## Known Working Path
 
@@ -37,6 +58,16 @@ runtime に影響する branch では、push 前に次を確認する。
 Notes:
 
 - `DISPLAY=:0` が使える環境では、この path が bridge ready になった。
+- 2026-05-09 以降は `/home/jastin/.local/bin/mgba-qt` を wrapper として置き、
+  `DISPLAY="${DISPLAY:-:0}"` を設定してから
+  `/home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt`
+  を exec する。`mgba-live-mcp` の default binary detection は
+  `PATH` 上のこの wrapper を拾うため、通常は MCP tool に `mgba_path` を渡さなくてよい。
+- 2026-05-08 の item-restore branch でも、`DISPLAY=:0 mgba-live-cli start` で title screen、clean-start field control、debug menu、debug trainer battle intro まで確認できた。
+- 2026-05-09 の MCP check では、default `/usr/games/mgba-qt` は `--script` unsupported で失敗し、script 対応 binary を直接渡すと display 未設定で失敗した。`DISPLAY=:0` を設定する wrapper 経由で `mgba_live_start`、`mgba_live_get_view`、`mgba_live_input_set`、`mgba_live_input_clear` が成功し、title screen と continue menu を取得できた。`mgba-live-cli stop` 後に MCP parent 配下の zombie / stale session 表示が残ったため、cleanup は要確認として扱う。
+- 同日後続の修正で `/home/jastin/.local/bin/mgba-qt` wrapper を標準化した後、
+  `mgba_path` なしの `mgba_live_start` が成功し、title screen、A input、continue menu まで確認できた。
+  cleanup は MCP の `mgba_live_stop` で `stopped:true`、CLI `status --all` で `[]` まで確認済み。
 - `QT_QPA_PLATFORM=offscreen` は process が残るが heartbeat が出ず、bridge command が timeout した。現時点では offscreen を成功扱いにしない。
 - `xvfb-run` / `Xvfb` はこの環境では未検出。CI / headless 専用にするなら別途導入候補。
 
