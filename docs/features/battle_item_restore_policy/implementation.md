@@ -102,6 +102,8 @@ This implementation branch contains source and test changes. Do not merge it
 into `master` as part of the docs-only upstream intake lane. When this feature
 is intentionally adopted, review and merge the feature PR explicitly.
 
+Draft PR: #14 `feature/battle-item-restore-policy` -> `master`.
+
 If updating `master` under the local docs-only policy, do not merge the entire
 branch into `master`. Create a docs-only branch from `master` or cherry-pick
 only the docs commits that are meant to land there.

@@ -44,6 +44,7 @@ close する。
 
 | PR | Branch | State | Action |
 |---|---|---|---|
+| #14 `[codex] Add battle item restore policy` | `feature/battle-item-restore-policy` | Draft, fresh from `master` `f5a3b7b6c2`. Local checks passed; GitHub Actions not waited. | Current item-restore adoption PR. Review explicitly before marking ready or merging; not part of docs-only `master` intake. |
 | #10 `Add trainer battle aftercare heal hook` | `feature/trainer-battle-aftercare-heal` | Open, non-draft. CI checks later completed successfully, but merge state is unknown after docs-only `master` updates. | 採用候補として残す。ただし item restore と aftercare は direct merge ではなく fresh branch で分割する。詳細は `battle_item_restore_policy/adoption_investigation_2026_05_09.md`。 |
 | #7 `Add Elite Four partygen pools and battlefield lint` | `feature/trainer-partygen-catalog-expansion` | Open, non-draft, checks passed on 2026-05-06. Merge state is unknown / stale after current `master` docs updates. | 大型 tool/data PR として残す。実装順では no_random / battle-end policy の後。current `master` へ更新してから判断する。 |
 | #5 `Add trainer party generator MVP` | `feature/trainer-party-generator` | Closed 2026-05-09, remote branch deleted. | #7 が後継で同一 MVP commit を含むため superseded。 |
