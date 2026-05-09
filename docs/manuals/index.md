@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `8d2664af9a`; `git describe` = `expansion/1.15.2-24-g8d2664af9a` |
+| Baseline | `master` `050a5ab7a3`; `git describe` = `expansion/1.15.2-25-g050a5ab7a3` |
 | Code status | Docs-only manual index |
 | Provenance | Local project overlay |
 
@@ -56,6 +56,8 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 
 - `git status --short --branch` で現在のブランチと未コミット差分を見る。
 - docs の置き場に迷う場合は [Docs Navigation Manual](docs_navigation.md) を先に確認する。
+- `master` は upstream 追従用 baseline として扱い、local 実装は `feature/*` /
+  `integration/*` に載せる。`master` に入れるのは docs / workflow だけにする。
 - ユーザーが docs-only を指定している場合、ソース、include、data、tools は読み取り専用にする。
 - 既存の未コミット差分はユーザー作業として扱い、勝手に戻さない。
 - 追加や変更が保存データ、ID 幅、アップストリーム追従に関係する場合は、実装前にリスクを docs に書く。

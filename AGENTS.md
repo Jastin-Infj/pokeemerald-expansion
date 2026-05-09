@@ -41,6 +41,27 @@
   mGBA Live / manual evidence, skipped long GitHub Actions waits, and any
   accepted remaining risk.
 
+## Master / Upstream Baseline
+
+- Treat `master` as the upstream intake baseline plus local documentation and
+  workflow overlay. Do not merge local feature implementation into `master`
+  unless the user explicitly asks to change that branch policy for a specific
+  integration.
+- On `master`, source-like trees are read-only for normal work: `src/`,
+  `include/`, `data/`, `tools/`, generated output, ROMs, saves, caches, and
+  screenshots. Docs-only work may update `docs/` and, when workflow rules
+  change, `AGENTS.md`.
+- A validated feature branch is evidence, not permission to update `master`.
+  Record the branch, commit, diff scope, and validation evidence in docs; keep
+  runtime source changes on a fresh `feature/` or `integration/` branch created
+  from the current `master`.
+- If a branch contains both docs and implementation, never merge the branch into
+  `master` for a docs request. Cherry-pick or re-apply only docs / `AGENTS.md`
+  changes onto a docs-only branch.
+- Before any `master` PR or merge, confirm the file list with
+  `rtk git diff --name-only master..HEAD`. Anything outside `docs/` and
+  `AGENTS.md` means the branch is not eligible for a docs-only master merge.
+
 ## GitHub PR Staging
 
 - Open PRs are review / staging shelves, not permission to merge into

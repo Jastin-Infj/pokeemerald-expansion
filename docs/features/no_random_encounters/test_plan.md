@@ -44,3 +44,27 @@ mGBA runtime:
 | `FLAG_NO_ENCOUNTER=true`, repel var clear, Route 101 grass movement for 2160 frames | passed | Stayed on field; no wild encounter. Screenshot: `/tmp/mgba-noencounter-flag-on-after-2160frames.png`. |
 
 Important note: after the OFF battle returned to field, `gBattleTypeFlags` still held `4`. Do not use `gBattleTypeFlags` alone as the ON-test oracle. Use `gMain.callback2`, screenshot state, map/coords, and flag bytes together.
+
+## Docs-Only Master Record: 2026-05-09
+
+Current decision:
+
+- Do not copy the implementation files into `master`.
+- Keep the historical validation evidence above as branch evidence.
+- Treat `feature/no-random-encounters` commit `545989b695` as the source slice
+  to re-apply on a fresh feature / integration branch when runtime work resumes.
+
+Non-invasive checks performed from `master`:
+
+| Check | Result | Notes |
+|---|---|---|
+| `git branch --all --list *no-random* *encounter*` | passed | Local `feature/no-random-encounters` exists. |
+| `git log --all --grep=no-random --grep=NO_ENCOUNTER` | passed | Found `545989b695 config: enable no random encounters flag`. |
+| `git diff master..feature/no-random-encounters -- include/config/overworld.h include/constants/flags.h include/constants/flags_frlg.h` | passed | Runtime slice is limited to three files. |
+| `rg OW_FLAG_NO_ENCOUNTER include src docs/features` | passed | `master` has the encounter gate and debug toggle, but config remains `0`. |
+
+No ROM build or mGBA runtime run was repeated for this docs-only update because
+no source / data / config file changed on this branch. Before opening an
+implementation PR, re-apply the three-file slice on a current-master feature
+branch and rerun `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and one
+focused mGBA runtime check.
