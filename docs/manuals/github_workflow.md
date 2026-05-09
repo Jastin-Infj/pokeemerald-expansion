@@ -1,5 +1,14 @@
 # GitHub Workflow
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; GitHub PR queue checked 2026-05-09 |
+| Code status | Docs-only workflow manual |
+| Provenance | Local project overlay |
+
 このプロジェクトでは、作業前に GitHub 運用を確認します。
 特に docs-only の依頼、調査のみの依頼、ソース変更を含む依頼を混ぜないことが重要です。
 
@@ -75,6 +84,41 @@ rtk mdbook build docs
 
 既存の PR がある場合は、同じブランチに積む方針を優先します。
 新しい PR を作るのは、作業目的やレビュー単位が明確に別れるときです。
+
+Open PR は「master に入れる許可」ではなく、review / staging shelf として扱う。
+特に source / include / data / tools / generated file を含む PR は、開いたまま
+でも勝手に merge しない。ユーザーが明示的に merge を頼むまで、GitHub の
+merge button や `gh pr merge` は使わない。
+
+### Open PR を残す基準
+
+- まだ採用候補だが、feature_registry の順序では今すぐ入れない。
+- CI / validation evidence があり、後で fresh branch へ分割 cherry-pick
+  する価値がある。
+- 大型 feature の review 単位として意味があり、branch に unique work が残る。
+
+### Close する基準
+
+- 後継 PR が同じ commit または同じ成果物を含んでいる。
+- docs snapshot が後続 docs-only commit で `master` に反映済み。
+- draft / prototype が stale で、CI failure や conflict を持ったまま queue を
+  汚している。
+
+remote branch は慎重に扱う。fully superseded / merged / unique work なしなら
+削除してよい。unique work が残る draft は、PR だけ close して branch は残す。
+
+### Open PR から master へ入れる手順
+
+1. `docs/features/feature_registry.md` の順序と owning feature docs を確認する。
+2. PR が現在の `master` に clean merge できるか確認する。
+3. planned order と PR の粒度がずれている場合は、PR を直接 merge せず、
+   current `master` から fresh branch を切る。
+4. 必要な commit / file だけを cherry-pick または再実装する。
+5. source / data / config 変更なら local make、focused check、可能なら mGBA
+   runtime validation を行う。
+6. `implementation.md` / `test_plan.md` / registry の status を更新する。
+7. ユーザーが明示した場合だけ merge する。長い GitHub Actions は待ち続けず、
+   local validation と未待機理由を handoff に残す。
 
 PR 説明には次を残します。
 

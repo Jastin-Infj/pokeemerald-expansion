@@ -1,12 +1,29 @@
 # Update Migration Notes
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; `git describe` = `expansion/1.15.2-24-g8d2664af9a` |
+| Code status | Docs-only migration policy |
+| Provenance | Local project overlay |
+
 ## Current Baseline
 
-調査時点の README では、この repo は pret `pokeemerald` をベースにした `pokeemerald-expansion` で、credit に `pokeemerald-expansion 1.15.1` ベースと記載されている。
+2026-05-09 時点の `master` (`8d2664af9a`) は `expansion/1.15.2`
+tag 後の commit を含む。`git describe` は
+`expansion/1.15.2-24-g8d2664af9a`、README の credit example は
+`pokeemerald-expansion 1.15.2`、`include/constants/expansion.h` は
+`EXPANSION_VERSION_PATCH 3` かつ `EXPANSION_TAGGED_RELEASE FALSE`。
+
+docs ではこれを **1.15.2 tag plus post-release 1.15.3-dev style commits**
+として扱う。古い `*_v15.md` は v15 family の調査 docs として残し、実際の
+flow が変わるまで一括 rename しない。
 
 現時点では、トレーナーバトル前選出機能の実装コードは存在しない。今回追加したのは docs のみ。
 
-2026-05-02 に upstream `RHH` remote の `expansion/1.15.2` tag を確認した。local baseline 表記はまだ 1.15.1 だが、main を 1.15.2 へ上げる場合は `docs/upgrades/1_15_1_to_1_15_2_impact.md` を先に確認する。
+2026-05-02 に upstream `RHH` remote の `expansion/1.15.2` tag を確認した。1.15.1 から 1.15.2 への差分内容は `docs/upgrades/1_15_1_to_1_15_2_impact.md` に残す。
 
 branch 運用の基本方針は `docs/upgrades/branching_upgrade_policy.md` に分離した。今後の提案では、`main`、`upgrade/*`、`feature/*`、`reference/*`、docs branch の役割をこの方針に合わせる。
 

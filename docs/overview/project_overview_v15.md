@@ -1,6 +1,7 @@
 # Project Overview v15
 
 調査日: 2026-05-01
+最終 baseline 確認: 2026-05-09 (`master` `8d2664af9a`, `git describe` = `expansion/1.15.2-24-g8d2664af9a`)
 
 この文書は pokeemerald-expansion 1.15.x 系の既存構造を、今後の大型改造に備えて俯瞰するための入口です。確認した内容に基づいて記述し、未確認の推測は断定しません。
 
@@ -8,8 +9,9 @@
 
 - このリポジトリは `README.md` の記述どおり、pret の `pokeemerald` decompilation project をベースにした GBA ROM hack base。
 - `README.md` では、単体で遊ぶゲームではなく、ROM hack 開発者向けの土台と説明されている。
-- ローカルの `README.md` と `docs/changelogs/1.15.x/1.15.1.md` から、初回調査対象は pokeemerald-expansion 1.15.1 近辺として扱う。
-- 2026-05-02 時点で upstream `RHH` には `expansion/1.15.2` tag も存在する。1.15.1 -> 1.15.2 の影響は `docs/upgrades/1_15_1_to_1_15_2_impact.md` に分離して記録する。
+- 初回調査は pokeemerald-expansion 1.15.1 近辺から始まった。
+- 2026-05-09 時点の local `master` は README credit example が `pokeemerald-expansion 1.15.2`、`git describe` が `expansion/1.15.2-24-g8d2664af9a`。`include/constants/expansion.h` は patch `3` / `EXPANSION_TAGGED_RELEASE FALSE` なので、実務上は 1.15.2 tag plus post-release 1.15.3-dev style commits として扱う。
+- 1.15.1 -> 1.15.2 の影響は `docs/upgrades/1_15_1_to_1_15_2_impact.md` に分離して記録する。
 - `FEATURES.md` で確認できる主な拡張領域:
   - Gen IX までのポケモン、わざ、どうぐ、特性、バトルギミック。
   - ダブル野生戦、カスタムマルチ、2 vs 1 / 1 vs 2、Sky Battle などのバトル形式。

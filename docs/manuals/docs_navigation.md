@@ -1,5 +1,14 @@
 # Docs Navigation Manual
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; `git describe` = `expansion/1.15.2-24-g8d2664af9a` |
+| Code status | Docs-only manual |
+| Provenance | Local project overlay |
+
 この文書は、`docs/` 配下の使い分けを決めるための入口。
 既存の upstream docs を壊さず、この project 用の判断基準や feature branch の作業契約を重ねる。
 
@@ -21,10 +30,20 @@
 新しい作業を始める時は、次の順で読む。
 
 1. `docs/manuals/index.md`
-2. 関係する `docs/manuals/*.md`
-3. 既存手順が必要なら `docs/tutorials/*.md`
-4. 既存挙動の詳細が必要なら `docs/flows/*.md` または `docs/overview/*.md`
-5. feature branch で実装するなら `docs/features/<feature>/`
+2. docs の書き方や由来が関係する場合は `docs/manuals/docs_markdown_policy.md`
+3. 関係する `docs/manuals/*.md`
+4. 既存手順が必要なら `docs/tutorials/*.md`
+5. 既存挙動の詳細が必要なら `docs/flows/*.md` または `docs/overview/*.md`
+6. feature branch で実装するなら `docs/features/<feature>/`
+
+## Metadata Policy
+
+local project docs は、次に触るタイミングで `Last reviewed`、`Baseline`、
+`Code status`、`Provenance` を追加する。標準形は
+`docs/manuals/docs_markdown_policy.md` に置く。
+
+既存 docs を metadata 追加だけの巨大差分にしない。実装や調査で実際に触る
+file から順に更新する。
 
 ## When to Create a Feature Folder
 
@@ -71,3 +90,5 @@ downstream feature の仕様を直接変える段階になったら、downstream
 - 最後に必要な file だけ rename / move する。
 
 既存 `docs/tutorials/` は upstream 追従の前提になりやすいため、移動より参照整理を優先する。
+日本語の補足が必要な場合も、まず `docs/manuals/` から tutorial へリンクし、
+tutorial 本体は短い `Local Notes` 追加に留める。

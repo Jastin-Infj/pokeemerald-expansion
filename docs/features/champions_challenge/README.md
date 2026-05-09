@@ -1,7 +1,16 @@
 # Champions Challenge Facility
 
+## Document Metadata
+
+| Field | Value |
+|---|---|
+| Last reviewed | 2026-05-09 |
+| Baseline | `master` `8d2664af9a`; partygen implementation exists on `feature/trainer-partygen-catalog-expansion` |
+| Code status | Runtime not on `master`; partygen branch implementation exists |
+| Provenance | Local project feature docs |
+
 Status: Planned
-Code status: No code changes
+Code status: runtime not on `master`; partygen CLI / catalog implementation exists on `feature/trainer-partygen-catalog-expansion`
 
 ## Goal
 

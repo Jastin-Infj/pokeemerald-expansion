@@ -33,6 +33,8 @@
     - [Docs Navigation Manual](manuals/docs_navigation.md)
     - [Environment Setup](manuals/environment_setup.md)
     - [GitHub Workflow](manuals/github_workflow.md)
+    - [Docs Markdown Policy](manuals/docs_markdown_policy.md)
+    - [Docs Audit 2026-05-09](manuals/docs_audit_2026_05_09.md)
     - [Data Editing Overview](manuals/data_editing_overview.md)
     - [Rebuild and Test Manual](manuals/rebuild_and_test_manual.md)
     - [mGBA Live MCP Manual](manuals/mgba_live_mcp_manual.md)

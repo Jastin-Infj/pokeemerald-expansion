@@ -40,3 +40,22 @@
 - Before handoff, ensure the feature `test_plan.md` records local make results,
   mGBA Live / manual evidence, skipped long GitHub Actions waits, and any
   accepted remaining risk.
+
+## GitHub PR Staging
+
+- Open PRs are review / staging shelves, not permission to merge into
+  `master`. Do not press the GitHub merge button or run `gh pr merge` unless
+  the user explicitly asks to merge that PR.
+- Avoid direct pushes to `master`. Push feature / docs branches and let the
+  user choose when to merge, unless the user explicitly asks for a direct
+  master update.
+- For implementation PRs that contain source / include / data / tools /
+  generated changes, prefer a fresh branch from current `master` and
+  cherry-pick or re-apply only the intended slice when the planned order
+  changes. Close the older PR only after recording why it was superseded.
+- Keep an open implementation PR if it is still a valid candidate but not next
+  in the order. Close stale PRs that are already superseded, failed drafts, or
+  docs snapshots that would reintroduce old diff.
+- Delete a remote branch only when the PR is merged, fully superseded, or has
+  no unique work. Preserve branches that hold unique draft work even if their
+  PR is closed.
