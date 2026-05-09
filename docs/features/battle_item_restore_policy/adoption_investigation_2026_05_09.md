@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `6d0578c188`; `git describe` = `expansion/1.15.2-26-g6d0578c188` |
+| Baseline | `master` `f5a3b7b6c2`; `git describe` = `expansion/1.15.2-27-gf5a3b7b6c2` |
 | Code status | Docs-only adoption investigation |
 | Provenance | Local project overlay |
 
@@ -64,9 +64,13 @@ Reasoning:
 
 ## Open Decisions Before Implementation
 
+Resolved for `feature/battle-item-restore-policy`: the user approved default
+`TRUE` for the feature branch. This does not change the docs-only `master`
+policy.
+
 | Decision | Why it matters | Current recommendation |
 |---|---|---|
-| `B_RESTORE_HELD_BATTLE_BERRIES` default | PR #10 source uses `TRUE`, while `risks.md` says default-off is safer for partygen-owned trainers. | Decide explicitly before implementation. Use `TRUE` for playable/integration testing, `FALSE` for conservative baseline branches. |
+| `B_RESTORE_HELD_BATTLE_BERRIES` default | PR #10 source uses `TRUE`, while `risks.md` says default-off is safer for partygen-owned trainers. | Use `TRUE` on `feature/battle-item-restore-policy` per user direction. Revisit only if a conservative baseline branch is created later. |
 | Battle type scope | Existing `TryRestoreHeldItems()` is called from battle end broadly when restore configs are enabled. Berry restore therefore affects wild, trainer, and facility paths unless guarded. | Preserve existing call breadth for the first slice, but document that this is competitive-style restore, not RPG item loss. |
 | Final ownership after item transfer | Trick, Thief, Bestow, Symbiosis, Pickpocket, Magician, Corrosive Gas, and Air Balloon can make final ownership ambiguous. PR #10 restores original berries broadly from `itemLost`, not only ordinary HP berries. | Decide whether to accept broad competitive-style restore. If the desired slice is consumed-berry-only, add an explicit guard/state and focused tests before implementation. |
 | Aftercare test gate | Heal-only source is default-off, but it changes the central trainer battle return path. | Add at least one focused test or mGBA scenario for normal win, excluded facility/secret-base/early-rival, and config-off behavior. |
