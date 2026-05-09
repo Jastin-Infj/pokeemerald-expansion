@@ -68,6 +68,7 @@
     - [Roguelike Runtime Hooks Investigation v15](overview/roguelike_runtime_hooks_v15.md)
     - [Battle Item Restore Policy](features/battle_item_restore_policy/README.md)
     - [Battle Item Restore Policy Implementation](features/battle_item_restore_policy/implementation.md)
+    - [Battle Item Restore Policy Impact Scope](features/battle_item_restore_policy/impact_scope.md)
     - [Map Registration / Region Map / Fly Flow v15](flows/map_registration_fly_region_flow_v15.md)
     - [NPC / Object Event Flow v15](flows/npc_object_event_flow_v15.md)
     - [Battle Frontier Level Scaling Flow v15](flows/battle_frontier_level_scaling_flow_v15.md)

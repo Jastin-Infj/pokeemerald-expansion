@@ -11,11 +11,14 @@ This document is a guide for maintainers to account for all the reccomended step
 For this local project workflow, a feature branch that contains source or test
 changes must not be merged into `master` when the requested merge is docs-only.
 Use a docs-only branch from `master` or cherry-pick only the documentation
-commits intended for `master`.
+commits intended for `master`. `AGENTS.md` is treated as agent-facing
+documentation and may be included with docs-only updates when it only changes
+workflow instructions.
 
 Before a docs-only merge, check:
 
-- [ ] `git diff --name-only master..HEAD` contains only `docs/` paths.
+- [ ] `git diff --name-only master..HEAD` contains only `docs/` paths and, if
+      needed, `AGENTS.md`.
 - [ ] Feature implementation details are recorded in the owning feature docs,
       usually `docs/features/<feature>/implementation.md`.
 - [ ] Setup or operation changes are recorded in the relevant manual under

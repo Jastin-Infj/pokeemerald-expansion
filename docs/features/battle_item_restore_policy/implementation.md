@@ -24,6 +24,12 @@ Key contract:
 - Existing non-berry restore behavior under `B_RESTORE_HELD_BATTLE_ITEMS`
   remains in place.
 
+The broader item-mechanics impact matrix is maintained in `impact_scope.md`.
+Natural Gift, Fling, Recycle, Pickup, Harvest, Cud Chew, G-Max Replenish,
+Belch, Bug Bite / Pluck, Knock Off, Thief / Covet, Trick / Switcheroo, Bestow,
+Symbiosis, Corrosive Gas, Air Balloon, and Unburden are treated as follow-up
+coverage areas, not as battle-time behavior changes in this slice.
+
 ## Files Changed By The Implementation
 
 | File | Change |
@@ -89,8 +95,9 @@ Before a docs-only merge, run:
 rtk git diff --name-only master..HEAD
 ```
 
-Only docs changes should be present for that merge path. Runtime code, generated
-output, ROMs, saves, screenshots, and cache artifacts must not be included.
+Only `docs/` changes and, if needed, agent-facing `AGENTS.md` workflow updates
+should be present for that merge path. Runtime code, generated output, ROMs,
+saves, screenshots, and cache artifacts must not be included.
 
 ## Future Work
 

@@ -34,8 +34,9 @@
   `docs/SUMMARY.md`.
 - For docs-only merge work, do not merge an implementation branch that contains
   source / include / data / tools / generated changes into `master`. Use a
-  docs-only branch from `master` or cherry-pick only docs commits, then check
-  `rtk git diff --name-only master..HEAD` before merging.
+  docs-only branch from `master` or cherry-pick only docs / `AGENTS.md`
+  workflow commits, then check `rtk git diff --name-only master..HEAD` before
+  merging.
 - Before handoff, ensure the feature `test_plan.md` records local make results,
   mGBA Live / manual evidence, skipped long GitHub Actions waits, and any
   accepted remaining risk.

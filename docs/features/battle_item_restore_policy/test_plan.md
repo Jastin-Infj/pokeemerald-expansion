@@ -11,13 +11,18 @@
 追加したい test:
 
 - Sitrus Berry is consumed during a full battle but restored after battle under the new policy.
+- Natural Gift consumes the berry during battle and battle-end policy restores the original item.
 - Leppa Berry can still be restored by Recycle during battle.
 - Harvest still restores a consumed berry during battle.
 - Cud Chew still reuses the consumed berry on the next turn.
 - Pickup can still pick up another battler's consumed item during battle.
 - G-Max Replenish still restores target berries during battle.
 - Belch remains usable after eating a berry, including after Recycle.
-- Natural Gift consumes the berry during battle and battle-end policy restores the original item.
+- Fling consumes the held item during battle and battle-end policy restores or preserves ownership according to the final policy.
+- Bug Bite / Pluck eat target berries during battle and final ownership is documented.
+- Thief / Covet / Pickpocket / Magician final ownership is documented for trainer and wild battles.
+- Trick / Switcheroo / Bestow / Symbiosis final ownership is documented for trainer and facility battles.
+- Corrosive Gas / Air Balloon exceptions are documented and tested if battle-end restore should not override them.
 - Knock Off / Corrosive Gas / Air Balloon keep their intended non-restorable behavior if that policy is retained.
 
 ## Scenario Tests
