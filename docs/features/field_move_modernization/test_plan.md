@@ -17,8 +17,26 @@
   - `rtk make -j16 -O check`: PASS.
   - `rtk make -j16 -O all`: PASS.
   - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba`, accepted Start input, and showed the continue menu screenshot at `/tmp/field_move_toolkit_item_final_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
+- Debug shortcut update:
+  - Debug menu paths: `Scripts... > Field Kit Full`, `Field Kit Item`, `Field Kit Flags`, `Field Kit Clear`.
+  - Expected `Field Kit Full` effect: gives `ITEM_FIELD_KIT`, sets all `FLAG_RECEIVED_HM_*` capability flags, and sets all badge flags.
+  - Expected focused effects: `Field Kit Item` gives only the item, `Field Kit Flags` sets only capability flags, and `Field Kit Clear` removes the item and clears capability / system flags.
+  - `rtk make -j16 -O debug`: PASS.
+  - `rtk make -j16 -O check`: PASS.
+  - `rtk make -j16 -O all`: PASS.
+  - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, accepted Start input, and showed the continue menu screenshot at `/tmp/field_kit_debug_script_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
+  - Manual execution of the four debug shortcut entries remains for user validation.
 
 ## Manual Tests
+
+### Debug Shortcut
+
+- `Scripts... > Field Kit Full` shows the FIELD KIT completion message.
+- `Scripts... > Field Kit Item`, `Field Kit Flags`, and `Field Kit Clear` show their completion messages.
+- Key Items contains `ITEM_FIELD_KIT` with the placeholder question mark icon.
+- Cut / Rock Smash / Strength / Surf / Waterfall can be checked immediately from suitable maps.
+- Dive / Surface still keep yes/no prompts after the shortcut.
+- Flash still auto-lights a `requires_flash: true` cave after the shortcut.
 
 ### Cut
 

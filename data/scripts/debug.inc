@@ -203,18 +203,31 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	call Debug_EventScript_FieldKitSetFlags
+	call Debug_EventScript_FieldKitSetBadges
+	msgbox Debug_Text_FieldKitFull, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_2::
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	msgbox Debug_Text_FieldKitItem, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_3::
+	call Debug_EventScript_FieldKitSetFlags
+	msgbox Debug_Text_FieldKitFlags, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_4::
+	removeitem ITEM_FIELD_KIT
+	call Debug_EventScript_FieldKitClearFlags
+	msgbox Debug_Text_FieldKitClear, MSGBOX_DEFAULT
 	release
 	end
 
@@ -233,6 +246,56 @@ Debug_EventScript_Script_7::
 Debug_EventScript_Script_8::
 	release
 	end
+
+Debug_EventScript_FieldKitSetFlags:
+	setflag FLAG_RECEIVED_HM_CUT
+	setflag FLAG_RECEIVED_HM_FLASH
+	setflag FLAG_RECEIVED_HM_ROCK_SMASH
+	setflag FLAG_RECEIVED_HM_STRENGTH
+	setflag FLAG_RECEIVED_HM_SURF
+	setflag FLAG_RECEIVED_HM_FLY
+	setflag FLAG_RECEIVED_HM_DIVE
+	setflag FLAG_RECEIVED_HM_WATERFALL
+	return
+
+Debug_EventScript_FieldKitClearFlags:
+	clearflag FLAG_RECEIVED_HM_CUT
+	clearflag FLAG_RECEIVED_HM_FLASH
+	clearflag FLAG_RECEIVED_HM_ROCK_SMASH
+	clearflag FLAG_RECEIVED_HM_STRENGTH
+	clearflag FLAG_RECEIVED_HM_SURF
+	clearflag FLAG_RECEIVED_HM_FLY
+	clearflag FLAG_RECEIVED_HM_DIVE
+	clearflag FLAG_RECEIVED_HM_WATERFALL
+	clearflag FLAG_SYS_USE_FLASH
+	clearflag FLAG_SYS_USE_STRENGTH
+	return
+
+Debug_EventScript_FieldKitSetBadges:
+	setflag FLAG_BADGE01_GET
+	setflag FLAG_BADGE02_GET
+	setflag FLAG_BADGE03_GET
+	setflag FLAG_BADGE04_GET
+	setflag FLAG_BADGE05_GET
+	setflag FLAG_BADGE06_GET
+	setflag FLAG_BADGE07_GET
+	setflag FLAG_BADGE08_GET
+	return
+
+Debug_Text_FieldKitFull:
+	.string "FIELD KIT full unlock set.\p"
+	.string "Item, HM flags, and badges\n"
+	.string "are ready for testing.$"
+
+Debug_Text_FieldKitItem:
+	.string "FIELD KIT item is ready.$"
+
+Debug_Text_FieldKitFlags:
+	.string "FIELD KIT HM flags are set.$"
+
+Debug_Text_FieldKitClear:
+	.string "FIELD KIT item and HM flags\n"
+	.string "were cleared.$"
 
 Debug_CheckSaveBlock::
 	callnative CheckSaveBlock1Size
