@@ -61,6 +61,7 @@
     - [Champions Partygen Lint Spec](features/champions_challenge/partygen_lint_spec.md)
     - [Champions Partygen Player Style Logging](features/champions_challenge/partygen_player_style_logging.md)
     - [No Random Encounters](features/no_random_encounters/README.md)
+      - [Implementation](features/no_random_encounters/implementation.md)
     - [Wild Moveset Randomization Feasibility v15](overview/wild_moveset_randomization_v15.md)
     - [Runtime Rule Options Feasibility v15](overview/runtime_rule_options_feasibility_v15.md)
     - [Battle AI Decision Flow v15](flows/battle_ai_decision_flow_v15.md)
