@@ -1636,7 +1636,7 @@ static void FieldKit_StartFlyMap(u8 taskId)
 {
     FieldKit_CloseMenuWindow(taskId);
     FieldKit_InitSelectedMon();
-    BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+    FadeScreen(FADE_TO_BLACK, 0);
     gTasks[taskId].func = Task_FieldKitMenuOpenFlyMap;
 }
 

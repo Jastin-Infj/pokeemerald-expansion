@@ -44,6 +44,13 @@
   - `rtk make -j16 -O check`: PASS.
   - `rtk make -j16 -O debug`: PASS.
   - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, loaded the save, reached the field, and SELECT without a registered item still showed the existing guidance message. Screenshot at `/tmp/field_kit_menu_polish_boot.png`; session stopped cleanly. `pgrep` showed no `mgba-qt` ROM process after stop.
+  - Manual user validation: PASS for the 2-row Fly-unavailable frame and the standard black window frame palette. Remaining issue before this follow-up: Fly still briefly brightened night maps.
+- Field Kit Fly night fade follow-up:
+  - Expected Fly behavior: selecting Fly uses the current time-of-day palette as the black fade source, so night maps do not briefly brighten before the region map opens.
+  - `rtk make -j16 -O all`: PASS.
+  - `rtk make -j16 -O check`: PASS.
+  - `rtk make -j16 -O debug`: PASS.
+  - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, loaded the save, reached the field, and SELECT without a registered item still showed the existing guidance message. Screenshot at `/tmp/field_kit_fly_fade_boot.png`; session stopped cleanly. `pgrep` showed no `mgba-qt` ROM process after stop.
 
 ## Manual Tests
 
@@ -68,6 +75,7 @@
 - Teleport and Dig obey their existing map restrictions; invalid maps show the cannot-use message and return control.
 - Teleport and Dig begin directly from the Field Kit menu without the field briefly flashing brighter on night maps.
 - Field Kit menu frame keeps the standard black palette in caves and dark maps.
+- Fly from the Field Kit menu does not briefly brighten the field on night maps before opening the region map.
 - Confirm follower leave restrictions still block Fly / Teleport where `CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_LEAVE_ROUTE)` fails.
 
 ### Cut

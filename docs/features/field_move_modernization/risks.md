@@ -27,6 +27,7 @@
 | Field Kit utility menu | Key Item use と SELECT registered use の両方から同じ field menu を出すため、window cleanup、control lock、cannot-use message 後の task cleanup が壊れると field control を失う。 |
 | Field Kit direct utility start | Teleport / Dig は Field Kit からは return-to-field fade を挟まず `gPostMenuFieldCallback` を直接呼ぶ。party menu 経由とは違うため、script lock / follower hide / warp state は manual regression 対象。 |
 | Window palette reuse | Field menu は map palette state の影響を受けやすい。Field Kit menu は標準 border palette を再ロードするが、cave / dark map / Flash state で frame 色を確認する。 |
+| Fly fade source palette | `BeginNormalPaletteFade` を field 上で直接使うと night / time-of-day の faded palette が一瞬解除されることがある。Field Kit Fly は `FadeScreen(FADE_TO_BLACK, 0)` で faded -> unfaded copy を挟む。 |
 | Key item unlock capacity | `BAG_KEYITEMS_COUNT 30` の固定長 pocket。per-HM key item 追加は bag / save / debug grant に波及するため、bag 拡張は別 feature の大型改修として扱う。 |
 | Field Kit migration | Existing saves with HM receipt flags but no Field Kit will fail modernized HM checks until the item is granted. First-time grant scripts avoid setting capability flags if the Field Kit cannot be added. |
 | Item id churn | Key Item section 途中に挿入すると後続 item ids が大きくずれる。Field Kit は `ITEMS_COUNT` 直前に追加して churn を抑える。 |
