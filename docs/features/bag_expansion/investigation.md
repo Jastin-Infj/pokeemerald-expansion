@@ -63,6 +63,34 @@ place `struct Bag` at `0x2E8` bytes, which matches 186 slots x 4 bytes.
 
 Bag expansion consumes SaveBlock1. SaveBlock3 free space is not a normal-bag solution.
 
+## Current Item Catalog Pressure
+
+Static parsing of `src/data/items.h` on the 2026-05-09 baseline gives this current
+catalog pressure, excluding `ITEM_NONE` and `ITEM_FIELD_ARROW`:
+
+| Pocket | Current slots | Current item definitions | Extra slots to hold every defined item | Approx SaveBlock1 growth |
+|---|---:|---:|---:|---:|
+| Items | 30 | 595 | 565 | 2260 B |
+| Key Items | 30 | 74 | 44 | 176 B |
+| Poke Balls | 16 | 28 | 12 | 48 B |
+| TM/HM | 64 | 108 | 44 | 176 B |
+| Berries | 46 | 68 | 22 | 88 B |
+| Total | 186 | 873 | 687 | 2748 B |
+
+Raw "one slot for every current item definition" storage would grow SaveBlock1 from
+`15568` to roughly `18316` bytes, which is about `2444` bytes over the current
+`15872` byte SaveBlock1 sector budget. The Items pocket alone would need about
+`2260` bytes, so "all normal tools/items fit at once" is not viable as a small
+constant-only change.
+
+The TM/HM data has a second split to account for:
+
+- `src/data/items.h` defines `POCKET_TM_HM` entries through `ITEM_TM100` plus
+  `ITEM_HM01` to `ITEM_HM08`, for 108 item definitions.
+- `include/constants/tms_hms.h` currently maps only 50 TMs and 8 HMs through
+  `FOREACH_TM/HM`, so `NUM_ALL_MACHINES` is 58. Expanding TM/HM ownership must
+  align the item table and TM/HM registry, not only `BAG_TMHM_COUNT`.
+
 ## Sizing Examples
 
 | Change | Extra slots | Approx SaveBlock1 growth | Fits current 304 B spare? | Notes |
@@ -70,10 +98,74 @@ Bag expansion consumes SaveBlock1. SaveBlock3 free space is not a normal-bag sol
 | Key Items 30 -> 64 | 34 | 136 B | Yes, but save-breaking | Useful if Field Kit grows into multiple key items. |
 | TM/HM 64 -> 128 | 64 | 256 B | Yes, but leaves little spare | Still not enough for 250 TMs. |
 | TM/HM 64 -> 250 | 186 | 744 B | No | Needs FREE_* capacity, migration, or virtual TM ownership. |
+| TM/HM 64 -> 300 | 236 | 944 B | No | Also exceeds the current GF ROM header `u8` count field. |
+| TM/HM 64 -> 2300 | 2236 | 8944 B | No | Also exceeds `BagPocket.capacity:10`; not viable without structural redesign. |
 | Add 100 slots across pockets | 100 | 400 B | No | Requires capacity recovery or a save-breaking layout plan. |
+| Fit every currently defined catalog item | 687 | 2748 B | No | SaveBlock1 would exceed the sector budget by about 2444 B. |
 
 These numbers are layout estimates. Any implementation must rebuild and update `test/save.c`
 intentionally if the save-breaking change is accepted.
+
+## Item Classification Notes
+
+Held-item, battle-item, Mega Stone, Z-Crystal, and similar groupings are not separate
+save-backed pockets in the current bag. They are `enum ItemSortType` values on
+`struct ItemInfo`, usually inside `POCKET_ITEMS`.
+
+Current `POCKET_ITEMS` sort-type pressure includes:
+
+| `sortType` | Count in `POCKET_ITEMS` |
+|---|---:|
+| `ITEM_TYPE_HELD_ITEM` | 86 |
+| `ITEM_TYPE_SPECIAL_HELD_ITEM` | 11 |
+| `ITEM_TYPE_TYPE_BOOST_HELD_ITEM` | 18 |
+| `ITEM_TYPE_CONTEST_HELD_ITEM` | 5 |
+| `ITEM_TYPE_EV_BOOST_HELD_ITEM` | 7 |
+| `ITEM_TYPE_BATTLE_ITEM` | 4 |
+| `ITEM_TYPE_X_ITEM` | 8 |
+| `ITEM_TYPE_MEGA_STONE` | 92 |
+| `ITEM_TYPE_Z_CRYSTAL` | 35 |
+| `ITEM_TYPE_TERA_SHARD` | 19 |
+| `ITEM_TYPE_GEM` | 18 |
+| `ITEM_TYPE_PLATE` | 17 |
+| `ITEM_TYPE_MEMORY` | 17 |
+| `ITEM_TYPE_DRIVE` | 4 |
+
+Adding a visual filter or sort tab inside Items can reuse the existing save layout.
+Adding true pockets for these groups is possible, but it is a larger feature: it
+requires new `enum Pocket` entries, `POCKETS_COUNT`-sized state arrays, `struct Bag`
+storage, `gBagPockets` setup, pocket names/icons/navigation, debug fill routes, and
+save migration policy.
+
+There is also an item ID ceiling outside the bag itself. Pokemon held items use
+`heldItem:10` in `include/pokemon.h`, and `src/pokemon.c` asserts
+`ITEMS_COUNT < (1 << 10)`. The current last real item is `ITEM_GLIMMORANITE = 873`,
+so only about 149 additional item IDs can be added before the Pokemon save layout
+must change. A design with hundreds or thousands of additional item IDs must solve
+that separately from bag capacity.
+
+## Debug Fill / UI Memory Notes
+
+Debug fill loops in `src/debug.c` use `CheckBagHasSpace` before `AddBagItem`, so the
+current code should stop at the configured pocket capacity instead of writing past
+the pocket. The risk is scale: large capacities make the debug command add many
+more entries and then stress the bag menu buffers.
+
+`src/item_menu.c` allocates list and name buffers from `MAX_POCKET_ITEMS`, and sorting
+allocates `sizeof(struct ItemSlot) * pocket->capacity`. Approximate allocations while
+sorting a largest pocket are:
+
+| Largest pocket capacity | List buffer | Name buffer | Sort temp | Approx combined |
+|---:|---:|---:|---:|---:|
+| 64 | 520 B | 2275 B | 256 B | 3051 B |
+| 300 | 2408 B | 10535 B | 1200 B | 14143 B |
+| 595 | 4768 B | 20860 B | 2380 B | 28008 B |
+| 1023 | 8192 B | 35840 B | 4092 B | 48124 B |
+| 2300 | 18408 B | 80535 B | 9200 B | 108143 B |
+
+The heap is `HEAP_SIZE 0x1C500` (115968 B). A 2300-slot pocket would consume almost
+the whole heap during bag sorting, in addition to already exceeding save and bitfield
+limits.
 
 ## Source-Wide Impact Check
 
@@ -87,6 +179,7 @@ intentionally if the save-breaking change is accepted.
 | Save / runtime state | High impact: `struct Bag` changes `struct SaveBlock1`; `LoadPlayerBag` / `SavePlayerBag` copy size changes. |
 | UI / window / sprite / text | Medium impact: larger pockets stress list buffers and scrolling; no immediate text change expected. |
 | Battle / AI | Indirect impact: battle bag item availability and held item give/switch paths use the same bag helpers. |
+| Pokemon held-item save bits | High impact for new item IDs: `heldItem:10` and `ITEMS_COUNT < 1024` cap all item IDs, not only holdable ones. |
 | Build tools / generated files | No generated data identified for normal bag counts. `rom_header_gf.c` exposes counts to external tooling. |
 | Tests | Direct impact: `test/save.c` compatibility sizes and focused item/bag tests. |
 | Upstream migration | High impact: upstream save layout / bag refactor changes must be rechecked. |
@@ -102,4 +195,5 @@ intentionally if the save-breaking change is accepted.
 - Which exact pocket count should be the first implementation target?
 - Should the project accept a save-breaking change, or require migration for existing `.sav` files?
 - Should high TM counts be represented as item slots, a bitset / registry, or a shop/relearner rule that does not require every TM in the bag?
+- Should Items use `sortType` filters for held items / Mega Stones, or should those become true pockets with separate save arrays?
 - Do external tools that read the GF ROM header tolerate larger bag counts, especially near or above 255?

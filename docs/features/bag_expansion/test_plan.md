@@ -24,6 +24,8 @@
 |---|---|---|
 | Bag UI scroll | Open the expanded pocket and scroll from first to last item. | Smooth scrolling; Cancel row appears correctly. |
 | Debug fill | Use debug PC/Bag fill for affected pockets. | Fill completes; bag remains usable. |
+| Full catalog stress | In a debug build, fill the largest affected pocket to its target capacity and sort it. | No allocation failure, hang, cursor corruption, lost item, or duplicated item. |
+| Items `sortType` filter | If held-item / Mega Stone / battle-item filters are added, switch each filter with a mixed Items pocket. | Filtered view is correct; item use/give/toss actions still target the underlying slot. |
 | Field Kit | Register and use `ITEM_FIELD_KIT` from Key Items. | Field Kit menu still opens and returns cleanly. |
 | Bag full script | Trigger an item gift when the target pocket is full. | Existing bag full message appears and no flag is set early. |
 | Wally tutorial | Run Wally tutorial bag route. | Temporary item / Poke Ball pockets restore correctly. |
@@ -38,6 +40,8 @@
 ## Feature Complete Gate
 
 - Target pocket counts and save compatibility policy are documented.
+- Any target above 255 has an explicit ROM header plan; any target above 1023 has an explicit `BagPocket.capacity` redesign.
+- Any large item-ID increase has an explicit Pokemon `heldItem:10` / `ITEMS_COUNT < 1024` plan.
 - `test/save.c` either remains unchanged or has an intentional expected-size update.
 - `rtk make -j16 -O all`, `rtk make -j16 -O check`, and required focused save tests pass.
 - mGBA Live or manual runtime confirms bag open, fill, scroll, save/load, and affected downstream feature path.
