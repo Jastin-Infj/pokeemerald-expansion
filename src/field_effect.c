@@ -1,4 +1,5 @@
 #include "global.h"
+#include "config/overworld.h"
 #include "data.h"
 #include "decompress.h"
 #include "event_data.h"
@@ -2910,6 +2911,13 @@ static void TeleportWarpInFieldEffect_SpinGround(struct Task *task)
 bool8 FldEff_FieldMoveShowMon(void)
 {
     u8 taskId;
+
+    if (!OW_FIELD_MOVE_SHOW_MON_EFFECT)
+    {
+        FieldEffectActiveListRemove(FLDEFF_FIELD_MOVE_SHOW_MON);
+        return FALSE;
+    }
+
     if (IsMapTypeOutdoors(GetCurrentMapType()) == TRUE)
         taskId = CreateTask(Task_FieldMoveShowMonOutdoors, 0xff);
     else
@@ -2925,6 +2933,13 @@ bool8 FldEff_FieldMoveShowMonInit(void)
 {
     struct Pokemon *pokemon;
     bool32 noDucking = gFieldEffectArguments[0] & SHOW_MON_CRY_NO_DUCKING;
+
+    if (!OW_FIELD_MOVE_SHOW_MON_EFFECT)
+    {
+        FieldEffectActiveListRemove(FLDEFF_FIELD_MOVE_SHOW_MON_INIT);
+        return FALSE;
+    }
+
     pokemon = &gPlayerParty[(u8)gFieldEffectArguments[0]];
     gFieldEffectArguments[0] = GetMonData(pokemon, MON_DATA_SPECIES);
     gFieldEffectArguments[1] = GetMonData(pokemon, MON_DATA_IS_SHINY);

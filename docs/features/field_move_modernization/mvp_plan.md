@@ -1,8 +1,8 @@
 # Field Move Modernization MVP Plan
 
-Status: Planned (per-HM scope decided)
-Code status: No code changes
-最終更新: 2026-05-05
+Status: Initial MVP implemented
+Code status: Runtime slice on `feature/field-move-modernization-mvp`
+最終更新: 2026-05-09
 
 ## Per-HM Decision Table
 
@@ -44,6 +44,22 @@ Code status: No code changes
 - Dig / Teleport / Secret Power / Soft-Boiled など、HM ではない field utility を巻き込まない。
 - `VAR_RESULT` が party slot を返す前提を壊す場合は、animation 側の代替も同時に用意する。
 
+## Implemented MVP Policy
+
+2026-05-09 の初期実装では、以下を runtime 方針として採用した。
+
+| Topic | Decision |
+|---|---|
+| Unlock source | HM field move は既存 badge flag を維持し、`MonKnowsMove` は要求しない。 |
+| Script return | 既存互換のため `VAR_RESULT` は party slot 形を維持する。 |
+| Animation | Pokemon show-mon banner / 黒背景 cut-in は `OW_FIELD_MOVE_SHOW_MON_EFFECT` で無効化する。 |
+| Party menu | 現行の move-owned action を残す。key item / ride UI は後段。 |
+| HM moves | 忘却不可、Move Deleter、release、catch-swap policy はこの slice では未変更。 |
+| Obstacles | Cut tree / Rock Smash rock / Strength boulder の map object と removal/session flag は維持。 |
+| Success messages | Cut / Rock Smash / Strength / Surf / Waterfall は成功時 prompt / 使用メッセージを省略する。Dive / Surface は誤操作防止の確認を残す。 |
+| Dive controls | Dive down は A button、underwater Surface は B button。party menu 入口は Dive / Surface 両対応。 |
+| Flash | unlock 済みなら cave map load 時に `FLAG_SYS_USE_FLASH` を自動 set する。manual Flash animation は map load 競合を避けるため今回は起動しない。 |
+
 ## MVP Stages
 
 ### Stage 0: Policy Lock
@@ -65,6 +81,8 @@ Code status: No code changes
 - `CanUseFieldMoveModern(fieldMove)` のような共通 helper。
 - `MonKnowsMove` を使う path と、badge/key item unlock だけを使う path を明示分離。
 - `FIELD_MOVE_SURF` など水上移動は follower flag / metatile / map type check を残す。
+- badge-only から story flag / key item / field toolkit power-up へ移行できる unlock source layer。
+- 長期推奨は単一 key item + capability flags。key item は UI / story 上の所持物、実際の使用可否は field move ごとの flag で見る。
 
 危険な避け方:
 
@@ -117,16 +135,30 @@ HM move を field requirement から外した後、以下を見直す。
 
 ## Suggested First Implementation Slice
 
-未実装の提案:
+初期実装済み:
 
-1. Cut tree だけを対象にする。
-2. `EventScript_CutTree` の visible behavior を維持する。
+1. `checkfieldmove` の HM path を badge unlock 化する。
+2. `EventScript_CutTree` / Rock Smash / Strength / Surf / Waterfall / Dive の visible behavior を維持する。
 3. party move 所持ではなく unlock flag で許可する。
-4. show-mon animation を残す場合は、先頭 non-egg party mon など display mon の決定規則を明文化する。
-5. その後 Rock Smash、Strength、Surf の順に広げる。
+4. show-mon banner は表示しない。待機 task は active list 即解除で進める。
+5. map object removal / Rock Smash encounter / Strength session flag は既存挙動を維持する。
 
 ## Open Questions
 
 - field move 表示用 Pokemon を「先頭」「選択」「ride partner」「表示なし」のどれにするか。
 - Cut / Rock Smash obstacle を全撤去する場合、map JSON 編集をどの単位で行うか。
 - HM item を完全削除するか、店売り/通常技 machine として残すか。
+- HM 解禁を per-HM key item にするか、単一 field toolkit / power-up item に集約するか。
+- Key Items pocket は現状 `BAG_KEYITEMS_COUNT 30` なので、key item 方式の前に bag capacity / save layout / debug grant の改修が必要。bag 拡張は別 feature の大型改修として分離する。
+
+## Recommended Unlock Direction
+
+Hidden Machine という概念は長期的には field progression の所持条件から外す。badge-only は暫定実装として安全だが、ジムバッジ以外の story event や任意順進行で解禁しづらい。per-HM key item は直感的だが Key Items pocket と item list を増やしすぎる。
+
+推奨方針:
+
+- 単一 key item を player に持たせる。
+- key item の内部 upgrade / capability flags として Cut / Surf / Dive などを解禁する。
+- field move 判定は badge ではなく capability flags を見る。
+- badge は必要なら capability flag を立てる story trigger の一つとして扱う。
+- bag 拡張は別 feature の大型改修で扱い、この feature は単一 key item 以上の bag pressure を前提にしない。

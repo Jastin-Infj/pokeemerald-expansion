@@ -1,12 +1,25 @@
 # Field Move Modernization Test Plan
 
+## Validation Log
+
+2026-05-09 on `feature/field-move-modernization-mvp`:
+
+- `rtk make -j16 -O check`: PASS.
+- `rtk make -j16 -O all`: PASS.
+- mGBA Live boot / input check: PASS. Direct script-build path failed with missing `DISPLAY`; wrapper `/home/jastin/.local/bin/mgba-qt` worked. Confirmed title screen, Start input, continue menu screenshot at `/tmp/field_move_modernization_boot.png`, then stopped session cleanly.
+- Manual user validation: PASS for the first runtime slice before the follow-up prompt removal / Flash auto-use adjustment.
+- Follow-up prompt removal / Flash auto-use update:
+  - `rtk make -j16 -O check`: PASS.
+  - `rtk make -j16 -O all`: PASS.
+  - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba`, accepted Start input, and showed the continue menu screenshot at `/tmp/field_move_modernization_post_prompt_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
+- Focused no-HM route check: not yet performed; needs a prepared save/debug route with badges and no HM moves.
+
 ## Manual Tests
 
 ### Cut
 
 - Cut tree interaction before unlock.
-- Cut tree interaction after unlock.
-- Cut tree cancellation.
+- Cut tree interaction after unlock with no success prompt/message.
 - Cut tree object removal and map reload behavior.
 - Cut from party menu if party menu route remains enabled.
 - follower field move user path.
@@ -14,7 +27,7 @@
 ### Rock Smash
 
 - Rock Smash before unlock.
-- Rock Smash after unlock.
+- Rock Smash after unlock with no success prompt/message.
 - Rock object removal.
 - Rusturf Tunnel state update.
 - Rock Smash wild encounter trigger.
@@ -23,7 +36,8 @@
 ### Strength
 
 - Strength before unlock.
-- Strength activation after unlock.
+- Strength activation after unlock with no success prompt/message.
+- Already-active boulder interaction produces no success message.
 - `FLAG_SYS_USE_STRENGTH` set and clear after map transition / whiteout / fly / teleport / dig.
 - boulder movement on Emerald and FRLG maps.
 
@@ -32,6 +46,7 @@
 - A-button water interaction.
 - party menu Surf if enabled.
 - no party mon with Surf under modern mode.
+- successful Surf starts without yes/no prompt or success message.
 - follower hide / return.
 - surf blob graphics and player state.
 - fast water message.
@@ -40,19 +55,24 @@
 
 - waterfall when not surfing north.
 - waterfall when surfing north.
+- successful Waterfall starts without yes/no prompt or success message.
 - follower hide / return.
 - movement until top of waterfall.
 
 ### Dive
 
-- dive down from diveable tile.
-- emerge underwater.
+- A button dive down from a diveable tile.
+- B button opens Surface prompt underwater.
+- party menu Dive works for both Dive down and Surface when `TrySetDiveWarp()` allows it.
+- Dive and Surface keep yes/no prompts to prevent accidental double-tap warps.
 - `TrySetDiveWarp` failure cases.
 - follower sprite after dive.
 
 ### Flash
 
 - cave with `requires_flash: true`.
+- unlock済みなら cave 入場時に自動で明るくなること。
+- manual Flash field effect is not auto-started during map load; only `FLAG_SYS_USE_FLASH` is set.
 - cave already flashed.
 - whiteout / fly / teleport / dig clears `FLAG_SYS_USE_FLASH`.
 
