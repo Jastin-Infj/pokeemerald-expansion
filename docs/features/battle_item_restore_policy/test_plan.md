@@ -48,6 +48,29 @@ Re-check if this area changes again:
 
 ## Validation Log
 
+2026-05-09 (`feature/battle-item-restore-policy`, baseline `master`
+`f5a3b7b6c2`):
+
+- `rtk git diff --check`: passed.
+- `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed, 2 tests.
+- `rtk make -j16 -O check TESTS=test/battle/hold_effect/battle_item_restore.c`: passed.
+- `rtk make -j16 -O all`: passed. Existing linker warning about a LOAD segment
+  with RWX permissions was observed.
+- `rtk make -j16 -O debug`: passed. Existing linker warning about a LOAD
+  segment with RWX permissions was observed.
+- mGBA Live MCP check:
+  - `mgba_live_start` used `/home/jastin/.local/bin/mgba-qt` with
+    `pokeemerald.gba` and session name `battle-item-restore-smoke`.
+  - `mgba_live_get_view` captured the title screen.
+  - `mgba_live_input_set` / `mgba_live_input_clear` accepted `A` input and the
+    next view reached the continue menu.
+  - Screenshot artifact:
+    `/tmp/mgba-battle-item-restore-smoke-continue.png`.
+  - `mgba_live_stop` returned `alive_before: true`, `alive_after: false`, and
+    `stopped: true`.
+- GitHub Actions were not waited for this handoff. Local make and MCP evidence
+  above are the current validation basis.
+
 2026-05-08:
 
 - `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed.

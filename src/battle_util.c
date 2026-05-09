@@ -9307,6 +9307,24 @@ void SortBattlersBySpeed(enum BattlerId *battlers, bool32 slowToFast)
     }
 }
 
+static bool32 ShouldRestoreHeldBattleItem(u16 originalItem, u16 currentItem, bool32 wasStolen, bool32 returnNPCItems, u16 *itemToRestore)
+{
+    bool32 originalItemIsBerry = GetItemPocket(originalItem) == POCKET_BERRIES;
+
+    *itemToRestore = originalItem;
+
+    if (originalItemIsBerry && B_RESTORE_HELD_BATTLE_BERRIES == FALSE && currentItem != originalItem)
+        *itemToRestore = ITEM_NONE;
+
+    if (returnNPCItems)
+        return TRUE;
+    if (*itemToRestore == ITEM_NONE)
+        return FALSE;
+    if (originalItemIsBerry)
+        return B_RESTORE_HELD_BATTLE_BERRIES == TRUE;
+    return B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9 || wasStolen;
+}
+
 void TryRestoreHeldItems(void)
 {
     u32 i;
@@ -9314,18 +9332,13 @@ void TryRestoreHeldItems(void)
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        // Check if held items should be restored after battle based on generation
-        if (B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9 || gBattleStruct->itemLost[B_SIDE_PLAYER][i].stolen || returnNPCItems)
+        u16 lostItem = gBattleStruct->itemLost[B_SIDE_PLAYER][i].originalItem;
+        u16 currentItem = GetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM);
+        u16 itemToRestore;
+
+        if (ShouldRestoreHeldBattleItem(lostItem, currentItem, gBattleStruct->itemLost[B_SIDE_PLAYER][i].stolen, returnNPCItems, &itemToRestore))
         {
-            u16 lostItem = gBattleStruct->itemLost[B_SIDE_PLAYER][i].originalItem;
-
-            // Check if the lost item is a berry and the mon is not holding it
-            if (GetItemPocket(lostItem) == POCKET_BERRIES && GetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM) != lostItem)
-                lostItem = ITEM_NONE;
-
-            // Check if the lost item should be restored
-            if ((lostItem != ITEM_NONE || returnNPCItems) && GetItemPocket(lostItem) != POCKET_BERRIES)
-                SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &lostItem);
+            SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &itemToRestore);
         }
     }
 }

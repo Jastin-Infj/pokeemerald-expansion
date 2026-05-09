@@ -5,12 +5,12 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `6d0578c188`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
-| Code status | Not on `master`; validated branch exists |
+| Baseline | `master` `f5a3b7b6c2`; implementation branch `feature/battle-item-restore-policy` |
+| Code status | Not on `master`; fresh feature branch implementation validated locally |
 | Provenance | Local project feature docs / feature handoff |
 
-Status: Validated branch
-Code status: not on `master`; berry-inclusive battle-end restore exists on `feature/trainer-battle-aftercare-heal` behind `B_RESTORE_HELD_BATTLE_BERRIES` and was user-confirmed in game
+Status: Integration candidate
+Code status: not on `master`; berry-inclusive battle-end restore exists on `feature/battle-item-restore-policy` behind `B_RESTORE_HELD_BATTLE_BERRIES`
 
 ## Goal
 
@@ -39,20 +39,22 @@ Code status: not on `master`; berry-inclusive battle-end restore exists on `feat
 
 既存実装では、`B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9` でも、戦闘後に復元されるのは基本的に非きのみの single-use item だけだった。`src/battle_util.c` の `TryRestoreHeldItems` は、元の持ち物が Berry pocket の場合に復元対象から外していた。
 
-`feature/trainer-battle-aftercare-heal` の実装では `include/config/battle.h` に
-`B_RESTORE_HELD_BATTLE_BERRIES` を追加した。`TRUE` の場合、
+`feature/battle-item-restore-policy` の実装では `include/config/battle.h` に
+`B_RESTORE_HELD_BATTLE_BERRIES` を追加し、この feature branch では default
+`TRUE` にした。`TRUE` の場合、
 `TryRestoreHeldItems()` は戦闘開始時に保存された
 `itemLost[B_SIDE_PLAYER][slot].originalItem` を source of truth として、
 きのみも戦闘終了時に元の party slot へ戻す。
 
 2026-05-09 時点で、直接 unit test、mGBA headless の full battle test、
-mGBA Live MCP boot/input smoke、user の実機/実画面確認で動作確認済み。
+通常 / debug ROM build、mGBA Live MCP boot/input smoke で動作確認済み。
 実装内容と merge handoff は `implementation.md` に固定する。
 
 ただし、`master` へは source を入れない運用に更新済み。次に実装する場合は
-current `master` から fresh feature / integration branch を切り、PR #10 から
-battle item restore の source/test slice だけを再適用する。採用前の確認事項は
-`adoption_investigation_2026_05_09.md` に整理した。
+current `master` から fresh feature / integration branch を切る。今回の branch は
+PR #10 由来の battle item restore source/test slice だけを、aftercare heal hook
+なしで再適用したもの。採用前の確認事項は
+`adoption_investigation_2026_05_09.md` に整理している。
 
 ただし、きのみを戦闘中に「消費しない」扱いへ変えるのは危険。`usedHeldItem` は `Recycle`、`Pickup`、`Harvest`、`Cud Chew`、`G-Max Replenish` の runtime state として使われている。安全な方向は、battle 中は今まで通り消費済みとして扱い、battle end aftercare で元の held item を復元する設計。
 

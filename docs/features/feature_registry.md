@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `6d0578c188`; `git describe` = `expansion/1.15.2-26-g6d0578c188` |
+| Baseline | `master` `f5a3b7b6c2`; `git describe` = `expansion/1.15.2-27-gf5a3b7b6c2` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -26,7 +26,7 @@
 | Topic | Evidence | Master action |
 |---|---|---|
 | No Random Encounters | `feature/no-random-encounters` に 3 file の flag 割り当て実装がある。`master` の `OW_FLAG_NO_ENCOUNTER` はまだ `0`。 | Docs に evidence を残す。実装は `master` へ入れず、必要時に fresh feature / integration branch へ再適用する。 |
-| Trainer Battle Aftercare / Battle Item Restore | `feature/trainer-battle-aftercare-heal` に aftercare heal-only hook、berry-inclusive held item restore、focused tests がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare を分ける場合も `master` ではなく fresh branch で取り込む。 |
+| Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
 
 ### GitHub PR Queue Snapshot (2026-05-09)
@@ -56,7 +56,7 @@ close する。
 |---|---|---|---|---|
 | 0 | `docs/flows/save_data_flow_v15.md` | Planned を維持 | 既に SaveBlock / saved flag 方針は決定済み。実装 item ではなく、各 branch の gate として参照する。 | なし (docs only) |
 | 1 | `docs/features/no_random_encounters/` | Planned → Validated branch / Integration candidate | 影響範囲が最小。`feature/no-random-encounters` の差分は flag rename と config 割り当てのみで、既存 gate / debug toggle を使う。`master` へは実装を入れない。 | save_data flow の flag region 決定済み |
-| 2 | `docs/features/battle_item_restore_policy/` | Validated branch → Integration candidate | focused tests と mGBA / manual evidence が既にある。battle 中の item consumption を変えず、battle-end restore policy だけを入れる。`master` へは実装を入れない。default TRUE/FALSE は実装前に明示確認する。 | なし。aftercare と同一 branch 由来だが独立して取り込む |
+| 2 | `docs/features/battle_item_restore_policy/` | Validated branch → Integration candidate | focused tests と mGBA evidence がある。battle 中の item consumption を変えず、battle-end restore policy だけを入れる。`feature/battle-item-restore-policy` では user 指示どおり `B_RESTORE_HELD_BATTLE_BERRIES` default `TRUE`。`master` へは実装を入れない。 | なし。aftercare と同一旧 branch 由来だが独立して取り込む |
 | 3 | `docs/features/trainer_battle_aftercare/` | Planned / branch implementation → Testing | default off の heal-only hook。battle selection / Champions runtime より先に `CB2_EndTrainerBattle` の guard helper を固める。ただし focused test gate を追加してから採用する。 | battle item restore の取り込み後に競合を避ける |
 | 4 | `docs/features/champions_challenge/` partygen CLI + catalog | Branch implementation → Review / Testing | ROM runtime とは切り離せるが、Rust CLI、catalog、`src/data/trainers.party` の大型差分を含む。generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
 | 5 | `docs/features/battle_selection/` | Investigating → Planned (MVP partygen 抜き) | 一時 `gPlayerParty`、callback chain、battle-end restore ordering が絡むため、aftercare helper が固まってから着手する。 | save_data flow + aftercare ordering |
@@ -141,7 +141,7 @@ feature complete にする前に、最低限次を確認する。
 | Battle Frontier Level Scaling | Investigating | No code changes | `docs/flows/battle_frontier_level_scaling_flow_v15.md` | 現行 Lv.50 course は低レベルを Lv.50 化しない。対戦用に battle-only Lv.50 補正を入れる場合の hook とリスクを整理。 |
 | TM Shop Migration | Investigating | No code changes | `docs/features/tm_shop_migration/` | 50 TM 定義と取得元 flag は別物として整理。`FLAG_RECEIVED_TM_*` 21 件、visible TM item ball flag 14 件、hidden TM item flag 1 件を確認。 |
 | Custom Items / Moves / Abilities | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | constants、data table、UI、battle behavior、AI、tests への影響範囲を横断 map に整理。 |
-| Battle Item Restore Policy | Validated branch | Branch implementation exists; not on `master` | `docs/features/battle_item_restore_policy/` | `feature/trainer-battle-aftercare-heal` に `B_RESTORE_HELD_BATTLE_BERRIES`、`TryRestoreHeldItems()` の berry restore、focused tests、mGBA / manual evidence がある。`master` へは source 未反映。 |
+| Battle Item Restore Policy | Integration candidate | Branch implementation exists; not on `master` | `docs/features/battle_item_restore_policy/` | `feature/battle-item-restore-policy` に `B_RESTORE_HELD_BATTLE_BERRIES` default `TRUE`、`TryRestoreHeldItems()` の berry restore、direct / full battle tests、mGBA Live evidence がある。`master` へは source 未反映。 |
 | Trainer Battle Aftercare / Forced Release | Planned / branch implementation | Heal-only branch implementation exists; not on `master` | `docs/features/trainer_battle_aftercare/` | `feature/trainer-battle-aftercare-heal` に `B_TRAINER_BATTLE_AFTERCARE` default off の通常 trainer battle 勝利後 heal-only hook がある。no-whiteout、forced release、battle selection integration は後続。 |
 | Callback / Dispatch Audit | Investigating | No code changes | `docs/overview/callback_dispatch_map_v15.md` | `SetMainCallback2`、`CB2_*`、`CreateTask`、`ScrCmd_*`、`special`、field callback の確認用 docs。 |
 | Map Script / Flag / Var Audit | Investigating | No code changes | `docs/flows/map_script_flag_var_flow_v15.md` | `map.json`、generated `.inc`、hand-written `scripts.inc`、NPC hide flag、coord/bg event、item ball / hidden item flow を整理。 |
