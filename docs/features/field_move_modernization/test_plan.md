@@ -51,6 +51,16 @@
   - `rtk make -j16 -O check`: PASS.
   - `rtk make -j16 -O debug`: PASS.
   - mGBA Live boot / input check: PASS. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the debug ROM, loaded the save, reached the field, and SELECT without a registered item still showed the existing guidance message. Screenshot at `/tmp/field_kit_fly_fade_boot.png`; session stopped cleanly. `pgrep` showed no `mgba-qt` ROM process after stop.
+  - Manual user validation: PASS. Fly no longer briefly brightened the night field before the region map.
+- Field Kit final manual validation:
+  - Key Items use path: PASS.
+  - SELECT registered key item path: PASS.
+  - Fly / Teleport / Dig order and red Fly label: PASS.
+  - Fly-unavailable Teleport / Dig 2-row frame: PASS.
+  - Standard black window border palette in cave / dark-map contexts: PASS.
+  - Teleport / Dig direct utility start without field brightness flash: PASS.
+  - Fly night fade into region map: PASS.
+  - Remaining visual item: replace placeholder Field Kit item icon / palette.
 
 ## Manual Tests
 

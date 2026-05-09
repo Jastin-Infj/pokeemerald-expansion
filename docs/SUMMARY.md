@@ -45,6 +45,7 @@
     - [Pokemon Stats Manual](manuals/pokemon_stats_manual.md)
     - [Move Data Manual](manuals/move_data_manual.md)
     - [TM/HM Manual](manuals/tm_hm_manual.md)
+    - [Field Kit Icon And Palette Manual](manuals/field_kit_icon_palette_manual.md)
     - [Map / Fly Manual](manuals/map_fly_manual.md)
     - [Message Text Manual](manuals/message_text_manual.md)
 - [Docs Templates]()
