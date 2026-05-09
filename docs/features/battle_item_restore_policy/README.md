@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-09 |
-| Baseline | `master` `8d2664af9a`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
+| Baseline | `master` `6d0578c188`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
 | Code status | Not on `master`; validated branch exists |
 | Provenance | Local project feature docs / feature handoff |
 
@@ -26,6 +26,7 @@ Code status: not on `master`; berry-inclusive battle-end restore exists on `feat
 ## Primary Docs
 
 - `docs/features/battle_item_restore_policy/investigation.md`
+- `docs/features/battle_item_restore_policy/adoption_investigation_2026_05_09.md`
 - `docs/features/battle_item_restore_policy/implementation.md`
 - `docs/features/battle_item_restore_policy/impact_scope.md`
 - `docs/features/battle_item_restore_policy/mvp_plan.md`
@@ -47,6 +48,11 @@ Code status: not on `master`; berry-inclusive battle-end restore exists on `feat
 2026-05-09 時点で、直接 unit test、mGBA headless の full battle test、
 mGBA Live MCP boot/input smoke、user の実機/実画面確認で動作確認済み。
 実装内容と merge handoff は `implementation.md` に固定する。
+
+ただし、`master` へは source を入れない運用に更新済み。次に実装する場合は
+current `master` から fresh feature / integration branch を切り、PR #10 から
+battle item restore の source/test slice だけを再適用する。採用前の確認事項は
+`adoption_investigation_2026_05_09.md` に整理した。
 
 ただし、きのみを戦闘中に「消費しない」扱いへ変えるのは危険。`usedHeldItem` は `Recycle`、`Pickup`、`Harvest`、`Cud Chew`、`G-Max Replenish` の runtime state として使われている。安全な方向は、battle 中は今まで通り消費済みとして扱い、battle end aftercare で元の held item を復元する設計。
 
