@@ -7,12 +7,14 @@
 #include "berry.h"
 #include "berry_powder.h"
 #include "bike.h"
+#include "bg.h"
 #include "coins.h"
 #include "data.h"
 #include "event_data.h"
 #include "event_object_lock.h"
 #include "event_object_movement.h"
 #include "event_scripts.h"
+#include "field_move.h"
 #include "fieldmap.h"
 #include "field_effect.h"
 #include "field_player_avatar.h"
@@ -35,6 +37,7 @@
 #include "party_menu.h"
 #include "pokeblock.h"
 #include "pokemon.h"
+#include "region_map.h"
 #include "script.h"
 #include "sound.h"
 #include "strings.h"
@@ -42,10 +45,13 @@
 #include "task.h"
 #include "text.h"
 #include "vs_seeker.h"
+#include "window.h"
 #include "constants/event_bg.h"
 #include "constants/event_objects.h"
+#include "constants/field_move.h"
 #include "constants/item_effects.h"
 #include "constants/items.h"
+#include "constants/rgb.h"
 #include "constants/songs.h"
 
 static void SetUpItemUseCallback(u8);
@@ -79,6 +85,10 @@ static void Task_CloseCantUseKeyItemMessage(u8);
 static void SetDistanceOfClosestHiddenItem(u8, s16, s16);
 static void CB2_OpenPokeblockFromBag(void);
 static void ItemUseOnFieldCB_Honey(u8 taskId);
+static void ItemUseOnFieldCB_FieldKit(u8 taskId);
+static void Task_FieldKitMenuHandleInput(u8 taskId);
+static void Task_FieldKitMenuOpenFlyMap(u8 taskId);
+static void Task_FieldKitMenuReturnToField(u8 taskId);
 static bool32 IsValidLocationForVsSeeker(void);
 
 static const u8 sText_CantDismountBike[] = _("You can't dismount your BIKE here.{PAUSE_UNTIL_PRESS}");
@@ -95,6 +105,9 @@ static const u8 sText_UsedVar2WildRepelled[] = _("{PLAYER} used the\n{STR_VAR_2}
 static const u8 sText_PlayedPokeFluteCatchy[] = _("Played the POKé FLUTE.\pNow, that's a catchy tune!{PAUSE_UNTIL_PRESS}");
 static const u8 sText_PlayedPokeFlute[] = _("Played the POKé FLUTE.");
 static const u8 sText_PokeFluteAwakenedMon[] = _("The POKé FLUTE awakened sleeping\nPOKéMON.{PAUSE_UNTIL_PRESS}");
+static const u8 sText_FieldKitFly[] = _("{COLOR RED}Fly");
+static const u8 sText_FieldKitTeleport[] = _("Teleport");
+static const u8 sText_FieldKitDig[] = _("Dig");
 
 // EWRAM variables
 EWRAM_DATA static TaskFunc sItemUseOnFieldCB = NULL;
@@ -1501,6 +1514,215 @@ void ItemUseOutOfBattle_Honey(u8 taskId)
     gBagMenu->newScreenCallback = CB2_ReturnToField;
     Task_FadeAndCloseBagMenu(taskId);
 }
+
+#define tFieldKitWindowId     data[8]
+#define tFieldKitActionCount  data[9]
+#define tFieldKitAction0      data[10]
+#define tFieldKitAction1      data[11]
+#define tFieldKitAction2      data[12]
+
+enum FieldKitMenuAction
+{
+    FIELD_KIT_ACTION_FLY,
+    FIELD_KIT_ACTION_TELEPORT,
+    FIELD_KIT_ACTION_DIG,
+};
+
+static const u8 *const sFieldKitMenuActionTexts[] =
+{
+    [FIELD_KIT_ACTION_FLY] = sText_FieldKitFly,
+    [FIELD_KIT_ACTION_TELEPORT] = sText_FieldKitTeleport,
+    [FIELD_KIT_ACTION_DIG] = sText_FieldKitDig,
+};
+
+static const struct WindowTemplate sFieldKitMenuWindowTemplate =
+{
+    .bg = 0,
+    .tilemapLeft = 19,
+    .tilemapTop = 1,
+    .width = 10,
+    .height = 8,
+    .paletteNum = 15,
+    .baseBlock = 0x1,
+};
+
+static bool32 FieldKit_CanUseFly(void)
+{
+    return IsFieldMoveUnlocked(FIELD_MOVE_FLY);
+}
+
+static void FieldKit_AddMenuAction(struct Task *task, enum FieldKitMenuAction action)
+{
+    switch (task->tFieldKitActionCount++)
+    {
+    case 0:
+        task->tFieldKitAction0 = action;
+        break;
+    case 1:
+        task->tFieldKitAction1 = action;
+        break;
+    case 2:
+        task->tFieldKitAction2 = action;
+        break;
+    }
+}
+
+static enum FieldKitMenuAction FieldKit_GetMenuAction(struct Task *task, u8 index)
+{
+    switch (index)
+    {
+    case 0:
+        return task->tFieldKitAction0;
+    case 1:
+        return task->tFieldKitAction1;
+    default:
+        return task->tFieldKitAction2;
+    }
+}
+
+static void FieldKit_CloseMenuWindow(u8 taskId)
+{
+    u8 windowId = gTasks[taskId].tFieldKitWindowId;
+
+    ClearStdWindowAndFrameToTransparent(windowId, TRUE);
+    RemoveWindow(windowId);
+    ScheduleBgCopyTilemapToVram(0);
+}
+
+static void FieldKit_PrintMenuActions(u8 taskId)
+{
+    struct Task *task = &gTasks[taskId];
+    u8 i;
+
+    for (i = 0; i < task->tFieldKitActionCount; i++)
+    {
+        enum FieldKitMenuAction action = FieldKit_GetMenuAction(task, i);
+        AddTextPrinterParameterized(task->tFieldKitWindowId, FONT_NORMAL, sFieldKitMenuActionTexts[action], 8, 1 + (i * 16), TEXT_SKIP_DRAW, NULL);
+    }
+    CopyWindowToVram(task->tFieldKitWindowId, COPYWIN_GFX);
+}
+
+static void FieldKit_InitSelectedMon(void)
+{
+    gSelectedMonPartyId = 0;
+    gPartyMenu.slotId = 0;
+}
+
+static void FieldKit_CancelMenu(u8 taskId)
+{
+    FieldKit_CloseMenuWindow(taskId);
+    DestroyTask(taskId);
+    ScriptUnfreezeObjectEvents();
+    UnlockPlayerFieldControls();
+}
+
+static void FieldKit_ShowCannotUseMessage(u8 taskId)
+{
+    FieldKit_CloseMenuWindow(taskId);
+    DisplayDadsAdviceCannotUseItemMessage(taskId, TRUE);
+}
+
+static void FieldKit_StartFieldCallback(u8 taskId)
+{
+    FieldKit_CloseMenuWindow(taskId);
+    FieldKit_InitSelectedMon();
+    BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+    gTasks[taskId].func = Task_FieldKitMenuReturnToField;
+}
+
+static void FieldKit_StartFlyMap(u8 taskId)
+{
+    FieldKit_CloseMenuWindow(taskId);
+    FieldKit_InitSelectedMon();
+    BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+    gTasks[taskId].func = Task_FieldKitMenuOpenFlyMap;
+}
+
+static void Task_FieldKitMenuOpenFlyMap(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        SetMainCallback2(CB2_OpenFlyMapFromField);
+        DestroyTask(taskId);
+    }
+}
+
+static void Task_FieldKitMenuReturnToField(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        SetMainCallback2(CB2_ReturnToField);
+        DestroyTask(taskId);
+    }
+}
+
+static void Task_FieldKitMenuHandleInput(u8 taskId)
+{
+    s8 input = Menu_ProcessInputNoWrap();
+
+    if (input == MENU_NOTHING_CHOSEN)
+        return;
+
+    if (input == MENU_B_PRESSED)
+    {
+        FieldKit_CancelMenu(taskId);
+        return;
+    }
+
+    switch (FieldKit_GetMenuAction(&gTasks[taskId], input))
+    {
+    case FIELD_KIT_ACTION_FLY:
+        if (FieldKit_CanUseFly() && SetUpFieldMove_Fly())
+            FieldKit_StartFlyMap(taskId);
+        else
+            FieldKit_ShowCannotUseMessage(taskId);
+        break;
+    case FIELD_KIT_ACTION_TELEPORT:
+        if (SetUpFieldMove_Teleport())
+            FieldKit_StartFieldCallback(taskId);
+        else
+            FieldKit_ShowCannotUseMessage(taskId);
+        break;
+    case FIELD_KIT_ACTION_DIG:
+        if (SetUpFieldMove_Dig())
+            FieldKit_StartFieldCallback(taskId);
+        else
+            FieldKit_ShowCannotUseMessage(taskId);
+        break;
+    }
+}
+
+static void ItemUseOnFieldCB_FieldKit(u8 taskId)
+{
+    struct Task *task = &gTasks[taskId];
+    struct WindowTemplate windowTemplate = sFieldKitMenuWindowTemplate;
+
+    task->tFieldKitActionCount = 0;
+    if (FieldKit_CanUseFly())
+        FieldKit_AddMenuAction(task, FIELD_KIT_ACTION_FLY);
+    FieldKit_AddMenuAction(task, FIELD_KIT_ACTION_TELEPORT);
+    FieldKit_AddMenuAction(task, FIELD_KIT_ACTION_DIG);
+
+    windowTemplate.height = 2 + (task->tFieldKitActionCount * 2);
+    task->tFieldKitWindowId = AddWindow(&windowTemplate);
+    DrawStdWindowFrame(task->tFieldKitWindowId, FALSE);
+    FieldKit_PrintMenuActions(taskId);
+    InitMenuNormal(task->tFieldKitWindowId, FONT_NORMAL, 0, 1, 16, task->tFieldKitActionCount, 0);
+    CopyWindowToVram(task->tFieldKitWindowId, COPYWIN_FULL);
+    task->func = Task_FieldKitMenuHandleInput;
+}
+
+void ItemUseOutOfBattle_FieldKit(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_FieldKit;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+#undef tFieldKitWindowId
+#undef tFieldKitActionCount
+#undef tFieldKitAction0
+#undef tFieldKitAction1
+#undef tFieldKitAction2
 
 void ItemUseOutOfBattle_CannotUse(u8 taskId)
 {

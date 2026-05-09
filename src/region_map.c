@@ -14,6 +14,7 @@
 #include "international_string_util.h"
 #include "strings.h"
 #include "text_window.h"
+#include "field_screen_effect.h"
 #include "constants/songs.h"
 #include "m4a.h"
 #include "field_effect.h"
@@ -80,6 +81,8 @@ static EWRAM_DATA struct {
     bool8 choseFlyLocation;
 } *sFlyMap = NULL;
 
+static EWRAM_DATA MainCallback sFlyMapCancelCallback = NULL;
+
 static bool32 sDrawFlyDestTextWindow;
 
 static u8 ProcessRegionMapInput_Full(void);
@@ -107,6 +110,8 @@ static void SpriteCB_PlayerIconMapFull(struct Sprite *sprite);
 static void SpriteCB_PlayerIcon(struct Sprite *sprite);
 static void VBlankCB_FlyMap(void);
 static void CB2_FlyMap(void);
+static void CB2_OpenFlyMapInternal(MainCallback cancelCallback);
+static void CB2_ReturnToFieldFromFlyMap(void);
 static void SetFlyMapCallback(void callback(void));
 static void DrawFlyDestTextWindow(void);
 static void LoadFlyDestIcons(void);
@@ -1944,6 +1949,19 @@ bool32 IsEventIslandMapSecId(mapsec_u8_t mapSecId)
 
 void CB2_OpenFlyMap(void)
 {
+    CB2_OpenFlyMapInternal(CB2_ReturnToPartyMenuFromFlyMap);
+}
+
+void CB2_OpenFlyMapFromField(void)
+{
+    CB2_OpenFlyMapInternal(CB2_ReturnToFieldFromFlyMap);
+}
+
+static void CB2_OpenFlyMapInternal(MainCallback cancelCallback)
+{
+    if (gMain.state == 0)
+        sFlyMapCancelCallback = cancelCallback;
+
     switch (gMain.state)
     {
     case 0:
@@ -1960,7 +1978,13 @@ void CB2_OpenFlyMap(void)
         sFlyMap = Alloc(sizeof(*sFlyMap));
         if (sFlyMap == NULL)
         {
-            SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
+            MainCallback callback = sFlyMapCancelCallback;
+
+            sFlyMapCancelCallback = NULL;
+            if (callback != NULL)
+                SetMainCallback2(callback);
+            else
+                SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
         }
         else
         {
@@ -2047,6 +2071,12 @@ static void CB2_FlyMap(void)
     AnimateSprites();
     BuildOamBuffer();
     DoScheduledBgTilemapCopiesToVram();
+}
+
+static void CB2_ReturnToFieldFromFlyMap(void)
+{
+    gFieldCallback = FieldCB_ReturnToFieldNoScript;
+    CB2_ReturnToField();
 }
 
 static void SetFlyMapCallback(void callback(void))
@@ -2490,8 +2520,12 @@ static void CB_ExitFlyMap(void)
             }
             else
             {
-                SetMainCallback2(CB2_ReturnToPartyMenuFromFlyMap);
+                if (sFlyMapCancelCallback != NULL)
+                    SetMainCallback2(sFlyMapCancelCallback);
+                else
+                    SetMainCallback2(CB2_ReturnToPartyMenuFromFlyMap);
             }
+            sFlyMapCancelCallback = NULL;
             TRY_FREE_AND_SET_NULL(sFlyMap);
             FreeAllWindowBuffers();
         }
