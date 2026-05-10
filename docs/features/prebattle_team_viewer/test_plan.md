@@ -5,17 +5,17 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-10 |
-| Baseline | `feature/prebattle-team-viewer-phase2` |
-| Code status | Phase 2 integrated selection implemented; build/check and focused mGBA route passed |
+| Baseline | `master` `7c19f56901`; `git describe` = `expansion/1.15.2-38-g7c19f56901` |
+| Code status | MVP implemented; layout polish build/check and focused mGBA route passed |
 | Provenance | Local project feature docs |
 
 ## Current Validation
 
-2026-05-10 Phase 2 implementation branch.
+2026-05-10 MVP implementation branch.
 
 | Check | Result | Notes |
 |---|---|---|
-| Branch baseline review | Pass | Continued on `feature/prebattle-team-viewer-phase2`, originally created from current `master` lineage. |
+| Branch baseline review | Pass | Created `feature/prebattle-team-viewer` from current `master`. |
 | Previous selection branch review | Pass | Use source slice only; do not merge old branch wholesale. |
 | Legacy console web reference review | Pass | Colosseum / XD / Battle Revolution notes added as secondary references. |
 | Battle selection source reapply | Pass | Reapplied source slice from `feature/battle-selection-mvp`; did not merge old branch docs. |
@@ -31,18 +31,15 @@
 | User manual footer / hint check | Fail -> fixed | Pre-battle footer split and prompt lines were lowered for more room. In-battle viewer footer now always says read-only, and the battle action menu shows a small 32x32 `R / TEAM / INFO` hint so the shortcut is visible. |
 | User manual hint animation check | Fail -> fixed | `TEAM INFO` now mirrors the `MOVE INFO` slide model: X = -14 to X = 14 on show, then back to X = -14 before freeing. Stale active state after Bag / menu sprite resets is detected by tile-tag presence and rebuilt on action-menu return. |
 | Icon-grid follow-up | Pass | Team rows use Pokemon icon sprites with compact slot-only pre-battle labels instead of name-heavy text rows; side labels moved into the top header to avoid icon overlap. |
-| Legacy strength-panel follow-up | Superseded | Earlier player-side footer details were validated, then replaced by the standard Pokemon Summary shortcut. Opponent private details remain hidden. |
-| Opponent public-detail cursor follow-up | Pass | Opponent-side `SELECT` detail footer remains lightweight/public-only and continues to update with cursor movement. |
-| Phase 2 integrated selection | Pass | Pre-battle viewer owns selection state. `A` toggles player-side picks, `START` confirms at required count, and the existing selection compression/restore path starts the battle. |
-| Phase 2 pick-order marker | Pass | Selected player slots replace the slot number with the selected order number and draw a compact low-contrast cream/orange marker. Slot 6 picked first displays `1`, not `P1` or `6`; marker/text offsets are tunable relative to the label origin, and the text printer uses transparent background / shadow so it does not paint over the marker. |
-| Player Summary transition | Pass | Player-side `SELECT` opens the existing normal Summary screen on the skills/status page, then `B` returns to the integrated viewer with selection state intact. Default mode locks move reordering; `TEAM_VIEWER_SUMMARY_ALLOW_MOVE_REORDER` can opt into normal behavior. |
+| Strength-panel follow-up | Pass | Player-side details now place item near the nickname, abbreviate labels to avoid overlap, and show all four moves. Opponent private details remain hidden. |
+| Strength-panel cursor follow-up | Pass | Pre-battle `SELECT` details now remain open while D-pad moves the cursor, and the footer updates to the newly highlighted Pokemon. |
 | In-battle viewer layout follow-up | Pass | In-battle grid labels are hidden and use the same thin white window style as pre-battle. |
 | Selection back path | Pass | Team-viewer-owned choose-half selection now uses `B` to return to the cached team viewer. |
-| Debug validation route | Pass | Added debug-only `Party -> Team Viewer Battle` and `Party -> Team Viewer W`, which give the player six mons with moves and start repeatable single / double trainer routes that exercise viewer -> selection -> battle. |
-| `rtk git diff --check` | Pass | No whitespace errors after W debug route and MoveInfo-aligned double hint positioning. |
-| `rtk make -j16 -O all` | Pass | Normal ROM built after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning only. |
-| `rtk make -j16 -O debug` | Pass | Debug ROM built after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning only. |
-| `rtk make -j16 -O check` | Pass | Test/check target passed after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning plus existing known learnset KNOWN_FAILING line only. |
+| Debug validation route | Pass | Added debug-only `Party -> Team Viewer Battle`, which gives the player six mons with moves and starts a normal trainer battle route that exercises viewer -> selection -> battle. |
+| `rtk git diff --check` | Pass | No whitespace errors after layout polish and docs updates. |
+| `rtk make -j16 -O all` | Pass | Normal ROM built after palette-slot and return-redraw fixes; existing linker RWX warning only. |
+| `rtk make -j16 -O debug` | Pass | Debug ROM built after adding the focused validation route; existing linker RWX warning only. |
+| `rtk make -j16 -O check` | Pass | Test/check target passed after palette-slot and return-redraw fixes; existing linker RWX warning only. |
 | mGBA Live focused route | Pass | Session `prebattle-team-viewer-real-route` booted the ROM, entered debug menu, selected `Party -> Team Viewer Battle`, confirmed pre-battle viewer, selected three mons, reached trainer battle, opened in-battle viewer with `R`, and returned with `B` to a visible action menu. |
 | mGBA screenshots | Pass | `/tmp/prebattle-team-viewer-real-prebattle.png`, `/tmp/prebattle-team-viewer-real-action-menu.png`, `/tmp/prebattle-team-viewer-real-inbattle.png`, `/tmp/prebattle-team-viewer-real-return.png`. |
 | mGBA Live read-only regression | Pass | Session `prebattle-team-viewer-readonly-route` confirmed action-menu `R` opens the viewer, D-pad / `SELECT` do not change screens, `A` close returns to action menu, and held `A` after close does not enter Fight / move selection. |
@@ -53,18 +50,6 @@
 | mGBA Team Info slide screenshots | Pass | `/tmp/prebattle-team-viewer-team-info-slide-v4-action.png`, `/tmp/prebattle-team-viewer-team-info-slide-v4-bag-no-residue.png`, `/tmp/prebattle-team-viewer-team-info-slide-v4-bag-return.png`, `/tmp/prebattle-team-viewer-team-info-slide-v4-fight-moveinfo.png`, `/tmp/prebattle-team-viewer-team-info-slide-v4-r-viewer.png`. |
 | mGBA Live details persistence route | Pass | Session `prebattle-team-viewer-details-persist` confirmed `SELECT` details stay open while moving right / left through opponent slots and across to player side. |
 | mGBA details screenshots | Pass | `/tmp/prebattle-team-viewer-details-persist-initial.png`, `/tmp/prebattle-team-viewer-details-persist-after-right.png`, `/tmp/prebattle-team-viewer-details-persist-after-left.png`, `/tmp/prebattle-team-viewer-details-persist-player-side.png`. |
-| mGBA Live Summary / Phase 2 marker route | Pass | Session `prebattle-team-viewer-summary-marker` confirmed `SELECT` opens the Summary skills/status page, `B` returns to viewer, slot 6 selected first changes to orange-brown `1` on a smaller cream marker, three selected markers display `2`, `3`, `1` by pick order, and `START` reaches trainer battle. |
-| mGBA Summary / Phase 2 screenshots | Pass | `/tmp/prebattle-team-viewer-summary-marker-start.png`, `/tmp/prebattle-team-viewer-summary-skills-page.png`, `/tmp/prebattle-team-viewer-summary-marker-slot6-first.png`, `/tmp/prebattle-team-viewer-summary-marker-three-selected.png`, `/tmp/prebattle-team-viewer-summary-marker-battle-start.png`. |
-| mGBA Live marker-adjust route | Pass | Session `prebattle-team-viewer-marker-adjust` confirmed the adjusted slot-6-first marker is shifted right/up enough to avoid the lower window edge, player-side `SELECT` opens the existing Summary skills/status page, and `B` returns to the viewer with pick-order state intact. |
-| mGBA marker-adjust screenshots | Pass | `/tmp/prebattle-team-viewer-marker-adjust-slot6-first.png`, `/tmp/prebattle-team-viewer-marker-adjust-summary-skills.png`. |
-| mGBA Live transparent-text route | Pass | Session `prebattle-team-viewer-transparent-text` confirmed slot 6 selected first keeps the cream marker while the pick-order text uses transparent background / shadow, so text rendering does not add another filled patch. |
-| mGBA transparent-text screenshot | Pass | `/tmp/prebattle-team-viewer-transparent-text-slot6-first.png`. |
-| mGBA Live initial Summary layout route | Pass | Session `prebattle-team-viewer-summary-initial-layout` confirmed the first player-side `SELECT` from the viewer opens the existing Summary skills/status page without layout corruption, and `B` returns to the viewer. |
-| mGBA initial Summary layout screenshot | Pass | `/tmp/prebattle-team-viewer-summary-initial-layout-fixed.png`. |
-| mGBA Live Summary info regression route | Pass | Session `prebattle-team-viewer-summary-info-layout-fixed` confirmed `SELECT` opens `POKEMON SKILLS`, `LEFT` returns to `POKEMON INFO` without the skills background remaining, `RIGHT` returns to `POKEMON SKILLS`, and `B` returns to the viewer. |
-| mGBA Summary info regression screenshots | Pass | `/tmp/prebattle-team-viewer-summary-info-layout-skills-fixed.png`, `/tmp/prebattle-team-viewer-summary-info-layout-info-fixed.png`. |
-| mGBA Live W / double debug route | Pass | Session `prebattle-team-viewer-w-debug3` used `Party -> Team Viewer W`, selected 4/4 Pokemon in the integrated viewer, reached Amy & Liv's double battle action menu, confirmed the `R / TEAM / INFO` hint, and opened the in-battle viewer with `R`. Session `prebattle-team-viewer-w-moveinfo-aligned` rechecked the action hint after restoring the double Y coordinate to match MoveInfo. |
-| mGBA W / double screenshots | Pass | `/tmp/prebattle-team-viewer-w-debug-route-start.png`, `/tmp/prebattle-team-viewer-w-debug-four-selected.png`, `/tmp/prebattle-team-viewer-w-debug-battle-intro.png`, `/tmp/prebattle-team-viewer-w-debug-action-hint.png`, `/tmp/prebattle-team-viewer-w-debug-inbattle-viewer.png`, `/tmp/prebattle-team-viewer-w-debug-moveinfo-aligned-action-hint.png`. |
 | mGBA cleanup | Pass | `mgba_live_stop` returned `stopped:true`; `mgba_live_status(all=true)` returned `[]`. |
 
 ## Required Build Checks After Implementation
@@ -87,15 +72,14 @@
 | Opponent static party | non-pool trainer | Viewer species match battle enemy party. |
 | Opponent pool party | trainer with `Party Size` / pool | Viewer species/order match battle enemy party exactly. |
 | Override trainer | trainer with `overrideTrainer` | Viewer uses the same effective party as battle. |
-| Viewer pick | highlight eligible player Pokemon and press A | Toggles selected state. Selected label becomes pick order number with yellow/orange marker. |
-| Viewer unpick | press A on an already selected player Pokemon | Removes that Pokemon from selected order and compacts later pick-order labels. |
-| Viewer confirm too early | press START before required count | Failure beep; no battle starts. |
-| Viewer confirm ready | press START after required count | Starts battle once through the existing selection compression/restore path. |
-| Viewer B / cancel | press B in pre-battle viewer | Trainerbattle script does not escape. Pre-battle viewer remains the selection surface; in-battle viewer closes with `B`. |
+| Viewer confirm | press A | Moves to selection without starting battle twice. |
+| Viewer B / cancel | press B in viewer | No trainerbattle script escape. Pre-battle viewer continues via `A`; in-battle viewer closes with `B`. |
+| Selection B / back | press B from the choose-half selection menu after the viewer | Returns to the cached team viewer, preserving the opponent preview cache. |
 | Viewer icon layout | open viewer | Player and opponent sides show Pokemon icons in a 3x2 grid with slot-only labels; header labels do not overlap icons; footer area is not corrupted. |
 | Viewer cursor movement | move through both sides with D-pad | Divider / label area does not visibly blank, and Pokemon icons do not disappear or jump during cursor movement. |
-| Player Summary view | highlight player mon and press `SELECT` | Standard Pokemon Summary opens directly on the skills/status page. `B` returns to the viewer with pick-order state preserved. |
-| Opponent public detail view | highlight opponent mon and press `SELECT` | MVP shows public summary only unless official Champions behavior is verified to expose more. |
+| Pre-battle strength view | highlight player mon and press `SELECT` | Detail view opens with known player-side details: nickname/species, `LV.`, held item, type, ability, and four moves. Detail labels are abbreviated and should not overlap. GBA maps the Champions `Y` reference to `B_TEAM_VIEWER_DETAILS_BUTTON`. |
+| Pre-battle strength cursor movement | press `SELECT`, then move cursor with D-pad | Detail view remains open and updates to the newly highlighted Pokemon / side until `SELECT` is pressed again. |
+| Opponent strength view | highlight opponent mon and press `SELECT` | MVP shows public summary only unless official Champions behavior is verified to expose more. |
 | In-battle viewer shortcut | at player action menu, press configured button | Read-only viewer opens with white thin-frame windows and shows selected player team plus cached opponent team. |
 | In-battle shortcut hint | at player action menu | A small 32x32 `R / TEAM / INFO` sprite appears near the left side of the battlefield with the same background style as `MOVE INFO`, and disappears before any normal action dispatch or viewer entry. |
 | In-battle shortcut hint animation | enter / leave action menu, open Bag, return from Bag, choose Fight | Hint slides in like `MOVE INFO`, slides out or is cleared before non-action-menu screens, recreates after Bag return, and does not overlap the move menu after Fight. |
@@ -132,7 +116,7 @@ Implementation handoff should record:
 - exact trainer used for single and double checks,
 - button used for in-battle viewer and any shortcut conflicts observed,
 - screenshot evidence that the icon grid and footer render without corruption,
-- whether integrated viewer pick / unpick / confirm works,
+- whether `B` from selection reopens the cached team viewer,
 - whether pool / random party identity was confirmed,
 - whether `Y` / detail view was validated pre-battle; in-battle detail is intentionally disabled,
 - whether opponent hidden details were intentionally hidden or officially confirmed public,

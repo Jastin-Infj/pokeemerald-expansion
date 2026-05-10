@@ -11,8 +11,7 @@
 
 ## Branch Baseline Check
 
-Initial work started from `master` `7c19f56901` on `feature/prebattle-team-viewer`;
-Phase 2 continued on `feature/prebattle-team-viewer-phase2`.
+Current work started from `master` `7c19f56901` on `feature/prebattle-team-viewer`.
 The previous selection branch exists at `feature/battle-selection-mvp`, but it is not a
 safe implementation base.
 
