@@ -34,6 +34,7 @@ Validated branch on `feature/battle-selection-mvp`.
 | `risks.md` | 危険箇所と対策候補 |
 | `test_plan.md` | 将来実装時の検証項目 |
 | `opponent_party_and_randomizer.md` | 相手 party preview、Trainer Party Pools、party randomize / reorder 調査 |
+| `../prebattle_team_viewer/README.md` | battle 前 team viewer / opponent preview の後続 feature |
 | `docs/flows/trainer_battle_flow_v15.md` | trainer battle 開始前後の flow |
 | `docs/flows/choose_half_party_flow_v15.md` | 既存選出 UI flow |
 | `docs/flows/battle_start_end_flow_v15.md` | battle start/end と party 復元の flow |
@@ -44,7 +45,8 @@ Validated branch on `feature/battle-selection-mvp`.
 ## Non-Goals for First MVP
 
 - Pokémon Champions 風の専用選出 UI。
-- 相手 party preview。
+- 相手 party preview。後続 feature は
+  [Pre-Battle / In-Battle Team Viewer](../prebattle_team_viewer/README.md) で扱う。
 - link battle / cable club / Battle Frontier / Union Room の挙動変更。
 - two trainers / follower partner / multi battle の完全対応。
 - `gEnemyParty` 作成 timing の変更。
@@ -60,7 +62,7 @@ Validated branch on `feature/battle-selection-mvp`.
 | normal double trainer battle | eligible party が 5 匹以上なら 4 匹を選出してから battle を開始する。 |
 | egg / fainted / empty slot | 通常 trainer battle selection では選出不可。 |
 | selected mons | battle 中だけ `gPlayerParty[0..selectedCount-1]` に詰める。 |
-| Cancel / B button | 通常 trainer encounter の script 復帰先が曖昧なため、trainer battle selection 中は無効。 |
+| Cancel / B button | standalone selection では無効。`prebattle_team_viewer` owner 経由で開いた場合のみ、`B` は cached team viewer へ戻る。 |
 | battle end | battle 後状態を元 slot へ反映し、元 party 順へ復元する。 |
 | Frontier / link / Union Room / partner / two trainers / Pyramid / Hill | MVP 対象外として既存 flow を維持する。 |
 
@@ -76,7 +78,9 @@ Validated branch on `feature/battle-selection-mvp`.
 ## Open Questions
 
 - battle transition animation 中に player / NPC trainer sprite が一瞬黒い影のように見える cosmetic issue を polish するか。
-- 相手 party preview を実装する場合、Trainer Party Pools / randomize / override 反映済み party をどの timing で安全に得るか。
+- 相手 party preview / team viewer は `prebattle_team_viewer` 側で扱う。Trainer
+  Party Pools / randomize / override 反映済み party を preview と本戦で一致させる
+  cache 設計が必要。
 - custom selection UI を作る場合、既存 choose-half UI からどこまで置き換えるか。
 
 ## Cross-Feature Notes

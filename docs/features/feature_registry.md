@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `835520e444`; `git describe` = `expansion/1.15.2-32-g835520e444` |
+| Last reviewed | 2026-05-10 |
+| Baseline | `master` `7c19f56901`; `git describe` = `expansion/1.15.2-38-g7c19f56901` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -29,6 +29,7 @@
 | Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
 | Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
+| Pre-Battle / In-Battle Team Viewer | `feature/prebattle-team-viewer` で battle selection source slice を current `master` に再適用し、opponent party cache、icon-grid pre-battle viewer、battle 中 action-menu viewer、selection `B` -> viewer return を実装。 | Debug-only `Team Viewer Battle` route で viewer -> selection -> trainer battle -> in-battle viewer -> action-menu return を mGBA 確認済み。 |
 
 ### GitHub PR Queue Snapshot (2026-05-09)
 
@@ -62,11 +63,12 @@ close する。
 | 3 | `docs/features/trainer_battle_aftercare/` | Planned / branch implementation → Testing | default off の heal-only hook。battle selection / Champions runtime より先に `CB2_EndTrainerBattle` の guard helper を固める。ただし focused test gate を追加してから採用する。 | battle item restore の取り込み後に競合を避ける |
 | 4 | `docs/features/champions_challenge/` partygen CLI + catalog | Branch implementation → Review / Testing | ROM runtime とは切り離せるが、Rust CLI、catalog、`src/data/trainers.party` の大型差分を含む。generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
 | 5 | `docs/features/battle_selection/` | Planned → Testing | `feature/battle-selection-mvp` に normal trainer battle の 3/4 匹選出 MVP がある。selection UI runtime manual check と restore matrix を残して testing に進める。 | save_data flow + battle-end restore ordering |
-| 6 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
-| 7 | `docs/features/field_move_modernization/` | Planned → Slice 1 Implementing | Cut / Rock Smash / Strength / Flash の object interaction から小さく進められる。battle 系とは独立だが field runtime と HM forget policy の確認が必要。 | bag_expansion は per-HM item 化する場合のみ先行 |
-| 8 | `docs/features/tm_shop_migration/` | Investigating → Planned | data / script 変更中心だが、販売時期、NPC reward 置換、item ball flag、TM/HM pocket model の整合を先に詰める。 | bag_expansion または virtual TM ownership decision |
-| 9 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
-| 10 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / aftercare ordering |
+| 6 | `docs/features/prebattle_team_viewer/` | Implemented MVP → Focused runtime validated | ユーザー要望の「相手6体を見てから選出する」画面と、battle 中にボタンで開く read-only team view。icon-grid、BG corruption、OBJ display、window-buffer、battle palette、callback1 pause、action-menu return / held-key guard 後の build/check と mGBA focused route は通過。 | double battle / trainer pool visual validation |
+| 7 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
+| 8 | `docs/features/field_move_modernization/` | Planned → Slice 1 Implementing | Cut / Rock Smash / Strength / Flash の object interaction から小さく進められる。battle 系とは独立だが field runtime と HM forget policy の確認が必要。 | bag_expansion は per-HM item 化する場合のみ先行 |
+| 9 | `docs/features/tm_shop_migration/` | Investigating → Planned | data / script 変更中心だが、販売時期、NPC reward 置換、item ball flag、TM/HM pocket model の整合を先に詰める。 | bag_expansion または virtual TM ownership decision |
+| 10 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
+| 11 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / team_viewer / aftercare ordering |
 
 このリストは branch 切り替え時に必ず読む。実装着手で順序が変わった場合はこの section を更新する。
 

@@ -9,7 +9,7 @@
 |---|---|---|---|
 | battle item restore adoption defaults | `docs/features/battle_item_restore_policy/` | PR #10 source uses `B_RESTORE_HELD_BATTLE_BERRIES TRUE`, while conservative branch policy may prefer default off. | Decide default TRUE/FALSE before source re-apply; keep the decision in `adoption_investigation_2026_05_09.md` and `mvp_plan.md`. |
 | trainer aftercare focused test gate | `docs/features/trainer_battle_aftercare/` | The source hook is small but touches `CB2_EndTrainerBattle`, a central callback for win/loss/facility return. | Add focused config-off, normal-win, and exclusion-path tests before adopting the aftercare slice. |
-| opponent preview / team display impact | `docs/features/battle_selection/` | MVP からは分離するが、後続で preview と battle 実体を一致させる必要がある。 | `gEnemyParty` 生成 timing、seed、pool randomize 再現性を調査する。 |
+| prebattle team viewer double / pool validation | `docs/features/prebattle_team_viewer/` | Single trainer focused route は debug-only `Team Viewer Battle` で mGBA 確認済み。残りは double 4-of-6 と trainer pool / randomized party の preview-cache一致確認。 | double battle 用 debug route か prepared save を用意し、cached opponent party と battle 実体の一致を確認する。 |
 
 ### Resolved (2026-05-05)
 

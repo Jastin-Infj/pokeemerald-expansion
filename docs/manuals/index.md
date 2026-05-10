@@ -28,6 +28,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | --- | --- | --- |
 | docs の置き場、manual / tutorial / feature の境界を確認したい | [Docs Navigation Manual](docs_navigation.md) | `docs/manuals/`, `docs/tutorials/`, `docs/features/` |
 | docs の調査日、baseline、由来、GitHub で見やすい Markdown ルールを確認したい | [Docs Markdown Policy](docs_markdown_policy.md) | `docs/manuals/`, `docs/features/`, `docs/flows/` |
+| 外部 ROM hack / GitHub / PokeCommunity / Discord / asset credit の調査ルールを確認したい | [External Reference And Credit Workflow](external_reference_credit_workflow.md) | GitHub, PokeCommunity, Hackdex, Discord, DeviantArt 等の外部 reference |
 | 最新 docs audit と既知の矛盾修正を確認したい | [Docs Audit 2026-05-09](docs_audit_2026_05_09.md) | docs metadata, baseline notes |
 | build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
 | mGBA Live MCP の設定、起動確認、失敗時の記録方法を確認したい | [mGBA Live MCP Manual](mgba_live_mcp_manual.md) | `docs/tools/mgba_live_*`, feature `test_plan.md` |
