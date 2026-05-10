@@ -5,23 +5,19 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-10 |
-| Baseline | `feature/prebattle-team-viewer` |
-| Code status | Future-work checklist; not implemented in the MVP |
+| Baseline | `feature/prebattle-team-viewer-phase2` |
+| Code status | Implemented on Phase 2 branch; W / double debug route validated, pool validation remains follow-up |
 | Provenance | User feedback and local implementation handoff notes |
 
 ## Purpose
 
-The MVP intentionally uses a two-screen flow:
+The original MVP used a two-screen flow: team viewer first, then the existing
+choose-half selection screen. Phase 2 replaces that with an integrated selector:
+select 3 for singles or 4 for doubles directly inside the team viewer while
+still inspecting both teams.
 
-1. Team viewer shows both teams.
-2. Existing choose-half selection screen selects 3 or 4 Pokemon.
-
-The desired Phase 2 is an integrated selector: select 3 for singles or 4 for
-doubles directly inside the team viewer while still inspecting both teams.
-
-This is a larger flow change than the current viewer polish. Treat it as a
-separate feature or integration branch unless the user explicitly asks to fold it
-into the current implementation branch.
+This checklist now records the implemented Phase 2 decisions and the remaining
+validation follow-ups.
 
 ## Branch Policy
 
@@ -47,7 +43,7 @@ into the current implementation branch.
 | `src/battle_controller_player.c` | In-battle viewer should remain read-only and should not inherit pre-battle selection controls. |
 | `include/config/battle.h` | Button assignments may need new config for select, unselect, details, confirm, and cancel. |
 | UI graphics / palettes | Pick-order markers, colored labels, or overlays add tile / OBJ / palette pressure. |
-| Debug route | `Party -> Team Viewer Battle` should exercise the integrated flow after the change. |
+| Debug route | `Party -> Team Viewer Battle` exercises single selection; `Party -> Team Viewer W` exercises 4-of-6 double selection. |
 | Docs / test plan | Manual validation must cover selection order, cancel/back, and battle party restore. |
 
 ## Design Decisions To Make First
@@ -56,17 +52,21 @@ into the current implementation branch.
   selection.
 - Decide the confirm button once the required count is reached: `START`, `A` on
   a footer command, or automatic confirm prompt.
-- Decide whether `SELECT` continues to toggle the strength panel while selection
-  markers stay visible.
-- Decide how to display pick order:
-  - replace slot number with red / orange `1`, `2`, `3`, `4`;
-  - add a small colored badge near the icon;
-  - use icon tint / frame color if palette budget allows it.
-- Decide whether selecting an already-picked Pokemon removes it or changes order.
+- Player-side `SELECT` opens the existing Pokemon Summary skills/status page while
+  selection markers stay visible after returning. Opponent-side `SELECT` keeps the
+  public-only footer preview.
+- Pick order display uses the existing slot label position: selected player slots
+  replace the slot number with orange-brown `1`, `2`, `3`, or `4` on a compact
+  low-contrast cream marker. Marker rectangle and text render offsets are named
+  `#define`s in `src/prebattle_team_viewer.c` and are relative to the slot label
+  origin for manual tuning. Text printer background / shadow stays transparent so
+  marker fill and text rendering remain separate.
+- Selecting an already-picked Pokemon removes it and compacts later pick order.
 - Decide whether opponent-side cursor is allowed while selecting player Pokemon.
 - Decide whether B from integrated flow returns to field, returns to viewer
   preview mode, or is disabled for trainerbattle script safety.
-- Decide how doubles show 4 picks while singles show 3 without changing layout.
+- Doubles use the same layout but require 4 picks; `Party -> Team Viewer W` covers
+  the 4-of-6 runtime path.
 
 ## Implementation Checklist
 
@@ -75,7 +75,10 @@ into the current implementation branch.
   - selected order,
   - required count,
   - current mode: preview, selecting, details, confirming.
-- Keep details mode persistent while moving the cursor, as implemented in the MVP.
+- Implemented: viewer tracks selected slots and required count directly.
+- Player-side `SELECT` opens the regular Summary skills/status page and returns to
+  the integrated viewer.
+- Opponent-side `SELECT` keeps the lightweight public-only detail footer.
 - Keep opponent details public-only unless official Champions behavior confirms
   more information should be shown.
 - Keep icon sprites alive during cursor movement; redraw only text / marker areas.
@@ -85,6 +88,8 @@ into the current implementation branch.
   - selected mons appear in battle order,
   - unselected mons remain in the party,
   - battle end restores original party order with selected mons updated.
+- Implemented: confirmation writes `gSelectedOrderFromParty`, then the existing
+  `TrainerBattleSelection_StartBattleFromSelection()` path starts the battle.
 - Preserve opponent cache semantics:
   - preview party is generated once,
   - battle consumes the same cached party,
@@ -111,6 +116,8 @@ Focused mGBA route:
 - Boot debug ROM.
 - Use `Party -> Team Viewer Battle`.
 - Select 3 from the integrated viewer in a single battle.
+- Use `Party -> Team Viewer W`.
+- Select 4 from the integrated viewer in a double battle.
 - Verify selected order in battle lead / party order.
 - Return from battle and verify player party restore.
 - Reopen pre-battle details with `SELECT`, move cursor, and confirm details remain
@@ -122,9 +129,35 @@ Focused mGBA route:
   returns correctly.
 - Open in-battle viewer with `R` and verify it is still read-only.
 
+Completed Phase 2 evidence:
+
+- `prebattle-team-viewer-summary-marker`
+- `/tmp/prebattle-team-viewer-summary-marker-start.png`
+- `/tmp/prebattle-team-viewer-summary-skills-page.png`
+- `/tmp/prebattle-team-viewer-summary-marker-slot6-first.png`
+- `/tmp/prebattle-team-viewer-summary-marker-three-selected.png`
+- `/tmp/prebattle-team-viewer-summary-marker-battle-start.png`
+- `prebattle-team-viewer-marker-adjust`
+- `/tmp/prebattle-team-viewer-marker-adjust-slot6-first.png`
+- `/tmp/prebattle-team-viewer-marker-adjust-summary-skills.png`
+- `prebattle-team-viewer-transparent-text`
+- `/tmp/prebattle-team-viewer-transparent-text-slot6-first.png`
+- `prebattle-team-viewer-summary-initial-layout`
+- `/tmp/prebattle-team-viewer-summary-initial-layout-fixed.png`
+- `prebattle-team-viewer-summary-info-layout-fixed`
+- `/tmp/prebattle-team-viewer-summary-info-layout-skills-fixed.png`
+- `/tmp/prebattle-team-viewer-summary-info-layout-info-fixed.png`
+- `prebattle-team-viewer-w-debug3`
+- `/tmp/prebattle-team-viewer-w-debug-route-start.png`
+- `/tmp/prebattle-team-viewer-w-debug-four-selected.png`
+- `/tmp/prebattle-team-viewer-w-debug-battle-intro.png`
+- `/tmp/prebattle-team-viewer-w-debug-action-hint.png`
+- `/tmp/prebattle-team-viewer-w-debug-inbattle-viewer.png`
+- `/tmp/prebattle-team-viewer-w-debug-moveinfo-aligned-action-hint.png`
+
 Additional manual cases:
 
-- Double battle path selects 4.
+- Double battle path selects 4 through `Party -> Team Viewer W`.
 - Trainer Party Pool path shows the same generated opponent team in preview and
   battle.
 - Override trainer path uses the effective trainer party.
@@ -134,12 +167,16 @@ Additional manual cases:
 
 ## Merge Handoff Notes
 
-When Phase 2 is implemented, update:
+Phase 2 implementation evidence has been written to:
 
 - `docs/features/prebattle_team_viewer/implementation.md`
 - `docs/features/prebattle_team_viewer/test_plan.md`
 - `docs/features/prebattle_team_viewer/risks.md`
-- this checklist with resolved decisions and new evidence.
+- `docs/features/prebattle_team_viewer/dependencies.md`
+- `docs/manuals/prebattle_team_viewer_manual.md`
+
+For master handoff, copy / cherry-pick docs only. Do not merge runtime source into
+`master` as part of a docs-only update.
 
 If the user wants docs-only master intake before source integration, use a
 docs-only branch from `master`; do not merge a branch containing `src/`,
