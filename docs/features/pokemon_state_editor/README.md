@@ -1,163 +1,155 @@
-# Pokemon State Editor Expansion
+# Pokemon State Editor
 
 ## Document Metadata
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-10 |
-| Baseline | `master` `8502839610`; `git describe` = `expansion/1.15.2-40-g8502839610` |
-| Code status | Planned; docs-only feature log |
-| Provenance | User request and local code/docs review |
+| Last reviewed | 2026-05-11 |
+| Working branch | `feature/pokemon-state-editor-expansion` |
+| Baseline | `master` `ab5abcad53`; `git describe` = `expansion/1.15.2-44-gab5abcad53` |
+| Code status | MVP implemented; UI polish and extra status fields added |
+| Provenance | User request, local code review, and Pokemon Champions UI reference review |
 
 ## Goal
 
-既存の state editor / Uroxido 系の個体値編集導線を土台に、既存 Pokemon の
-状態を広く編集できる UI を作る。
+Add a Pokemon state editor that is reached from the normal party Summary flow,
+starting from the "Check summary" path rather than a debug-only menu.
 
-ユーザー要望:
+The first implementation should cover the fields the user specifically called out:
 
-- IV / EV だけでなく、産地、性格、特性を編集できる。
-- 性別も可能なら変更できる。
-- なつき度も変更できる。
-- 1 画面に詰め込まなくてよい。複数 menu / submenu に分けてよい。
-- 既に他者実装済みの editor 部分があるなら、その branch / prototype を取り込む前提で影響を整理する。
+- EVs: edit each stat smoothly from 0 to `MAX_PER_STAT_EVS` with a quick max path.
+- IVs: edit each stat smoothly from 0 to `MAX_PER_STAT_IVS`.
+- Nature: change the displayed/stat nature without forcing a raw personality rewrite.
+- Ability: change between valid species ability slots.
+- Friendship: edit 0..`MAX_FRIENDSHIP`.
+- Gender: change male/female when the species gender ratio allows it, while keeping
+  encrypted Pokemon substructs valid.
+- Level: edit 1..current level cap, or 1..100 when no cap is active.
+- Pokeball: edit the caught ball.
+- Dynamax/Tera/Gigantamax: edit Dynamax level, Tera type when not forced by species,
+  and Gigantamax factor.
 
-この docs は実装前 feature log。実装 branch では、実際の state editor / Uroxido
-source の file path と差分を `implementation.md` へ追記する。
+Move editing is explicitly out of scope for this slice. It should remain a separate
+feature so this editor does not compete with the move relearner work.
 
-## Current Baseline
+## UX Direction
 
-既存 debug menu には近い部品がある。
+The requested direction is closer to a Pokemon Champions-style training/status editor
+than to the existing raw debug numeric editor. On GBA this should be interpreted as:
 
-| Area | Existing entry / symbol |
+- a Summary-screen-launched editor, not a standalone debug submenu;
+- multiple compact pages instead of one overloaded page;
+- clear page labels and value rows;
+- quick min/max controls for repetitive EV/IV editing;
+- a dedicated Summary/interface-style menu panel instead of a plain white standard
+  frame or a single dark rectangle;
+- a right-side editor pane that preserves the Pokemon sprite area on the left;
+- readable light text on dark body rows, with a clear selected-row highlight and
+  separate header/footer bands;
+- stable held-input rendering, with row-level redraws instead of full-panel redraws
+  for every parameter change;
+- coordinates controlled by defines so the user can tune layout without hunting
+  through the implementation.
+
+The MVP can be original UI. It does not need to clone Pokemon Champions visuals, but
+it should avoid the current pain point where reaching 252 requires repeated +10 edits.
+
+Reference pages checked for visual/product direction:
+
+- <https://www.pokemonchampions.jp/>
+- <https://www.pokemonchampions.jp/ja/battle/>
+- <https://www.pokemonchampions.jp/ja/pokemon/>
+
+## Scope
+
+| Area | MVP decision |
 |---|---|
-| Give Pokemon complex | `src/debug.c` `DebugAction_Give_PokemonComplex` |
-| Give Pokemon nature | `DebugAction_Give_Pokemon_SelectNature` |
-| Give Pokemon ability | `DebugAction_Give_Pokemon_SelectAbility` |
-| Give Pokemon IV / EV | `DebugAction_Give_Pokemon_SelectIVs`, `DebugAction_Give_Pokemon_SelectEVs` |
-| Edit Pokemon submenu | `DebugAction_ExecuteScript`, `Debug_EventScript_SetHiddenNature`, `Debug_EventScript_SetAbility`, `Debug_EventScript_SetFriendship` |
-| Check EV / IV | `Debug_EventScript_CheckEVs`, `Debug_EventScript_CheckIVs` |
-| Pokemon data accessors | `src/pokemon.c` `GetMonData`, `SetMonData`, `GetMonPersonality`, `GetMonGender` |
-| Primary data constants | `include/pokemon.h` `MON_DATA_*` |
+| Entry point | Summary Screen, opened from the party menu path. |
+| Launch button | Skills page `START EDIT` prompt in the top-right Summary prompt area. |
+| Editor pages | Five editor pages: EVs, IVs, Core, Dynamax/Tera, Gender/Friendship. |
+| Layout | Right-side Summary pane overlay; left-side Pokemon sprite area remains visible. |
+| Coordinate tuning | Put editor window, text positions, palette, fill color, and level policy behind `#define`s. |
+| Save data | No new save fields. Edit existing Pokemon fields only. |
+| Party vs box | Party Summary first. Box Summary is a follow-up unless the same helper is proven safe. |
+| Moves | Out of scope. |
+| Origin/met data | Follow-up; needs valid location UX and summary memo validation. |
 
-Relevant fields:
+## Current Local Building Blocks
 
-| Field | Storage / notes |
+| Area | Existing symbol / file |
 |---|---|
-| IVs | `MON_DATA_HP_IV` ... `MON_DATA_SPDEF_IV`, `MON_DATA_IVS`; 0..31. |
-| EVs | `MON_DATA_HP_EV` ... stat EVs; total and per-stat caps must be enforced. |
-| nature | personality-derived via `GetNatureFromPersonality`, plus `MON_DATA_HIDDEN_NATURE` override support. |
-| ability | `MON_DATA_ABILITY_NUM`; must map to valid species ability slots. |
-| gender | derived from species gender ratio and personality low byte. |
-| friendship / なつき度 | `MON_DATA_FRIENDSHIP`, `MAX_FRIENDSHIP 255`. |
-| met data / 産地 | `MON_DATA_MET_LOCATION`, `MON_DATA_MET_LEVEL`, `MON_DATA_MET_GAME`. |
-| OT gender | `MON_DATA_OT_GENDER`; separate from Pokemon gender. |
-| personality | `MON_DATA_PERSONALITY`; affects nature, gender, shininess, Unown letter, Spinda spots, and some forms. |
+| Summary entry and input | `src/pokemon_summary_screen.c` `Task_HandleInput` |
+| Summary mode/page state | `include/pokemon_summary_screen.h` |
+| Summary config | `include/config/summary_screen.h` |
+| Pokemon fields | `include/pokemon.h` `MON_DATA_*` |
+| Stat recalculation | `src/pokemon.c` `CalculateMonStats` |
+| Level caps | `include/config/caps.h`, `include/caps.h`, `GetCurrentLevelCap` |
+| EV/IV caps | `include/constants/pokemon.h` `MAX_PER_STAT_EVS`, `MAX_TOTAL_EVS`, `MAX_PER_STAT_IVS` |
+| Nature display/stat source | `MON_DATA_HIDDEN_NATURE`, `GetNature` |
+| Ability slots | `MON_DATA_ABILITY_NUM`, `GetSpeciesAbility`, `NUM_ABILITY_SLOTS` |
+| Gender derivation | `GetGenderFromSpeciesAndPersonality`, species `genderRatio` |
+| Friendship cap | `MON_DATA_FRIENDSHIP`, `MAX_FRIENDSHIP` |
+| Pokeballs | `MON_DATA_POKEBALL`, `gPokeBalls`, `POKEBALL_COUNT` |
+| Battle gimmicks | `MON_DATA_DYNAMAX_LEVEL`, `MON_DATA_TERA_TYPE`, `MON_DATA_GIGANTAMAX_FACTOR`, `gTypesInfo` |
+| Existing debug references | `src/debug.c`, `data/scripts/debug.inc` state-setting helpers |
 
-## Proposed Shape
+## Assumptions
 
-MVP は debug / utility feature として、既存 party Pokemon を対象にする。
-PC box Pokemon 対応は Phase 2 として分けると安全。
-
-Suggested menu split:
-
-| Menu | Fields |
-|---|---|
-| Stats | IVs, EVs, level, current HP restore/recalc policy. |
-| Identity | nature, ability slot, gender, personality reroll / hidden nature policy. |
-| Origin | met location, met level, met game, ball if needed later. |
-| Bond | friendship / なつき度. |
-| Moves | existing Move Relearner / future unified move editor link. |
-| Battle gimmicks | Tera type, Dynamax level, Gigantamax factor if this editor owns those later. |
-
-Do not force all fields into one screen. A dense debug menu is acceptable if each submenu has
-clear validation and cancel behavior.
-
-## Data Policy
-
-| Topic | Decision draft |
-|---|---|
-| Save layout | No new saved fields for MVP. Edit existing Pokemon substruct data only. |
-| Apply model | Edit a temporary buffer, then commit on confirm. Cancel discards. |
-| Party vs box | Party first. Box support needs PC selection / box summary return path review. |
-| Nature editing | Prefer `MON_DATA_HIDDEN_NATURE` for simple user-facing nature change if the project treats it as canonical. Raw personality rewrite is a separate advanced option. |
-| Gender editing | Requires personality reroll that satisfies species gender ratio. Genderless / fixed-gender species must reject incompatible choices. |
-| Ability editing | Present valid ability slots from `gSpeciesInfo[species].abilities`; reject `ABILITY_NONE` unless the species truly has no slot. |
-| IV editing | Clamp 0..31 and recalculate stats after apply. |
-| EV editing | Enforce per-stat and total EV caps according to current config. |
-| Friendship editing | Clamp 0..255. |
-| Origin editing | Use valid mapsec / met location values; avoid raw arbitrary IDs in normal UI. |
-
-## Impact Surface
-
-| File / area | Impact |
-|---|---|
-| `src/debug.c` | Existing Give Pokemon complex and Edit Pokemon menu can be reused or refactored. |
-| `src/pokemon.c` | `SetMonData`, personality generation, stat recalculation, gender / nature helpers. |
-| `include/pokemon.h` | `MON_DATA_*` constants and helper prototypes. |
-| `include/constants/pokemon.h` | nature, friendship, gender constants. |
-| `src/party_menu.c` | Party selection entry if editor opens from party menu. |
-| `src/pokemon_summary_screen.c` | Summary entry / return path if editor opens from summary. |
-| `src/chooseboxmon.c` / PC storage | Needed for Phase 2 box support. |
-| `docs/overview/champions_training_ui_feasibility_v15.md` | EV/IV/nature/moveset editor overlap. |
-| `docs/features/unified_move_relearner/` | Moves submenu may call into unified move editor / relearner. |
-
-## Personality Coupling
-
-性格と性別は単純な independent field ではない。
-
-- Nature is `personality % NUM_NATURES` unless hidden nature override is used.
-- Gender is derived from species gender ratio and personality low byte.
-- Shiny state depends on personality and OT id.
-- Unown letter and Spinda spots depend on personality.
-- Some form / visual behavior can depend on personality or gender.
-
-Therefore there are two viable policies:
-
-| Policy | Pros | Risks |
-|---|---|---|
-| Hidden nature + ability slot + friendship edits only | Simple, low risk, avoids personality side effects. | Gender / shiny / personality-driven visuals are not fully editable. |
-| Controlled personality reroll | Can support gender and raw nature changes. | Must preserve or intentionally change shiny / Unown / Spinda / form expectations. |
-
-MVP recommendation: use hidden nature for nature, and add gender editing only after a
-`RerollPersonalityForSpeciesGenderNature()` helper is designed and tested.
-
-## Risks
-
-| Risk | Severity | Notes |
-|---|---|---|
-| Invalid personality rewrite | High | Can unintentionally change nature, gender, shiny, form visuals, Unown letter, or Spinda spots. |
-| Invalid ability slot | Medium | Ability number must map to species ability slots and hidden ability behavior. |
-| Stat desync | Medium | IV/EV/nature/level edits must recalculate max HP/current HP safely. |
-| Box support corruption | Medium | Box Pokemon editing needs box data accessors and PC return path; party-only MVP is safer. |
-| Origin ID confusion | Medium | Raw met location IDs are not user-friendly and can show invalid summary text. |
-| Existing editor merge unknown | Medium | Uroxido/state-editor source is not identified in this branch yet. It must be inspected before implementation. |
-
-## Validation Plan
-
-Minimum local checks after implementation:
-
-- `rtk git diff --check`
-- `rtk make -j16 -O all`
-- `rtk make -j16 -O debug`
-- `rtk make -j16 -O check` or focused Pokemon/stat tests if helper boundaries exist
-- mGBA Live check through party editor path, summary display, and at least one battle stat check
-
-Manual cases:
-
-- Edit all six IVs and confirm summary/stat calculation reflects the change.
-- Edit nature and confirm stat modifiers / summary text match the selected nature.
-- Edit ability and enter battle to confirm the selected ability is active.
-- Edit friendship to 0 and 255 and confirm summary / friendship checker behavior.
-- Edit met location and confirm summary origin text remains valid.
-- Try changing gender on fixed-gender and genderless species; invalid choices are rejected.
-- Cancel from each submenu leaves the Pokemon unchanged.
+- The first editor is a Summary overlay, not a new Summary page in `PSS_PAGE_COUNT`.
+  This keeps existing Summary tilemap paging stable.
+- The implementation edits party Pokemon only at first. Box Pokemon editing is blocked
+  on storage return-path review.
+- Nature uses hidden nature. Gender uses a controlled personality low-byte rewrite
+  through the personality helper and preserves shiny state plus visible/stat nature
+  through the modifier fields.
+- EV total remains capped at `MAX_TOTAL_EVS`; quick max on a stat clamps to the
+  available remaining total.
+- Ability rows skip `ABILITY_NONE` slots.
+- Level writes matching EXP plus `MON_DATA_LEVEL`, then recalculates stats. If
+  `P_SUMMARY_STATE_EDITOR_LEVEL_CAP` is true, max level comes from
+  `GetCurrentLevelCap`.
+- Pokeball cycles normal ball ids from `BALL_POKE` through `POKEBALL_COUNT - 1`.
+- Tera type skips special-case types and locks when species forces a Tera type.
+- Gigantamax factor is a raw on/off status flag; species legality policy is left to
+  a follow-up.
 
 ## Open Questions
 
-- What exact branch / files contain the existing state editor / Uroxido implementation?
-- Should the feature live under debug menu only, or become a normal in-game utility menu later?
-- Should nature editing use hidden nature, personality rewrite, or both as separate advanced options?
-- Should gender editing preserve shiny status if the original Pokemon is shiny?
-- Should box Pokemon editing be MVP or Phase 2?
-- Should moves be edited through Unified Move Relearner, direct move slot editor, or both?
+These do not block the MVP, but should be revisited after runtime validation:
+
+- Should Box Summary enable the same editor after storage-specific validation?
+- Should personality-derived visuals/forms such as Spinda spot layout or Unown letter
+  get a warning or a species-specific block before enabling gender edits?
+- Should origin/met location editing be its own page after a valid mapsec picker exists?
+- Should Gigantamax factor be locked to species that can actually Gigantamax?
+- Should mid-range EV editing add larger step sizes or direct numeric entry beyond
+  held D-pad plus `L`/`R` min/max?
+- Should the final UI get custom art work to move closer to Pokemon Champions?
+
+## Next Review Notes
+
+These notes are intentionally not implemented in this commit. Revisit them when the
+next UI pass is requested:
+
+- Entry/exit animation should feel like the Summary move-info panel sliding in from
+  the right edge and returning to the right edge on cancel. The current behavior is
+  acceptable for this checkpoint, but reads more like a delayed draw or fade than a
+  true lateral slide. The next pass should also test a slightly faster duration.
+- The right-pane layout is preferred, but the panel should be nudged to avoid
+  covering the `POKEMON SKILLS` title area. A likely anchor is the green header band
+  below `START EDIT` / near the purple `NEXT LV.` background, so the editor feels
+  seated in the existing Summary composition.
+- Investigate EV total text redraw artifacts. When an EV value is raised into
+  multi-digit values such as `252` and then reduced again, a stray hyphen/underscore-
+  like glyph can appear around the ones/tens area and the total line can briefly
+  black out. Canceling and reopening the editor restores the display, so the next
+  pass should focus on stale glyph clearing or partial-copy bounds for the EV total
+  row.
+
+## Child Docs
+
+- [Dependencies](dependencies.md)
+- [MVP Plan](mvp_plan.md)
+- [Implementation](implementation.md)
+- [Risks](risks.md)
+- [Test Plan](test_plan.md)

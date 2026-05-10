@@ -2,6 +2,8 @@
 #include "main.h"
 #include "battle.h"
 #include "battle_anim.h"
+#include "battle_main.h"
+#include "caps.h"
 #include "frontier_util.h"
 #include "battle_message.h"
 #include "battle_tent.h"
@@ -318,6 +320,14 @@ static void SummaryScreen_DestroyAnimDelayTask(void);
 static bool32 ShouldShowMoveRelearner(void);
 static bool32 ShouldShowRename(void);
 static bool32 ShouldShowIvEvPrompt(void);
+#if P_SUMMARY_SCREEN_STATE_EDITOR
+static bool32 ShouldShowStateEditor(void);
+static void OpenStateEditor(u8 taskId);
+static void Task_HandleInput_StateEditor(u8 taskId);
+static void DrawStateEditor(u8 taskId, bool8 copyTilemap);
+static void CloseStateEditor(u8 taskId);
+static void RefreshStateEditorSummary(void);
+#endif
 static void BufferLeftColumnIvEvStats(void);
 static void CB2_ReturnToSummaryScreenFromNamingScreen(void);
 static void CB2_PssChangePokemonNickname(void);
@@ -574,9 +584,9 @@ static const struct WindowTemplate sSummaryTemplate[] =
     },
     [PSS_LABEL_WINDOW_PROMPT_RELEARN] = {
         .bg = 0,
-        .tilemapLeft = (P_ENABLE_MOVE_RELEARNERS) ? 18 : 22,
+        .tilemapLeft = 17,
         .tilemapTop = 2,
-        .width = 11,
+        .width = 13,
         .height = 2,
         .paletteNum = 15,
         .baseBlock = 800,
@@ -727,6 +737,66 @@ static const struct WindowTemplate sPageMovesTemplate[] = // This is used for bo
         .baseBlock = 617,
     },
 };
+
+#if P_SUMMARY_SCREEN_STATE_EDITOR
+static const struct WindowTemplate sStateEditorWindowTemplate =
+{
+    .bg = 0,
+    .tilemapLeft = P_SUMMARY_STATE_EDITOR_WINDOW_LEFT,
+    .tilemapTop = P_SUMMARY_STATE_EDITOR_WINDOW_TOP,
+    .width = P_SUMMARY_STATE_EDITOR_WINDOW_WIDTH,
+    .height = P_SUMMARY_STATE_EDITOR_WINDOW_HEIGHT,
+    .paletteNum = P_SUMMARY_STATE_EDITOR_WINDOW_PALETTE,
+    .baseBlock = P_SUMMARY_STATE_EDITOR_WINDOW_BASE,
+};
+
+enum StateEditorUiColor
+{
+    STATE_EDITOR_COLOR_TRANSPARENT,
+    STATE_EDITOR_COLOR_TEXT,
+    STATE_EDITOR_COLOR_TEXT_SHADOW,
+    STATE_EDITOR_COLOR_TITLE,
+    STATE_EDITOR_COLOR_TITLE_SHADOW,
+    STATE_EDITOR_COLOR_SELECTED_TEXT,
+    STATE_EDITOR_COLOR_SELECTED_SHADOW,
+    STATE_EDITOR_COLOR_MUTED_TEXT,
+    STATE_EDITOR_COLOR_MUTED_SHADOW,
+    STATE_EDITOR_COLOR_ACCENT_TEXT,
+    STATE_EDITOR_COLOR_ACCENT_SHADOW,
+    STATE_EDITOR_COLOR_SELECTED_FILL,
+    STATE_EDITOR_COLOR_HEADER_FILL,
+    STATE_EDITOR_COLOR_BODY_FILL,
+    STATE_EDITOR_COLOR_BORDER_FILL,
+    STATE_EDITOR_COLOR_ROW_FILL,
+};
+
+#define STATE_EDITOR_TEXT_NORMAL   0
+#define STATE_EDITOR_TEXT_TITLE    1
+#define STATE_EDITOR_TEXT_SELECTED 2
+#define STATE_EDITOR_TEXT_MUTED    3
+#define STATE_EDITOR_TEXT_ACCENT   4
+
+static const u16 sStateEditorWindow_Pal[] =
+{
+    [STATE_EDITOR_COLOR_TRANSPARENT]     = RGB(0, 0, 0),
+    [STATE_EDITOR_COLOR_TEXT]            = RGB(31, 31, 30),
+    [STATE_EDITOR_COLOR_TEXT_SHADOW]     = RGB(2, 5, 7),
+    [STATE_EDITOR_COLOR_TITLE]           = RGB(31, 27, 8),
+    [STATE_EDITOR_COLOR_TITLE_SHADOW]    = RGB(8, 5, 0),
+    [STATE_EDITOR_COLOR_SELECTED_TEXT]   = RGB(1, 4, 7),
+    [STATE_EDITOR_COLOR_SELECTED_SHADOW] = RGB(24, 25, 18),
+    [STATE_EDITOR_COLOR_MUTED_TEXT]      = RGB(21, 25, 26),
+    [STATE_EDITOR_COLOR_MUTED_SHADOW]    = RGB(2, 5, 7),
+    [STATE_EDITOR_COLOR_ACCENT_TEXT]     = RGB(31, 17, 6),
+    [STATE_EDITOR_COLOR_ACCENT_SHADOW]   = RGB(8, 4, 2),
+    [STATE_EDITOR_COLOR_SELECTED_FILL]   = RGB(25, 28, 20),
+    [STATE_EDITOR_COLOR_HEADER_FILL]     = RGB(3, 19, 17),
+    [STATE_EDITOR_COLOR_BODY_FILL]       = RGB(7, 13, 16),
+    [STATE_EDITOR_COLOR_BORDER_FILL]     = RGB(2, 5, 8),
+    [STATE_EDITOR_COLOR_ROW_FILL]        = RGB(9, 16, 18),
+};
+#endif
+
 static const u8 sTextColors[][3] =
 {
     {0, 1, 2},
@@ -770,6 +840,112 @@ static const u8 sText_Relearn_LevelUp[] = _("{START_BUTTON} RELEARN LEVEL");
 static const u8 sText_Relearn_Egg[] = _("{START_BUTTON} RELEARN EGG");
 static const u8 sText_Relearn_TM[] = _("{START_BUTTON} RELEARN TM");
 static const u8 sText_Relearn_Tutor[] = _("{START_BUTTON} RELEARN TUTOR");
+
+#if P_SUMMARY_SCREEN_STATE_EDITOR
+enum StateEditorPage
+{
+    STATE_EDITOR_PAGE_EVS,
+    STATE_EDITOR_PAGE_IVS,
+    STATE_EDITOR_PAGE_TRAITS,
+    STATE_EDITOR_PAGE_GIMMICKS,
+    STATE_EDITOR_PAGE_BOND,
+    STATE_EDITOR_PAGE_COUNT,
+};
+
+enum StateEditorTraitRow
+{
+    STATE_EDITOR_TRAIT_LEVEL,
+    STATE_EDITOR_TRAIT_NATURE,
+    STATE_EDITOR_TRAIT_ABILITY,
+    STATE_EDITOR_TRAIT_BALL,
+    STATE_EDITOR_TRAIT_COUNT,
+};
+
+enum StateEditorGimmickRow
+{
+    STATE_EDITOR_GIMMICK_DYNAMAX_LEVEL,
+    STATE_EDITOR_GIMMICK_TERA_TYPE,
+    STATE_EDITOR_GIMMICK_GIGANTAMAX,
+    STATE_EDITOR_GIMMICK_COUNT,
+};
+
+enum StateEditorBondRow
+{
+    STATE_EDITOR_BOND_GENDER,
+    STATE_EDITOR_BOND_FRIENDSHIP,
+    STATE_EDITOR_BOND_COUNT,
+};
+
+#define STATE_EDITOR_STAT_COUNT 6
+
+static const u8 sText_StateEditorPrompt[] = _("{START_BUTTON} EDIT");
+static const u8 sText_StateEditorTitle[] = _("STATUS EDITOR");
+static const u8 sText_StateEditorControls[] = _("A:PAGE B:DONE L/R:SET");
+static const u8 sText_StateEditorCursor[] = _(">");
+static const u8 sText_StateEditorBlank[] = _(" ");
+static const u8 sText_StateEditorPageEvs[] = _("EVs");
+static const u8 sText_StateEditorPageIvs[] = _("IVs");
+static const u8 sText_StateEditorPageTraits[] = _("CORE");
+static const u8 sText_StateEditorPageGimmicks[] = _("DYNAMAX/TERA");
+static const u8 sText_StateEditorPageBond[] = _("GENDER/FRIEND");
+static const u8 sText_StateEditorTotal[] = _("Total");
+static const u8 sText_StateEditorLevel[] = _("Level");
+static const u8 sText_StateEditorNature[] = _("Nature");
+static const u8 sText_StateEditorAbility[] = _("Ability");
+static const u8 sText_StateEditorBall[] = _("Ball");
+static const u8 sText_StateEditorDynamaxLevel[] = _("Dmax Lv");
+static const u8 sText_StateEditorTeraType[] = _("Tera");
+static const u8 sText_StateEditorGigantamax[] = _("G-Max");
+static const u8 sText_StateEditorGender[] = _("Gender");
+static const u8 sText_StateEditorFriendship[] = _("Friend");
+static const u8 sText_StateEditorMale[] = _("Male");
+static const u8 sText_StateEditorFemale[] = _("Female");
+static const u8 sText_StateEditorGenderless[] = _("Genderless");
+static const u8 sText_StateEditorLocked[] = _("Locked");
+static const u8 sText_StateEditorNone[] = _("-");
+static const u8 sText_StateEditorOff[] = _("Off");
+static const u8 sText_StateEditorOn[] = _("On");
+static const u8 sText_StateEditorCap[] = _("Lv cap");
+
+static const u8 *const sStateEditorPageNames[STATE_EDITOR_PAGE_COUNT] =
+{
+    [STATE_EDITOR_PAGE_EVS] = sText_StateEditorPageEvs,
+    [STATE_EDITOR_PAGE_IVS] = sText_StateEditorPageIvs,
+    [STATE_EDITOR_PAGE_TRAITS] = sText_StateEditorPageTraits,
+    [STATE_EDITOR_PAGE_GIMMICKS] = sText_StateEditorPageGimmicks,
+    [STATE_EDITOR_PAGE_BOND] = sText_StateEditorPageBond,
+};
+
+static const u8 *const sStateEditorStatLabels[STATE_EDITOR_STAT_COUNT] =
+{
+    COMPOUND_STRING("HP"),
+    COMPOUND_STRING("Atk"),
+    COMPOUND_STRING("Def"),
+    COMPOUND_STRING("SpA"),
+    COMPOUND_STRING("SpD"),
+    COMPOUND_STRING("Spe"),
+};
+
+static const enum MonData sStateEditorEvData[STATE_EDITOR_STAT_COUNT] =
+{
+    MON_DATA_HP_EV,
+    MON_DATA_ATK_EV,
+    MON_DATA_DEF_EV,
+    MON_DATA_SPATK_EV,
+    MON_DATA_SPDEF_EV,
+    MON_DATA_SPEED_EV,
+};
+
+static const enum MonData sStateEditorIvData[STATE_EDITOR_STAT_COUNT] =
+{
+    MON_DATA_HP_IV,
+    MON_DATA_ATK_IV,
+    MON_DATA_DEF_IV,
+    MON_DATA_SPATK_IV,
+    MON_DATA_SPDEF_IV,
+    MON_DATA_SPEED_IV,
+};
+#endif
 
 static const u8 sMemoNatureTextColor[] = _("{COLOR LIGHT_RED}{SHADOW GREEN}");
 static const u8 sMemoMiscTextColor[] = _("{COLOR WHITE}{SHADOW DARK_GRAY}"); // This is also affected by palettes, apparently
@@ -1780,6 +1956,12 @@ static void Task_HandleInput(u8 taskId)
             PlaySE(SE_SELECT);
             BeginCloseSummaryScreen(taskId);
         }
+#if P_SUMMARY_SCREEN_STATE_EDITOR
+        else if (JOY_NEW(START_BUTTON) && ShouldShowStateEditor())
+        {
+            OpenStateEditor(taskId);
+        }
+#endif
         else if (JOY_NEW(START_BUTTON)
                 && ShouldShowMoveRelearner()
                 && (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES))
@@ -1970,6 +2152,1165 @@ bool32 CheckRelearnerStateFlag(enum MoveRelearnerStates state)
     }
 }
 
+#if P_SUMMARY_SCREEN_STATE_EDITOR
+#define tStateEditorPage     data[0]
+#define tStateEditorRow      data[1]
+#define tStateEditorWindowId data[2]
+
+static struct Pokemon *GetStateEditorMon(void)
+{
+    if (sMonSummaryScreen->isBoxMon)
+        return NULL;
+    return &sMonSummaryScreen->monList.mons[sMonSummaryScreen->curMonIndex];
+}
+
+static u8 GetStateEditorRowCount(u8 page)
+{
+    switch (page)
+    {
+    case STATE_EDITOR_PAGE_EVS:
+    case STATE_EDITOR_PAGE_IVS:
+        return STATE_EDITOR_STAT_COUNT;
+    case STATE_EDITOR_PAGE_TRAITS:
+        return STATE_EDITOR_TRAIT_COUNT;
+    case STATE_EDITOR_PAGE_GIMMICKS:
+        return STATE_EDITOR_GIMMICK_COUNT;
+    case STATE_EDITOR_PAGE_BOND:
+    default:
+        return STATE_EDITOR_BOND_COUNT;
+    }
+}
+
+static u32 GetStateEditorEvTotal(struct Pokemon *mon)
+{
+    u32 i;
+    u32 total = 0;
+
+    for (i = 0; i < STATE_EDITOR_STAT_COUNT; i++)
+        total += GetMonData(mon, sStateEditorEvData[i]);
+
+    return total;
+}
+
+static u32 GetStateEditorEvTotalExcept(struct Pokemon *mon, u8 row)
+{
+    u32 i;
+    u32 total = 0;
+
+    for (i = 0; i < STATE_EDITOR_STAT_COUNT; i++)
+    {
+        if (i != row)
+            total += GetMonData(mon, sStateEditorEvData[i]);
+    }
+
+    return total;
+}
+
+static u32 GetStateEditorMaxEv(struct Pokemon *mon, u8 row)
+{
+    u32 otherTotal = GetStateEditorEvTotalExcept(mon, row);
+    u32 remaining = otherTotal >= MAX_TOTAL_EVS ? 0 : MAX_TOTAL_EVS - otherTotal;
+
+    return remaining < MAX_PER_STAT_EVS ? remaining : MAX_PER_STAT_EVS;
+}
+
+static void SetStateEditorMonData8(struct Pokemon *mon, enum MonData field, u32 value)
+{
+    u8 value8 = value;
+    SetMonData(mon, field, &value8);
+}
+
+static void SetStateEditorMonData32(struct Pokemon *mon, enum MonData field, u32 value)
+{
+    SetMonData(mon, field, &value);
+}
+
+static u32 GetStateEditorLevelCap(void)
+{
+#if P_SUMMARY_STATE_EDITOR_LEVEL_CAP
+    u32 cap = GetCurrentLevelCap();
+
+    if (cap < 1)
+        return 1;
+    if (cap > MAX_LEVEL)
+        return MAX_LEVEL;
+    return cap;
+#else
+    return MAX_LEVEL;
+#endif
+}
+
+static bool8 CanEditStateEditorLevel(void)
+{
+    return P_SUMMARY_STATE_EDITOR_LEVEL_EDIT;
+}
+
+static void SetStateEditorLevel(struct Pokemon *mon, u32 level)
+{
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 exp = gExperienceTables[gSpeciesInfo[species].growthRate][level];
+
+    SetStateEditorMonData32(mon, MON_DATA_EXP, exp);
+    SetStateEditorMonData8(mon, MON_DATA_LEVEL, level);
+    CalculateMonStats(mon);
+}
+
+static u8 GetFirstValidAbilitySlot(u16 species)
+{
+    u32 i;
+
+    for (i = 0; i < NUM_ABILITY_SLOTS; i++)
+    {
+        if (GetSpeciesAbility(species, i) != ABILITY_NONE)
+            return i;
+    }
+
+    return 0;
+}
+
+static u8 GetLastValidAbilitySlot(u16 species)
+{
+    s32 i;
+
+    for (i = NUM_ABILITY_SLOTS - 1; i >= 0; i--)
+    {
+        if (GetSpeciesAbility(species, i) != ABILITY_NONE)
+            return i;
+    }
+
+    return 0;
+}
+
+static u8 GetCurrentValidAbilitySlot(struct Pokemon *mon)
+{
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u8 slot = GetMonData(mon, MON_DATA_ABILITY_NUM);
+
+    if (slot < NUM_ABILITY_SLOTS && GetSpeciesAbility(species, slot) != ABILITY_NONE)
+        return slot;
+
+    return GetFirstValidAbilitySlot(species);
+}
+
+static u8 GetNextValidAbilitySlot(u16 species, u8 currentSlot, s8 delta)
+{
+    u32 i;
+    s32 slot = currentSlot;
+
+    if (GetSpeciesAbility(species, slot) == ABILITY_NONE)
+        slot = GetFirstValidAbilitySlot(species);
+
+    for (i = 0; i < NUM_ABILITY_SLOTS; i++)
+    {
+        slot += delta;
+        if (slot < 0)
+            slot = NUM_ABILITY_SLOTS - 1;
+        else if (slot >= NUM_ABILITY_SLOTS)
+            slot = 0;
+
+        if (GetSpeciesAbility(species, slot) != ABILITY_NONE)
+            return slot;
+    }
+
+    return currentSlot;
+}
+
+static enum PokeBall GetFirstStateEditorBall(void)
+{
+    return BALL_POKE;
+}
+
+static enum PokeBall GetLastStateEditorBall(void)
+{
+    return POKEBALL_COUNT - 1;
+}
+
+static enum PokeBall GetNextStateEditorBall(enum PokeBall ball, s8 delta)
+{
+    if (ball < GetFirstStateEditorBall() || ball >= POKEBALL_COUNT)
+        ball = GetFirstStateEditorBall();
+
+    if (delta > 0)
+    {
+        ball++;
+        if (ball >= POKEBALL_COUNT)
+            ball = GetFirstStateEditorBall();
+    }
+    else if (delta < 0)
+    {
+        if (ball <= GetFirstStateEditorBall())
+            ball = GetLastStateEditorBall();
+        else
+            ball--;
+    }
+
+    return ball;
+}
+
+static bool8 IsStateEditorEditableTeraType(enum Type type)
+{
+    return type < NUMBER_OF_MON_TYPES && !gTypesInfo[type].isSpecialCaseType;
+}
+
+static bool8 CanEditStateEditorTeraType(u16 species)
+{
+    return gSpeciesInfo[species].forceTeraType == TYPE_NONE;
+}
+
+static enum Type GetFirstStateEditorTeraType(void)
+{
+    u32 type;
+
+    for (type = TYPE_NORMAL; type < NUMBER_OF_MON_TYPES; type++)
+    {
+        if (IsStateEditorEditableTeraType(type))
+            return type;
+    }
+
+    return TYPE_NORMAL;
+}
+
+static enum Type GetLastStateEditorTeraType(void)
+{
+    s32 type;
+
+    for (type = NUMBER_OF_MON_TYPES - 1; type >= TYPE_NORMAL; type--)
+    {
+        if (IsStateEditorEditableTeraType(type))
+            return type;
+    }
+
+    return TYPE_NORMAL;
+}
+
+static enum Type GetNextStateEditorTeraType(enum Type currentType, s8 delta)
+{
+    s32 type = currentType;
+    u32 i;
+
+    if (!IsStateEditorEditableTeraType(type))
+        type = GetFirstStateEditorTeraType();
+
+    for (i = 0; i < NUMBER_OF_MON_TYPES; i++)
+    {
+        type += delta;
+        if (type < TYPE_NORMAL)
+            type = NUMBER_OF_MON_TYPES - 1;
+        else if (type >= NUMBER_OF_MON_TYPES)
+            type = TYPE_NORMAL;
+
+        if (IsStateEditorEditableTeraType(type))
+            return type;
+    }
+
+    return currentType;
+}
+
+static bool8 CanEditStateEditorGender(u16 species)
+{
+    switch (gSpeciesInfo[species].genderRatio)
+    {
+    case MON_MALE:
+    case MON_FEMALE:
+    case MON_GENDERLESS:
+        return FALSE;
+    default:
+        return TRUE;
+    }
+}
+
+static bool8 TryBuildStateEditorGenderPersonality(struct Pokemon *mon, u8 targetGender, u32 *personalityOut)
+{
+    u32 i;
+    u32 pass;
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 personality = GetMonData(mon, MON_DATA_PERSONALITY);
+    u32 personalityBase = personality & 0xFFFFFF00;
+    u8 currentNature = GetNatureFromPersonality(personality);
+
+    if (!CanEditStateEditorGender(species))
+        return FALSE;
+
+    for (pass = 0; pass < 2; pass++)
+    {
+        for (i = 0; i < 0x100; i++)
+        {
+            u32 candidate = personalityBase | i;
+
+            if (GetGenderFromSpeciesAndPersonality(species, candidate) != targetGender)
+                continue;
+            if (pass == 0 && GetNatureFromPersonality(candidate) != currentNature)
+                continue;
+
+            *personalityOut = candidate;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static bool8 SetStateEditorGender(struct Pokemon *mon, u8 targetGender)
+{
+    u32 personality;
+    u8 wasShiny = GetMonData(mon, MON_DATA_IS_SHINY);
+    u8 hiddenNature = GetMonData(mon, MON_DATA_HIDDEN_NATURE);
+
+    if (GetMonGender(mon) == targetGender)
+        return FALSE;
+    if (!TryBuildStateEditorGenderPersonality(mon, targetGender, &personality))
+        return FALSE;
+
+    SetMonPersonality(mon, personality);
+    SetStateEditorMonData8(mon, MON_DATA_IS_SHINY, wasShiny);
+    SetStateEditorMonData8(mon, MON_DATA_HIDDEN_NATURE, hiddenNature);
+    CalculateMonStats(mon);
+    return TRUE;
+}
+
+static bool8 ApplyStateEditorStatChange(struct Pokemon *mon, u8 page, u8 row, s8 delta, bool8 setMin, bool8 setMax)
+{
+    enum MonData field = page == STATE_EDITOR_PAGE_EVS ? sStateEditorEvData[row] : sStateEditorIvData[row];
+    u32 value = GetMonData(mon, field);
+    u32 max = page == STATE_EDITOR_PAGE_EVS ? GetStateEditorMaxEv(mon, row) : MAX_PER_STAT_IVS;
+    u32 newValue = value;
+
+    if (setMin)
+        newValue = 0;
+    else if (setMax)
+        newValue = max;
+    else if (delta > 0 && value < max)
+        newValue++;
+    else if (delta < 0 && value > 0)
+        newValue--;
+
+    if (newValue == value)
+        return FALSE;
+
+    SetStateEditorMonData8(mon, field, newValue);
+    CalculateMonStats(mon);
+    return TRUE;
+}
+
+static bool8 ApplyStateEditorTraitChange(struct Pokemon *mon, u8 row, s8 delta, bool8 setMin, bool8 setMax)
+{
+    if (row == STATE_EDITOR_TRAIT_LEVEL)
+    {
+        u32 level = GetMonData(mon, MON_DATA_LEVEL);
+        u32 maxLevel = GetStateEditorLevelCap();
+        u32 newLevel = level;
+
+        if (!CanEditStateEditorLevel())
+            return FALSE;
+
+        if (setMin)
+            newLevel = 1;
+        else if (setMax)
+            newLevel = maxLevel;
+        else if (delta > 0 && level < maxLevel)
+            newLevel++;
+        else if (delta < 0 && level > 1)
+            newLevel--;
+
+        if (newLevel == level)
+            return FALSE;
+
+        SetStateEditorLevel(mon, newLevel);
+        return TRUE;
+    }
+    else if (row == STATE_EDITOR_TRAIT_NATURE)
+    {
+        u8 nature = GetMonData(mon, MON_DATA_HIDDEN_NATURE);
+        u8 newNature = nature;
+
+        if (setMin)
+            newNature = 0;
+        else if (setMax)
+            newNature = NUM_NATURES - 1;
+        else if (delta > 0)
+            newNature = nature >= NUM_NATURES - 1 ? 0 : nature + 1;
+        else if (delta < 0)
+            newNature = nature == 0 ? NUM_NATURES - 1 : nature - 1;
+
+        if (newNature == nature)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_HIDDEN_NATURE, newNature);
+        CalculateMonStats(mon);
+        return TRUE;
+    }
+    else if (row == STATE_EDITOR_TRAIT_ABILITY)
+    {
+        u16 species = GetMonData(mon, MON_DATA_SPECIES);
+        u8 slot = GetCurrentValidAbilitySlot(mon);
+        u8 newSlot = slot;
+
+        if (setMin)
+            newSlot = GetFirstValidAbilitySlot(species);
+        else if (setMax)
+            newSlot = GetLastValidAbilitySlot(species);
+        else if (delta != 0)
+            newSlot = GetNextValidAbilitySlot(species, slot, delta);
+
+        if (newSlot == slot)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_ABILITY_NUM, newSlot);
+        return TRUE;
+    }
+    else
+    {
+        enum PokeBall ball = GetMonData(mon, MON_DATA_POKEBALL);
+        enum PokeBall newBall = ball;
+
+        if (setMin)
+            newBall = GetFirstStateEditorBall();
+        else if (setMax)
+            newBall = GetLastStateEditorBall();
+        else if (delta != 0)
+            newBall = GetNextStateEditorBall(ball, delta);
+
+        if (newBall == ball)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_POKEBALL, newBall);
+        return TRUE;
+    }
+}
+
+static bool8 ApplyStateEditorGimmickChange(struct Pokemon *mon, u8 row, s8 delta, bool8 setMin, bool8 setMax)
+{
+    if (row == STATE_EDITOR_GIMMICK_DYNAMAX_LEVEL)
+    {
+        u32 level = GetMonData(mon, MON_DATA_DYNAMAX_LEVEL);
+        u32 newLevel = level;
+
+        if (setMin)
+            newLevel = 0;
+        else if (setMax)
+            newLevel = MAX_DYNAMAX_LEVEL;
+        else if (delta > 0 && level < MAX_DYNAMAX_LEVEL)
+            newLevel++;
+        else if (delta < 0 && level > 0)
+            newLevel--;
+
+        if (newLevel == level)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_DYNAMAX_LEVEL, newLevel);
+        CalculateMonStats(mon);
+        return TRUE;
+    }
+    else if (row == STATE_EDITOR_GIMMICK_TERA_TYPE)
+    {
+        u16 species = GetMonData(mon, MON_DATA_SPECIES);
+        enum Type teraType = GetMonData(mon, MON_DATA_TERA_TYPE);
+        enum Type newType = teraType;
+
+        if (!CanEditStateEditorTeraType(species))
+            return FALSE;
+
+        if (setMin)
+            newType = GetFirstStateEditorTeraType();
+        else if (setMax)
+            newType = GetLastStateEditorTeraType();
+        else if (delta != 0)
+            newType = GetNextStateEditorTeraType(teraType, delta);
+
+        if (newType == teraType)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_TERA_TYPE, newType);
+        return TRUE;
+    }
+    else
+    {
+        u32 factor = GetMonData(mon, MON_DATA_GIGANTAMAX_FACTOR);
+        u32 newFactor = factor;
+
+        if (setMin)
+            newFactor = FALSE;
+        else if (setMax)
+            newFactor = TRUE;
+        else if (delta != 0)
+            newFactor = !factor;
+
+        if (newFactor == factor)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_GIGANTAMAX_FACTOR, newFactor);
+        return TRUE;
+    }
+}
+
+static bool8 ApplyStateEditorBondChange(struct Pokemon *mon, u8 row, s8 delta, bool8 setMin, bool8 setMax)
+{
+    if (row == STATE_EDITOR_BOND_GENDER)
+    {
+        u8 targetGender;
+        u8 gender = GetMonGender(mon);
+
+        if (setMin)
+            targetGender = MON_MALE;
+        else if (setMax)
+            targetGender = MON_FEMALE;
+        else if (gender == MON_MALE)
+            targetGender = MON_FEMALE;
+        else
+            targetGender = MON_MALE;
+
+        return SetStateEditorGender(mon, targetGender);
+    }
+    else
+    {
+        u32 friendship = GetMonData(mon, MON_DATA_FRIENDSHIP);
+        u32 newFriendship = friendship;
+
+        if (setMin)
+            newFriendship = 0;
+        else if (setMax)
+            newFriendship = MAX_FRIENDSHIP;
+        else if (delta > 0 && friendship < MAX_FRIENDSHIP)
+            newFriendship++;
+        else if (delta < 0 && friendship > 0)
+            newFriendship--;
+
+        if (newFriendship == friendship)
+            return FALSE;
+
+        SetStateEditorMonData8(mon, MON_DATA_FRIENDSHIP, newFriendship);
+        return TRUE;
+    }
+}
+
+static bool8 ApplyStateEditorChange(u8 taskId, s8 delta, bool8 setMin, bool8 setMax)
+{
+    s16 *data = gTasks[taskId].data;
+    struct Pokemon *mon = GetStateEditorMon();
+
+    if (mon == NULL)
+        return FALSE;
+
+    switch (tStateEditorPage)
+    {
+    case STATE_EDITOR_PAGE_EVS:
+    case STATE_EDITOR_PAGE_IVS:
+        return ApplyStateEditorStatChange(mon, tStateEditorPage, tStateEditorRow, delta, setMin, setMax);
+    case STATE_EDITOR_PAGE_TRAITS:
+        return ApplyStateEditorTraitChange(mon, tStateEditorRow, delta, setMin, setMax);
+    case STATE_EDITOR_PAGE_GIMMICKS:
+        return ApplyStateEditorGimmickChange(mon, tStateEditorRow, delta, setMin, setMax);
+    case STATE_EDITOR_PAGE_BOND:
+    default:
+        return ApplyStateEditorBondChange(mon, tStateEditorRow, delta, setMin, setMax);
+    }
+}
+
+static void LoadStateEditorPalette(void)
+{
+    LoadPalette(sStateEditorWindow_Pal, BG_PLTT_ID(P_SUMMARY_STATE_EDITOR_WINDOW_PALETTE), PLTT_SIZE_4BPP);
+}
+
+static void DrawStateEditorPanel(u8 windowId)
+{
+    u16 width = WindowWidthPx(windowId);
+    u16 height = GetWindowAttribute(windowId, WINDOW_HEIGHT) * 8;
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BORDER_FILL));
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BODY_FILL), 1, 1, width - 2, height - 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_HEADER_FILL), 3, 3, width - 6, 22);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 3, 3, 3, 22);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ROW_FILL), 4, 28, width - 8, 90);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_HEADER_FILL), 3, height - 20, width - 6, 17);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 3, height - 20, 3, 17);
+}
+
+static void DrawStateEditorRowBackdrop(u8 windowId, u8 selectedRow, u8 row, u8 y)
+{
+    u16 width = WindowWidthPx(windowId);
+    u8 fill = (row & 1) ? STATE_EDITOR_COLOR_BODY_FILL : STATE_EDITOR_COLOR_ROW_FILL;
+
+    if (selectedRow == row)
+    {
+        FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_SELECTED_FILL), 7, y - 1, width - 14, 12);
+        FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 7, y - 1, 3, 12);
+    }
+    else
+    {
+        FillWindowPixelRect(windowId, PIXEL_FILL(fill), 7, y - 1, width - 14, 12);
+    }
+}
+
+static u8 GetStateEditorRowTextColor(u8 selectedRow, u8 row)
+{
+    return selectedRow == row ? STATE_EDITOR_TEXT_SELECTED : STATE_EDITOR_TEXT_NORMAL;
+}
+
+static void PrintStateEditorSmall(u8 windowId, const u8 *string, u8 x, u8 y, u8 colorId)
+{
+    PrintTextOnWindowWithFont(windowId, string, x, y, 0, colorId, FONT_SMALL);
+}
+
+static void PrintStateEditorFitSmall(u8 windowId, const u8 *string, u8 x, u8 y, u8 colorId, u32 width)
+{
+    u32 fontId = GetFontIdToFit(string, FONT_SMALL, 0, width);
+    PrintTextOnWindowWithFont(windowId, string, x, y, 0, colorId, fontId);
+}
+
+static void DrawStateEditorRowLabel(u8 windowId, const u8 *label, u8 y, u8 colorId)
+{
+    PrintStateEditorSmall(windowId, label, P_SUMMARY_STATE_EDITOR_TEXT_X + 10, y, colorId);
+}
+
+static void DrawStateEditorCursor(u8 windowId, u8 selectedRow, u8 row, u8 y, u8 colorId)
+{
+    const u8 *cursor = selectedRow == row ? sText_StateEditorCursor : sText_StateEditorBlank;
+    PrintStateEditorSmall(windowId, cursor, P_SUMMARY_STATE_EDITOR_TEXT_X, y, colorId);
+}
+
+static void CopyStateEditorPixelRectToVram(u8 windowId, u8 y, u8 height)
+{
+    u8 top = y / 8;
+    u8 bottom = (y + height + 7) / 8;
+
+    CopyWindowRectToVram(windowId, COPYWIN_GFX, 0, top, GetWindowAttribute(windowId, WINDOW_WIDTH), bottom - top);
+}
+
+static void DrawStateEditorInfoLine(u8 windowId, struct Pokemon *mon, u8 page)
+{
+    u16 width = WindowWidthPx(windowId);
+
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BODY_FILL), 7, 108, width - 14, 14);
+
+    if (page == STATE_EDITOR_PAGE_EVS)
+    {
+        StringCopy(gStringVar4, sText_StateEditorTotal);
+        StringAppend(gStringVar4, COMPOUND_STRING(" "));
+        ConvertIntToDecimalStringN(gStringVar1, GetStateEditorEvTotal(mon), STR_CONV_MODE_RIGHT_ALIGN, 3);
+        StringAppend(gStringVar4, gStringVar1);
+        StringAppend(gStringVar4, COMPOUND_STRING("/"));
+        ConvertIntToDecimalStringN(gStringVar1, MAX_TOTAL_EVS, STR_CONV_MODE_LEFT_ALIGN, 3);
+        StringAppend(gStringVar4, gStringVar1);
+        PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 112, STATE_EDITOR_TEXT_MUTED);
+    }
+    else if (page == STATE_EDITOR_PAGE_TRAITS)
+    {
+        StringCopy(gStringVar4, sText_StateEditorCap);
+        StringAppend(gStringVar4, COMPOUND_STRING(" "));
+        ConvertIntToDecimalStringN(gStringVar1, GetStateEditorLevelCap(), STR_CONV_MODE_LEFT_ALIGN, 3);
+        StringAppend(gStringVar4, gStringVar1);
+        PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 112, STATE_EDITOR_TEXT_MUTED);
+    }
+}
+
+static void DrawStateEditorStatRow(u8 windowId, struct Pokemon *mon, u8 page, u8 selectedRow, u8 row)
+{
+    enum MonData const *fields = page == STATE_EDITOR_PAGE_EVS ? sStateEditorEvData : sStateEditorIvData;
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y + row * P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    u8 colorId = GetStateEditorRowTextColor(selectedRow, row);
+    u32 value = GetMonData(mon, fields[row]);
+
+    DrawStateEditorRowBackdrop(windowId, selectedRow, row, y);
+    DrawStateEditorCursor(windowId, selectedRow, row, y, colorId);
+    PrintStateEditorSmall(windowId, sStateEditorStatLabels[row], P_SUMMARY_STATE_EDITOR_TEXT_X + 10, y, colorId);
+    ConvertIntToDecimalStringN(gStringVar1, value, STR_CONV_MODE_RIGHT_ALIGN, 3);
+    PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+}
+
+static void DrawStateEditorStatPage(u8 windowId, struct Pokemon *mon, u8 page, u8 selectedRow)
+{
+    u32 row;
+
+    for (row = 0; row < STATE_EDITOR_STAT_COUNT; row++)
+        DrawStateEditorStatRow(windowId, mon, page, selectedRow, row);
+
+    DrawStateEditorInfoLine(windowId, mon, page);
+}
+
+static void DrawStateEditorTraitsPage(u8 windowId, struct Pokemon *mon, u8 selectedRow)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y;
+    u8 colorId;
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 level = GetMonData(mon, MON_DATA_LEVEL);
+    u32 levelCap = GetStateEditorLevelCap();
+    u8 nature = GetMonData(mon, MON_DATA_HIDDEN_NATURE);
+    u8 abilitySlot = GetCurrentValidAbilitySlot(mon);
+    enum Ability ability = GetSpeciesAbility(species, abilitySlot);
+    enum PokeBall ball = GetMonData(mon, MON_DATA_POKEBALL);
+
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_TRAIT_LEVEL);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_TRAIT_LEVEL, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_TRAIT_LEVEL, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorLevel, y, colorId);
+    if (CanEditStateEditorLevel())
+        ConvertIntToDecimalStringN(gStringVar1, level, STR_CONV_MODE_RIGHT_ALIGN, 3);
+    else
+        StringCopy(gStringVar1, sText_StateEditorLocked);
+    PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+
+    y += P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_TRAIT_NATURE);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_TRAIT_NATURE, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_TRAIT_NATURE, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorNature, y, colorId);
+    PrintStateEditorFitSmall(windowId, gNaturesInfo[nature].name, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+
+    y += P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_TRAIT_ABILITY);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_TRAIT_ABILITY, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_TRAIT_ABILITY, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorAbility, y, colorId);
+    if (ability != ABILITY_NONE)
+        PrintStateEditorFitSmall(windowId, gAbilitiesInfo[ability].name, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+    else
+        PrintStateEditorSmall(windowId, sText_StateEditorNone, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+
+    y += P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_TRAIT_BALL);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_TRAIT_BALL, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_TRAIT_BALL, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorBall, y, colorId);
+    if (ball < POKEBALL_COUNT)
+        PrintStateEditorFitSmall(windowId, GetItemName(gPokeBalls[ball].itemId), P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+    else
+        PrintStateEditorSmall(windowId, sText_StateEditorNone, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+
+    StringCopy(gStringVar4, sText_StateEditorCap);
+    StringAppend(gStringVar4, COMPOUND_STRING(" "));
+    ConvertIntToDecimalStringN(gStringVar1, levelCap, STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(gStringVar4, gStringVar1);
+    PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 112, STATE_EDITOR_TEXT_MUTED);
+}
+
+static void DrawStateEditorGimmicksPage(u8 windowId, struct Pokemon *mon, u8 selectedRow)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y;
+    u8 colorId;
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 dynamaxLevel = GetMonData(mon, MON_DATA_DYNAMAX_LEVEL);
+    enum Type teraType = GetMonData(mon, MON_DATA_TERA_TYPE);
+    u32 gigantamaxFactor = GetMonData(mon, MON_DATA_GIGANTAMAX_FACTOR);
+
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_GIMMICK_DYNAMAX_LEVEL);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_GIMMICK_DYNAMAX_LEVEL, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_GIMMICK_DYNAMAX_LEVEL, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorDynamaxLevel, y, colorId);
+    ConvertIntToDecimalStringN(gStringVar1, dynamaxLevel, STR_CONV_MODE_RIGHT_ALIGN, 2);
+    PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+
+    y += P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_GIMMICK_TERA_TYPE);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_GIMMICK_TERA_TYPE, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_GIMMICK_TERA_TYPE, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorTeraType, y, colorId);
+    if (CanEditStateEditorTeraType(species))
+        PrintStateEditorFitSmall(windowId, gTypesInfo[teraType].name, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+    else
+        PrintStateEditorSmall(windowId, sText_StateEditorLocked, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+
+    y += P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_GIMMICK_GIGANTAMAX);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_GIMMICK_GIGANTAMAX, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_GIMMICK_GIGANTAMAX, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorGigantamax, y, colorId);
+    PrintStateEditorSmall(windowId, gigantamaxFactor ? sText_StateEditorOn : sText_StateEditorOff, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+}
+
+static const u8 *GetStateEditorGenderText(u8 gender)
+{
+    switch (gender)
+    {
+    case MON_MALE:
+        return sText_StateEditorMale;
+    case MON_FEMALE:
+        return sText_StateEditorFemale;
+    case MON_GENDERLESS:
+        return sText_StateEditorGenderless;
+    default:
+        return sText_StateEditorLocked;
+    }
+}
+
+static void DrawStateEditorBondPage(u8 windowId, struct Pokemon *mon, u8 selectedRow)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y;
+    u8 colorId;
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u8 gender = GetMonGender(mon);
+    u32 friendship = GetMonData(mon, MON_DATA_FRIENDSHIP);
+
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_BOND_GENDER);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_BOND_GENDER, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_BOND_GENDER, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorGender, y, colorId);
+    if (CanEditStateEditorGender(species))
+        PrintStateEditorSmall(windowId, GetStateEditorGenderText(gender), P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+    else
+        PrintStateEditorSmall(windowId, sText_StateEditorLocked, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+
+    y += P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    colorId = GetStateEditorRowTextColor(selectedRow, STATE_EDITOR_BOND_FRIENDSHIP);
+    DrawStateEditorRowBackdrop(windowId, selectedRow, STATE_EDITOR_BOND_FRIENDSHIP, y);
+    DrawStateEditorCursor(windowId, selectedRow, STATE_EDITOR_BOND_FRIENDSHIP, y, colorId);
+    DrawStateEditorRowLabel(windowId, sText_StateEditorFriendship, y, colorId);
+    ConvertIntToDecimalStringN(gStringVar1, friendship, STR_CONV_MODE_RIGHT_ALIGN, 3);
+    PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+}
+
+static void DrawStateEditorTraitRow(u8 windowId, struct Pokemon *mon, u8 selectedRow, u8 row)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y + row * P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    u8 colorId = GetStateEditorRowTextColor(selectedRow, row);
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+
+    DrawStateEditorRowBackdrop(windowId, selectedRow, row, y);
+    DrawStateEditorCursor(windowId, selectedRow, row, y, colorId);
+
+    switch (row)
+    {
+    case STATE_EDITOR_TRAIT_LEVEL:
+        DrawStateEditorRowLabel(windowId, sText_StateEditorLevel, y, colorId);
+        if (CanEditStateEditorLevel())
+            ConvertIntToDecimalStringN(gStringVar1, GetMonData(mon, MON_DATA_LEVEL), STR_CONV_MODE_RIGHT_ALIGN, 3);
+        else
+            StringCopy(gStringVar1, sText_StateEditorLocked);
+        PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        break;
+    case STATE_EDITOR_TRAIT_NATURE:
+        DrawStateEditorRowLabel(windowId, sText_StateEditorNature, y, colorId);
+        PrintStateEditorFitSmall(windowId, gNaturesInfo[GetMonData(mon, MON_DATA_HIDDEN_NATURE)].name, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+        break;
+    case STATE_EDITOR_TRAIT_ABILITY:
+    {
+        enum Ability ability = GetSpeciesAbility(species, GetCurrentValidAbilitySlot(mon));
+
+        DrawStateEditorRowLabel(windowId, sText_StateEditorAbility, y, colorId);
+        if (ability != ABILITY_NONE)
+            PrintStateEditorFitSmall(windowId, gAbilitiesInfo[ability].name, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+        else
+            PrintStateEditorSmall(windowId, sText_StateEditorNone, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        break;
+    }
+    case STATE_EDITOR_TRAIT_BALL:
+    default:
+    {
+        enum PokeBall ball = GetMonData(mon, MON_DATA_POKEBALL);
+
+        DrawStateEditorRowLabel(windowId, sText_StateEditorBall, y, colorId);
+        if (ball < POKEBALL_COUNT)
+            PrintStateEditorFitSmall(windowId, GetItemName(gPokeBalls[ball].itemId), P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+        else
+            PrintStateEditorSmall(windowId, sText_StateEditorNone, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        break;
+    }
+    }
+}
+
+static void DrawStateEditorGimmickRow(u8 windowId, struct Pokemon *mon, u8 selectedRow, u8 row)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y + row * P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    u8 colorId = GetStateEditorRowTextColor(selectedRow, row);
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+
+    DrawStateEditorRowBackdrop(windowId, selectedRow, row, y);
+    DrawStateEditorCursor(windowId, selectedRow, row, y, colorId);
+
+    switch (row)
+    {
+    case STATE_EDITOR_GIMMICK_DYNAMAX_LEVEL:
+        DrawStateEditorRowLabel(windowId, sText_StateEditorDynamaxLevel, y, colorId);
+        ConvertIntToDecimalStringN(gStringVar1, GetMonData(mon, MON_DATA_DYNAMAX_LEVEL), STR_CONV_MODE_RIGHT_ALIGN, 2);
+        PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        break;
+    case STATE_EDITOR_GIMMICK_TERA_TYPE:
+    {
+        enum Type teraType = GetMonData(mon, MON_DATA_TERA_TYPE);
+
+        DrawStateEditorRowLabel(windowId, sText_StateEditorTeraType, y, colorId);
+        if (CanEditStateEditorTeraType(species))
+            PrintStateEditorFitSmall(windowId, gTypesInfo[teraType].name, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId, WindowWidthPx(windowId) - P_SUMMARY_STATE_EDITOR_VALUE_X - 8);
+        else
+            PrintStateEditorSmall(windowId, sText_StateEditorLocked, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        break;
+    }
+    case STATE_EDITOR_GIMMICK_GIGANTAMAX:
+    default:
+        DrawStateEditorRowLabel(windowId, sText_StateEditorGigantamax, y, colorId);
+        PrintStateEditorSmall(windowId, GetMonData(mon, MON_DATA_GIGANTAMAX_FACTOR) ? sText_StateEditorOn : sText_StateEditorOff, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        break;
+    }
+}
+
+static void DrawStateEditorBondRow(u8 windowId, struct Pokemon *mon, u8 selectedRow, u8 row)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y + row * P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+    u8 colorId = GetStateEditorRowTextColor(selectedRow, row);
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+
+    DrawStateEditorRowBackdrop(windowId, selectedRow, row, y);
+    DrawStateEditorCursor(windowId, selectedRow, row, y, colorId);
+
+    if (row == STATE_EDITOR_BOND_GENDER)
+    {
+        DrawStateEditorRowLabel(windowId, sText_StateEditorGender, y, colorId);
+        if (CanEditStateEditorGender(species))
+            PrintStateEditorSmall(windowId, GetStateEditorGenderText(GetMonGender(mon)), P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+        else
+            PrintStateEditorSmall(windowId, sText_StateEditorLocked, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+    }
+    else
+    {
+        DrawStateEditorRowLabel(windowId, sText_StateEditorFriendship, y, colorId);
+        ConvertIntToDecimalStringN(gStringVar1, GetMonData(mon, MON_DATA_FRIENDSHIP), STR_CONV_MODE_RIGHT_ALIGN, 3);
+        PrintStateEditorSmall(windowId, gStringVar1, P_SUMMARY_STATE_EDITOR_VALUE_X, y, colorId);
+    }
+}
+
+static void DrawStateEditorSingleRow(u8 windowId, struct Pokemon *mon, u8 page, u8 selectedRow, u8 row)
+{
+    switch (page)
+    {
+    case STATE_EDITOR_PAGE_EVS:
+    case STATE_EDITOR_PAGE_IVS:
+        DrawStateEditorStatRow(windowId, mon, page, selectedRow, row);
+        break;
+    case STATE_EDITOR_PAGE_TRAITS:
+        DrawStateEditorTraitRow(windowId, mon, selectedRow, row);
+        break;
+    case STATE_EDITOR_PAGE_GIMMICKS:
+        DrawStateEditorGimmickRow(windowId, mon, selectedRow, row);
+        break;
+    case STATE_EDITOR_PAGE_BOND:
+    default:
+        DrawStateEditorBondRow(windowId, mon, selectedRow, row);
+        break;
+    }
+}
+
+static void CopyStateEditorRowToVram(u8 windowId, u8 row)
+{
+    u8 y = P_SUMMARY_STATE_EDITOR_ROW_Y + row * P_SUMMARY_STATE_EDITOR_ROW_HEIGHT;
+
+    CopyStateEditorPixelRectToVram(windowId, y - 2, P_SUMMARY_STATE_EDITOR_ROW_HEIGHT + 3);
+}
+
+static void RedrawStateEditorRows(u8 taskId, u8 oldRow, bool8 redrawOldRow, bool8 redrawInfoLine)
+{
+    s16 *data = gTasks[taskId].data;
+    struct Pokemon *mon = GetStateEditorMon();
+    u8 windowId = tStateEditorWindowId;
+
+    if (mon == NULL)
+        return;
+
+    if (redrawOldRow && oldRow != tStateEditorRow)
+    {
+        DrawStateEditorSingleRow(windowId, mon, tStateEditorPage, tStateEditorRow, oldRow);
+        CopyStateEditorRowToVram(windowId, oldRow);
+    }
+
+    DrawStateEditorSingleRow(windowId, mon, tStateEditorPage, tStateEditorRow, tStateEditorRow);
+    CopyStateEditorRowToVram(windowId, tStateEditorRow);
+
+    if (redrawInfoLine)
+    {
+        DrawStateEditorInfoLine(windowId, mon, tStateEditorPage);
+        CopyStateEditorPixelRectToVram(windowId, 108, 14);
+    }
+}
+
+static void DrawStateEditor(u8 taskId, bool8 copyTilemap)
+{
+    s16 *data = gTasks[taskId].data;
+    struct Pokemon *mon = GetStateEditorMon();
+    u8 windowId = tStateEditorWindowId;
+
+    if (mon == NULL)
+        return;
+
+    DrawStateEditorPanel(windowId);
+    if (copyTilemap)
+        PutWindowTilemap(windowId);
+
+    PrintTextOnWindow(windowId, sText_StateEditorTitle, P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_TEXT_Y, 0, STATE_EDITOR_TEXT_TITLE);
+
+    StringCopy(gStringVar4, sStateEditorPageNames[tStateEditorPage]);
+    StringAppend(gStringVar4, COMPOUND_STRING(" "));
+    ConvertIntToDecimalStringN(gStringVar1, tStateEditorPage + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+    StringAppend(gStringVar4, gStringVar1);
+    StringAppend(gStringVar4, COMPOUND_STRING("/"));
+    ConvertIntToDecimalStringN(gStringVar1, STATE_EDITOR_PAGE_COUNT, STR_CONV_MODE_LEFT_ALIGN, 1);
+    StringAppend(gStringVar4, gStringVar1);
+    PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 18, STATE_EDITOR_TEXT_MUTED);
+
+    switch (tStateEditorPage)
+    {
+    case STATE_EDITOR_PAGE_EVS:
+    case STATE_EDITOR_PAGE_IVS:
+        DrawStateEditorStatPage(windowId, mon, tStateEditorPage, tStateEditorRow);
+        break;
+    case STATE_EDITOR_PAGE_TRAITS:
+        DrawStateEditorTraitsPage(windowId, mon, tStateEditorRow);
+        break;
+    case STATE_EDITOR_PAGE_GIMMICKS:
+        DrawStateEditorGimmicksPage(windowId, mon, tStateEditorRow);
+        break;
+    case STATE_EDITOR_PAGE_BOND:
+    default:
+        DrawStateEditorBondPage(windowId, mon, tStateEditorRow);
+        break;
+    }
+
+    PrintStateEditorSmall(windowId, sText_StateEditorControls, P_SUMMARY_STATE_EDITOR_TEXT_X, 126, STATE_EDITOR_TEXT_TITLE);
+    CopyWindowToVram(windowId, copyTilemap ? COPYWIN_FULL : COPYWIN_GFX);
+    if (copyTilemap)
+        ScheduleBgCopyTilemapToVram(0);
+}
+
+static void ClearStateEditorSkillsText(void)
+{
+    u32 i;
+
+    for (i = 0; i < ARRAY_COUNT(sPageSkillsTemplate); i++)
+    {
+        u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, i);
+        FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+        ClearWindowTilemap(windowId);
+        CopyWindowToVram(windowId, COPYWIN_FULL);
+    }
+}
+
+static void RefreshStateEditorSummary(void)
+{
+    CopyMonToSummaryStruct(&sMonSummaryScreen->currentMon);
+    sMonSummaryScreen->switchCounter = 0;
+    while (ExtractMonDataToSummaryStruct(&sMonSummaryScreen->currentMon) == FALSE)
+        ;
+    sMonSummaryScreen->switchCounter = 0;
+}
+
+static void OpenStateEditor(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+
+    tStateEditorPage = STATE_EDITOR_PAGE_EVS;
+    tStateEditorRow = 0;
+    tStateEditorWindowId = AddWindow(&sStateEditorWindowTemplate);
+
+    LoadStateEditorPalette();
+    PlaySE(SE_SELECT);
+    ClearStateEditorSkillsText();
+    DrawStateEditor(taskId, TRUE);
+    gTasks[taskId].func = Task_HandleInput_StateEditor;
+}
+
+static void CloseStateEditor(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+
+    FillWindowPixelBuffer(tStateEditorWindowId, PIXEL_FILL(0));
+    ClearWindowTilemap(tStateEditorWindowId);
+    CopyWindowToVram(tStateEditorWindowId, COPYWIN_FULL);
+    RemoveWindow(tStateEditorWindowId);
+    RefreshStateEditorSummary();
+    PrintMonInfo();
+    PrintPageSpecificText(sMonSummaryScreen->currPageIndex);
+    PutPageWindowTilemaps(sMonSummaryScreen->currPageIndex);
+    ShowRelearnPrompt();
+    ScheduleBgCopyTilemapToVram(0);
+
+    tStateEditorPage = 0;
+    tStateEditorRow = 0;
+    tStateEditorWindowId = WINDOW_NONE;
+    gTasks[taskId].func = Task_HandleInput;
+}
+
+static void Task_HandleInput_StateEditor(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+
+    if (MenuHelpers_ShouldWaitForLinkRecv() == TRUE || gPaletteFade.active)
+        return;
+
+    if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        CloseStateEditor(taskId);
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        tStateEditorPage++;
+        if (tStateEditorPage >= STATE_EDITOR_PAGE_COUNT)
+            tStateEditorPage = 0;
+        if (tStateEditorRow >= GetStateEditorRowCount(tStateEditorPage))
+            tStateEditorRow = 0;
+        PlaySE(SE_SELECT);
+        DrawStateEditor(taskId, FALSE);
+    }
+    else if (JOY_REPEAT(DPAD_UP))
+    {
+        u8 oldRow = tStateEditorRow;
+
+        if (tStateEditorRow == 0)
+            tStateEditorRow = GetStateEditorRowCount(tStateEditorPage) - 1;
+        else
+            tStateEditorRow--;
+        PlaySE(SE_SELECT);
+        RedrawStateEditorRows(taskId, oldRow, TRUE, FALSE);
+    }
+    else if (JOY_REPEAT(DPAD_DOWN))
+    {
+        u8 oldRow = tStateEditorRow;
+
+        tStateEditorRow++;
+        if (tStateEditorRow >= GetStateEditorRowCount(tStateEditorPage))
+            tStateEditorRow = 0;
+        PlaySE(SE_SELECT);
+        RedrawStateEditorRows(taskId, oldRow, TRUE, FALSE);
+    }
+    else if (JOY_REPEAT(DPAD_LEFT) || JOY_REPEAT(DPAD_RIGHT) || JOY_NEW(L_BUTTON) || JOY_NEW(R_BUTTON))
+    {
+        bool8 changed;
+        s8 delta = 0;
+        bool8 setMin = JOY_NEW(L_BUTTON) != 0;
+        bool8 setMax = JOY_NEW(R_BUTTON) != 0;
+
+        if (JOY_REPEAT(DPAD_LEFT))
+            delta = -1;
+        else if (JOY_REPEAT(DPAD_RIGHT))
+            delta = 1;
+
+        changed = ApplyStateEditorChange(taskId, delta, setMin, setMax);
+        if (changed)
+        {
+            PlaySE(SE_SELECT);
+            RedrawStateEditorRows(taskId, tStateEditorRow, FALSE, tStateEditorPage == STATE_EDITOR_PAGE_EVS);
+        }
+        else if (setMin || setMax)
+        {
+            PlaySE(SE_FAILURE);
+        }
+    }
+}
+
+static bool32 ShouldShowStateEditor(void)
+{
+    return sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS
+        && sMonSummaryScreen->mode == SUMMARY_MODE_NORMAL
+        && !sMonSummaryScreen->isBoxMon
+        && !sMonSummaryScreen->summary.isEgg
+        && !sMonSummaryScreen->lockMovesFlag
+        && !gMain.inBattle
+        && !InBattleFactory()
+        && !InSlateportBattleTent();
+}
+
+#undef tStateEditorPage
+#undef tStateEditorRow
+#undef tStateEditorWindowId
+#endif
+
 static void TryUpdateRelearnType(enum IncrDecrUpdateValues delta)
 {
     bool32 hasRelearnableMoves = FALSE;
@@ -2124,7 +3465,7 @@ static void Task_ChangeSummaryMon(u8 taskId)
         }
         else
         {
-            ClearWindowTilemap(PSS_LABEL_WINDOW_PROMPT_RELEARN);
+            ShowRelearnPrompt();
         }
         break;
     case 5:
@@ -3850,6 +5191,7 @@ static void PrintSkillsPageText(void)
     BufferRightColumnStats();
     PrintRightColumnStats();
     PrintExpPointsNextLevel();
+    ShowRelearnPrompt();
 }
 
 static void Task_PrintSkillsPage(u8 taskId)
@@ -4932,6 +6274,17 @@ static inline void ShowUtilityPrompt(s16 mode)
 static void ShowRelearnPrompt(void)
 {
     u32 currPage = sMonSummaryScreen->currPageIndex;
+
+#if P_SUMMARY_SCREEN_STATE_EDITOR
+    if (ShouldShowStateEditor())
+    {
+        ClearWindowTilemap(PSS_LABEL_WINDOW_PROMPT_RELEARN);
+        FillWindowPixelBuffer(PSS_LABEL_WINDOW_PROMPT_UTILITY, PIXEL_FILL(0));
+        PutWindowTilemap(PSS_LABEL_WINDOW_PROMPT_UTILITY);
+        PrintTextOnWindowWithFont(PSS_LABEL_WINDOW_PROMPT_UTILITY, sText_StateEditorPrompt, 0, 4, 0, 0, FONT_SMALL);
+        return;
+    }
+#endif
 
     if (!ShouldShowMoveRelearner() || !(currPage >= PSS_PAGE_BATTLE_MOVES))
     {

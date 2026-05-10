@@ -3404,6 +3404,36 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
         boxMon->checksum = CalculateBoxMonChecksumReencrypt(boxMon);
 }
 
+void SetMonPersonality(struct Pokemon *mon, u32 personality)
+{
+    SetBoxMonPersonality(&mon->box, personality);
+}
+
+void SetBoxMonPersonality(struct BoxPokemon *boxMon, u32 personality)
+{
+    u32 i;
+    union PokemonSubstruct substructs[SUBSTRUCT_TYPE_COUNT];
+
+    if (CalculateBoxMonChecksumDecrypt(boxMon) != boxMon->checksum)
+    {
+        boxMon->isBadEgg = TRUE;
+        boxMon->isEgg = TRUE;
+        GetSubstruct3(boxMon)->isEgg = TRUE;
+        EncryptBoxMon(boxMon);
+        return;
+    }
+
+    for (i = 0; i < SUBSTRUCT_TYPE_COUNT; i++)
+        substructs[i] = *GetSubstruct(boxMon, boxMon->personality, i);
+
+    boxMon->personality = personality;
+
+    for (i = 0; i < SUBSTRUCT_TYPE_COUNT; i++)
+        *GetSubstruct(boxMon, boxMon->personality, i) = substructs[i];
+
+    boxMon->checksum = CalculateBoxMonChecksumReencrypt(boxMon);
+}
+
 void CopyMon(void *dest, void *src, size_t size)
 {
     memcpy(dest, src, size);

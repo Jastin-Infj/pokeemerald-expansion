@@ -29,6 +29,23 @@ Info taken from https://bulbapedia.bulbagarden.net/wiki/Stats_judge.
 // IV/EV flags
 #define P_FLAG_SUMMARY_SCREEN_IV_EV_INFO 0      // If this flag is set, will allow player to cycle through the Stats, IVs, and EVs in the summary screen skills page. Note: if P_SUMMARY_SCREEN_IV_EV_INFO is TRUE, this flag does nothing.
 
+// State Editor summary screen
+#define P_SUMMARY_SCREEN_STATE_EDITOR          TRUE // If TRUE, the Skills page can open a party Pokemon state editor with START.
+#define P_SUMMARY_STATE_EDITOR_WINDOW_LEFT     10
+#define P_SUMMARY_STATE_EDITOR_WINDOW_TOP      1
+#define P_SUMMARY_STATE_EDITOR_WINDOW_WIDTH    20
+#define P_SUMMARY_STATE_EDITOR_WINDOW_HEIGHT   18
+#define P_SUMMARY_STATE_EDITOR_WINDOW_BASE     600
+#define P_SUMMARY_STATE_EDITOR_WINDOW_PALETTE  13
+#define P_SUMMARY_STATE_EDITOR_WINDOW_FILL     13
+#define P_SUMMARY_STATE_EDITOR_TEXT_X          6
+#define P_SUMMARY_STATE_EDITOR_TEXT_Y          1
+#define P_SUMMARY_STATE_EDITOR_ROW_Y           31
+#define P_SUMMARY_STATE_EDITOR_ROW_HEIGHT      13
+#define P_SUMMARY_STATE_EDITOR_VALUE_X         78
+#define P_SUMMARY_STATE_EDITOR_LEVEL_EDIT      TRUE // If TRUE, the state editor can change level.
+#define P_SUMMARY_STATE_EDITOR_LEVEL_CAP       TRUE // If TRUE, level edits respect the current level cap.
+
 // Move Relearner settings
 #define P_ENABLE_MOVE_RELEARNERS         FALSE   // If TRUE, it enables move relearners for egg, TM and tutor. (see below for specific configs /flags)
 #define P_SORT_MOVES                     FALSE   // If TRUE, sorts all moves alphabetically in the relearner's list.

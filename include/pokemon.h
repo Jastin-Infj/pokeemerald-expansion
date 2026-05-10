@@ -241,6 +241,7 @@ enum SubstructType
     SUBSTRUCT_TYPE_1,
     SUBSTRUCT_TYPE_2,
     SUBSTRUCT_TYPE_3,
+    SUBSTRUCT_TYPE_COUNT,
 };
 
 union PokemonSubstruct
@@ -788,6 +789,8 @@ u32 GetBoxMonData2(struct BoxPokemon *boxMon, s32 field);
 
 void SetMonData(struct Pokemon *mon, s32 field, const void *dataArg);
 void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg);
+void SetMonPersonality(struct Pokemon *mon, u32 personality);
+void SetBoxMonPersonality(struct BoxPokemon *boxMon, u32 personality);
 void CopyMon(void *dest, void *src, size_t size);
 u8 GiveCapturedMonToPlayer(struct Pokemon *mon);
 u8 CopyMonToPC(struct Pokemon *mon);
