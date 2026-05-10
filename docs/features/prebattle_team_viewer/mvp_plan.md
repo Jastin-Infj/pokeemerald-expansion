@@ -6,7 +6,7 @@
 |---|---|
 | Last reviewed | 2026-05-10 |
 | Baseline | `master` `7c19f56901`; `git describe` = `expansion/1.15.2-38-g7c19f56901` |
-| Code status | MVP implemented in `feature/prebattle-team-viewer` |
+| Code status | MVP implemented; Phase 2 supersedes the two-screen selection path on `feature/prebattle-team-viewer-phase2` |
 | Provenance | Local project feature docs |
 
 ## MVP
@@ -159,18 +159,17 @@ This keeps newer docs and unrelated master overlays intact.
 
 ## Future Work
 
-- Phase 2: replace existing choose-half UI with a single integrated viewer/selector.
-- Phase 2: apply a Battle Revolution-style "team card / battle pass" frame if it fits the GBA UI.
-- Phase 2: add summary preview from player side without losing selection order.
-- Phase 2: add type icons / richer opponent badges if MVP starts with text chips.
-- Phase 2: allow viewer from move menu if a clean button policy exists.
+- Completed in Phase 2: replace existing choose-half UI with a single integrated viewer/selector.
+- Completed in Phase 2: add player-side Summary entry without losing selection order.
+- Future polish: apply a Battle Revolution-style "team card / battle pass" frame if it fits the GBA UI.
+- Future polish: add type icons / richer opponent badges if palette / tile budget allows it.
+- Future shortcut policy: allow viewer from move menu if a clean button policy exists.
 - Phase 3: Champions challenge runtime can override this viewer with challenge-specific roster policy.
 
-Before implementing the integrated selector, use
+The integrated selector is now recorded in
 [Phase 2 Integrated Selection Flow Checklist](phase2_selection_flow_checklist.md).
-That work changes input ownership, party restore behavior, and battle start callbacks, so it
-should be treated as a separate high-impact feature unless the user explicitly asks to fold
-it into the current branch.
+Further changes that touch input ownership, party restore behavior, or battle start callbacks
+should still be treated as high-impact and validated through the same checklist.
 
 ## Open Questions
 

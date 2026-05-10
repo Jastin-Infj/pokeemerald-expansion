@@ -9,7 +9,9 @@
 |---|---|---|---|
 | battle item restore adoption defaults | `docs/features/battle_item_restore_policy/` | PR #10 source uses `B_RESTORE_HELD_BATTLE_BERRIES TRUE`, while conservative branch policy may prefer default off. | Decide default TRUE/FALSE before source re-apply; keep the decision in `adoption_investigation_2026_05_09.md` and `mvp_plan.md`. |
 | trainer aftercare focused test gate | `docs/features/trainer_battle_aftercare/` | The source hook is small but touches `CB2_EndTrainerBattle`, a central callback for win/loss/facility return. | Add focused config-off, normal-win, and exclusion-path tests before adopting the aftercare slice. |
-| prebattle team viewer double / pool validation | `docs/features/prebattle_team_viewer/` | Single trainer focused route は debug-only `Team Viewer Battle` で mGBA 確認済み。残りは double 4-of-6 と trainer pool / randomized party の preview-cache一致確認。 | double battle 用 debug route か prepared save を用意し、cached opponent party と battle 実体の一致を確認する。 |
+| prebattle team viewer pool validation | `docs/features/prebattle_team_viewer/` | Single route は `Party -> Team Viewer Battle`、double 4-of-6 route は `Party -> Team Viewer W` で mGBA 確認済み。残りは trainer pool / randomized party の preview-cache一致確認。 | W route を regression に使いつつ、cached opponent party と pool / randomized battle 実体の一致を確認する。 |
+| unified move relearner implementation | `docs/features/unified_move_relearner/` | level-up / egg / TM / tutor を 1 list に混ぜると候補数上限、dedupe、TM 所持 policy が大きく変わる。 | `MAX_RELEARNER_MOVES` overflow policy と TM ownership policy を決め、candidate builder を実装する前に focused tests を置く。 |
+| pokemon state editor expansion | `docs/features/pokemon_state_editor/` | IV / EV 以外に性格、特性、性別、産地、なつき度を触ると personality / stat recalculation / summary 表示に影響する。 | 既存 Uroxido/state-editor source path を特定し、party-only MVP か box 対応込みかを決める。 |
 
 ### Resolved (2026-05-05)
 
@@ -28,6 +30,8 @@
 | ~~HM / field move modernization scope~~ | `docs/features/field_move_modernization/` | Resolved 2026-05-05: `mvp_plan.md#Per-HM Decision Table` で HM ごとの badge / map obstacle / MVP slice 順序 (Cut → Rock Smash → Strength → Flash → ... → Fly) を確定。 | — |
 | TM shop migration | `docs/features/tm_shop_migration/` | 全 TM の販売時期、既存 reward、visible / hidden item 置換、save flag の扱いが未確定。 | stage unlock、price tier、NPC/gym reward replacement の候補を整理する。 |
 | generated data rebuild flow | `docs/manuals/generated_data_workflow.md` | partygen 以外にも shop / encounter randomizer で同じ問題が起きる。 | CLI doctor / lint / diff / drift check の共通 contract を feature に適用する。 |
+| partygen player-style optimization | `docs/features/champions_challenge/partygen_player_style_logging.md` | Player style に合わせた partygen tuning は最適化 branch として catalog / profile / validation の境界を決める必要がある。 | style signal の入力形式、重み更新、regression lint を設計してから partygen branch に入る。 |
+| forced release system | `docs/overview/roguelike_party_policy_impact_v15.md` / future feature docs | 禁止条件に入った Pokemon を自動で逃がす rule は party state、PC storage、challenge aftercare、player messaging に跨る。 | release 条件、保護対象、PC box 処理、battle end / field return の実行タイミングを owning feature docs に切り出す。 |
 | docs organization | `docs/manuals/docs_navigation.md` | manual / tutorial / feature / overview / flow の境界が曖昧だと重複が増える。 | 移動ではなく index / navigation / template の更新で整理する。 |
 
 ## Lower Priority
