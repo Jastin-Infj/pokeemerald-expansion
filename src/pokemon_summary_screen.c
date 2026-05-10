@@ -203,6 +203,7 @@ static bool8 DecompressGraphics(void);
 static void CopyMonToSummaryStruct(struct Pokemon *);
 static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *);
 static void SetDefaultTilemaps(void);
+static void SetInitialSkillsPageTilemaps(void);
 static void CloseSummaryScreen(u8);
 static void Task_HandleInput(u8);
 static void ChangeSummaryPokemon(u8, s8);
@@ -1256,6 +1257,15 @@ void ShowPokemonSummaryScreen(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, 
     SetMainCallback2(CB2_InitSummaryScreen);
 }
 
+void ShowPokemonSummaryScreenAtPage(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, void (*callback)(void), u8 page)
+{
+    ShowPokemonSummaryScreen(mode, mons, monIndex, maxMonIndex, callback);
+    if (sMonSummaryScreen != NULL
+     && page >= sMonSummaryScreen->minPageIndex
+     && page <= sMonSummaryScreen->maxPageIndex)
+        sMonSummaryScreen->currPageIndex = page;
+}
+
 void ShowSelectMovePokemonSummaryScreen(struct Pokemon *mons, u8 monIndex, void (*callback)(void), u16 newMove)
 {
     ShowPokemonSummaryScreen(SUMMARY_MODE_SELECT_MOVE, mons, monIndex, gPlayerPartyCount - 1, callback);
@@ -1384,6 +1394,7 @@ static bool8 LoadGraphics(void)
         break;
     case 21:
         SetTypeIcons();
+        TryDrawExperienceProgressBar();
         gMain.state++;
         break;
     case 22:
@@ -1627,6 +1638,23 @@ static void SetDefaultTilemaps(void)
 
     LimitEggSummaryPageDisplay();
     DrawPokerusCuredSymbol(&sMonSummaryScreen->currentMon);
+
+    if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
+        SetInitialSkillsPageTilemaps();
+}
+
+static void SetInitialSkillsPageTilemaps(void)
+{
+    sMonSummaryScreen->bgDisplayOrder = 1;
+    SetBgTilemapBuffer(1, sMonSummaryScreen->bgTilemapBuffers[PSS_PAGE_SKILLS][0]);
+    SetBgAttribute(1, BG_ATTR_PRIORITY, 1);
+    SetBgAttribute(2, BG_ATTR_PRIORITY, 2);
+    ChangeBgX(1, 0x10000, BG_COORD_SET);
+    ChangeBgX(2, 0, BG_COORD_SET);
+    ShowBg(1);
+    ShowBg(2);
+    ScheduleBgCopyTilemapToVram(1);
+    ScheduleBgCopyTilemapToVram(2);
 }
 
 static void FreeSummaryScreen(void)

@@ -88,10 +88,7 @@ static u8 TrainerBattleSelection_GetRequiredCount(void);
 #if B_TRAINER_BATTLE_SELECTION
 static u8 TrainerBattleSelection_CountEligibleMons(void);
 #endif
-static void CB2_StartTrainerBattleSelectionAfterTeamViewer(void);
-static void FieldCB_StartTrainerBattleSelectionAfterTeamViewer(void);
 static void FieldCB_StartTrainerBattleAfterPartySelection(void);
-static void CB2_ReturnToTeamViewerFromPartySelection(void);
 static bool32 IsPlayerDefeated(u32 battleOutcome);
 #if FREE_MATCH_CALL == FALSE
 static u16 GetRematchTrainerId(u16 trainerId);
@@ -468,34 +465,9 @@ static void CB2_StartTrainerBattleAfterPartySelection(void)
     SetMainCallback2(CB2_ReturnToField);
 }
 
-static void CB2_StartTrainerBattleSelectionAfterTeamViewer(void)
-{
-    gFieldCallback = FieldCB_StartTrainerBattleSelectionAfterTeamViewer;
-    SetMainCallback2(CB2_ReturnToField);
-}
-
-static void FieldCB_StartTrainerBattleSelectionAfterTeamViewer(void)
-{
-    if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, CB2_ReturnToTeamViewerFromPartySelection))
-        return;
-
-    DoTrainerBattle();
-}
-
 static void FieldCB_StartTrainerBattleAfterPartySelection(void)
 {
     TrainerBattleSelection_StartBattleFromSelection();
-    DoTrainerBattle();
-}
-
-static void CB2_ReturnToTeamViewerFromPartySelection(void)
-{
-    if (PreBattleTeamViewer_Reopen(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleSelectionAfterTeamViewer))
-        return;
-
-    if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, NULL))
-        return;
-
     DoTrainerBattle();
 }
 
@@ -1421,11 +1393,11 @@ void BattleSetup_StartTrainerBattle(void)
     }
     else if (TrainerBattleSelection_ShouldOffer())
     {
-        if (PreBattleTeamViewer_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleSelectionAfterTeamViewer))
+        if (PreBattleTeamViewer_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection))
         {
-            // Viewer returns to the field, then starts the party selection menu.
+            // Viewer owns integrated party selection and starts the battle after confirmation.
         }
-        else if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, CB2_ReturnToTeamViewerFromPartySelection))
+        else if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, NULL))
         {
             // Battle starts from the party menu callback after the player confirms the selected mons.
         }

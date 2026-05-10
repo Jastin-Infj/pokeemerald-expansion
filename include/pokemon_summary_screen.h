@@ -51,6 +51,7 @@ enum PokemonSummarySkillsMode
 };
 
 void ShowPokemonSummaryScreen(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, void (*callback)(void));
+void ShowPokemonSummaryScreenAtPage(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, void (*callback)(void), u8 page);
 void ShowSelectMovePokemonSummaryScreen(struct Pokemon *mons, u8 monIndex, void (*callback)(void), u16 newMove);
 u8 GetMoveSlotToReplace(void);
 void SummaryScreen_SetAnimDelayTaskId(u8 taskId);

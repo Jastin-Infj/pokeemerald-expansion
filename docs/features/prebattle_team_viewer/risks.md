@@ -20,14 +20,16 @@
 | Player party restore regression | High | Team viewer depends on selection MVP; player `gPlayerParty` is temporarily compressed for battle. | Keep player restoration owned by battle selection and test viewer + selection + battle end together. |
 | Sprite / palette exhaustion | Medium | Two 6-mon lists plus type icons may exceed comfortable UI budget. | Use dedicated screen ownership; start with Pokemon icons and compact text, add type icons only after checking budget. |
 | Over-disclosing opponent data | Medium | Showing moves / ability / held item can change game balance. | MVP shows species / gender / type only; no moves / ability / item by default. |
-| Misreading Champions detail UI | Medium | User reference implies `Y` strength view, but official text did not confirm exact behavior. | Treat `Y` detail view as a requirement, but verify official footage/runtime before copying exact labels or revealing opponent private details. |
-| GBA button mismatch | Low | GBA has no physical `Y_BUTTON`, so the exact Champions input cannot be copied. | MVP maps strength view to `SELECT_BUTTON` via `B_TEAM_VIEWER_DETAILS_BUTTON`. |
+| Misreading Champions detail UI | Medium | User reference implies `Y` strength view, but official text did not confirm exact behavior. | Player-side `SELECT` uses the existing Pokemon Summary; opponent-side details stay public-only until official footage/runtime confirms more. |
+| GBA button mismatch | Low | GBA has no physical `Y_BUTTON`, so the exact Champions input cannot be copied. | MVP maps the detail / Summary action to `SELECT_BUTTON` via `B_TEAM_VIEWER_DETAILS_BUTTON`. |
 | Over-weighting legacy games | Low | Colosseum / XD / Battle Revolution have useful battle UI ideas but different hardware, modes, and information rules. | Keep Champions as primary target; use legacy references only for framing and risk checks. |
 | Callback re-entry | Medium | Selection MVP already found that starting battle directly from party menu callback can create repeated battle start tasks. | Route viewer and selection exits through field callback / one-shot callback pattern. |
 | In-battle button conflict | Medium | `L`, `R`, `START`, and `SELECT` all have existing battle menu uses. | MVP opens only from trainer action menu, uses configurable `B_TEAM_VIEWER_BUTTON`, and starts with `R_BUTTON`. |
 | Battle command corruption | High | Opening a viewer from action selection could accidentally emit a command or lose cursor state. | Viewer close must restore action selection without calling `BtlController_EmitTwoReturnValues`. |
 | Unsupported trainer modes | Medium | Two opponents, Frontier, link, partner, secret base, Pyramid, Hill have special party generation or return paths. | Exclude them in MVP using the same guard style as battle selection. |
-| Integrated selection flow | High | Moving from viewer -> party-menu selection to direct selection inside the viewer changes input ownership, party restore semantics, cancel behavior, and battle start callbacks. | Keep it as Phase 2 and use [Phase 2 Integrated Selection Flow Checklist](phase2_selection_flow_checklist.md) before implementation. |
+| Integrated selection regressions | High | Viewer now owns pick / unpick / confirm input, while battle selection still owns party compression and restore. Bugs can desync selected labels, battle order, or restore order. | Keep validation evidence in [Phase 2 Integrated Selection Flow Checklist](phase2_selection_flow_checklist.md) and rerun single + W debug routes after input or restore changes. |
+| Summary direct-entry layout regression | Medium | Opening Pokemon Summary directly on `POKEMON SKILLS` bypasses the normal page-scroll setup. | Keep `ShowPokemonSummaryScreenAtPage()` and initial skills BG setup aligned with Summary page-scroll behavior; test `SKILLS -> INFO -> SKILLS`. |
+| TeamInfo / MoveInfo coordinate drift | Low | TeamInfo and MoveInfo share visual meaning but are separate code paths. W / double Y can drift if one side is tuned alone. | Keep `TEAM_VIEWER_ACTION_HINT_Y_DOUBLE` aligned with MoveInfo's double `LAST_USED_WIN_Y + 32`, or retune both together. |
 
 ## Impact Notes
 
@@ -39,14 +41,16 @@
 | Battle Item Restore / Aftercare | These run at battle end. Team viewer should clear its state before then; selection restore order remains more important. |
 | Champions Challenge | Future challenge runtime may replace this viewer with a challenge-specific pre-battle roster screen. Do not hard-code Champions trainer IDs here. |
 | Pokemon Icon UI | Dedicated viewer screen should own icon sprites and palettes to avoid party menu lifetime conflicts. |
-| Future Integrated Selection | High impact across viewer state, battle selection, party restore, debug route, and validation. See [Phase 2 Integrated Selection Flow Checklist](phase2_selection_flow_checklist.md). |
+| Integrated Selection | High impact across viewer state, battle selection, party restore, debug route, Summary entry, and validation. See [Phase 2 Integrated Selection Flow Checklist](phase2_selection_flow_checklist.md). |
+| Pokemon Summary | Player-side `SELECT` opens the normal Summary screen on the skills/status page. Direct-entry BG setup is part of this feature's validation surface. |
+| Debug Routes | Focused routes are `Party -> Team Viewer Battle` and `Party -> Team Viewer W`. Generic debug trainer routes are not the acceptance gate. |
 
 ## Accepted Risks For MVP
 
-- The first implementation may use a two-screen flow: team viewer first, existing selection UI second.
+- Trainer Party Pool / randomized party identity remains a follow-up dependency check.
 - UI may be visually simpler than the reference image because GBA screen / palette constraints are real.
 - Type icons may be deferred if the icon / window budget is tight; species icons are required.
-- Viewer cancel can be disabled for the first slice to avoid trainerbattle script ambiguity.
+- Viewer cancel remains conservative for trainerbattle script safety.
 - In-battle viewer may be limited to the action menu at first. Move menu / target selection shortcuts are future work.
 - Opponent strength detail may be public-summary-only until official Champions behavior is verified.
 - Legacy console references are inspiration, not implementation contract.
@@ -58,4 +62,4 @@
 - Whether exact opponent levels should be shown.
 - Whether shiny / form / gender visuals need special handling in the first UI slice.
 - Whether `R_BUTTON` remains the best default if future trainer battles add usable quick actions on R.
-- Whether `Y` detail view should page between Summary / Moves / Stats or use one compact panel.
+- Whether player-side Summary should ever allow move reordering from this route.
