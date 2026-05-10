@@ -44,6 +44,7 @@
 #include "pokedex.h"
 #include "pokemon.h"
 #include "pokerus.h"
+#include "prebattle_team_viewer.h"
 #include "random.h"
 #include "recorded_battle.h"
 #include "roamer.h"
@@ -597,9 +598,12 @@ static void CB2_InitBattleInternal(void)
     {
         if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED)))
         {
-            CreateNPCTrainerParty(&gEnemyParty[0], TRAINER_BATTLE_PARAM.opponentA, TRUE);
-            if (gBattleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS && !BATTLE_TWO_VS_ONE_OPPONENT)
-                CreateNPCTrainerParty(&gEnemyParty[PARTY_SIZE / 2], TRAINER_BATTLE_PARAM.opponentB, FALSE);
+            if (!PreBattleTeamViewer_LoadCachedOpponentParty())
+            {
+                CreateNPCTrainerParty(&gEnemyParty[0], TRAINER_BATTLE_PARAM.opponentA, TRUE);
+                if (gBattleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS && !BATTLE_TWO_VS_ONE_OPPONENT)
+                    CreateNPCTrainerParty(&gEnemyParty[PARTY_SIZE / 2], TRAINER_BATTLE_PARAM.opponentB, FALSE);
+            }
             SetWildMonHeldItem();
             CalculateEnemyPartyCount();
         }
@@ -1924,7 +1928,21 @@ void CustomTrainerPartyAssignMoves(struct Pokemon *mon, const struct TrainerMon 
     }
 }
 
-u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer *trainer, bool32 firstTrainer, u32 battleTypeFlags)
+static void ZeroTrainerPartyBuffer(struct Pokemon *party)
+{
+    u32 i;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+        ZeroMonData(&party[i]);
+}
+
+static void SetOpponentGimmickFlag(u16 *flags, u32 partyIndex)
+{
+    if (flags != NULL)
+        *flags |= 1 << partyIndex;
+}
+
+static u8 CreateNPCTrainerPartyFromTrainerInternal(struct Pokemon *party, const struct Trainer *trainer, bool32 firstTrainer, u32 battleTypeFlags, u16 *opponentMonCanTera, u16 *opponentMonCanDynamax)
 {
     u32 personalityValue;
     s32 i;
@@ -1934,7 +1952,7 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
                                                                         | BATTLE_TYPE_TRAINER_HILL)))
     {
         if (firstTrainer == TRUE)
-            ZeroEnemyPartyMons();
+            ZeroTrainerPartyBuffer(party);
 
         if (battleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS)
         {
@@ -2034,7 +2052,7 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             {
                 u32 data = partyData[monIndex].dynamaxLevel;
                 if (partyData[monIndex].shouldUseDynamax)
-                    gBattleStruct->opponentMonCanDynamax |= 1 << i;
+                    SetOpponentGimmickFlag(opponentMonCanDynamax, i);
                 SetMonData(&party[i], MON_DATA_DYNAMAX_LEVEL, &data);
             }
             if (partyData[monIndex].gigantamaxFactor)
@@ -2044,7 +2062,7 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             }
             if (partyData[monIndex].teraType > 0)
             {
-                gBattleStruct->opponentMonCanTera |= 1 << i;
+                SetOpponentGimmickFlag(opponentMonCanTera, i);
                 enum Type data = partyData[monIndex].teraType;
                 SetMonData(&party[i], MON_DATA_TERA_TYPE, &data);
             }
@@ -2059,6 +2077,21 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
     }
 
     return trainer->partySize;
+}
+
+u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer *trainer, bool32 firstTrainer, u32 battleTypeFlags)
+{
+    u8 retVal;
+    u16 opponentMonCanTera = 0;
+    u16 opponentMonCanDynamax = 0;
+
+    retVal = CreateNPCTrainerPartyFromTrainerInternal(party, trainer, firstTrainer, battleTypeFlags, &opponentMonCanTera, &opponentMonCanDynamax);
+    if (gBattleStruct != NULL)
+    {
+        gBattleStruct->opponentMonCanTera |= opponentMonCanTera;
+        gBattleStruct->opponentMonCanDynamax |= opponentMonCanDynamax;
+    }
+    return retVal;
 }
 
 static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum, bool8 firstTrainer)
@@ -2083,6 +2116,40 @@ static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum, bool8 fir
     else
     {
         retVal = CreateNPCTrainerPartyFromTrainer(party, GetTrainerStructFromId(trainerNum), firstTrainer, gBattleTypeFlags);
+    }
+    return retVal;
+}
+
+u8 CreateNPCTrainerPartyForPreview(struct Pokemon *party, u16 trainerNum, u32 battleTypeFlags, u16 *opponentMonCanTera, u16 *opponentMonCanDynamax)
+{
+    u8 retVal;
+
+    if (opponentMonCanTera != NULL)
+        *opponentMonCanTera = 0;
+    if (opponentMonCanDynamax != NULL)
+        *opponentMonCanDynamax = 0;
+
+    if (trainerNum == TRAINER_SECRET_BASE)
+        return 0;
+
+    if (GetTrainerStructFromId(trainerNum)->overrideTrainer)
+    {
+        struct Trainer tempTrainer;
+        const struct Trainer *origTrainer;
+
+        memcpy(&tempTrainer, GetTrainerStructFromId(trainerNum), sizeof(struct Trainer));
+        origTrainer = GetTrainerStructFromId(tempTrainer.overrideTrainer);
+
+        tempTrainer.party = origTrainer->party;
+        tempTrainer.poolSize = origTrainer->poolSize;
+        if (tempTrainer.partySize == 0)
+            tempTrainer.partySize = origTrainer->partySize;
+
+        retVal = CreateNPCTrainerPartyFromTrainerInternal(party, &tempTrainer, TRUE, battleTypeFlags, opponentMonCanTera, opponentMonCanDynamax);
+    }
+    else
+    {
+        retVal = CreateNPCTrainerPartyFromTrainerInternal(party, GetTrainerStructFromId(trainerNum), TRUE, battleTypeFlags, opponentMonCanTera, opponentMonCanDynamax);
     }
     return retVal;
 }

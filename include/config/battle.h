@@ -326,6 +326,11 @@
 #define B_WAIT_TIME_MULTIPLIER              16    // This determines how long text pauses in battle last. Vanilla is 16. Lower values result in faster battles.
 #define B_QUICK_MOVE_CURSOR_TO_RUN          FALSE // If set to TRUE, pushing B in the battle options against a wild encounter will move the cursor to the run option
 #define B_RUN_TRAINER_BATTLE                TRUE  // If set to TRUE, players can run from Trainer battles. This is treated as a whiteout.
+#define B_TRAINER_BATTLE_SELECTION          TRUE  // If set to TRUE, normal Trainer battles ask the player to choose 3 mons for singles or 4 mons for doubles.
+#define B_PREBATTLE_TEAM_VIEWER             TRUE  // If set to TRUE, eligible Trainer battles show both teams before party selection.
+#define B_IN_BATTLE_TEAM_VIEWER             TRUE  // If set to TRUE, eligible Trainer battles allow reopening the team viewer from the action menu.
+#define B_TEAM_VIEWER_BUTTON                R_BUTTON // Button used by the in-battle team viewer action-menu shortcut.
+#define B_TEAM_VIEWER_DETAILS_BUTTON        SELECT_BUTTON // GBA equivalent of Champions' Y-button strength view.
 #define B_MOVE_DESCRIPTION_BUTTON           L_BUTTON // If set to a button other than B_LAST_USED_BALL_BUTTON, pressing this button will open the move description menu
 #define B_SHOW_USELESS_Z_MOVE_INFO          FALSE // If set to TRUE, Z-moves without additional effects like newer gen status moves will say "no additional effect"
 #define B_ANIMATE_MON_AFTER_KO              TRUE // If set to TRUE, if a Pokémon on the opposite site faints, the non-fainted Pokemon will display a victory animation.

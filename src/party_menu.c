@@ -224,6 +224,9 @@ EWRAM_DATA MainCallback gPostMenuFieldCallback = NULL;
 static EWRAM_DATA u16 *sSlot1TilemapBuffer = 0; // for switching party slots
 static EWRAM_DATA u16 *sSlot2TilemapBuffer = 0; //
 EWRAM_DATA u8 gSelectedOrderFromParty[MAX_FRONTIER_PARTY_SIZE] = {0};
+static EWRAM_DATA bool8 sChooseHalfForTrainerBattleSelection = FALSE;
+static EWRAM_DATA u8 sTrainerBattleSelectionCount = 0;
+static EWRAM_DATA MainCallback sTrainerBattleSelectionBackCallback = NULL;
 static EWRAM_DATA u16 sPartyMenuItemId = 0;
 EWRAM_DATA u8 gBattlePartyCurrentOrder[PARTY_SIZE / 2] = {0}; // bits 0-3 are the current pos of Slot 1, 4-7 are Slot 2, and so on
 static EWRAM_DATA u8 sInitialLevel = 0;
@@ -1592,6 +1595,24 @@ static bool8 DoesSelectedMonKnowHM(u8 *slotPtr)
 
 static void HandleChooseMonCancel(u8 taskId, s8 *slotPtr)
 {
+    if (sChooseHalfForTrainerBattleSelection)
+    {
+        if (sTrainerBattleSelectionBackCallback != NULL)
+        {
+            PlaySE(SE_SELECT);
+            ClearSelectedPartyOrder();
+            sPartyMenuInternal->exitCallback = sTrainerBattleSelectionBackCallback;
+            ClearChooseHalfPartyTrainerBattleSelection();
+            Task_ClosePartyMenu(taskId);
+        }
+        else
+        {
+            PlaySE(SE_FAILURE);
+            DisplayPartyMenuStdMessage(PARTY_MSG_CHOOSE_MON);
+        }
+        return;
+    }
+
     switch (gPartyMenu.action)
     {
     case PARTY_ACTION_SEND_OUT:
@@ -7183,9 +7204,27 @@ static void TryGiveMailToSelectedMon(u8 taskId)
 
 void InitChooseHalfPartyForBattle(u8 unused)
 {
+    ClearChooseHalfPartyTrainerBattleSelection();
     ClearSelectedPartyOrder();
     InitPartyMenu(PARTY_MENU_TYPE_CHOOSE_HALF, PARTY_LAYOUT_SINGLE, PARTY_ACTION_CHOOSE_MON, FALSE, PARTY_MSG_CHOOSE_MON, Task_HandleChooseMonInput, gMain.savedCallback);
     gPartyMenu.task = Task_ValidateChosenHalfParty;
+}
+
+void InitChooseHalfPartyForTrainerBattleSelection(u8 requiredCount, MainCallback callback, MainCallback backCallback)
+{
+    sChooseHalfForTrainerBattleSelection = TRUE;
+    sTrainerBattleSelectionCount = requiredCount;
+    sTrainerBattleSelectionBackCallback = backCallback;
+    ClearSelectedPartyOrder();
+    InitPartyMenu(PARTY_MENU_TYPE_CHOOSE_HALF, PARTY_LAYOUT_SINGLE, PARTY_ACTION_CHOOSE_MON, FALSE, PARTY_MSG_CHOOSE_MON, Task_HandleChooseMonInput, callback);
+    gPartyMenu.task = Task_ValidateChosenHalfParty;
+}
+
+void ClearChooseHalfPartyTrainerBattleSelection(void)
+{
+    sChooseHalfForTrainerBattleSelection = FALSE;
+    sTrainerBattleSelectionCount = 0;
+    sTrainerBattleSelectionBackCallback = NULL;
 }
 
 void ClearSelectedPartyOrder(void)
@@ -7205,6 +7244,16 @@ static u8 GetPartySlotEntryStatus(s8 slot)
 static bool8 GetBattleEntryEligibility(struct Pokemon *mon)
 {
     u32 species;
+
+    if (sChooseHalfForTrainerBattleSelection)
+    {
+        species = GetMonData(mon, MON_DATA_SPECIES);
+        if (species == SPECIES_NONE
+         || GetMonData(mon, MON_DATA_IS_EGG)
+         || GetMonData(mon, MON_DATA_HP) == 0)
+            return FALSE;
+        return TRUE;
+    }
 
     if (GetMonData(mon, MON_DATA_IS_EGG)
         || GetMonData(mon, MON_DATA_LEVEL) > GetBattleEntryLevelCap()
@@ -7247,6 +7296,9 @@ static u8 CheckBattleEntriesAndGetMessage(void)
         ConvertIntToDecimalStringN(gStringVar1, minBattlers, STR_CONV_MODE_LEFT_ALIGN, 1);
         return PARTY_MSG_X_MONS_ARE_NEEDED;
     }
+
+    if (sChooseHalfForTrainerBattleSelection)
+        return 0xFF;
 
     facility = VarGet(VAR_FRONTIER_FACILITY);
     if (facility == FACILITY_UNION_ROOM || facility == FACILITY_MULTI_OR_EREADER)
@@ -7310,6 +7362,9 @@ static void Task_ContinueChoosingHalfParty(u8 taskId)
 
 static u8 GetMaxBattleEntries(void)
 {
+    if (sChooseHalfForTrainerBattleSelection)
+        return sTrainerBattleSelectionCount;
+
     switch (VarGet(VAR_FRONTIER_FACILITY))
     {
     case FACILITY_MULTI_OR_EREADER:
@@ -7323,6 +7378,9 @@ static u8 GetMaxBattleEntries(void)
 
 static u8 GetMinBattleEntries(void)
 {
+    if (sChooseHalfForTrainerBattleSelection)
+        return sTrainerBattleSelectionCount;
+
     switch (VarGet(VAR_FRONTIER_FACILITY))
     {
     case FACILITY_MULTI_OR_EREADER:
@@ -7336,6 +7394,9 @@ static u8 GetMinBattleEntries(void)
 
 static u8 GetBattleEntryLevelCap(void)
 {
+    if (sChooseHalfForTrainerBattleSelection)
+        return MAX_LEVEL;
+
     switch (VarGet(VAR_FRONTIER_FACILITY))
     {
     case FACILITY_MULTI_OR_EREADER:
@@ -7352,6 +7413,9 @@ static u8 GetBattleEntryLevelCap(void)
 static const u8 *GetFacilityCancelString(void)
 {
     u8 facilityNum = VarGet(VAR_FRONTIER_FACILITY);
+
+    if (sChooseHalfForTrainerBattleSelection)
+        return gText_CancelBattle;
 
     if (!(facilityNum != FACILITY_UNION_ROOM && facilityNum != FACILITY_MULTI_OR_EREADER))
         return gText_CancelBattle;

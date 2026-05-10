@@ -49,11 +49,13 @@
 #include "strings.h"
 #include "string_util.h"
 #include "task.h"
+#include "trainer_see.h"
 #include "tv.h"
 #include "pokemon_summary_screen.h"
 #include "wild_encounter.h"
 #include "constants/abilities.h"
 #include "constants/battle_ai.h"
+#include "constants/battle_setup.h"
 #include "constants/battle_frontier.h"
 #include "constants/coins.h"
 #include "constants/decorations.h"
@@ -62,6 +64,7 @@
 #include "constants/flags.h"
 #include "constants/items.h"
 #include "constants/map_groups.h"
+#include "constants/moves.h"
 #include "constants/rgb.h"
 #include "constants/script_commands.h"
 #include "constants/songs.h"
@@ -291,6 +294,7 @@ static void DebugAction_Party_ClearPokerus(u8 taskId);
 static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
+static void DebugAction_Party_TeamViewerBattle(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, u32 selection);
@@ -622,6 +626,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
+    { COMPOUND_STRING("Team Viewer Battle"), DebugAction_Party_TeamViewerBattle },
     { NULL }
 };
 
@@ -4930,6 +4935,51 @@ static void DebugAction_Party_BattleSingle(u8 taskId)
     gBattleEnvironment = BattleSetup_GetEnvironmentId();
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
+    Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_TeamViewerBattle(u8 taskId)
+{
+    static const u8 sDefeatText[] = _("Team viewer route complete.");
+    static const u16 sPlayerSpecies[PARTY_SIZE] =
+    {
+        SPECIES_BLAZIKEN,
+        SPECIES_GARDEVOIR,
+        SPECIES_AGGRON,
+        SPECIES_MANECTRIC,
+        SPECIES_SWELLOW,
+        SPECIES_BRELOOM,
+    };
+    static const u16 sPlayerMoves[MAX_MON_MOVES] =
+    {
+        MOVE_TACKLE,
+        MOVE_QUICK_ATTACK,
+        MOVE_FLAMETHROWER,
+        MOVE_AERIAL_ACE,
+    };
+    u32 i, j;
+
+    ZeroPlayerPartyMons();
+    ZeroEnemyPartyMons();
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        CreateMonWithIVs(&gPlayerParty[i], sPlayerSpecies[i], 100, i + 1, OTID_STRUCT_PLAYER_ID, MAX_PER_STAT_IVS);
+        for (j = 0; j < MAX_MON_MOVES; j++)
+            SetMonMoveSlot(&gPlayerParty[i], sPlayerMoves[j], j);
+    }
+    HealPlayerParty();
+
+    InitTrainerBattleParameter();
+    TRAINER_BATTLE_PARAM.mode = TRAINER_BATTLE_SINGLE_NO_INTRO_TEXT;
+    TRAINER_BATTLE_PARAM.objEventLocalIdA = LOCALID_NONE;
+    TRAINER_BATTLE_PARAM.opponentA = TRAINER_GABRIELLE_1;
+    TRAINER_BATTLE_PARAM.defeatTextA = (u8 *)sDefeatText;
+    gNoOfApproachingTrainers = 0;
+    gApproachingTrainerId = 0;
+    gBattleTypeFlags = 0;
+    gIsDebugBattle = FALSE;
+
+    BattleSetup_StartTrainerBattle();
     Debug_DestroyMenu_Full(taskId);
 }
 

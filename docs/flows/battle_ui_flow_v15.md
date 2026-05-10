@@ -218,6 +218,7 @@ flowchart TD
 | Battle 開始後の ball tray を選出数に合わせる | `src/battle_interface.c`, `include/battle_interface.h` | High | `PARTY_SIZE` 前提の表示処理がある。 |
 | Action menu layout 変更 | `src/battle_bg.c`, `src/battle_controller_player.c` | High | window template と描画処理の両方が必要。 |
 | Move menu 情報量追加 | `src/battle_controller_player.c`, `src/battle_bg.c`, `include/config/battle.h` | Medium/High | description/effectiveness/category/gimmick UI と競合しやすい。 |
+| Battle 中 team viewer shortcut | `src/battle_controller_player.c`, `src/prebattle_team_viewer.c`, `src/reshow_battle_screen.c`, `docs/features/prebattle_team_viewer/` | Medium/High | `feature/prebattle-team-viewer` MVP は trainer action menu の `R_BUTTON` に限定する。in-battle viewer は display-only で D-pad / `SELECT` を無視し、open 中は battle `callback1` を止め、close 後は action menu text / cursor を再描画して key release まで入力を受けない。 |
 | Healthbox レイアウト変更 | `src/battle_interface.c`, `include/battle_interface.h` | High | single/double/multi/partner で座標が分岐する。 |
 | Intro 演出変更 | `src/battle_intro.c`, `src/battle_bg.c` | High | GPU register / scanline effect へ直接触る。 |
 | Option で UI 表示を切替 | `src/option_menu.c`, `include/global.h`, `include/config/battle.h` | Medium/High | save data 追加が必要になる可能性。 |
