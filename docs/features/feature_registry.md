@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-10 |
-| Baseline | `master` `7c19f56901`; `git describe` = `expansion/1.15.2-38-g7c19f56901` |
+| Last reviewed | 2026-05-15 |
+| Baseline | `master` `c13184c0b1`; `git describe` = `expansion/1.15.2-45-gc13184c0b1` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -133,6 +133,7 @@ feature complete にする前に、最低限次を確認する。
 | DexNav / Encounter UI | Investigating | No code changes | `docs/flows/dexnav_flow_v15.md` | Start menu DexNav、detector mode、SaveBlock3、12 land slots、Pokemon icon 描画を整理。 |
 | Trainer Party Reorder / Randomizer | Investigating | No code changes | `docs/features/battle_selection/opponent_party_and_randomizer.md` | `DoTrainerPartyPool`、`RandomizePoolIndices`、`AI_FLAG_RANDOMIZE_PARTY_INDICES` を確認。相手 party preview と関係。 |
 | TM/HM and Field Move Policy | Investigating | No code changes | `docs/overview/tm_hm_expansion_250_v15.md` | 250 TM 前提の item ID / bag / relearner / field HM coupling を確認。`FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CannotForgetMove` も継続参照。 |
+| Summary Tera Type Icon | Validated branch | Implemented and locally validated on `feature/docs-first-next-work-20260515`; not on `master` | `docs/features/summary_tera_type_icon/` | Summary Info page の通常タイプ欄の右側に RavePossum / Zatsu 由来の16x16 Tera badge だけを表示する display-only UI slice。現在の badge 位置は `P_SUMMARY_TERA_TYPE_ICON_X/Y = (205, 48)`。 |
 | Bag Expansion | Investigating | No code changes | `docs/features/bag_expansion/` | 通常 bag pocket capacity の新規 feature。`struct Bag` は SaveBlock1 layout なので、Key Items / TM-HM pocket 拡張は save compatibility、bag UI、debug fill、ROM header count、`test/save.c` に波及する。 |
 | Field Move Modernization / HM Removal | Planned | No code changes | `docs/features/field_move_modernization/` | Gen7/Gen8 風に HM 技所持へ依存しない field move / obstacle / animation / forget restriction を調査。HM ごとの badge / map obstacle / MVP slice 表を `mvp_plan.md` に確定。Slice 1: Cut → Slice 4: Flash まで object interaction で揃えてから、Surf / Waterfall / Dive / Fly を Phase 2-3 で扱う方針。 |
 | Champions-style EV/IV Training UI | Investigating | No code changes | `docs/overview/champions_training_ui_feasibility_v15.md` | EV/IV/nature/moveset 編集 UI は実装可能。32 point EV は UI 表示と内部 EV 変換を分ける方針が安全。EV total 518 と wild IV mode も調査済み。 |

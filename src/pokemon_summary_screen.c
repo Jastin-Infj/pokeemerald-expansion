@@ -2,6 +2,7 @@
 #include "main.h"
 #include "battle.h"
 #include "battle_anim.h"
+#include "battle_interface.h"
 #include "frontier_util.h"
 #include "battle_message.h"
 #include "battle_tent.h"
@@ -112,7 +113,8 @@ enum
     SPRITE_ARR_ID_BALL,
     SPRITE_ARR_ID_STATUS,
     SPRITE_ARR_ID_TYPE, // 2 for mon types, 5 for move types(4 moves and 1 to learn), used interchangeably, because mon types and move types aren't shown on the same screen
-    SPRITE_ARR_ID_MOVE_SELECTOR1 = SPRITE_ARR_ID_TYPE + TYPE_ICON_SPRITE_COUNT, // 10 sprites that make up the selector
+    SPRITE_ARR_ID_TERA_TYPE_ICON = SPRITE_ARR_ID_TYPE + TYPE_ICON_SPRITE_COUNT,
+    SPRITE_ARR_ID_MOVE_SELECTOR1, // 10 sprites that make up the selector
     SPRITE_ARR_ID_MOVE_SELECTOR2 = SPRITE_ARR_ID_MOVE_SELECTOR1 + MOVE_SELECTOR_SPRITES_COUNT,
     SPRITE_ARR_ID_COUNT = SPRITE_ARR_ID_MOVE_SELECTOR2 + MOVE_SELECTOR_SPRITES_COUNT
 };
@@ -295,8 +297,11 @@ static void ResetSpriteIds(void);
 static void SetSpriteInvisibility(u8, bool8);
 static void HidePageSpecificSprites(void);
 static void SetTypeIcons(void);
+static void LoadSummaryTeraTypeIconGfx(void);
 static void CreateMoveTypeIcons(void);
+static void CreateSummaryTeraTypeIcon(void);
 static void SetMonTypeIcons(void);
+static void SetSummaryTeraTypeIcon(enum Type, u8, u8);
 static void SetMoveTypeIcons(void);
 static void SetContestMoveTypeIcons(void);
 static void SetNewMoveTypeIcon(void);
@@ -783,6 +788,97 @@ static const u8 sMovesPPLayout[] = _("{PP}{DYNAMIC 0}/{DYNAMIC 1}");
 #define TAG_MOVE_TYPES 30002
 #define TAG_MON_MARKINGS 30003
 #define TAG_CATEGORY_ICONS 30004
+#define TAG_SUMMARY_TERA_TYPE_ICON 30005
+#define SUMMARY_TERA_TYPE_ICON_TILE_COUNT 4
+#define SUMMARY_TERA_TYPE_ICON_SPRITE_SIZE (TILE_SIZE_4BPP * SUMMARY_TERA_TYPE_ICON_TILE_COUNT)
+
+static const struct OamData sOamData_SummaryTeraTypeIcon =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .shape = SPRITE_SHAPE(16x16),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(16x16),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+#define SUMMARY_TERA_TYPE_ANIM(name, type)                                \
+static const union AnimCmd sSpriteAnim_SummaryTeraTypeIcon_##name[] =      \
+{                                                                         \
+    ANIMCMD_FRAME((type) * SUMMARY_TERA_TYPE_ICON_TILE_COUNT, 0, FALSE, FALSE), \
+    ANIMCMD_END                                                           \
+}
+
+SUMMARY_TERA_TYPE_ANIM(None, TYPE_NONE);
+SUMMARY_TERA_TYPE_ANIM(Normal, TYPE_NORMAL);
+SUMMARY_TERA_TYPE_ANIM(Fighting, TYPE_FIGHTING);
+SUMMARY_TERA_TYPE_ANIM(Flying, TYPE_FLYING);
+SUMMARY_TERA_TYPE_ANIM(Poison, TYPE_POISON);
+SUMMARY_TERA_TYPE_ANIM(Ground, TYPE_GROUND);
+SUMMARY_TERA_TYPE_ANIM(Rock, TYPE_ROCK);
+SUMMARY_TERA_TYPE_ANIM(Bug, TYPE_BUG);
+SUMMARY_TERA_TYPE_ANIM(Ghost, TYPE_GHOST);
+SUMMARY_TERA_TYPE_ANIM(Steel, TYPE_STEEL);
+SUMMARY_TERA_TYPE_ANIM(Mystery, TYPE_MYSTERY);
+SUMMARY_TERA_TYPE_ANIM(Fire, TYPE_FIRE);
+SUMMARY_TERA_TYPE_ANIM(Water, TYPE_WATER);
+SUMMARY_TERA_TYPE_ANIM(Grass, TYPE_GRASS);
+SUMMARY_TERA_TYPE_ANIM(Electric, TYPE_ELECTRIC);
+SUMMARY_TERA_TYPE_ANIM(Psychic, TYPE_PSYCHIC);
+SUMMARY_TERA_TYPE_ANIM(Ice, TYPE_ICE);
+SUMMARY_TERA_TYPE_ANIM(Dragon, TYPE_DRAGON);
+SUMMARY_TERA_TYPE_ANIM(Dark, TYPE_DARK);
+SUMMARY_TERA_TYPE_ANIM(Fairy, TYPE_FAIRY);
+SUMMARY_TERA_TYPE_ANIM(Stellar, TYPE_STELLAR);
+
+#undef SUMMARY_TERA_TYPE_ANIM
+
+static const union AnimCmd *const sSpriteAnimTable_SummaryTeraTypeIcon[] =
+{
+    [TYPE_NONE] = sSpriteAnim_SummaryTeraTypeIcon_None,
+    [TYPE_NORMAL] = sSpriteAnim_SummaryTeraTypeIcon_Normal,
+    [TYPE_FIGHTING] = sSpriteAnim_SummaryTeraTypeIcon_Fighting,
+    [TYPE_FLYING] = sSpriteAnim_SummaryTeraTypeIcon_Flying,
+    [TYPE_POISON] = sSpriteAnim_SummaryTeraTypeIcon_Poison,
+    [TYPE_GROUND] = sSpriteAnim_SummaryTeraTypeIcon_Ground,
+    [TYPE_ROCK] = sSpriteAnim_SummaryTeraTypeIcon_Rock,
+    [TYPE_BUG] = sSpriteAnim_SummaryTeraTypeIcon_Bug,
+    [TYPE_GHOST] = sSpriteAnim_SummaryTeraTypeIcon_Ghost,
+    [TYPE_STEEL] = sSpriteAnim_SummaryTeraTypeIcon_Steel,
+    [TYPE_MYSTERY] = sSpriteAnim_SummaryTeraTypeIcon_Mystery,
+    [TYPE_FIRE] = sSpriteAnim_SummaryTeraTypeIcon_Fire,
+    [TYPE_WATER] = sSpriteAnim_SummaryTeraTypeIcon_Water,
+    [TYPE_GRASS] = sSpriteAnim_SummaryTeraTypeIcon_Grass,
+    [TYPE_ELECTRIC] = sSpriteAnim_SummaryTeraTypeIcon_Electric,
+    [TYPE_PSYCHIC] = sSpriteAnim_SummaryTeraTypeIcon_Psychic,
+    [TYPE_ICE] = sSpriteAnim_SummaryTeraTypeIcon_Ice,
+    [TYPE_DRAGON] = sSpriteAnim_SummaryTeraTypeIcon_Dragon,
+    [TYPE_DARK] = sSpriteAnim_SummaryTeraTypeIcon_Dark,
+    [TYPE_FAIRY] = sSpriteAnim_SummaryTeraTypeIcon_Fairy,
+    [TYPE_STELLAR] = sSpriteAnim_SummaryTeraTypeIcon_Stellar,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_SummaryTeraTypeIcon =
+{
+    .tileTag = TAG_SUMMARY_TERA_TYPE_ICON,
+    .paletteTag = TAG_MOVE_TYPES,
+    .oam = &sOamData_SummaryTeraTypeIcon,
+    .anims = sSpriteAnimTable_SummaryTeraTypeIcon,
+};
+
+static const struct CompressedSpriteSheet sSpriteSheet_SummaryTeraTypeIcons =
+{
+    .data = gSummaryTeraTypes_Gfx,
+    .size = NUMBER_OF_MON_TYPES * SUMMARY_TERA_TYPE_ICON_SPRITE_SIZE,
+    .tag = TAG_SUMMARY_TERA_TYPE_ICON,
+};
 
 static const struct OamData sOamData_CategoryIcons =
 {
@@ -1359,6 +1455,7 @@ static bool8 LoadGraphics(void)
     case 16:
         ResetSpriteIds();
         CreateMoveTypeIcons();
+        CreateSummaryTeraTypeIcon();
         sMonSummaryScreen->switchCounter = 0;
         gMain.state++;
         break;
@@ -1468,6 +1565,7 @@ static bool8 DecompressGraphics(void)
         break;
     case 7:
         LoadCompressedSpriteSheet(&gSpriteSheet_MoveTypes);
+        LoadSummaryTeraTypeIconGfx();
         sMonSummaryScreen->switchCounter++;
         break;
     case 8:
@@ -4431,6 +4529,19 @@ static void CreateMoveTypeIcons(void)
     }
 }
 
+static void LoadSummaryTeraTypeIconGfx(void)
+{
+    LoadCompressedSpriteSheet(&sSpriteSheet_SummaryTeraTypeIcons);
+}
+
+static void CreateSummaryTeraTypeIcon(void)
+{
+    if (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_TERA_TYPE_ICON] == SPRITE_NONE)
+        sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_TERA_TYPE_ICON] = CreateSprite(&sSpriteTemplate_SummaryTeraTypeIcon, 0, 0, 2);
+
+    SetSpriteInvisibility(SPRITE_ARR_ID_TERA_TYPE_ICON, TRUE);
+}
+
 void SetTypeSpritePosAndPal(enum Type typeId, u8 x, u8 y, u8 spriteArrayId)
 {
     struct Sprite *sprite = &gSprites[sMonSummaryScreen->spriteIds[spriteArrayId]];
@@ -4444,6 +4555,20 @@ void SetTypeSpritePosAndPal(enum Type typeId, u8 x, u8 y, u8 spriteArrayId)
     SetSpriteInvisibility(spriteArrayId, FALSE);
 }
 
+static void SetSummaryTeraTypeIcon(enum Type typeId, u8 x, u8 y)
+{
+    struct Sprite *sprite = &gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_TERA_TYPE_ICON]];
+
+    if (typeId >= NUMBER_OF_MON_TYPES)
+        typeId = TYPE_NORMAL;
+
+    StartSpriteAnim(sprite, typeId);
+    sprite->oam.paletteNum = gTypesInfo[typeId].palette;
+    sprite->x = x + 8;
+    sprite->y = y + 8;
+    SetSpriteInvisibility(SPRITE_ARR_ID_TERA_TYPE_ICON, FALSE);
+}
+
 static void SetMonTypeIcons(void)
 {
     struct PokeSummary *summary = &sMonSummaryScreen->summary;
@@ -4451,6 +4576,8 @@ static void SetMonTypeIcons(void)
     {
         SetTypeSpritePosAndPal(TYPE_MYSTERY, 120, 48, SPRITE_ARR_ID_TYPE);
         SetSpriteInvisibility(SPRITE_ARR_ID_TYPE + 1, TRUE);
+        SetSpriteInvisibility(SPRITE_ARR_ID_TYPE + 2, TRUE);
+        SetSpriteInvisibility(SPRITE_ARR_ID_TERA_TYPE_ICON, TRUE);
     }
     else
     {
@@ -4466,7 +4593,13 @@ static void SetMonTypeIcons(void)
         }
         if (P_SHOW_TERA_TYPE >= GEN_9)
         {
-            SetTypeSpritePosAndPal(summary->teraType, 200, 48, SPRITE_ARR_ID_TYPE + 2);
+            SetSummaryTeraTypeIcon(summary->teraType, P_SUMMARY_TERA_TYPE_ICON_X, P_SUMMARY_TERA_TYPE_ICON_Y);
+            SetSpriteInvisibility(SPRITE_ARR_ID_TYPE + 2, TRUE);
+        }
+        else
+        {
+            SetSpriteInvisibility(SPRITE_ARR_ID_TYPE + 2, TRUE);
+            SetSpriteInvisibility(SPRITE_ARR_ID_TERA_TYPE_ICON, TRUE);
         }
     }
 }

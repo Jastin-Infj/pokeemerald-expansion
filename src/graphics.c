@@ -1711,6 +1711,7 @@ const u32 gCategoryIcons_Gfx[] = INCGFX_U32("graphics/interface/category_icons.p
 
 const u32 gMoveTypes_Gfx[] = INCGFX_U32("graphics/types/move_types.4bpp", ".smol");
 const u16 gMoveTypes_Pal[] = INCBIN_U16("graphics/types/move_types.gbapal");
+const u32 gSummaryTeraTypes_Gfx[] = INCGFX_U32("graphics/types/tera/tera_types.4bpp", ".smol");
 
 const u32 gSummaryMoveSelect_Gfx[] = INCGFX_U32("graphics/summary_screen/move_select.png", ".4bpp.smol");
 const u16 gSummaryMoveSelect_Pal[] = INCGFX_U16("graphics/summary_screen/move_select.png", ".gbapal");
