@@ -12,8 +12,10 @@ The visible label is `STATUS EDITOR`. The editor uses a dedicated Summary/interf
 style BG palette with a header band, body rows, selected-row highlight, and footer
 control band instead of the standard white window frame or a single dark rectangle.
 The editor window now occupies the right-side Summary pane so it does not cover the
-Pokemon sprite area on the Skills page. The Skills-page prompt uses the existing
-top-right Summary prompt area to avoid the ITEM/RIBBON label overlap.
+Pokemon sprite area on the Skills page. The panel is anchored slightly lower so the
+`POKEMON SKILLS` title remains visible, and the header/footer bands now share the
+same configured height. The Skills-page prompt uses the existing top-right Summary
+prompt area to avoid the ITEM/RIBBON label overlap.
 
 Implemented pages:
 
@@ -31,8 +33,8 @@ Moves, origin/met data, box Summary, and custom art remain follow-up work.
 
 | File | Change |
 |---|---|
-| `include/config/summary_screen.h` | Added feature flag and layout defines for editor window, palette/fill, row, text, value positions, and level edit/cap policy. |
-| `src/pokemon_summary_screen.c` | Added Summary prompt, dedicated editor palette/panel rendering, right-pane page rendering, selected-row styling, row input, clamped EV/IV edits, level/nature/ability/ball edits, Dynamax/Tera/G-Max edits, gender/friendship edits, partial row redraws, and Summary refresh on close. |
+| `include/config/summary_screen.h` | Added feature flag and layout defines for editor window, palette/fill, header/footer band height, slide step, row, text, value positions, and level edit/cap policy. |
+| `src/pokemon_summary_screen.c` | Added Summary prompt, dedicated editor palette/panel rendering, right-pane page rendering, selected-row styling, row input, clamped EV/IV edits, level/nature/ability/ball edits, Dynamax/Tera/G-Max edits, gender/friendship edits, partial row redraws, right-edge slide-in/out, and Summary refresh on close. |
 | `include/pokemon.h` | Added `SUBSTRUCT_TYPE_COUNT` and public personality helper prototypes. |
 | `src/pokemon.c` | Added `SetMonPersonality` / `SetBoxMonPersonality` to change personality while preserving encrypted Pokemon substruct ordering and checksum integrity. |
 
@@ -62,7 +64,8 @@ partially transferred panel visible for a frame.
 
 The editor now separates initial/page rendering from value-row updates:
 
-- Opening the editor does one full window/tilemap copy.
+- Opening the editor copies window graphics once, then reveals the tilemap from the
+  right edge over several frames.
 - Page changes redraw the window graphics without re-putting the tilemap.
 - Cursor moves redraw only the old row and new row.
 - Value changes redraw only the selected row; EV edits also redraw the total line.
@@ -71,6 +74,42 @@ The editor now separates initial/page rendering from value-row updates:
 
 This keeps the existing immediate-apply behavior while avoiding repeated full-panel
 VRAM copies during held input.
+
+## Animation Policy
+
+The editor uses the same tilemap-column idea as the Summary move-info panels:
+
+- `START EDIT` draws the editor graphics offscreen in window memory, then reveals
+  rightmost columns until the full right pane is visible.
+- `B` restores the underlying Summary text and hides the editor columns back toward
+  the right edge before returning to normal Summary input.
+- `P_SUMMARY_STATE_EDITOR_SLIDE_STEP` controls the column speed. It is currently
+  tuned to a short, move-info-like transition instead of a slow fade.
+
+## Follow-Up Notes
+
+- Text coordinates were nudged away from the left accent strip and band edges after
+  the slide/layout pass. The page indicator now uses numbered header tabs instead
+  of embedding `1/5` text in the body page label. If further clipping appears,
+  prefer adjusting the `P_SUMMARY_STATE_EDITOR_*_Y`,
+  `P_SUMMARY_STATE_EDITOR_TEXT_X`, and `P_SUMMARY_STATE_EDITOR_TAB_*` defines
+  before changing draw code.
+- State editor palette RGB values are exposed as
+  `P_SUMMARY_STATE_EDITOR_COLOR_*` defines in `include/config/summary_screen.h`.
+  The palette table in `src/pokemon_summary_screen.c` references those defines so
+  later color tuning does not require hunting through rendering logic.
+- A later Terastal Summary feature should display the current Tera type/status near
+  the existing type UI, preferably to the right of the type labels with a small icon
+  or compact overlay. Keep that as a separate branch from this editor implementation.
+- If the editor expands into a full training hub, prioritize EV spread presets,
+  slider/range-bar style EV allocation, direct numeric entry, Hyper Training toggles,
+  Pokerus test controls, and PP Up / PP Max controls after move editing exists.
+  These have existing Pokemon data hooks or clear ownership and remove the most
+  repetitive setup work.
+- Interaction feedback needs a later pass. The editor currently applies changes
+  immediately and uses selection-style sounds for open/close/change. Consider a
+  distinct value-change SE and a clearer `DONE` / `APPLY` presentation so B/close
+  does not feel like the only confirmation affordance.
 
 ## Validation
 
@@ -82,8 +121,9 @@ Local commands passed:
 - `rtk make -j16 -O check`
 
 mGBA Live passed on sessions `pokemon-state-editor-runtime-fixed`,
-`pokemon-state-editor-ui-check`, `pokemon-state-editor-ui-polish-2`, and
-`pokemon-state-editor-ui-redraw-2`:
+`pokemon-state-editor-ui-check`, `pokemon-state-editor-ui-polish-2`,
+`pokemon-state-editor-ui-redraw-2`, `pokemon-state-editor-slide-check`, and
+`pokemon-state-editor-final-visual-check`:
 
 - Booted debug ROM from a clean save path.
 - Used truck debug access (`R+START`) and Utilities -> Cheat start.
@@ -97,6 +137,9 @@ mGBA Live passed on sessions `pokemon-state-editor-runtime-fixed`,
 - Redraw follow-up pass confirmed the editor opens on the right pane without covering
   Treecko's sprite area, continuous RIGHT held on HP EV reaches `252`, and repeated
   capped input does not expose a half-redrawn/blank editor panel.
+- Slide follow-up pass confirmed the panel opens lower in the right pane, keeps the
+  `POKEMON SKILLS` title visible, uses matching header/footer band heights, and
+  returns to the Skills page through the B-button close path.
 - UI follow-up pass edited level `100`, ball `Great Ball`, Dynamax level `10`,
   Tera type `Electric`, and G-Max `On`; Lua readback reported `level=100`,
   `ball=2`, `dmax=10`, `tera=14`, and `gmax=1`.
@@ -109,6 +152,18 @@ mGBA Live passed on sessions `pokemon-state-editor-runtime-fixed`,
 - The redraw validation session closed visually, but `mgba-live-cli stop` returned
   `alive_after: true` while `ps` showed no matching PID for the reported process.
   Treat this as an mGBA Live stale session entry, not as a clean stop.
+- Current slide validation screenshots:
+  `/tmp/pokemon-state-editor-mgba/status-editor-slide-open.png`,
+  `/tmp/pokemon-state-editor-mgba/status-editor-slide-close.png`.
+- The slide validation session also closed visually, but `mgba-live-cli stop`
+  returned `alive_after: true` while `ps` showed no matching PID for the reported
+  process. Treat this as an mGBA Live stale session entry, not as a clean stop.
+- Current tab/color validation screenshot:
+  `/tmp/pokemon-state-editor-mgba/status-editor-final-tabs-color-open.png`.
+- The tab/color validation confirmed numbered header tabs, a visible `EVs` page
+  label above the first row, and a lighter green palette closer to the Skills page.
+  Its `mgba-live-cli stop` cleanup also returned a stale alive entry while `ps`
+  showed no matching PID.
 
 GitHub Actions were not waited; local make and mGBA Live are the handoff evidence.
 
@@ -121,11 +176,6 @@ GitHub Actions were not waited; local make and mGBA Live are the handoff evidenc
   Gigantamax form.
 - The UI is structured and readable, but not a custom Pokemon Champions-quality art
   pass.
-- The next UI pass should replace the current abrupt/delayed-looking editor reveal
-  with a true right-edge slide-in and matching slide-out on cancel.
-- The right-pane layout is accepted for now, but the vertical anchor should be
-  revisited so the panel sits below the Skills page title/header area and aligns
-  more naturally with the existing Summary bands.
 - EV total redraw should be rechecked for stale glyphs when values shrink from
   multi-digit totals; the reported symptom is a hyphen/underscore-like artifact and
   occasional black flash on the total line until the editor is reopened.

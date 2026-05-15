@@ -323,7 +323,9 @@ static bool32 ShouldShowIvEvPrompt(void);
 #if P_SUMMARY_SCREEN_STATE_EDITOR
 static bool32 ShouldShowStateEditor(void);
 static void OpenStateEditor(u8 taskId);
+static void Task_OpenStateEditor(u8 taskId);
 static void Task_HandleInput_StateEditor(u8 taskId);
+static void Task_CloseStateEditor(u8 taskId);
 static void DrawStateEditor(u8 taskId, bool8 copyTilemap);
 static void CloseStateEditor(u8 taskId);
 static void RefreshStateEditorSummary(void);
@@ -779,21 +781,21 @@ enum StateEditorUiColor
 static const u16 sStateEditorWindow_Pal[] =
 {
     [STATE_EDITOR_COLOR_TRANSPARENT]     = RGB(0, 0, 0),
-    [STATE_EDITOR_COLOR_TEXT]            = RGB(31, 31, 30),
-    [STATE_EDITOR_COLOR_TEXT_SHADOW]     = RGB(2, 5, 7),
-    [STATE_EDITOR_COLOR_TITLE]           = RGB(31, 27, 8),
-    [STATE_EDITOR_COLOR_TITLE_SHADOW]    = RGB(8, 5, 0),
-    [STATE_EDITOR_COLOR_SELECTED_TEXT]   = RGB(1, 4, 7),
-    [STATE_EDITOR_COLOR_SELECTED_SHADOW] = RGB(24, 25, 18),
-    [STATE_EDITOR_COLOR_MUTED_TEXT]      = RGB(21, 25, 26),
-    [STATE_EDITOR_COLOR_MUTED_SHADOW]    = RGB(2, 5, 7),
-    [STATE_EDITOR_COLOR_ACCENT_TEXT]     = RGB(31, 17, 6),
-    [STATE_EDITOR_COLOR_ACCENT_SHADOW]   = RGB(8, 4, 2),
-    [STATE_EDITOR_COLOR_SELECTED_FILL]   = RGB(25, 28, 20),
-    [STATE_EDITOR_COLOR_HEADER_FILL]     = RGB(3, 19, 17),
-    [STATE_EDITOR_COLOR_BODY_FILL]       = RGB(7, 13, 16),
-    [STATE_EDITOR_COLOR_BORDER_FILL]     = RGB(2, 5, 8),
-    [STATE_EDITOR_COLOR_ROW_FILL]        = RGB(9, 16, 18),
+    [STATE_EDITOR_COLOR_TEXT]            = P_SUMMARY_STATE_EDITOR_COLOR_TEXT,
+    [STATE_EDITOR_COLOR_TEXT_SHADOW]     = P_SUMMARY_STATE_EDITOR_COLOR_TEXT_SHADOW,
+    [STATE_EDITOR_COLOR_TITLE]           = P_SUMMARY_STATE_EDITOR_COLOR_TITLE,
+    [STATE_EDITOR_COLOR_TITLE_SHADOW]    = P_SUMMARY_STATE_EDITOR_COLOR_TITLE_SHADOW,
+    [STATE_EDITOR_COLOR_SELECTED_TEXT]   = P_SUMMARY_STATE_EDITOR_COLOR_SELECTED_TEXT,
+    [STATE_EDITOR_COLOR_SELECTED_SHADOW] = P_SUMMARY_STATE_EDITOR_COLOR_SELECTED_SHADOW,
+    [STATE_EDITOR_COLOR_MUTED_TEXT]      = P_SUMMARY_STATE_EDITOR_COLOR_MUTED_TEXT,
+    [STATE_EDITOR_COLOR_MUTED_SHADOW]    = P_SUMMARY_STATE_EDITOR_COLOR_MUTED_SHADOW,
+    [STATE_EDITOR_COLOR_ACCENT_TEXT]     = P_SUMMARY_STATE_EDITOR_COLOR_ACCENT_TEXT,
+    [STATE_EDITOR_COLOR_ACCENT_SHADOW]   = P_SUMMARY_STATE_EDITOR_COLOR_ACCENT_SHADOW,
+    [STATE_EDITOR_COLOR_SELECTED_FILL]   = P_SUMMARY_STATE_EDITOR_COLOR_SELECTED_FILL,
+    [STATE_EDITOR_COLOR_HEADER_FILL]     = P_SUMMARY_STATE_EDITOR_COLOR_HEADER_FILL,
+    [STATE_EDITOR_COLOR_BODY_FILL]       = P_SUMMARY_STATE_EDITOR_COLOR_BODY_FILL,
+    [STATE_EDITOR_COLOR_BORDER_FILL]     = P_SUMMARY_STATE_EDITOR_COLOR_BORDER_FILL,
+    [STATE_EDITOR_COLOR_ROW_FILL]        = P_SUMMARY_STATE_EDITOR_COLOR_ROW_FILL,
 };
 #endif
 
@@ -2156,6 +2158,7 @@ bool32 CheckRelearnerStateFlag(enum MoveRelearnerStates state)
 #define tStateEditorPage     data[0]
 #define tStateEditorRow      data[1]
 #define tStateEditorWindowId data[2]
+#define tStateEditorColumns  data[3]
 
 static struct Pokemon *GetStateEditorMon(void)
 {
@@ -2715,14 +2718,16 @@ static void DrawStateEditorPanel(u8 windowId)
 {
     u16 width = WindowWidthPx(windowId);
     u16 height = GetWindowAttribute(windowId, WINDOW_HEIGHT) * 8;
+    u8 footerY = height - P_SUMMARY_STATE_EDITOR_BAND_HEIGHT - 3;
+    u8 rowBackdropY = P_SUMMARY_STATE_EDITOR_ROW_Y - 4;
 
     FillWindowPixelBuffer(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BORDER_FILL));
     FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BODY_FILL), 1, 1, width - 2, height - 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_HEADER_FILL), 3, 3, width - 6, 22);
-    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 3, 3, 3, 22);
-    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ROW_FILL), 4, 28, width - 8, 90);
-    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_HEADER_FILL), 3, height - 20, width - 6, 17);
-    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 3, height - 20, 3, 17);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_HEADER_FILL), 3, 3, width - 6, P_SUMMARY_STATE_EDITOR_BAND_HEIGHT);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 3, 3, 3, P_SUMMARY_STATE_EDITOR_BAND_HEIGHT);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ROW_FILL), 4, rowBackdropY, width - 8, footerY - rowBackdropY - 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_HEADER_FILL), 3, footerY, width - 6, P_SUMMARY_STATE_EDITOR_BAND_HEIGHT);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_ACCENT_TEXT), 3, footerY, 3, P_SUMMARY_STATE_EDITOR_BAND_HEIGHT);
 }
 
 static void DrawStateEditorRowBackdrop(u8 windowId, u8 selectedRow, u8 row, u8 y)
@@ -2768,6 +2773,23 @@ static void DrawStateEditorCursor(u8 windowId, u8 selectedRow, u8 row, u8 y, u8 
     PrintStateEditorSmall(windowId, cursor, P_SUMMARY_STATE_EDITOR_TEXT_X, y, colorId);
 }
 
+static void DrawStateEditorPageTabs(u8 windowId, u8 selectedPage)
+{
+    u8 i;
+    u8 x = P_SUMMARY_STATE_EDITOR_TAB_X;
+
+    for (i = 0; i < STATE_EDITOR_PAGE_COUNT; i++)
+    {
+        u8 fill = i == selectedPage ? STATE_EDITOR_COLOR_SELECTED_FILL : STATE_EDITOR_COLOR_HEADER_FILL;
+        u8 colorId = i == selectedPage ? STATE_EDITOR_TEXT_SELECTED : STATE_EDITOR_TEXT_TITLE;
+
+        FillWindowPixelRect(windowId, PIXEL_FILL(fill), x, P_SUMMARY_STATE_EDITOR_TAB_Y - 1, P_SUMMARY_STATE_EDITOR_TAB_WIDTH, 10);
+        ConvertIntToDecimalStringN(gStringVar1, i + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+        PrintStateEditorSmall(windowId, gStringVar1, x + 2, P_SUMMARY_STATE_EDITOR_TAB_Y, colorId);
+        x += P_SUMMARY_STATE_EDITOR_TAB_WIDTH + P_SUMMARY_STATE_EDITOR_TAB_GAP;
+    }
+}
+
 static void CopyStateEditorPixelRectToVram(u8 windowId, u8 y, u8 height)
 {
     u8 top = y / 8;
@@ -2780,7 +2802,7 @@ static void DrawStateEditorInfoLine(u8 windowId, struct Pokemon *mon, u8 page)
 {
     u16 width = WindowWidthPx(windowId);
 
-    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BODY_FILL), 7, 108, width - 14, 14);
+    FillWindowPixelRect(windowId, PIXEL_FILL(STATE_EDITOR_COLOR_BODY_FILL), 7, P_SUMMARY_STATE_EDITOR_INFO_Y, width - 14, 14);
 
     if (page == STATE_EDITOR_PAGE_EVS)
     {
@@ -2791,7 +2813,7 @@ static void DrawStateEditorInfoLine(u8 windowId, struct Pokemon *mon, u8 page)
         StringAppend(gStringVar4, COMPOUND_STRING("/"));
         ConvertIntToDecimalStringN(gStringVar1, MAX_TOTAL_EVS, STR_CONV_MODE_LEFT_ALIGN, 3);
         StringAppend(gStringVar4, gStringVar1);
-        PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 112, STATE_EDITOR_TEXT_MUTED);
+        PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_INFO_Y + 4, STATE_EDITOR_TEXT_MUTED);
     }
     else if (page == STATE_EDITOR_PAGE_TRAITS)
     {
@@ -2799,7 +2821,7 @@ static void DrawStateEditorInfoLine(u8 windowId, struct Pokemon *mon, u8 page)
         StringAppend(gStringVar4, COMPOUND_STRING(" "));
         ConvertIntToDecimalStringN(gStringVar1, GetStateEditorLevelCap(), STR_CONV_MODE_LEFT_ALIGN, 3);
         StringAppend(gStringVar4, gStringVar1);
-        PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 112, STATE_EDITOR_TEXT_MUTED);
+        PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_INFO_Y + 4, STATE_EDITOR_TEXT_MUTED);
     }
 }
 
@@ -2880,7 +2902,7 @@ static void DrawStateEditorTraitsPage(u8 windowId, struct Pokemon *mon, u8 selec
     StringAppend(gStringVar4, COMPOUND_STRING(" "));
     ConvertIntToDecimalStringN(gStringVar1, levelCap, STR_CONV_MODE_LEFT_ALIGN, 3);
     StringAppend(gStringVar4, gStringVar1);
-    PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 112, STATE_EDITOR_TEXT_MUTED);
+    PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_INFO_Y + 4, STATE_EDITOR_TEXT_MUTED);
 }
 
 static void DrawStateEditorGimmicksPage(u8 windowId, struct Pokemon *mon, u8 selectedRow)
@@ -3116,7 +3138,7 @@ static void RedrawStateEditorRows(u8 taskId, u8 oldRow, bool8 redrawOldRow, bool
     if (redrawInfoLine)
     {
         DrawStateEditorInfoLine(windowId, mon, tStateEditorPage);
-        CopyStateEditorPixelRectToVram(windowId, 108, 14);
+        CopyStateEditorPixelRectToVram(windowId, P_SUMMARY_STATE_EDITOR_INFO_Y, 14);
     }
 }
 
@@ -3134,15 +3156,7 @@ static void DrawStateEditor(u8 taskId, bool8 copyTilemap)
         PutWindowTilemap(windowId);
 
     PrintTextOnWindow(windowId, sText_StateEditorTitle, P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_TEXT_Y, 0, STATE_EDITOR_TEXT_TITLE);
-
-    StringCopy(gStringVar4, sStateEditorPageNames[tStateEditorPage]);
-    StringAppend(gStringVar4, COMPOUND_STRING(" "));
-    ConvertIntToDecimalStringN(gStringVar1, tStateEditorPage + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
-    StringAppend(gStringVar4, gStringVar1);
-    StringAppend(gStringVar4, COMPOUND_STRING("/"));
-    ConvertIntToDecimalStringN(gStringVar1, STATE_EDITOR_PAGE_COUNT, STR_CONV_MODE_LEFT_ALIGN, 1);
-    StringAppend(gStringVar4, gStringVar1);
-    PrintStateEditorSmall(windowId, gStringVar4, P_SUMMARY_STATE_EDITOR_TEXT_X, 18, STATE_EDITOR_TEXT_MUTED);
+    DrawStateEditorPageTabs(windowId, tStateEditorPage);
 
     switch (tStateEditorPage)
     {
@@ -3162,23 +3176,11 @@ static void DrawStateEditor(u8 taskId, bool8 copyTilemap)
         break;
     }
 
-    PrintStateEditorSmall(windowId, sText_StateEditorControls, P_SUMMARY_STATE_EDITOR_TEXT_X, 126, STATE_EDITOR_TEXT_TITLE);
+    PrintStateEditorSmall(windowId, sStateEditorPageNames[tStateEditorPage], P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_PAGE_Y, STATE_EDITOR_TEXT_MUTED);
+    PrintStateEditorSmall(windowId, sText_StateEditorControls, P_SUMMARY_STATE_EDITOR_TEXT_X, P_SUMMARY_STATE_EDITOR_CONTROLS_Y, STATE_EDITOR_TEXT_TITLE);
     CopyWindowToVram(windowId, copyTilemap ? COPYWIN_FULL : COPYWIN_GFX);
     if (copyTilemap)
         ScheduleBgCopyTilemapToVram(0);
-}
-
-static void ClearStateEditorSkillsText(void)
-{
-    u32 i;
-
-    for (i = 0; i < ARRAY_COUNT(sPageSkillsTemplate); i++)
-    {
-        u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, i);
-        FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-        ClearWindowTilemap(windowId);
-        CopyWindowToVram(windowId, COPYWIN_FULL);
-    }
 }
 
 static void RefreshStateEditorSummary(void)
@@ -3190,29 +3192,70 @@ static void RefreshStateEditorSummary(void)
     sMonSummaryScreen->switchCounter = 0;
 }
 
+static void RestoreStateEditorUnderlyingSummary(void)
+{
+    PutPageWindowTilemaps(sMonSummaryScreen->currPageIndex);
+    ShowRelearnPrompt();
+    ScheduleBgCopyTilemapToVram(0);
+}
+
+static void PutStateEditorSlideFrame(u8 taskId, u8 visibleColumns)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 windowId = tStateEditorWindowId;
+    u8 width = GetWindowAttribute(windowId, WINDOW_WIDTH);
+    u8 height = GetWindowAttribute(windowId, WINDOW_HEIGHT);
+
+    if (visibleColumns > width)
+        visibleColumns = width;
+
+    RestoreStateEditorUnderlyingSummary();
+    if (visibleColumns != 0)
+        PutWindowRectTilemap(windowId, width - visibleColumns, 0, visibleColumns, height);
+    ScheduleBgCopyTilemapToVram(0);
+}
+
 static void OpenStateEditor(u8 taskId)
 {
     s16 *data = gTasks[taskId].data;
 
     tStateEditorPage = STATE_EDITOR_PAGE_EVS;
     tStateEditorRow = 0;
+    tStateEditorColumns = 0;
     tStateEditorWindowId = AddWindow(&sStateEditorWindowTemplate);
 
     LoadStateEditorPalette();
     PlaySE(SE_SELECT);
-    ClearStateEditorSkillsText();
-    DrawStateEditor(taskId, TRUE);
-    gTasks[taskId].func = Task_HandleInput_StateEditor;
+    DrawStateEditor(taskId, FALSE);
+    PutStateEditorSlideFrame(taskId, 0);
+    gTasks[taskId].func = Task_OpenStateEditor;
 }
 
-static void CloseStateEditor(u8 taskId)
+static void Task_OpenStateEditor(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 width = GetWindowAttribute(tStateEditorWindowId, WINDOW_WIDTH);
+
+    tStateEditorColumns += P_SUMMARY_STATE_EDITOR_SLIDE_STEP;
+    if (tStateEditorColumns >= width)
+    {
+        tStateEditorColumns = width;
+        PutStateEditorSlideFrame(taskId, tStateEditorColumns);
+        gTasks[taskId].func = Task_HandleInput_StateEditor;
+    }
+    else
+    {
+        PutStateEditorSlideFrame(taskId, tStateEditorColumns);
+    }
+}
+
+static void FinishCloseStateEditor(u8 taskId)
 {
     s16 *data = gTasks[taskId].data;
 
-    FillWindowPixelBuffer(tStateEditorWindowId, PIXEL_FILL(0));
     ClearWindowTilemap(tStateEditorWindowId);
-    CopyWindowToVram(tStateEditorWindowId, COPYWIN_FULL);
     RemoveWindow(tStateEditorWindowId);
+
     RefreshStateEditorSummary();
     PrintMonInfo();
     PrintPageSpecificText(sMonSummaryScreen->currPageIndex);
@@ -3222,8 +3265,38 @@ static void CloseStateEditor(u8 taskId)
 
     tStateEditorPage = 0;
     tStateEditorRow = 0;
+    tStateEditorColumns = 0;
     tStateEditorWindowId = WINDOW_NONE;
     gTasks[taskId].func = Task_HandleInput;
+}
+
+static void Task_CloseStateEditor(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+
+    if (tStateEditorColumns <= P_SUMMARY_STATE_EDITOR_SLIDE_STEP)
+    {
+        tStateEditorColumns = 0;
+        PutStateEditorSlideFrame(taskId, 0);
+        FinishCloseStateEditor(taskId);
+    }
+    else
+    {
+        tStateEditorColumns -= P_SUMMARY_STATE_EDITOR_SLIDE_STEP;
+        PutStateEditorSlideFrame(taskId, tStateEditorColumns);
+    }
+}
+
+static void CloseStateEditor(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+
+    RefreshStateEditorSummary();
+    PrintMonInfo();
+    PrintPageSpecificText(sMonSummaryScreen->currPageIndex);
+    tStateEditorColumns = GetWindowAttribute(tStateEditorWindowId, WINDOW_WIDTH);
+    PutStateEditorSlideFrame(taskId, tStateEditorColumns);
+    gTasks[taskId].func = Task_CloseStateEditor;
 }
 
 static void Task_HandleInput_StateEditor(u8 taskId)
@@ -3309,6 +3382,7 @@ static bool32 ShouldShowStateEditor(void)
 #undef tStateEditorPage
 #undef tStateEditorRow
 #undef tStateEditorWindowId
+#undef tStateEditorColumns
 #endif
 
 static void TryUpdateRelearnType(enum IncrDecrUpdateValues delta)

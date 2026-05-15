@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-11 |
+| Last reviewed | 2026-05-15 |
 | Working branch | `feature/pokemon-state-editor-expansion` |
 | Baseline | `master` `ab5abcad53`; `git describe` = `expansion/1.15.2-44-gab5abcad53` |
 | Code status | MVP implemented; UI polish and extra status fields added |
@@ -46,6 +46,10 @@ than to the existing raw debug numeric editor. On GBA this should be interpreted
 - a right-side editor pane that preserves the Pokemon sprite area on the left;
 - readable light text on dark body rows, with a clear selected-row highlight and
   separate header/footer bands;
+- matched header/footer band height and a slightly lower right-pane anchor so the
+  Skills page title area remains visible;
+- move-info-style right-edge slide-in and slide-out when opening or canceling the
+  editor;
 - stable held-input rendering, with row-level redraws instead of full-panel redraws
   for every parameter change;
 - coordinates controlled by defines so the user can tune layout without hunting
@@ -67,8 +71,8 @@ Reference pages checked for visual/product direction:
 | Entry point | Summary Screen, opened from the party menu path. |
 | Launch button | Skills page `START EDIT` prompt in the top-right Summary prompt area. |
 | Editor pages | Five editor pages: EVs, IVs, Core, Dynamax/Tera, Gender/Friendship. |
-| Layout | Right-side Summary pane overlay; left-side Pokemon sprite area remains visible. |
-| Coordinate tuning | Put editor window, text positions, palette, fill color, and level policy behind `#define`s. |
+| Layout | Right-side Summary pane overlay; left-side Pokemon sprite and Skills title area remain visible. |
+| Coordinate/color tuning | Put editor window, text positions, band height, slide speed, RGB palette colors, fill color, and level policy behind `#define`s. |
 | Save data | No new save fields. Edit existing Pokemon fields only. |
 | Party vs box | Party Summary first. Box Summary is a follow-up unless the same helper is proven safe. |
 | Moves | Out of scope. |
@@ -126,25 +130,38 @@ These do not block the MVP, but should be revisited after runtime validation:
   held D-pad plus `L`/`R` min/max?
 - Should the final UI get custom art work to move closer to Pokemon Champions?
 
+## Future Training Backlog
+
+These are recommended follow-ups if the editor becomes the central place for tedious
+training setup:
+
+| Area | Recommended editor support |
+|---|---|
+| EV spreads | Add spread presets such as clear all, `252/252/4`, bulky split, and one-button `0 Atk` / `0 Spe`. This addresses mid-range editing better than holding D-pad. |
+| EV allocation bars | Add slider/range-bar style EV controls for 0..252 per stat with a visible 510 total budget. This is the closest fit to the Pokemon Champions-style UX, but should be a later UI slice because it needs custom bar drawing, cursor behavior, and total-budget feedback. |
+| Direct numeric entry | Add a compact value picker for EVs/IVs/level/friendship so values like `148` or `196` are not repetitive. |
+| Hyper Training | Add a page or toggle group for `MON_DATA_HYPER_TRAINED_*`, separate from raw IVs, so battle-effective IV setup can preserve raw IV data. |
+| Pokerus | Add optional strain/days controls for EV-training test setup when Pokerus is enabled. |
+| PP training | Add PP Up / PP Max state controls once move editing lands, because it is tied to move slots rather than base Pokemon identity. Preferred UX is a Champions-like `PP TRAINING` page with `Move 1` through `Move 4` rows, each cycling `0`, `1`, `2`, `3`, and `MAX` where supported by the move data model. |
+| Training templates | Add copy/paste or apply-template support for common competitive profiles after direct entry exists. |
+| Passive Tera display | Show current Tera type/status on Summary near the existing type UI; keep this in a separate branch from editor value controls. |
+| Editor feedback | Revisit sound and commit semantics. Opening/closing currently uses the selection SE and value changes use immediate apply, but the UX may need clearer value-change sounds and an explicit `DONE` / `APPLY` affordance so closing the editor does not feel like an accidental commit. |
+
 ## Next Review Notes
 
-These notes are intentionally not implemented in this commit. Revisit them when the
-next UI pass is requested:
+These notes remain open for a later UI/data polish pass:
 
-- Entry/exit animation should feel like the Summary move-info panel sliding in from
-  the right edge and returning to the right edge on cancel. The current behavior is
-  acceptable for this checkpoint, but reads more like a delayed draw or fade than a
-  true lateral slide. The next pass should also test a slightly faster duration.
-- The right-pane layout is preferred, but the panel should be nudged to avoid
-  covering the `POKEMON SKILLS` title area. A likely anchor is the green header band
-  below `START EDIT` / near the purple `NEXT LV.` background, so the editor feels
-  seated in the existing Summary composition.
 - Investigate EV total text redraw artifacts. When an EV value is raised into
   multi-digit values such as `252` and then reduced again, a stray hyphen/underscore-
   like glyph can appear around the ones/tens area and the total line can briefly
   black out. Canceling and reopening the editor restores the display, so the next
   pass should focus on stale glyph clearing or partial-copy bounds for the EV total
   row.
+- A separate future branch should expose the Pokemon's Terastal status/type on the
+  normal Summary UI. Preferred placement is to the right of the existing type display,
+  with either a small overlaid UI element or a new compact icon slot. This should be
+  handled separately from the state editor controls so the editor remains focused on
+  modifying values, while Summary can passively show the current Tera type.
 
 ## Child Docs
 

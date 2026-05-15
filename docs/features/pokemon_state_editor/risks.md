@@ -18,8 +18,13 @@
 | Personality-derived visuals/forms | Medium | Spinda spot layout, Unown letter, or similar personality-derived presentation can still change. Keep as a documented follow-up until species-specific policy is decided. |
 | Box Pokemon corruption | Medium | Keep MVP party-only. |
 | UI overlap on GBA window | Medium | Keep coordinates in defines, place the editor in the right Summary pane, use the Summary prompt area for `START EDIT`, and verify with mGBA screenshots. |
+| Text clipping / edge contact | Low | Keep title/page/tab/footer text coordinates in config defines and verify the text does not touch the accent strip or band edges in mGBA screenshots. |
+| Palette tuning churn | Low | Keep state editor RGB values in `P_SUMMARY_STATE_EDITOR_COLOR_*` config defines so later color changes do not touch draw logic. |
+| Slide animation tile granularity | Low | The editor uses tilemap-column animation like the Summary move-info panel, so movement is column-based rather than subpixel. Keep speed in config for tuning. |
 | Held-input redraw flicker | Medium | Avoid full window/tilemap copies on every input frame; redraw only changed rows and skip redraws when capped input does not change data. |
 | EV total stale glyphs | Medium | Next pass should verify that shrinking multi-digit EV totals clears the previous glyphs and that the EV total line copy area does not flash or leave underscore/hyphen-like artifacts. |
+| Training hub scope creep | Medium | Keep move-slot, PP, Hyper Training, Pokerus, EV-template, and EV allocation-bar additions in explicit follow-up slices so this Summary overlay does not become hard to navigate. |
+| Commit affordance ambiguity | Medium | Current edits apply immediately. A future UX pass should decide whether to keep immediate apply with stronger feedback or add explicit `DONE` / `APPLY` affordance. |
 | mGBA Live stale cleanup | Low | If `mgba_live_stop` reports an alive session but the PID no longer exists, record the stale session state in the test plan instead of treating cleanup as fully clean. |
 
 ## Design Risks
@@ -34,9 +39,9 @@ single flat dark panel.
 
 - No move editor.
 - No met location/origin editor.
+- No passive Terastal type/status Summary indicator; this is planned for a separate branch near the existing type UI.
+- No EV spread presets, EV allocation bars, direct numeric picker, Hyper Training toggles, Pokerus controls, or PP Up / PP Max controls yet.
 - No custom art pass.
-- No true right-edge slide-in/out transition animation for the editor panel yet.
-- No final vertical anchor pass against the Skills page title/header/`NEXT LV.` bands.
 - No PC box editor until storage Summary is reviewed.
 - No species-specific block/warning for personality-derived visual side effects.
 - No species-specific lock for Gigantamax factor.

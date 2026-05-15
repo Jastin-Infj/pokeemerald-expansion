@@ -23,8 +23,19 @@ Put these in `include/config/summary_screen.h`:
 - `P_SUMMARY_STATE_EDITOR_WINDOW_FILL`
 - `P_SUMMARY_STATE_EDITOR_TEXT_X`
 - `P_SUMMARY_STATE_EDITOR_TEXT_Y`
+- `P_SUMMARY_STATE_EDITOR_PAGE_Y`
+- `P_SUMMARY_STATE_EDITOR_TAB_X`
+- `P_SUMMARY_STATE_EDITOR_TAB_Y`
+- `P_SUMMARY_STATE_EDITOR_TAB_WIDTH`
+- `P_SUMMARY_STATE_EDITOR_TAB_GAP`
+- `P_SUMMARY_STATE_EDITOR_ROW_Y`
 - `P_SUMMARY_STATE_EDITOR_ROW_HEIGHT`
 - `P_SUMMARY_STATE_EDITOR_VALUE_X`
+- `P_SUMMARY_STATE_EDITOR_INFO_Y`
+- `P_SUMMARY_STATE_EDITOR_CONTROLS_Y`
+- `P_SUMMARY_STATE_EDITOR_BAND_HEIGHT`
+- `P_SUMMARY_STATE_EDITOR_SLIDE_STEP`
+- `P_SUMMARY_STATE_EDITOR_COLOR_*`
 - `P_SUMMARY_STATE_EDITOR_LEVEL_EDIT`
 - `P_SUMMARY_STATE_EDITOR_LEVEL_CAP`
 
@@ -55,6 +66,9 @@ The values should tune placement without touching editor logic.
 
 Use immediate commit per edit, then refresh Summary's cached Pokemon data when closing.
 This keeps the UX fast and removes a separate confirmation screen from the MVP.
+User feedback after the MVP pass noted that this can make `B` feel like an
+implicit commit rather than a clean close action, so a later UX pass should revisit
+value-change sounds and a visible `DONE` / `APPLY` affordance.
 
 After each edit:
 
