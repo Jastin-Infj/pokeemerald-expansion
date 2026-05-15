@@ -35,7 +35,7 @@
 - For docs / Lua-only merge work, do not merge an implementation branch that
   contains source / include / data / graphics / tools non-Lua / generated
   changes into `master`. Use a fresh branch from `master` or cherry-pick only
-  eligible docs / `AGENTS.md` / Lua script commits, then check
+  eligible Markdown docs / `AGENTS.md` / Lua script commits, then check
   `rtk git diff --name-only master..HEAD` before merging.
 - Before handoff, ensure the feature `test_plan.md` records local make results,
   mGBA Live / manual evidence, skipped long GitHub Actions waits, and any
@@ -50,7 +50,8 @@
 - On `master`, source-like trees are read-only for normal work: `src/`,
   `include/`, `data/`, `graphics/`, non-Lua `tools/`, generated output, ROMs,
   saves, caches, screenshots, and image assets. Docs / Lua-only work may update
-  `docs/`, approved Lua script files for shortcuts, debug commands, and
+  Markdown documentation files, including `docs/` and root documentation such as
+  `CREDITS.md`, approved Lua script files for shortcuts, debug commands, and
   validation automation, and, when workflow rules change, `AGENTS.md`.
 - A validated feature branch is evidence, not permission to update `master`.
   Record the branch, commit, diff scope, and validation evidence in docs; keep
@@ -58,11 +59,11 @@
   from the current `master`.
 - If a branch contains both docs and implementation, never merge the branch into
   `master` for a docs / Lua-only request. Cherry-pick or re-apply only eligible
-  docs / `AGENTS.md` / Lua script changes onto a fresh branch.
+  Markdown docs / `AGENTS.md` / Lua script changes onto a fresh branch.
 - Before any `master` PR or merge, confirm the file list with
-  `rtk git diff --name-only master..HEAD`. Anything outside `docs/`,
-  `AGENTS.md`, and approved Lua script files means the branch is not
-  eligible for a docs / Lua-only master merge.
+  `rtk git diff --name-only master..HEAD`. Anything outside Markdown docs,
+  `AGENTS.md`, and approved Lua script files means the branch is not eligible
+  for a docs / Lua-only master merge.
 - Graphics and other image assets, including `.png` icons, are implementation
   artifacts. Keep them on a feature / integration implementation PR with the
   source changes that consume them; record source URLs and credit in docs, but
