@@ -32,11 +32,11 @@
 - When setup, tooling, mGBA Live MCP, GitHub workflow, or merge operation rules
   change, update the matching manual under `docs/manuals/` and link it from
   `docs/SUMMARY.md`.
-- For docs-only merge work, do not merge an implementation branch that contains
-  source / include / data / tools / generated changes into `master`. Use a
-  docs-only branch from `master` or cherry-pick only docs / `AGENTS.md`
-  workflow commits, then check `rtk git diff --name-only master..HEAD` before
-  merging.
+- For docs / Lua-only merge work, do not merge an implementation branch that
+  contains source / include / data / graphics / tools non-Lua / generated
+  changes into `master`. Use a fresh branch from `master` or cherry-pick only
+  eligible docs / `AGENTS.md` / Lua script commits, then check
+  `rtk git diff --name-only master..HEAD` before merging.
 - Before handoff, ensure the feature `test_plan.md` records local make results,
   mGBA Live / manual evidence, skipped long GitHub Actions waits, and any
   accepted remaining risk.
@@ -48,19 +48,25 @@
   unless the user explicitly asks to change that branch policy for a specific
   integration.
 - On `master`, source-like trees are read-only for normal work: `src/`,
-  `include/`, `data/`, `tools/`, generated output, ROMs, saves, caches, and
-  screenshots. Docs-only work may update `docs/` and, when workflow rules
-  change, `AGENTS.md`.
+  `include/`, `data/`, `graphics/`, non-Lua `tools/`, generated output, ROMs,
+  saves, caches, screenshots, and image assets. Docs / Lua-only work may update
+  `docs/`, approved Lua script files for shortcuts, debug commands, and
+  validation automation, and, when workflow rules change, `AGENTS.md`.
 - A validated feature branch is evidence, not permission to update `master`.
   Record the branch, commit, diff scope, and validation evidence in docs; keep
   runtime source changes on a fresh `feature/` or `integration/` branch created
   from the current `master`.
 - If a branch contains both docs and implementation, never merge the branch into
-  `master` for a docs request. Cherry-pick or re-apply only docs / `AGENTS.md`
-  changes onto a docs-only branch.
+  `master` for a docs / Lua-only request. Cherry-pick or re-apply only eligible
+  docs / `AGENTS.md` / Lua script changes onto a fresh branch.
 - Before any `master` PR or merge, confirm the file list with
-  `rtk git diff --name-only master..HEAD`. Anything outside `docs/` and
-  `AGENTS.md` means the branch is not eligible for a docs-only master merge.
+  `rtk git diff --name-only master..HEAD`. Anything outside `docs/`,
+  `AGENTS.md`, and approved Lua script files means the branch is not
+  eligible for a docs / Lua-only master merge.
+- Graphics and other image assets, including `.png` icons, are implementation
+  artifacts. Keep them on a feature / integration implementation PR with the
+  source changes that consume them; record source URLs and credit in docs, but
+  do not include the image files themselves in a docs / Lua-only PR.
 
 ## GitHub PR Staging
 
@@ -71,7 +77,7 @@
   user choose when to merge, unless the user explicitly asks for a direct
   master update.
 - For implementation PRs that contain source / include / data / tools /
-  generated changes, prefer a fresh branch from current `master` and
+  graphics / generated changes, prefer a fresh branch from current `master` and
   cherry-pick or re-apply only the intended slice when the planned order
   changes. Close the older PR only after recording why it was superseded.
 - Keep an open implementation PR if it is still a valid candidate but not next
