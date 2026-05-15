@@ -120,6 +120,11 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
 
 ## Other Credits
+### Summary Tera Type Icon Credits:
+- [RavePossum](https://github.com/ravepossum) - BW Summary Screen Expansion source branch and integration reference.
+- [Zatsu / fakuzatsu](https://github.com/fakuzatsu) - Tera type icons, credited in BW Summary Screen credits.
+- Source assets copied from `graphics/types_bw/tera/` on RavePossum's [`bw_summary_screen_expansion`](https://github.com/ravepossum/pokeemerald-expansion/tree/bw_summary_screen_expansion/graphics/types_bw/tera) branch at commit `83ab2da05eddeddcd85c9426ddee174b9e7067f7`.
+
 ### Mega Evolution Overworld Sprite Credits:
 - [princess-phoenix](https://www.deviantart.com/princess-phoenix)
 - [larryturbo](https://www.deviantart.com/larryturbo)
