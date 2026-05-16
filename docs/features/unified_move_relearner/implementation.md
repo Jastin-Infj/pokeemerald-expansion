@@ -43,6 +43,10 @@ still making normal builds reproducible.
   currently gives it Movie 12 moves (`Roar of Time`, `Spacial Rend`,
   `Shadow Force`) plus Dahara City moves (`Blast Burn`, `Hydro Cannon`,
   `Earth Power`).
+- The special runtime JSON was expanded from 25 candidate blocks / 50 moves to
+  164 blocks / 206 moves. The pass added the broader XD purification table,
+  event-exclusive move-page rows, Wish Egg / legacy rows, and Cinema Genesect
+  special moves.
 - The physical TM item list was not expanded. The TM rows in unified mode are a
   virtual relearner candidate pool.
 - Special event / XD / distribution-only candidates are connected as one
@@ -62,6 +66,7 @@ still making normal builds reproducible.
 | mGBA party entry | Pass | Start menu -> Pokemon -> Mew showed direct `RELEARN` action and opened unified list. |
 | mGBA long-list labels | Pass | Mew list showed `Lv` source rows, D-pad right page-scroll reached `TM`, then `Tu` rows. |
 | mGBA special labels | Pass | Arceus party `RELEARN` route showed `Roar of Time`, `Spacial Rend`, `Shadow Force`, `Blast Burn`, `Hydro Cannon`, and `Earth Power` as `Sp` rows. |
+| mGBA expanded special labels | Pass | Debug menu `Give X -> Pokemon (Basic)` created Bulbasaur; party `RELEARN` page-scrolled to `Celebrate` as a new `Sp` row. |
 | mGBA NPC/script cancel | Pass | Debug menu `Party -> Move Relearner`, cancel from list, confirmed give-up, then returned to a YES/NO `Anything else` prompt instead of the old category multichoice. |
 | mGBA cleanup | Pass | `mgba_live_stop` succeeded and `mgba-live-cli status --all` returned `[]`. |
 
@@ -71,6 +76,7 @@ Screenshots:
 - `/tmp/unified_move_relearner_mew_tutor_labels.png`
 - `/tmp/unified_move_relearner_arceus_special_roar_time.png`
 - `/tmp/unified_move_relearner_arceus_special_labels.png`
+- `/tmp/unified_move_relearner_special_expanded_bulbasaur_after_hold_right4.png`
 - `/tmp/unified_move_relearner_script_yesno.png`
 
 GitHub Actions were not re-waited locally; this branch relies on the local

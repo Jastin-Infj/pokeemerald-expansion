@@ -66,6 +66,22 @@
       "url": "https://bulbapedia.bulbagarden.net/wiki/Yawn_(move)"
     },
     {
+      "id": "bulbapedia_wish",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Wish_(move)"
+    },
+    {
+      "id": "bulbapedia_sing",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Sing_(move)"
+    },
+    {
+      "id": "bulbapedia_teeter_dance",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Teeter_Dance_(move)"
+    },
+    {
+      "id": "bulbapedia_extreme_speed",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Extreme_Speed_(move)"
+    },
+    {
       "id": "bulbapedia_v_create",
       "url": "https://bulbapedia.bulbagarden.net/wiki/V-create_(move)"
     },
@@ -100,6 +116,10 @@
     {
       "id": "bulbapedia_guardian_signs",
       "url": "https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_Ranger:_Guardian_Signs"
+    },
+    {
+      "id": "pokemonwiki_genesect_movie",
+      "url": "https://wiki.xn--rckteqa2e.com/wiki/%E3%82%B2%E3%83%8E%E3%82%BB%E3%82%AF%E3%83%88_%28%E3%81%88%E3%81%84%E3%81%8C%E3%81%8B%E3%82%93%29"
     }
   ],
   "candidates": [
@@ -137,7 +157,10 @@
       "source": "legacy_event",
       "unlockGroup": "special_event",
       "display": "EV",
-      "audit": "Verify exact PCNY / Wish Egg distribution before enabling by default."
+      "distributionId": "gen3_wish_egg_kangaskhan",
+      "distributionName": "Wish Egg Kangaskhan",
+      "sourceRefs": ["bulbapedia_wish", "bulbapedia_yawn"],
+      "auditStatus": "public_reference_backed"
     },
     {
       "species": "SPECIES_SNORLAX",
@@ -359,6 +382,1261 @@
       "source": "event_exclusive",
       "unlockGroup": "special_event",
       "display": "EV"
+    },
+    {
+      "species": "SPECIES_BUTTERFREE",
+      "moves": ["MOVE_MORNING_SUN"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BEEDRILL",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIDGEOTTO",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RATICATE",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SPEAROW",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ARBOK",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_VULPIX",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PARAS",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_VENOMOTH",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DUGTRIO",
+      "moves": ["MOVE_CHARM", "MOVE_SANDSTORM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MEOWTH",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GOLDUCK",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PRIMEAPE",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GROWLITHE",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_POLIWRATH",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_WEEPINBELL",
+      "moves": ["MOVE_MORNING_SUN"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RAPIDASH",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAGNETON",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_FARFETCHD",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DODRIO",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SEEL",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GRIMER",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SHELLDER",
+      "moves": ["MOVE_REFRESH", "MOVE_TAKE_DOWN"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_HYPNO",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_VOLTORB",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EXEGGUTOR",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAROWAK",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_HITMONLEE",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_HITMONCHAN",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LICKITUNG",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RHYDON",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CHANSEY",
+      "moves": ["MOVE_SWEET_KISS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TANGELA",
+      "moves": ["MOVE_MORNING_SUN"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_STARMIE",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MR_MIME",
+      "moves": ["MOVE_FOLLOW_ME"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SCYTHER",
+      "moves": ["MOVE_MORNING_SUN"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ELECTABUZZ",
+      "moves": ["MOVE_FOLLOW_ME"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAGMAR",
+      "moves": ["MOVE_FOLLOW_ME"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PINSIR",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TAUROS",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LAPRAS",
+      "moves": ["MOVE_HEAL_BELL"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DRAGONITE",
+      "moves": ["MOVE_HEAL_BELL"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LEDYBA",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SPINARAK",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TOGEPI",
+      "moves": ["MOVE_TRI_ATTACK", "MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_NATU",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAREEP",
+      "moves": ["MOVE_HEAL_BELL"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PINECO",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TEDDIURSA",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAGCARGO",
+      "moves": ["MOVE_REFRESH", "MOVE_HEAT_WAVE"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SWINUB",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_HOUNDOUR",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_POOCHYENA",
+      "moves": ["MOVE_HEAL_BELL"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SEEDOT",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SWELLOW",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RALTS",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SHROOMISH",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAKUHITA",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_NOSEPASS",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DELCATTY",
+      "moves": ["MOVE_SWEET_KISS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SABLEYE",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAWILE",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MANECTRIC",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROSELIA",
+      "moves": ["MOVE_SWEET_KISS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GULPIN",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CARVANHA",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_NUMEL",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ALTARIA",
+      "moves": ["MOVE_HEAL_BELL"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ZANGOOSE",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LUNATONE",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SOLROCK",
+      "moves": ["MOVE_BATON_PASS"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BALTOY",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BANETTE",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DUSKULL",
+      "moves": ["MOVE_HELPING_HAND"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SNORUNT",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SPHEAL",
+      "moves": ["MOVE_CHARM"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SALAMENCE",
+      "moves": ["MOVE_REFRESH"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["bulbapedia_purification"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BULBASAUR",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CHARMANDER",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SQUIRTLE",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAGIKARP",
+      "moves": ["MOVE_CELEBRATE", "MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate", "bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_VAPOREON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_JOLTEON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_FLAREON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ESPEON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_UMBREON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_HO_OH",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RAYQUAZA",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LEAFEON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GLACEON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SYLVEON",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_VULPIX_ALOLA",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EXEGGUTOR_ALOLA",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CHANSEY",
+      "moves": ["MOVE_CELEBRATE", "MOVE_WISH"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate", "bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_AERODACTYL",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SNORLAX",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SHAYMIN",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_VICTINI",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MELOETTA",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_COMFEY",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SINISTEA",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_FLABEBE",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_STEENEE",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TANDEMAUS",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_FIDOUGH",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TOEDSCOOL",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_TATSUGIRI",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MEOWTH",
+      "moves": ["MOVE_HAPPY_HOUR", "MOVE_SING"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour", "bulbapedia_sing"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DELIBIRD",
+      "moves": ["MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_JIRACHI",
+      "moves": ["MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GRENINJA",
+      "moves": ["MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_INKAY",
+      "moves": ["MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MUNCHLAX",
+      "moves": ["MOVE_HAPPY_HOUR", "MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour", "bulbapedia_hold_back"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROCKRUFF",
+      "moves": ["MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ZOROARK_HISUI",
+      "moves": ["MOVE_HAPPY_HOUR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_happy_hour"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MAREEP",
+      "moves": ["MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_hold_back"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BELDUM",
+      "moves": ["MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_hold_back"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SERPERIOR",
+      "moves": ["MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_hold_back"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EMBOAR",
+      "moves": ["MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_hold_back"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SAMUROTT",
+      "moves": ["MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_hold_back"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_FARFETCHD",
+      "moves": ["MOVE_WISH", "MOVE_YAWN"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish", "bulbapedia_yawn"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DROWZEE",
+      "moves": ["MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EXEGGCUTE",
+      "moves": ["MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LICKITUNG",
+      "moves": ["MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PICHU",
+      "moves": ["MOVE_SING", "MOVE_WISH", "MOVE_TEETER_DANCE"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_sing", "bulbapedia_wish", "bulbapedia_teeter_dance"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RALTS",
+      "moves": ["MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ABSOL",
+      "moves": ["MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BAGON",
+      "moves": ["MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU",
+      "moves": ["MOVE_SING", "MOVE_TEETER_DANCE", "MOVE_EXTREME_SPEED", "MOVE_WISH"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_sing", "bulbapedia_teeter_dance", "bulbapedia_extreme_speed", "bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SPINDA",
+      "moves": ["MOVE_SING"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_sing"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EEVEE",
+      "moves": ["MOVE_SING", "MOVE_WISH"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_sing", "bulbapedia_wish"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIPLUP",
+      "moves": ["MOVE_SING"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_sing"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_BELLSPROUT",
+      "moves": ["MOVE_TEETER_DANCE"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_teeter_dance"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_WHISMUR",
+      "moves": ["MOVE_TEETER_DANCE"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_teeter_dance"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DEOXYS",
+      "moves": ["MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_extreme_speed"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_DRAGONITE",
+      "moves": ["MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_extreme_speed"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_LINOONE",
+      "moves": ["MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_extreme_speed"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ZYGARDE",
+      "moves": ["MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "sourceRefs": ["bulbapedia_extreme_speed"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_GENESECT",
+      "moves": ["MOVE_EXTREME_SPEED", "MOVE_BLAZE_KICK", "MOVE_SHIFT_GEAR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_movie",
+      "display": "EV",
+      "regions": ["JP", "KR"],
+      "generation": 5,
+      "distributionId": "gen5_cinema_genesect_family",
+      "distributionName": "Cinema Genesect distribution family",
+      "sourceRefs": ["pokemonwiki_genesect_movie", "bulbapedia_extreme_speed"],
+      "auditStatus": "public_reference_backed"
     }
   ]
 }

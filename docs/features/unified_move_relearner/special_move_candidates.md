@@ -16,7 +16,7 @@ many species. That should not imply a large visible list for every selected
 Pokemon. Runtime lookup should filter by the selected species/form first, then
 append only matching special candidates to that Pokemon's candidate list.
 
-Current implementation status: the seed has been copied into
+Current implementation status: the runtime source is
 `tools/learnset_helpers/special_relearner_moves.json` and is compiled into the
 generated unified relearner table. Runtime display uses the shared `Sp` label
 for now; per-entry `EV` / `XD` / `RG` labels and unlock-group gating are still
@@ -88,10 +88,11 @@ However, the source JSON should retain the original region/language data so a
 later ruleset can choose "Japan-only events allowed" or "international events
 only" without re-auditing the move.
 
-Rayquaza is only a seed example. A full special-event pass is expected to find
-many more candidates across Japanese, North American, European, Korean, and
-other distribution sets. That full pass should be scripted from a reviewed local
-intermediate list and should leave an audit status on every row.
+The first seed was intentionally small. A 2026-05-16 broadening pass expanded
+the runtime JSON from 25 candidate blocks / 50 moves to 164 blocks / 206 moves
+using public move-page and XD references. This is still not exhaustive; a full
+special-event pass should be scripted from a reviewed local intermediate list
+and should leave an audit status on every row.
 
 The first broad pass should start from Generation III onward. Earlier Mew
 distributions are historically important, but they are only relevant to the
@@ -112,7 +113,7 @@ Audit workflow:
 
 ## Proposed Data Shape
 
-Seed data for this design is tracked in
+Historical seed data for this design is tracked in
 [`special_move_candidates_seed.json`](special_move_candidates_seed.json).
 
 Runtime data is tracked in
@@ -125,7 +126,7 @@ The runtime JSON shape is:
 ```json
 {
   "schemaVersion": 1,
-  "sourceKind": "special_move_candidates",
+  "sourceKind": "special_relearner_moves",
   "candidates": [
     {
       "species": "SPECIES_ZAPDOS",
@@ -152,8 +153,16 @@ JSON instead of scanning a large flat table at runtime.
 
 ## Initial Candidate Seeds
 
-This is not exhaustive. It is the starting audit set to keep the implementation
-shape correct before a full event-data pass.
+This is not exhaustive. It is the original starting audit set kept here to show
+the implementation shape. The current runtime JSON now also includes:
+
+- the broader Bulbapedia `Celebrate`, `Happy Hour`, `Hold Back`, `Hold Hands`,
+  and `V-create` event learnset rows;
+- the Pokemon XD purification special-move table from Bulbapedia;
+- Gen III Wish Egg / legacy rows for `Wish` and `Yawn`;
+- event rows for `Sing`, `Teeter Dance`, and `Extreme Speed`;
+- Cinema Genesect's `Extreme Speed`, `Blaze Kick`, and `Shift Gear`, cross-
+  checked against PokemonWiki and Bulbapedia.
 
 | Species | Move | Source kind | Notes |
 |---|---|---|---|

@@ -135,7 +135,7 @@ Move Relearner entry
 | repo teaching species with porymoves Egg/TM/Tutor entries | 1097 |
 | repo species without porymoves Egg/TM/Tutor entries | Cosmog, Ditto, Smeargle |
 | porymoves keys not emitted by current repo teaching names | 14 form / naming keys |
-| special runtime candidate blocks | 25 blocks / 50 moves |
+| special runtime candidate blocks | 164 blocks / 206 moves |
 
 この数字は「全 `SPECIES_*` enum を網羅」という意味ではない。
 `make_teaching_types.py` が repo の `species_info` から teachable learnset を持つ species
