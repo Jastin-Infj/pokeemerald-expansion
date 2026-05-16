@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceKind": "special_relearner_moves",
-  "purpose": "Runtime source for Unified Move Relearner special event, distribution-only, XD purification, and Ranger-transfer move candidates.",
+  "purpose": "Runtime source for Unified Move Relearner special event, distribution-only, XD purification, Ranger-transfer, and form-specific move candidates.",
   "docsSeed": "docs/features/unified_move_relearner/special_move_candidates_seed.json",
   "importPolicy": "Normalized compatibility data may be copied from trusted event datasets. Raw Wonder Card or Mystery Gift payloads are out of scope for this Move Relearner source.",
   "sources": [
@@ -40,6 +40,14 @@
     {
       "id": "bulbapedia_event_pokemon",
       "url": "https://bulbapedia.bulbagarden.net/wiki/Event_Pok%C3%A9mon"
+    },
+    {
+      "id": "bulbapedia_rotom_forms",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Rotom_(Pok%C3%A9mon)#Forms"
+    },
+    {
+      "id": "bulbapedia_cosplay_pikachu",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Cosplay_Pikachu"
     },
     {
       "id": "bulbapedia_purification",
@@ -1623,6 +1631,96 @@
       "unlockGroup": "special_event",
       "display": "EV",
       "sourceRefs": ["bulbapedia_extreme_speed"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROTOM_HEAT",
+      "moves": ["MOVE_OVERHEAT"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_rotom_forms"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROTOM_WASH",
+      "moves": ["MOVE_HYDRO_PUMP"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_rotom_forms"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROTOM_FROST",
+      "moves": ["MOVE_BLIZZARD"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_rotom_forms"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROTOM_FAN",
+      "moves": ["MOVE_AIR_SLASH"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_rotom_forms"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ROTOM_MOW",
+      "moves": ["MOVE_LEAF_STORM"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_rotom_forms"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_ROCK_STAR",
+      "moves": ["MOVE_METEOR_MASH"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_cosplay_pikachu"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_BELLE",
+      "moves": ["MOVE_ICICLE_CRASH"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_cosplay_pikachu"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_POP_STAR",
+      "moves": ["MOVE_DRAINING_KISS"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_cosplay_pikachu"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_PHD",
+      "moves": ["MOVE_ELECTRIC_TERRAIN"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_cosplay_pikachu"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_LIBRE",
+      "moves": ["MOVE_FLYING_PRESS"],
+      "source": "form_specific",
+      "unlockGroup": "special_form_change",
+      "display": "FC",
+      "sourceRefs": ["bulbapedia_cosplay_pikachu"],
       "auditStatus": "public_reference_backed"
     },
     {

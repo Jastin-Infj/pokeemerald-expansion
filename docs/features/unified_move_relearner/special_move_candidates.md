@@ -35,6 +35,7 @@ data local.
 | Bulbapedia Event Pokemon page | Primary category reference | Confirms event-exclusive moves and Cherish Ball distribution context. |
 | Bulbapedia Purification page | Primary XD reference | Confirms Pokemon XD purified special moves such as Metal Sound Zapdos. |
 | Bulbapedia event distribution list pages | Public audit reference | Useful for region-specific Wonder Card rows, especially Gen IV-VI. |
+| Bulbapedia form pages | Public audit reference | Useful for form-only compatibility such as Rotom appliance moves and Cosplay Pikachu costume moves. |
 | Pokemon Wiki / Serebii / similar public event pages | Fallback audit reference | Use when Bulbapedia pages are incomplete or hard to search. |
 
 Unofficial event databases or tools may be used as import material when they
@@ -89,10 +90,10 @@ later ruleset can choose "Japan-only events allowed" or "international events
 only" without re-auditing the move.
 
 The first seed was intentionally small. A 2026-05-16 broadening pass expanded
-the runtime JSON from 25 candidate blocks / 50 moves to 164 blocks / 206 moves
-using public move-page and XD references. This is still not exhaustive; a full
-special-event pass should be scripted from a reviewed local intermediate list
-and should leave an audit status on every row.
+the runtime JSON from 25 candidate blocks / 50 moves to 174 blocks / 216 moves
+using public move-page, XD, Ranger, form-specific, and event references. This
+is still not exhaustive; a full special-event pass should be scripted from a
+reviewed local intermediate list and should leave an audit status on every row.
 
 The first broad pass should start from Generation III onward. Earlier Mew
 distributions are historically important, but they are only relevant to the
@@ -162,7 +163,11 @@ the implementation shape. The current runtime JSON now also includes:
 - Gen III Wish Egg / legacy rows for `Wish` and `Yawn`;
 - event rows for `Sing`, `Teeter Dance`, and `Extreme Speed`;
 - Cinema Genesect's `Extreme Speed`, `Blaze Kick`, and `Shift Gear`, cross-
-  checked against PokemonWiki and Bulbapedia.
+  checked against PokemonWiki and Bulbapedia;
+- Rotom appliance form moves: `Overheat`, `Hydro Pump`, `Blizzard`,
+  `Air Slash`, and `Leaf Storm`;
+- Cosplay Pikachu costume moves: `Meteor Mash`, `Icicle Crash`,
+  `Draining Kiss`, `Electric Terrain`, and `Flying Press`.
 
 | Species | Move | Source kind | Notes |
 |---|---|---|---|
