@@ -47,7 +47,6 @@ LavaridgeTown_Gym_1F_EventScript_Flannery::
 	trainerbattle_single TRAINER_FLANNERY_1, LavaridgeTown_Gym_1F_Text_FlanneryIntro, LavaridgeTown_Gym_1F_Text_FlanneryDefeat, LavaridgeTown_Gym_1F_EventScript_FlanneryDefeated, NO_MUSIC
 	specialvar VAR_RESULT, ShouldTryRematchBattle
 	goto_if_eq VAR_RESULT, TRUE, LavaridgeTown_Gym_1F_EventScript_FlanneryRematch
-	goto_if_unset FLAG_RECEIVED_TM_OVERHEAT, LavaridgeTown_Gym_1F_EventScript_GiveOverheat2
 	msgbox LavaridgeTown_Gym_1F_Text_FlanneryPostBattle, MSGBOX_DEFAULT
 	release
 	end
@@ -66,7 +65,6 @@ LavaridgeTown_Gym_1F_EventScript_FlanneryDefeated::
 	call Common_EventScript_SetGymTrainers
 	setflag FLAG_HIDE_VERDANTURF_TOWN_WANDAS_HOUSE_WALLY
 	setvar VAR_LAVARIDGE_TOWN_STATE, 1
-	call LavaridgeTown_Gym_1F_EventScript_GiveOverheat
 	closemessage
 	delay 30
 	playfanfare MUS_REGISTER_MATCH_CALL
@@ -79,18 +77,10 @@ LavaridgeTown_Gym_1F_EventScript_FlanneryDefeated::
 	end
 
 LavaridgeTown_Gym_1F_EventScript_GiveOverheat2::
-	giveitem ITEM_TM_OVERHEAT
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	msgbox LavaridgeTown_Gym_1F_Text_ExplainOverheat, MSGBOX_DEFAULT
-	setflag FLAG_RECEIVED_TM_OVERHEAT
 	release
 	end
 
 LavaridgeTown_Gym_1F_EventScript_GiveOverheat::
-	giveitem ITEM_TM_OVERHEAT
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_BagIsFull
-	msgbox LavaridgeTown_Gym_1F_Text_ExplainOverheat, MSGBOX_DEFAULT
-	setflag FLAG_RECEIVED_TM_OVERHEAT
 	return
 
 LavaridgeTown_Gym_1F_EventScript_FlanneryRematch::
@@ -336,8 +326,8 @@ LavaridgeTown_Gym_1F_Text_ExplainHeatBadgeTakeThis:
 	.string "you completely.\p"
 	.string "And, it lets POKéMON use the HM move\n"
 	.string "STRENGTH outside of battle.\p"
-	.string "This is a token of my appreciation.\n"
-	.string "Don't be shy about taking it!$"
+	.string "You earned that strength with your\n"
+	.string "victory today.$"
 
 LavaridgeTown_Gym_1F_Text_ExplainOverheat:
 	.string "That TM50 contains OVERHEAT.\p"

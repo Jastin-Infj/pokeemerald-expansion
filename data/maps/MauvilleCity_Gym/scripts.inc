@@ -77,7 +77,6 @@ MauvilleCity_Gym_EventScript_Wattson::
 	trainerbattle_single TRAINER_WATTSON_1, MauvilleCity_Gym_Text_WattsonIntro, MauvilleCity_Gym_Text_WattsonDefeat, MauvilleCity_Gym_EventScript_WattsonDefeated, NO_MUSIC
 	specialvar VAR_RESULT, ShouldTryRematchBattle
 	goto_if_eq VAR_RESULT, TRUE, MauvilleCity_Gym_EventScript_WattsonRematch
-	goto_if_unset FLAG_RECEIVED_TM_SHOCK_WAVE, MauvilleCity_Gym_EventScript_GiveShockWave2
 	goto_if_eq VAR_NEW_MAUVILLE_STATE, 2, MauvilleCity_Gym_EventScript_CompletedNewMauville
 	msgbox MauvilleCity_Gym_Text_WattsonPostBattle, MSGBOX_DEFAULT
 	release
@@ -99,7 +98,6 @@ MauvilleCity_Gym_EventScript_WattsonDefeated::
 	special MauvilleGymDeactivatePuzzle
 	special DrawWholeMapView
 	playse SE_UNLOCK
-	call MauvilleCity_Gym_EventScript_GiveShockWave
 	closemessage
 	delay 30
 	playfanfare MUS_REGISTER_MATCH_CALL
@@ -112,18 +110,10 @@ MauvilleCity_Gym_EventScript_WattsonDefeated::
 	end
 
 MauvilleCity_Gym_EventScript_GiveShockWave2::
-	giveitem ITEM_TM_SHOCK_WAVE
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	msgbox MauvilleCity_Gym_Text_ExplainShockWave, MSGBOX_DEFAULT
-	setflag FLAG_RECEIVED_TM_SHOCK_WAVE
 	release
 	end
 
 MauvilleCity_Gym_EventScript_GiveShockWave::
-	giveitem ITEM_TM_SHOCK_WAVE
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_BagIsFull
-	msgbox MauvilleCity_Gym_Text_ExplainShockWave, MSGBOX_DEFAULT
-	setflag FLAG_RECEIVED_TM_SHOCK_WAVE
 	return
 
 MauvilleCity_Gym_EventScript_CompletedNewMauville::
@@ -361,7 +351,7 @@ MauvilleCity_Gym_Text_ExplainDynamoBadgeTakeThis:
 	.string "And, it will make your POKéMON a little\n"
 	.string "bit faster, too.\p"
 	.string "Hmm…\n"
-	.string "You should take this, too!$"
+	.string "Keep charging ahead!$"
 
 MauvilleCity_Gym_Text_ExplainShockWave:
 	.string "That TM34 there contains SHOCK WAVE.\p"
@@ -418,4 +408,3 @@ MauvilleCity_Gym_Text_WattsonRematchNeedTwoMons:
 	.string "You've only one POKéMON with you!\p"
 	.string "Come see me with two or more\n"
 	.string "POKéMON, all right?$"
-

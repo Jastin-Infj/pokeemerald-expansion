@@ -9,11 +9,7 @@ Route114_FossilManiacsHouse_OnTransition:
 Route114_FossilManiacsHouse_EventScript_FossilManiacsBrother::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_DIG, Route114_FossilManiacsHouse_EventScript_ReceivedDig
 	msgbox Route114_FossilManiacsHouse_Text_HaveThisToDigLikeMyBrother, MSGBOX_DEFAULT
-	giveitem ITEM_TM_DIG
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_DIG
 	release
 	end
 
@@ -35,8 +31,8 @@ Route114_FossilManiacsHouse_Text_HaveThisToDigLikeMyBrother:
 	.string "He's a nice guy who loves FOSSILS…\p"
 	.string "He loves digging holes, too…\n"
 	.string "He dug this hole by himself…\p"
-	.string "You can have this, so you can DIG\n"
-	.string "holes just like my big brother…$"
+	.string "He says digging takes patience and\n"
+	.string "a real love of FOSSILS…$"
 
 Route114_FossilManiacsHouse_Text_DigReturnsYouToEntrance:
 	.string "If you make a POKéMON DIG inside a\n"
@@ -51,4 +47,3 @@ Route114_FossilManiacsHouse_Text_CrammedWithBooks:
 	.string "HOW RAIN SHAPES THE LAND…\l"
 	.string "STONES, SOIL, AND ROCK…\p"
 	.string "It's crammed with books.$"
-

@@ -203,8 +203,22 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
-	release
+	lockall
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Debug_EventScript_TmShopTest
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	releaseall
 	end
+
+	.align 2
+Debug_EventScript_TmShopTest:
+	.2byte ITEM_TM_THUNDERBOLT
+	.2byte ITEM_TM_ICE_BEAM
+	.2byte ITEM_TM_FLAMETHROWER
+	.2byte ITEM_TM_EARTHQUAKE
+	.2byte ITEM_TM_SECRET_POWER
+	pokemartlistend
 
 Debug_EventScript_Script_2::
 	release

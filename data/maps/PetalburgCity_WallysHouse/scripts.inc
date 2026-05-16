@@ -19,8 +19,6 @@ PetalburgCity_WallysHouse_OnFrame:
 PetalburgCity_WallysHouse_EventScript_GiveHMSurf::
 	lockall
 	msgbox PetalburgCity_WallysHouse_Text_PleaseExcuseUs, MSGBOX_DEFAULT
-	giveitem ITEM_HM_SURF
-	setflag FLAG_RECEIVED_HM_SURF
 	msgbox PetalburgCity_WallysHouse_Text_SurfGoAllSortsOfPlaces, MSGBOX_DEFAULT
 	setvar VAR_PETALBURG_CITY_STATE, 5
 	releaseall
@@ -30,7 +28,7 @@ PetalburgCity_WallysHouse_EventScript_WallysDad::
 	lock
 	faceplayer
 	goto_if_set FLAG_DEFEATED_WALLY_VICTORY_ROAD, PetalburgCity_WallysHouse_EventScript_DefeatedWallyInVictoryRoad
-	goto_if_set FLAG_RECEIVED_HM_SURF, PetalburgCity_WallysHouse_EventScript_ReceievedHMSurf
+	goto_if_gt VAR_PETALBURG_CITY_STATE, 4, PetalburgCity_WallysHouse_EventScript_ReceievedHMSurf
 	goto_if_set FLAG_THANKED_FOR_PLAYING_WITH_WALLY, PetalburgCity_WallysHouse_EventScript_PlayedWithWally
 	msgbox PetalburgCity_WallysHouse_Text_ThanksForPlayingWithWally, MSGBOX_DEFAULT
 	setflag FLAG_THANKED_FOR_PLAYING_WITH_WALLY
@@ -55,7 +53,7 @@ PetalburgCity_WallysHouse_EventScript_PlayedWithWally::
 PetalburgCity_WallysHouse_EventScript_WallysMom::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_HM_SURF, PetalburgCity_WallysHouse_EventScript_ReceivedHMSurf
+	goto_if_gt VAR_PETALBURG_CITY_STATE, 4, PetalburgCity_WallysHouse_EventScript_ReceivedHMSurf
 	msgbox PetalburgCity_WallysHouse_Text_WallyWasReallyHappy, MSGBOX_DEFAULT
 	release
 	end
@@ -98,8 +96,8 @@ PetalburgCity_WallysHouse_Text_PleaseExcuseUs:
 	.string "It made me, his father, happy too.\p"
 	.string "Happy that he's gained such a great\n"
 	.string "friend as you.\p"
-	.string "This isn't a bribe or anything, but\n"
-	.string "I'd really like you to have this.$"
+	.string "This isn't a bribe or anything.\n"
+	.string "I'd really like to thank you.$"
 
 PetalburgCity_WallysHouse_Text_SurfGoAllSortsOfPlaces:
 	.string "If your POKéMON can SURF, you'll be\n"
@@ -132,4 +130,3 @@ PetalburgCity_WallysHouse_Text_WallyLeftWithoutTelling:
 	.string "he's surprisingly strong-willed.\p"
 	.string "I'm sure that he'll come back safe\n"
 	.string "and sound one day!$"
-

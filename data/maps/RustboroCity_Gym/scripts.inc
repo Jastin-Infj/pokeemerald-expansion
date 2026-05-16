@@ -5,7 +5,6 @@ RustboroCity_Gym_EventScript_Roxanne::
 	trainerbattle_single TRAINER_ROXANNE_1, RustboroCity_Gym_Text_RoxanneIntro, RustboroCity_Gym_Text_RoxanneDefeat, RustboroCity_Gym_EventScript_RoxanneDefeated, NO_MUSIC
 	specialvar VAR_RESULT, ShouldTryRematchBattle
 	goto_if_eq VAR_RESULT, TRUE, RustboroCity_Gym_EventScript_RoxanneRematch
-	goto_if_unset FLAG_RECEIVED_TM_ROCK_TOMB, RustboroCity_Gym_EventScript_GiveRockTomb
 	msgbox RustboroCity_Gym_Text_RoxannePostBattle, MSGBOX_DEFAULT
 	release
 	end
@@ -22,14 +21,10 @@ RustboroCity_Gym_EventScript_RoxanneDefeated::
 	setvar VAR_0x8008, 1
 	call Common_EventScript_SetGymTrainers
 	call_if_eq VAR_PETALBURG_GYM_STATE, 6, Common_EventScript_ReadyPetalburgGymForBattle
-	goto RustboroCity_Gym_EventScript_GiveRockTomb
+	release
 	end
 
 RustboroCity_Gym_EventScript_GiveRockTomb::
-	giveitem ITEM_TM_ROCK_TOMB
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_ROCK_TOMB
-	msgbox RustboroCity_Gym_Text_ExplainRockTomb, MSGBOX_DEFAULT
 	release
 	end
 
@@ -205,7 +200,7 @@ RustboroCity_Gym_Text_StoneBadgeInfoTakeThis:
 	.string "power of your POKéMON.\p"
 	.string "It also enables them to use the HM move\n"
 	.string "CUT outside of battle.\p"
-	.string "Please take this with you, too.$"
+	.string "Use that strength well on your journey.$"
 
 RustboroCity_Gym_Text_ExplainRockTomb:
 	.string "That TECHNICAL MACHINE, TM39,\n"

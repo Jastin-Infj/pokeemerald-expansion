@@ -13,7 +13,7 @@ MossdeepCity_OnTransition:
 MossdeepCity_EventScript_PokefanF::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_HM_DIVE, MossdeepCity_EventScript_PokefanFMagmaGone
+	goto_if_set FLAG_OMIT_DIVE_FROM_STEVEN_LETTER, MossdeepCity_EventScript_PokefanFMagmaGone
 	msgbox MossdeepCity_Text_SpaceCenterReceivedLetter, MSGBOX_DEFAULT
 	release
 	end
@@ -26,7 +26,7 @@ MossdeepCity_EventScript_PokefanFMagmaGone::
 MossdeepCity_EventScript_Sailor::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_HM_DIVE, MossdeepCity_EventScript_SailorMagmaGone
+	goto_if_set FLAG_OMIT_DIVE_FROM_STEVEN_LETTER, MossdeepCity_EventScript_SailorMagmaGone
 	msgbox MossdeepCity_Text_MossdeepTargetedByMagma, MSGBOX_DEFAULT
 	release
 	end
@@ -425,4 +425,3 @@ MossdeepCity_Text_SootopolisNewGymLeader:
 	.string "LEADER come in.\p"
 	.string "People tell me the new LEADER once\n"
 	.string "mentored WALLACE.$"
-

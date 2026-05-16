@@ -43,17 +43,12 @@ Route114_EventScript_ReceivedBerry::
 Route114_EventScript_RoarGentleman::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_ROAR, Route114_EventScript_ReceivedRoar
 	msgbox Route114_Text_AllMyMonDoesIsRoarTakeThis, MSGBOX_DEFAULT
-	giveitem ITEM_TM_ROAR
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_ROAR
-	msgbox Route114_Text_ExplainRoar, MSGBOX_DEFAULT
 	release
 	end
 
 Route114_EventScript_ReceivedRoar::
-	msgbox Route114_Text_ExplainRoar, MSGBOX_DEFAULT
+	msgbox Route114_Text_AllMyMonDoesIsRoarTakeThis, MSGBOX_DEFAULT
 	release
 	end
 
@@ -179,8 +174,8 @@ Route114_EventScript_Kai::
 Route114_Text_AllMyMonDoesIsRoarTakeThis:
 	.string "All my POKéMON does is ROAR…\n"
 	.string "No one dares to come near me…\p"
-	.string "Sigh… If you would, please take\n"
-	.string "this TM away…$"
+	.string "Sigh… I wish it would settle down\n"
+	.string "and listen sometimes…$"
 
 Route114_Text_ExplainRoar:
 	.string "TM05 contains ROAR.\n"
@@ -199,4 +194,3 @@ Route114_Text_FossilManiacsHouseSign:
 
 Route114_Text_LanettesHouse:
 	.string "LANETTE'S HOUSE$"
-
