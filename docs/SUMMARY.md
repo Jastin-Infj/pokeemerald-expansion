@@ -91,6 +91,8 @@
       - [Risks](features/summary_tera_type_icon/risks.md)
       - [Test Plan](features/summary_tera_type_icon/test_plan.md)
     - [Unified Move Relearner](features/unified_move_relearner/README.md)
+      - [TM/Tutor Inventory](features/unified_move_relearner/tm_tutor_inventory.md)
+      - [Special Move Candidates](features/unified_move_relearner/special_move_candidates.md)
     - [Pokemon State Editor](features/pokemon_state_editor/README.md)
       - [Dependencies](features/pokemon_state_editor/dependencies.md)
       - [MVP Plan](features/pokemon_state_editor/mvp_plan.md)

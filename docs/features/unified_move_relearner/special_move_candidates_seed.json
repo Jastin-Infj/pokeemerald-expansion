@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Documentation seed for planned Unified Move Relearner special move candidate data. This file is not compiled yet.",
+  "importPolicy": "Normalized compatibility data may be copied from trusted event datasets. Raw Wonder Card or Mystery Gift payloads are out of scope for this Move Relearner source.",
+  "sources": [
+    {
+      "id": "pokemonwiki_distribution_index",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E9%85%8D%E5%B8%83%E3%83%BB%E8%B2%B4%E9%87%8D%E3%81%AA%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3%E4%B8%80%E8%A6%A7"
+    },
+    {
+      "id": "pokemonwiki_gen4_jp_events",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E7%AC%AC%E5%9B%9B%E4%B8%96%E4%BB%A3%E3%81%AE%E9%85%8D%E5%B8%83%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3%E4%B8%80%E8%A6%A7_%28%E6%97%A5%E6%9C%AC%29"
+    },
+    {
+      "id": "pokemonwiki_gen4_overseas_events",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E7%AC%AC%E5%9B%9B%E4%B8%96%E4%BB%A3%E3%81%AE%E9%85%8D%E5%B8%83%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3%E4%B8%80%E8%A6%A7_%28%E6%B5%B7%E5%A4%96%29"
+    },
+    {
+      "id": "pokemonwiki_gen5_jp_events",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E7%AC%AC%E4%BA%94%E4%B8%96%E4%BB%A3%E3%81%AE%E9%85%8D%E5%B8%83%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3%E4%B8%80%E8%A6%A7_%28%E6%97%A5%E6%9C%AC%29"
+    },
+    {
+      "id": "pokemonwiki_gen6_jp_events",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E7%AC%AC%E5%85%AD%E4%B8%96%E4%BB%A3%E3%81%AE%E9%85%8D%E5%B8%83%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3%E4%B8%80%E8%A6%A7_%28%E6%97%A5%E6%9C%AC%29"
+    },
+    {
+      "id": "pokemonwiki_lugia_xd",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E3%83%AB%E3%82%AE%E3%82%A2_%28XD%29"
+    },
+    {
+      "id": "pokemonwiki_jirachi_wishmkr",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E3%82%B8%E3%83%A9%E3%83%BC%E3%83%81_%28WISHMKR%29"
+    },
+    {
+      "id": "pokemonwiki_heatran_oblivia",
+      "url": "https://wiki.pokemonwiki.com/wiki/%E3%83%92%E3%83%BC%E3%83%89%E3%83%A9%E3%83%B3_%28%E3%82%AA%E3%83%96%E3%83%AA%E3%83%93%E3%82%A2%29"
+    },
+    {
+      "id": "bulbapedia_event_pokemon",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Event_Pok%C3%A9mon"
+    },
+    {
+      "id": "bulbapedia_purification",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Purification"
+    },
+    {
+      "id": "bulbapedia_celebrate",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Celebrate_(move)"
+    },
+    {
+      "id": "bulbapedia_happy_hour",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Happy_Hour_(move)"
+    },
+    {
+      "id": "bulbapedia_hold_back",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Hold_Back_(move)"
+    },
+    {
+      "id": "bulbapedia_hold_hands",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Hold_Hands_(move)"
+    },
+    {
+      "id": "bulbapedia_yawn",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Yawn_(move)"
+    },
+    {
+      "id": "bulbapedia_v_create",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/V-create_(move)"
+    },
+    {
+      "id": "bulbapedia_japanese_gen5_events",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/List_of_Wi-Fi_Japanese_event_Pok%C3%A9mon_distributions_in_Generation_V"
+    },
+    {
+      "id": "bulbapedia_gen4_wifi_english_events",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/List_of_Wi-Fi_English_event_Pok%C3%A9mon_distributions_in_Generation_IV"
+    },
+    {
+      "id": "bulbapedia_m10",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/M10"
+    },
+    {
+      "id": "bulbapedia_m12",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/M12"
+    },
+    {
+      "id": "bulbapedia_spacial_rend",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Spacial_Rend_(move)"
+    },
+    {
+      "id": "bulbapedia_draco_meteor",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Draco_Meteor_(move)"
+    },
+    {
+      "id": "bulbapedia_gen6_japanese_serial_events",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/List_of_Japanese_region_serial_code_event_Pok%C3%A9mon_distributions_in_Generation_VI"
+    },
+    {
+      "id": "bulbapedia_guardian_signs",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_Ranger:_Guardian_Signs"
+    }
+  ],
+  "candidates": [
+    {
+      "species": "SPECIES_ZAPDOS",
+      "moves": ["MOVE_BATON_PASS", "MOVE_METAL_SOUND", "MOVE_EXTRASENSORY"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD"
+    },
+    {
+      "species": "SPECIES_ARTICUNO",
+      "moves": ["MOVE_HAZE", "MOVE_HEAL_BELL", "MOVE_EXTRASENSORY"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD"
+    },
+    {
+      "species": "SPECIES_MOLTRES",
+      "moves": ["MOVE_MORNING_SUN", "MOVE_WILL_O_WISP", "MOVE_EXTRASENSORY"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD"
+    },
+    {
+      "species": "SPECIES_KANGASKHAN",
+      "moves": ["MOVE_SING"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD"
+    },
+    {
+      "species": "SPECIES_KANGASKHAN",
+      "moves": ["MOVE_YAWN", "MOVE_WISH"],
+      "source": "legacy_event",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "audit": "Verify exact PCNY / Wish Egg distribution before enabling by default."
+    },
+    {
+      "species": "SPECIES_SNORLAX",
+      "moves": ["MOVE_REFRESH", "MOVE_FISSURE"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD"
+    },
+    {
+      "species": "SPECIES_LUGIA",
+      "moves": ["MOVE_FEATHER_DANCE", "MOVE_PSYCHO_BOOST"],
+      "source": "xd_purification",
+      "unlockGroup": "special_xd",
+      "display": "XD",
+      "sourceRefs": ["pokemonwiki_lugia_xd", "pokemonwiki_distribution_index"]
+    },
+    {
+      "species": "SPECIES_RAYQUAZA",
+      "moves": ["MOVE_V_CREATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_jp",
+      "display": "EV",
+      "regions": ["JP"],
+      "languageRegions": ["Japanese"],
+      "generation": 5,
+      "games": ["B", "W"],
+      "distributionId": "gen5_15th_anniversary_rayquaza_jp",
+      "distributionName": "15th Anniversary Rayquaza",
+      "sourceRefs": ["pokemonwiki_gen5_jp_events", "bulbapedia_v_create", "bulbapedia_japanese_gen5_events"]
+    },
+    {
+      "species": "SPECIES_DARKRAI",
+      "moves": ["MOVE_ROAR_OF_TIME", "MOVE_SPACIAL_REND"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_movie",
+      "display": "EV",
+      "regions": ["JP", "NA", "EU", "KR"],
+      "generation": 4,
+      "distributionId": "gen4_m10_darkrai_family",
+      "distributionName": "Movie 10 / Alamos Darkrai distribution family",
+      "sourceRefs": ["pokemonwiki_gen4_jp_events", "pokemonwiki_gen4_overseas_events", "bulbapedia_m10", "bulbapedia_spacial_rend"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ARCEUS",
+      "moves": ["MOVE_ROAR_OF_TIME", "MOVE_SPACIAL_REND", "MOVE_SHADOW_FORCE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_movie",
+      "display": "EV",
+      "regions": ["JP", "NA", "EU", "KR"],
+      "generation": 4,
+      "distributionId": "gen4_m12_arceus_family",
+      "distributionName": "Movie 12 / Michina Arceus distribution family",
+      "sourceRefs": ["pokemonwiki_gen4_jp_events", "pokemonwiki_gen4_overseas_events", "bulbapedia_m12", "bulbapedia_spacial_rend"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ARCEUS",
+      "moves": ["MOVE_BLAST_BURN", "MOVE_HYDRO_CANNON", "MOVE_EARTH_POWER"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_jp",
+      "display": "EV",
+      "regions": ["JP", "TW"],
+      "languageRegions": ["Japanese"],
+      "generation": 6,
+      "games": ["X", "Y", "OR", "AS"],
+      "distributionId": "gen6_dahara_city_arceus_jp_tw",
+      "distributionName": "Dahara City Arceus",
+      "sourceRefs": ["pokemonwiki_gen6_jp_events", "bulbapedia_gen6_japanese_serial_events"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_HEATRAN",
+      "moves": ["MOVE_ERUPTION"],
+      "source": "ranger_transfer",
+      "unlockGroup": "special_ranger",
+      "display": "RG",
+      "regions": ["JP", "NA", "EU", "AU"],
+      "generation": 4,
+      "games": ["D", "P", "Pt", "HG", "SS"],
+      "distributionId": "ranger_guardian_signs_heatran",
+      "distributionName": "Pokemon Ranger: Guardian Signs Heatran",
+      "sourceRefs": ["pokemonwiki_distribution_index", "pokemonwiki_heatran_oblivia", "bulbapedia_guardian_signs"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_JIRACHI",
+      "moves": ["MOVE_DRACO_METEOR"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "regions": ["JP", "NA", "EU", "AU"],
+      "generation": 4,
+      "distributionId": "gen4_draco_meteor_jirachi_family",
+      "distributionName": "Summer 2010 / Tanabata Draco Meteor Jirachi family",
+      "sourceRefs": ["pokemonwiki_distribution_index", "pokemonwiki_gen4_jp_events", "pokemonwiki_gen4_overseas_events", "bulbapedia_draco_meteor", "bulbapedia_gen4_wifi_english_events"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_RAIKOU",
+      "moves": ["MOVE_ZAP_CANNON", "MOVE_WEATHER_BALL", "MOVE_AURA_SPHERE", "MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_crown",
+      "display": "EV",
+      "regions": ["JP", "NA", "EU"],
+      "generation": 4,
+      "distributionId": "gen4_crown_winter2011_raikou_family",
+      "distributionName": "Crown / Winter 2011 Raikou distribution family",
+      "sourceRefs": ["pokemonwiki_gen4_jp_events", "pokemonwiki_gen4_overseas_events", "bulbapedia_gen4_wifi_english_events"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_ENTEI",
+      "moves": ["MOVE_FLARE_BLITZ", "MOVE_CRUSH_CLAW", "MOVE_HOWL", "MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_crown",
+      "display": "EV",
+      "regions": ["JP", "NA", "EU"],
+      "generation": 4,
+      "distributionId": "gen4_crown_winter2011_entei_family",
+      "distributionName": "Crown / Winter 2011 Entei distribution family",
+      "sourceRefs": ["pokemonwiki_gen4_jp_events", "pokemonwiki_gen4_overseas_events", "bulbapedia_gen4_wifi_english_events"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_SUICUNE",
+      "moves": ["MOVE_SHEER_COLD", "MOVE_AQUA_RING", "MOVE_AIR_SLASH", "MOVE_EXTREME_SPEED"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event_crown",
+      "display": "EV",
+      "regions": ["JP", "NA", "EU"],
+      "generation": 4,
+      "distributionId": "gen4_crown_winter2011_suicune_family",
+      "distributionName": "Crown / Winter 2011 Suicune distribution family",
+      "sourceRefs": ["pokemonwiki_gen4_jp_events", "pokemonwiki_gen4_overseas_events", "bulbapedia_gen4_wifi_english_events"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CELEBI",
+      "moves": ["MOVE_HOLD_BACK"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV"
+    },
+    {
+      "species": "SPECIES_VICTINI",
+      "moves": ["MOVE_V_CREATE"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "audit": "Exact species coverage needs full event-data pass."
+    },
+    {
+      "species": "SPECIES_PIKACHU",
+      "moves": ["MOVE_HAPPY_HOUR", "MOVE_CELEBRATE", "MOVE_HOLD_HANDS"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV",
+      "audit": "Exact distribution variants need full event-data pass."
+    },
+    {
+      "species": "SPECIES_EEVEE",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "regions": ["JP"],
+      "generation": 6,
+      "distributionId": "pokemon_center_birthday_eevee_sample",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_MILCERY",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "regions": ["JP", "SG"],
+      "generation": 8,
+      "distributionId": "pokemon_center_birthday_milcery_sample",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PAWMI",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "regions": ["JP"],
+      "generation": 9,
+      "distributionId": "pokemon_center_birthday_pawmi_sample",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CHARCADET",
+      "moves": ["MOVE_CELEBRATE"],
+      "source": "birthday_event",
+      "unlockGroup": "special_event_birthday",
+      "display": "BD",
+      "regions": ["JP"],
+      "generation": 9,
+      "distributionId": "pokemon_center_birthday_charcadet_sample",
+      "sourceRefs": ["bulbapedia_celebrate"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_CHARIZARD",
+      "moves": ["MOVE_HOLD_HANDS"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV"
+    },
+    {
+      "species": "SPECIES_VIVILLON",
+      "moves": ["MOVE_HOLD_HANDS"],
+      "source": "event_exclusive",
+      "unlockGroup": "special_event",
+      "display": "EV"
+    }
+  ]
+}
