@@ -35,7 +35,7 @@ data local.
 | Bulbapedia Event Pokemon page | Primary category reference | Confirms event-exclusive moves and Cherish Ball distribution context. |
 | Bulbapedia Purification page | Primary XD reference | Confirms Pokemon XD purified special moves such as Metal Sound Zapdos. |
 | Bulbapedia event distribution list pages | Public audit reference | Useful for region-specific Wonder Card rows, especially Gen IV-VI. |
-| Bulbapedia form pages | Public audit reference | Useful for form-only compatibility such as Rotom appliance moves and Cosplay Pikachu costume moves. |
+| Bulbapedia form / partner pages | Public audit reference | Useful for form-only compatibility such as Rotom appliance moves, Cosplay Pikachu costume moves, and LGPE Partner Pikachu / Eevee exclusive moves. |
 | Pokemon Wiki / Serebii / similar public event pages | Fallback audit reference | Use when Bulbapedia pages are incomplete or hard to search. |
 
 Unofficial event databases or tools may be used as import material when they
@@ -90,7 +90,7 @@ later ruleset can choose "Japan-only events allowed" or "international events
 only" without re-auditing the move.
 
 The first seed was intentionally small. A 2026-05-16 broadening pass expanded
-the runtime JSON from 25 candidate blocks / 50 moves to 174 blocks / 216 moves
+the runtime JSON from 25 candidate blocks / 50 moves to 178 blocks / 229 moves
 using public move-page, XD, Ranger, form-specific, and event references. This
 is still not exhaustive; a full special-event pass should be scripted from a
 reviewed local intermediate list and should leave an audit status on every row.
@@ -167,7 +167,12 @@ the implementation shape. The current runtime JSON now also includes:
 - Rotom appliance form moves: `Overheat`, `Hydro Pump`, `Blizzard`,
   `Air Slash`, and `Leaf Storm`;
 - Cosplay Pikachu costume moves: `Meteor Mash`, `Icicle Crash`,
-  `Draining Kiss`, `Electric Terrain`, and `Flying Press`.
+  `Draining Kiss`, `Electric Terrain`, and `Flying Press`;
+- LGPE Partner / Starter Pikachu moves: `Zippy Zap`, `Splishy Splash`,
+  `Floaty Fall`, and `Pika Papow`;
+- LGPE Partner / Starter Eevee moves: `Bouncy Bubble`, `Buzzy Buzz`,
+  `Sizzly Slide`, `Glitzy Glow`, `Baddy Bad`, `Sappy Seed`, `Freezy Frost`,
+  `Sparkly Swirl`, and `Veevee Volley`.
 
 | Species | Move | Source kind | Notes |
 |---|---|---|---|

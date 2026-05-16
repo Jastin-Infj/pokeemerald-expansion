@@ -140,8 +140,8 @@ Move Relearner entry
 | repo teaching species missing from porymoves | Cosmog, Ditto, Smeargle |
 | repo teaching species with porymoves Egg/TM/Tutor entries | 1097 |
 | repo species without porymoves Egg/TM/Tutor entries | Cosmog, Ditto, Smeargle |
-| supplemental species emitted from porymoves / special JSON | 13 species: Pikachu Rock Star, Pikachu Belle, Pikachu Pop Star, Pikachu PhD, Pikachu Libre, Rotom Heat/Wash/Frost/Fan/Mow, Kyurem White/Black, Oinkologne F |
-| special runtime candidate blocks | 174 blocks / 216 moves |
+| supplemental species emitted from porymoves / special JSON | 15 species: Pikachu Rock Star, Pikachu Belle, Pikachu Pop Star, Pikachu PhD, Pikachu Libre, Pikachu Starter, Eevee Starter, Rotom Heat/Wash/Frost/Fan/Mow, Kyurem White/Black, Oinkologne F |
+| special runtime candidate blocks | 178 blocks / 229 moves |
 
 この数字は「全 `SPECIES_*` enum を網羅」という意味ではない。
 `make_teaching_types.py` が repo の `species_info` から teachable learnset を持つ species
@@ -150,8 +150,10 @@ Move Relearner entry
 したがって、今の実装は「現在の repo が teachable table 対象にしている 1100 species」
 を主軸にしつつ、Rotom form や Kyurem form のように `all_teaching_types.json`
 から落ちるが porymoves / special data に存在する numeric species slot も追加 emit
-する。Cosplay Pikachu は porymoves 側に form key がないため、現状は
-special JSON の form-specific move だけを supplemental emit する。
+する。Cosplay Pikachu と LGPE Partner / Starter Pikachu・Eevee は porymoves 側に
+form key がないため、現状は special JSON の専用技だけを supplemental emit する。
+ZA の porymoves file は通常の Pikachu / Eevee の level / TM 候補を供給するが、
+LGPE partner-exclusive moves は含まない。
 
 ## Why This Is Separate From `all_learnables.json`
 
@@ -172,7 +174,8 @@ source-aware relearner UI には情報が足りない。
   generation metadata を残す必要がある。
 - form species が base species の historical TM / tutor pool も継承するべきかを決める。
   現状、porymoves に form key がある Rotom / Kyurem などは form-specific pool を
-  emit し、porymoves に form key がない Cosplay Pikachu は special-only pool になる。
+  emit し、porymoves に form key がない Cosplay Pikachu と LGPE Partner species は
+  special-only pool になる。
 - Special source の個別 unlock group (`special_event_movie`, `special_xd`,
   `special_ranger` など) を story flag / rank gating に接続する。
 - `Sp` の共通 label を、候補が増えた段階で `EV` / `XD` / `RG` などの

@@ -50,6 +50,10 @@
       "url": "https://bulbapedia.bulbagarden.net/wiki/Cosplay_Pikachu"
     },
     {
+      "id": "bulbapedia_partner_pokemon_lgpe",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Partner_Pok%C3%A9mon_(Let%27s_Go,_Pikachu!_and_Let%27s_Go,_Eevee!)"
+    },
+    {
       "id": "bulbapedia_purification",
       "url": "https://bulbapedia.bulbagarden.net/wiki/Purification"
     },
@@ -1721,6 +1725,51 @@
       "unlockGroup": "special_form_change",
       "display": "FC",
       "sourceRefs": ["bulbapedia_cosplay_pikachu"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_STARTER",
+      "moves": ["MOVE_ZIPPY_ZAP", "MOVE_SPLISHY_SPLASH", "MOVE_FLOATY_FALL"],
+      "source": "lgpe_partner_move_tutor",
+      "unlockGroup": "special_lgpe_partner",
+      "display": "LP",
+      "sourceRefs": ["bulbapedia_partner_pokemon_lgpe"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_PIKACHU_STARTER",
+      "moves": ["MOVE_PIKA_PAPOW"],
+      "source": "lgpe_partner_power",
+      "unlockGroup": "special_lgpe_partner_power",
+      "display": "LP",
+      "sourceRefs": ["bulbapedia_partner_pokemon_lgpe"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EEVEE_STARTER",
+      "moves": [
+        "MOVE_BOUNCY_BUBBLE",
+        "MOVE_BUZZY_BUZZ",
+        "MOVE_SIZZLY_SLIDE",
+        "MOVE_GLITZY_GLOW",
+        "MOVE_BADDY_BAD",
+        "MOVE_SAPPY_SEED",
+        "MOVE_FREEZY_FROST",
+        "MOVE_SPARKLY_SWIRL"
+      ],
+      "source": "lgpe_partner_move_tutor",
+      "unlockGroup": "special_lgpe_partner",
+      "display": "LP",
+      "sourceRefs": ["bulbapedia_partner_pokemon_lgpe"],
+      "auditStatus": "public_reference_backed"
+    },
+    {
+      "species": "SPECIES_EEVEE_STARTER",
+      "moves": ["MOVE_VEEVEE_VOLLEY"],
+      "source": "lgpe_partner_power",
+      "unlockGroup": "special_lgpe_partner_power",
+      "display": "LP",
+      "sourceRefs": ["bulbapedia_partner_pokemon_lgpe"],
       "auditStatus": "public_reference_backed"
     },
     {

@@ -45,9 +45,10 @@ still making normal builds reproducible.
   `Shadow Force`) plus Dahara City moves (`Blast Burn`, `Hydro Cannon`,
   `Earth Power`).
 - The special runtime JSON was expanded from 25 candidate blocks / 50 moves to
-  174 blocks / 216 moves. The pass added the broader XD purification table,
+  178 blocks / 229 moves. The pass added the broader XD purification table,
   event-exclusive move-page rows, Wish Egg / legacy rows, Cinema Genesect
-  special moves, Rotom appliance moves, and Cosplay Pikachu costume moves.
+  special moves, Rotom appliance moves, Cosplay Pikachu costume moves, and
+  LGPE Partner / Starter Pikachu and Eevee exclusive moves.
 - Rotom form species now get generated form-specific TM/tutor pools from
   porymoves plus their appliance move as `Sp`: Heat/Overheat, Wash/Hydro Pump,
   Frost/Blizzard, Fan/Air Slash, and Mow/Leaf Storm.
@@ -55,6 +56,14 @@ still making normal builds reproducible.
   porymoves does not include separate costume form keys. Their costume moves are
   `Sp`: Rock Star/Meteor Mash, Belle/Icicle Crash, Pop Star/Draining Kiss,
   PhD/Electric Terrain, and Libre/Flying Press.
+- LGPE Partner / Starter Pikachu and Eevee are emitted as special-only
+  supplemental species. Pikachu Starter gets `Zippy Zap`, `Splishy Splash`,
+  `Floaty Fall`, and `Pika Papow`; Eevee Starter gets `Bouncy Bubble`,
+  `Buzzy Buzz`, `Sizzly Slide`, `Glitzy Glow`, `Baddy Bad`, `Sappy Seed`,
+  `Freezy Frost`, `Sparkly Swirl`, and `Veevee Volley`.
+- ZA porymoves data contributes normal Pikachu / Eevee level and TM candidates.
+  It does not currently provide the LGPE partner-exclusive moves, so those stay
+  in the special JSON source.
 - Bellossom's current Gen 9 level-up learnset already includes `Moonblast`;
   the unified level source reads compiled current level data up to `MAX_LEVEL`,
   so Bellossom should expose that move unless it already knows it.
@@ -73,7 +82,7 @@ still making normal builds reproducible.
 | `rtk make -j16 -O debug` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
 | `rtk make -j16 -O all` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
 | `rtk make -j16 -O check` | Pass | Existing linker warning on test ROM link; suite output includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
-| Runtime special JSON audit | Pass | 31 source refs, 174 candidate blocks, 216 moves, and no unknown species or move constants. |
+| Runtime special JSON audit | Pass | 32 source refs, 178 candidate blocks, 229 moves, and no unknown species or move constants. |
 | mGBA Live boot / Continue | Pass | Debug ROM loaded the temporary Mew save via Continue. |
 | mGBA party entry | Pass | Start menu -> Pokemon -> Mew showed direct `RELEARN` action and opened unified list. |
 | mGBA long-list labels | Pass | Mew list showed `Lv` source rows, D-pad right page-scroll reached `TM`, then `Tu` rows. |
@@ -81,6 +90,7 @@ still making normal builds reproducible.
 | mGBA expanded special labels | Pass | Debug menu `Give X -> Pokemon (Basic)` created Bulbasaur; party `RELEARN` page-scrolled to `Celebrate` as a new `Sp` row. |
 | mGBA Bellossom Moonblast check | Pass | Debug-created Lv1 Bellossom already knew `Moonblast`; party `RELEARN` hid it as an already-known move. |
 | mGBA form-specific labels | Pass | Debug-created Wash Rotom showed `Hydro Pump` as `Sp`; debug-created Pikachu Libre showed `Flying Press` as `Sp`. |
+| mGBA LGPE partner labels | Pass | Debug-created Pikachu Starter showed `Zippy Zap`, `Splishy Splash`, `Floaty Fall`, and `Pika Papow` as `Sp`; debug-created Eevee Starter showed LGPE partner moves through `Veevee Volley` as `Sp`. |
 | mGBA NPC/script cancel | Pass | Debug menu `Party -> Move Relearner`, cancel from list, confirmed give-up, then returned to a YES/NO `Anything else` prompt instead of the old category multichoice. |
 | mGBA cleanup | Pass | `mgba_live_stop` succeeded and `mgba-live-cli status --all` returned `[]`. |
 
@@ -95,6 +105,8 @@ Screenshots:
 - `/tmp/unified_move_relearner_bellossom_moonblast_known_summary.png`
 - `/tmp/unified_move_relearner_rotom_wash_hydro_pump_sp.png`
 - `/tmp/unified_move_relearner_pikachu_libre_flying_press_sp.png`
+- `/tmp/unified_move_relearner_pikachu_starter_lgpe_partner_moves.png`
+- `/tmp/unified_move_relearner_eevee_starter_lgpe_partner_moves.png`
 - `/tmp/unified_move_relearner_script_yesno.png`
 
 GitHub Actions were not re-waited locally; this branch relies on the local
