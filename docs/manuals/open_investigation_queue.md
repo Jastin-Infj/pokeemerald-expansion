@@ -28,7 +28,7 @@
 |---|---|---|---|
 | no random encounters scope | `docs/features/no_random_encounters/` | step-only MVP と broad-wild mode の境界を決めないと option 名が曖昧になる。 | Fishing / Sweet Scent / Rock Smash / static wild battle の call path を分ける。MVP scope は `mvp_plan.md` で確定済み、broad mode の追加 hook は実装着手時に再調査。 |
 | ~~HM / field move modernization scope~~ | `docs/features/field_move_modernization/` | Resolved 2026-05-05: `mvp_plan.md#Per-HM Decision Table` で HM ごとの badge / map obstacle / MVP slice 順序 (Cut → Rock Smash → Strength → Flash → ... → Fly) を確定。 | — |
-| TM shop migration | `docs/features/tm_shop_migration/` | 全 TM の販売時期、既存 reward、visible / hidden item 置換、save flag の扱いが未確定。 | stage unlock、price tier、NPC/gym reward replacement の候補を整理する。 |
+| TM shop migration | `docs/features/tm_shop_migration/` | Legacy Gen 3 TM acquisition の退役範囲、既存 reward、visible / hidden item 置換、save flag の扱いが未確定。 | NPC/gym reward replacement、item ball removal / replacement、debug-only TM shop test route の採否を整理する。 |
 | generated data rebuild flow | `docs/manuals/generated_data_workflow.md` | partygen 以外にも shop / encounter randomizer で同じ問題が起きる。 | CLI doctor / lint / diff / drift check の共通 contract を feature に適用する。 |
 | partygen player-style optimization | `docs/features/champions_challenge/partygen_player_style_logging.md` | Player style に合わせた partygen tuning は最適化 branch として catalog / profile / validation の境界を決める必要がある。 | style signal の入力形式、重み更新、regression lint を設計してから partygen branch に入る。 |
 | forced release system | `docs/overview/roguelike_party_policy_impact_v15.md` / future feature docs | 禁止条件に入った Pokemon を自動で逃がす rule は party state、PC storage、challenge aftercare、player messaging に跨る。 | release 条件、保護対象、PC box 処理、battle end / field return の実行タイミングを owning feature docs に切り出す。 |

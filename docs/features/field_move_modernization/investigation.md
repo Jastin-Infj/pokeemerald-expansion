@@ -88,7 +88,7 @@ per-HM key item や field toolkit item を採用する場合、Key Items pocket 
 
 2026-05-09 の Field Kit itemization slice では、Key Item `ITEM_FIELD_KIT` を item id 874 として `ITEMS_COUNT` 直前に追加した。既存 item id の大きな番号ずらしを避けるため、Key Items section の途中には挿入していない。icon は専用の `gItemIcon_FieldStyler` / `gItemIconPalette_FieldStyler` に差し替え済み。
 
-Field Kit の capability flags は新規 save flag を増やさず、既存 `FLAG_RECEIVED_HM_CUT` / `FLASH` / `ROCK_SMASH` / `STRENGTH` / `SURF` / `FLY` / `DIVE` / `WATERFALL` を再利用する。FRLG 側の `FLAG_RECEIVED_HM_*` は placeholder 0 なので、この slice では FRLG に Field Kit requirement を適用しない。
+Field Kit の capability flags は field move feature 側で別名 / 別枠として用意する。旧 HM receive flags は TM Shop Migration で `FLAG_UNUSED_0x...` に戻したため、Field Kit capability として再利用しない。FRLG 側は separate legacy HM route が残るため、この slice では FRLG に Field Kit requirement を適用しない。
 
 ### Forget and Softlock Prevention
 
