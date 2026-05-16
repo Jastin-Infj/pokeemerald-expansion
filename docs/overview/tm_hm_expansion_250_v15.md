@@ -56,8 +56,9 @@ The current preferred Move Relearner direction is different from physical item
 expansion:
 
 - Do not add 250-300 TM items.
-- Keep the existing 50 physical TM item slots available for legacy / optional
-  story use, or disable their gameplay use entirely.
+- As of 2026-05-16, the preferred TM Shop Migration direction is to disable the
+  existing 50 physical TM acquisition routes entirely rather than keep them as
+  story rewards. They are treated as a legacy Gen 3 machine set.
 - Generate a relearner-only virtual TM candidate pool from historical TM/TR data
   and compatibility rules.
 - If all virtual candidates are always available, no save data is required.
@@ -91,6 +92,30 @@ For the Move Relearner feature, the least risky direction is a virtual registry:
 keep a limited physical item set where needed, and expose broader TM
 compatibility / relearner candidates through generated data instead of one bag
 item per TM.
+
+## 2026-05-16 Legacy TM Policy Update
+
+TM Shop Migration no longer plans to implement a shop for the current 50 Gen 3
+TMs. The first cut is a retirement pass:
+
+- Remove or replace NPC / gym / field item / hidden item / shop / facility prize
+  routes that grant current `ITEM_TM_*` entries.
+- Leave `FOREACH_TM`, `ITEM_TM*`, TM/HM pocket, teachability, and item use
+  machinery intact until a separate physical-TM removal or Gen 9 reusable-TM
+  feature is scoped.
+- Set `I_REUSABLE_TMS TRUE` so retained physical TM items behave as reusable
+  TMs.
+- Remove Emerald normal-progression HM item grants, but keep core HM definitions
+  and field-move behavior until the field-move unlock feature owns that flow.
+- After all legacy acquisition references are gone, Emerald-side legacy TM flags
+  may be renamed to `FLAG_UNUSED_0x...` names with unchanged values.
+- Do not immediately reuse retired TM flag values for new progression. Existing
+  saves may already have those bits set.
+- If TMs are revived later, build a Gen 9-aligned reusable TM set as a separate
+  feature and decide how it overlaps with TR / tutor / tower candidates.
+- A debug-only TM shop can be used later for validation under Debug Script 1,
+  but it should use the current `pokemart` / `.2byte ITEM_*` item-list path and
+  should not be counted as normal progression acquisition.
 
 ## Files That Must Change Later
 
