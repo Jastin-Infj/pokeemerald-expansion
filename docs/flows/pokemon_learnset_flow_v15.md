@@ -125,7 +125,7 @@ Makefile で確認した生成 rule:
 
 TM/HM は複数箇所が絡む。
 
-250 TM 前提の local 調査は [tm_hm_expansion_250_v15.md](../overview/tm_hm_expansion_250_v15.md) に分離した。
+250-300 TM 前提の local 調査は [tm_hm_expansion_250_v15.md](../overview/tm_hm_expansion_250_v15.md) に分離した。
 
 | Layer | File / symbol | Notes |
 |---|---|---|
@@ -138,7 +138,7 @@ TM/HM は複数箇所が絡む。
 注意:
 
 - item ID の `ITEM_TM51` - `ITEM_TM100` 枠は存在するが、現在の `FOREACH_TM` に含まれる TM move は 50 個。
-- 250 TM まで増やす場合、現 checkout では `ITEMS_COUNT` / held item 10-bit 上限に具体的に当たる。`ITEM_TM51` - `ITEM_TM100` の既存枠を使っても、残り 150 個をそのまま足すと `ITEMS_COUNT == 1024` になり `src/pokemon.c` の static assert に失敗する。
+- 250 TM まで増やす場合でも、現 checkout では `ITEMS_COUNT` / held item 10-bit 上限に具体的に当たる。`ITEM_TM51` - `ITEM_TM100` の既存枠を使っても、残り 150 個をそのまま足すと `ITEMS_COUNT == 1024` になり `src/pokemon.c` の static assert に失敗する。300 TM は physical item-only ではさらに大きな item/save 設計変更が必要になる。
 - TM を増やすだけなら、少なくとも `include/constants/tms_hms.h`、`src/data/items.h`、learnset helper 生成、shop/script placement、UI/relearner 上限を一緒に確認する。
 - TM shop 化で map 上の TM flag を削除したい場合、`data/maps/**/scripts.inc` の `giveitem ITEM_TM_*`、`setflag FLAG_RECEIVED_TM_*`、`goto_if_set/unset FLAG_RECEIVED_TM_*` を追う必要がある。
 
@@ -214,7 +214,7 @@ Gen 7/8 風に field HM を key item / fixed action 化する場合、`FOREACH_H
 
 ## Open Questions
 
-- 250 TM へ拡張する場合、物理 item ID を 250 個持つか、HM item ID / unused item を repurpose するか、virtual unlock 方式にするか方針が必要。
+- 250-300 TM 候補を Move Relearner に出す場合、physical item ID を増やすのではなく、virtual/generated candidate pool と compact unlock state を優先するか方針が必要。
 - TM relearner を有効化する場合、`MAX_RELEARNER_MOVES` を増やすだけでなく、`GetRelearnerTMMoves()` などの candidate 生成 loop に上限 guard / pagination policy が必要。
 - `P_LEARNSET_HELPER_TEACHABLE` を維持したまま独自 move/species を入れる場合、`porymoves_files/*.json` に独自 data を追加するのか、generated `all_learnables.json` を管理するのか方針が必要。
 - `move_tutor` macro と `special ChooseMonForMoveTutor` の script 側の最終 dispatch は、script command / special flow docs と連結して追加確認する。
