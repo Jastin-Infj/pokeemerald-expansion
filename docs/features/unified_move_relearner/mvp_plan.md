@@ -14,6 +14,15 @@
   tabbed navigation plan before implementation.
 - Keep existing category-specific behavior available when unified mode is off.
 
+## Implementation Snapshot
+
+The first implementation slice is complete on `feature/unified-move-relearner`.
+It uses a source-labelled single list with D-pad page scrolling, a generated
+historical egg / TM / tutor pool, direct Summary / party / NPC entry points, and
+a 640-entry guarded candidate cap. Source tabs, per-generation allow-listing,
+story unlock gating, and distribution-only special move candidates remain future
+work.
+
 ## Non-Goals
 
 - Do not add all Gen 1-9 physical TM/TR item IDs in the MVP. The expected TM

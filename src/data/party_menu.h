@@ -718,6 +718,7 @@ struct
     [MENU_TRADE1]          = {sText_Trade4,                       CursorCb_Trade1},
     [MENU_TRADE2]          = {sText_Trade4,                       CursorCb_Trade2},
     [MENU_TOSS]            = {gMenuText_Toss,                     CursorCb_Toss},
+    [MENU_RELEARN_MOVES]   = {COMPOUND_STRING("RELEARN"),         CursorCb_RelearnMoves},
     [MENU_LEVEL_UP_MOVES]  = {COMPOUND_STRING("LEVEL MOVES"),     CursorCb_ChangeLevelUpMoves},
     [MENU_EGG_MOVES]       = {COMPOUND_STRING("EGG MOVES"),       CursorCb_ChangeEggMoves},
     [MENU_TM_MOVES]        = {COMPOUND_STRING("TM MOVES"),        CursorCb_ChangeTMMoves},

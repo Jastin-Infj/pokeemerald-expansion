@@ -43,6 +43,13 @@
 | Date | Command / check | Result | Notes |
 |---|---|---|---|
 | 2026-05-16 | Docs-only investigation | Not run | No source changes in this docs refresh. |
+| 2026-05-16 | `rtk make -j16 -O debug` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
+| 2026-05-16 | `rtk make -j16 -O all` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
+| 2026-05-16 | `rtk make -j16 -O check` | Pass | Existing linker warning on test ROM link; suite output includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
+| 2026-05-16 | mGBA Live party entry | Pass | Continue-loaded Mew save; Start menu -> Pokemon -> Mew showed `RELEARN` and opened the unified list. |
+| 2026-05-16 | mGBA Live long-list navigation | Pass | Mew list showed `Lv`, then page-scrolled through `TM` to `Tu`; screenshots in `/tmp/unified_move_relearner_mew_level_labels.png` and `/tmp/unified_move_relearner_mew_tutor_labels.png`. |
+| 2026-05-16 | mGBA Live NPC/script cancel | Pass | Debug menu `Party -> Move Relearner`; cancel returned to YES/NO `Anything else`, not the old category multichoice. Screenshot: `/tmp/unified_move_relearner_script_yesno.png`. |
+| 2026-05-16 | mGBA Live cleanup | Pass | `mgba_live_stop` succeeded and `mgba-live-cli status --all` returned `[]`. |
 
 ## Feature Complete Gate
 
@@ -54,5 +61,6 @@
 ## Open Questions
 
 - Which debug command should create the canonical Mew / broad-candidate test route?
-- Should the stress route mock 250-300 virtual TM candidates before the final generated pool exists?
-- Should the mGBA route use an existing NPC, Summary shortcut, party shortcut, or all three?
+- Should the canonical Mew route keep using debug menu `Give -> Pokemon (Basic)`, or should this branch add a dedicated Lua/debug shortcut?
+- Should actual learn / overwrite confirmation be validated through party, summary, and NPC routes before merge?
+- Should the next UX slice add source tabs once Gen 10-scale 600+ candidate capacity becomes the target?

@@ -34,6 +34,9 @@
   data while leaving physical TM item expansion out of scope.
 - MVP should not hide source labels, because duplicate source rows can otherwise
   look like accidental repeated move names.
+- The first implementation accepts a page-scrollable single list instead of a
+  full source-tab UX. This is usable for the current Mew stress route but should
+  be revisited before a 600+ Gen 10-scale candidate target.
 
 ## Open Questions
 

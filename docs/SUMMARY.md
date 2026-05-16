@@ -93,6 +93,7 @@
     - [Unified Move Relearner](features/unified_move_relearner/README.md)
       - [Investigation](features/unified_move_relearner/investigation.md)
       - [MVP Plan](features/unified_move_relearner/mvp_plan.md)
+      - [Implementation](features/unified_move_relearner/implementation.md)
       - [Risks](features/unified_move_relearner/risks.md)
       - [Test Plan](features/unified_move_relearner/test_plan.md)
     - [Pokemon State Editor](features/pokemon_state_editor/README.md)

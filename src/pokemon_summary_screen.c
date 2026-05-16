@@ -574,7 +574,7 @@ static const struct WindowTemplate sSummaryTemplate[] =
     },
     [PSS_LABEL_WINDOW_PROMPT_RELEARN] = {
         .bg = 0,
-        .tilemapLeft = (P_ENABLE_MOVE_RELEARNERS) ? 18 : 22,
+        .tilemapLeft = (P_ENABLE_MOVE_RELEARNERS || P_UNIFIED_MOVE_RELEARNER) ? 18 : 22,
         .tilemapTop = 2,
         .width = 11,
         .height = 2,
@@ -1785,6 +1785,8 @@ static void Task_HandleInput(u8 taskId)
                 && (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES))
         {
             sMonSummaryScreen->callback = CB2_InitLearnMove;
+            if (P_UNIFIED_MOVE_RELEARNER)
+                gMoveRelearnerState = MOVE_RELEARNER_UNIFIED;
             gRelearnMode = sMonSummaryScreen->currPageIndex;
             gSpecialVar_MonBoxPos = sMonSummaryScreen->curMonIndex;
             if (sMonSummaryScreen->isBoxMon)
@@ -1952,6 +1954,9 @@ bool32 NoMovesAvailableToRelearn(void)
 
 bool32 CheckRelearnerStateFlag(enum MoveRelearnerStates state)
 {
+    if (state == MOVE_RELEARNER_UNIFIED)
+        return P_UNIFIED_MOVE_RELEARNER;
+
     if (P_ENABLE_MOVE_RELEARNERS)
         return TRUE;
 
@@ -1975,6 +1980,13 @@ static void TryUpdateRelearnType(enum IncrDecrUpdateValues delta)
     bool32 hasRelearnableMoves = FALSE;
     u32 zeroCounter = 0;
     enum MoveRelearnerStates state = gMoveRelearnerState;
+
+    if (P_UNIFIED_MOVE_RELEARNER)
+    {
+        gMoveRelearnerState = MOVE_RELEARNER_UNIFIED;
+        sMonSummaryScreen->hasRelearnableMoves = HasAnyRelearnableMoves(MOVE_RELEARNER_UNIFIED);
+        return;
+    }
 
     // just in case everything is off, default to level up moves
     if ((!P_ENABLE_MOVE_RELEARNERS
@@ -4945,7 +4957,12 @@ static void ShowRelearnPrompt(void)
     const u8 *relearnText;
     int relearnTextXPos;
 
-    if ((!P_ENABLE_MOVE_RELEARNERS
+    if (P_UNIFIED_MOVE_RELEARNER)
+    {
+        relearnText = sText_Relearn;
+        relearnTextXPos = 0;
+    }
+    else if ((!P_ENABLE_MOVE_RELEARNERS
     && !P_TM_MOVES_RELEARNER
     && !FlagGet(P_FLAG_EGG_MOVES)
     && !FlagGet(P_FLAG_TUTOR_MOVES)))

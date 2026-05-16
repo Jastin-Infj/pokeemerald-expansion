@@ -1,10 +1,10 @@
 #ifndef GUARD_CONSTANTS_MOVE_RELEARNER_H
 #define GUARD_CONSTANTS_MOVE_RELEARNER_H
 
-// Max number of moves shown by the move relearner.
-// Increased from 25 to 60 so Mew can display all TMs/HMs.
-// If you plan on adding more TMs, increase this number too.
-#define MAX_RELEARNER_MOVES 60
+// Max number of source-tagged entries shown by the move relearner.
+// The unified relearner can aggregate historical TM/TR, tutor, egg, and
+// level-up candidates. Keep headroom for Gen 10+ candidate growth.
+#define MAX_RELEARNER_MOVES 640
 
 // Move Relearner menu change constants
 enum MoveRelearnerStates
@@ -13,6 +13,7 @@ enum MoveRelearnerStates
     MOVE_RELEARNER_EGG_MOVES,
     MOVE_RELEARNER_TM_MOVES,
     MOVE_RELEARNER_TUTOR_MOVES,
+    MOVE_RELEARNER_UNIFIED,
     MOVE_RELEARNER_COUNT,
 };
 
