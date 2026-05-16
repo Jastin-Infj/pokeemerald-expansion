@@ -1,8 +1,9 @@
-# TM/HM Expansion 250 v15
+# TM/HM Expansion 250-300 v15
 
 ## Purpose
 
-TM を 250 前後まで増やす前提で、現 checkout の local source だけから、先に詰めるべき上限・生成物・field move 分離ポイントを整理する。
+TM item を 250-300 程度まで増やす場合の上限と、item を増やさず Move
+Relearner 用の virtual TM candidate pool として 250-300 技を扱う場合の分岐を整理する。
 
 調査日: 2026-05-03。source 改造はしておらず、`docs/` への記録のみ。
 
@@ -30,9 +31,10 @@ TM を 250 前後まで増やす前提で、現 checkout の local source だけ
 | TM/HM numbering | `GetItemTMHMIndex`, `GetTMHMMoveId`, `GetTMHMItemId` are generated from `FOREACH_TMHM` into `gTMHMItemMoveIds`. | `include/item.h`, `src/item.c` |
 | Teachability source | `make_teachables.py` reads every `F(...)` in `include/constants/tms_hms.h`. | `tools/learnset_helpers/make_teachables.py` |
 
-## 250 TM Arithmetic
+## 250-300 Physical TM Arithmetic
 
-The important number is not just "250 TMs"; it is "how many new item IDs are required."
+If every TM is a physical bag item, the important number is not just "250 TMs";
+it is "how many new item IDs are required."
 
 - Current checkout already reserves `ITEM_TM51` through `ITEM_TM100`, but they are not in `FOREACH_TM`.
 - Moving from 50 configured TMs to 250 configured TMs needs 200 more configured TM moves.
@@ -41,22 +43,54 @@ The important number is not just "250 TMs"; it is "how many new item IDs are req
 - Current `ITEMS_COUNT` is effectively 874 (`ITEM_GLIMMORANITE = 873`, then `ITEMS_COUNT`).
 - Adding 150 new item IDs without deleting or repurposing anything would make `ITEMS_COUNT` 1024.
 - `src/pokemon.c` requires `ITEMS_COUNT < 1024` because held items are stored in a 10-bit bitfield.
+- At 300 configured TMs, the project would need 250 additional configured TM
+  moves beyond the current 50. Even after using `ITEM_TM51` through
+  `ITEM_TM100`, 200 more physical item IDs would be needed if every TM is a
+  separate bag item.
 
-Conclusion: **250 distinct TM item IDs are one item ID over the current held-item limit if all existing items are kept and the new IDs are inserted normally.**
+Conclusion for physical items: **250 distinct TM item IDs are already one item ID over the current held-item limit if all existing items are kept and the new IDs are inserted normally. 300 distinct TM item IDs cannot fit the current physical item model without broader item/save changes or a virtual/mixed registry.**
+
+## Virtual Relearner Pool Direction
+
+The current preferred Move Relearner direction is different from physical item
+expansion:
+
+- Do not add 250-300 TM items.
+- Keep the existing 50 physical TM item slots available for legacy / optional
+  story use, or disable their gameplay use entirely.
+- Generate a relearner-only virtual TM candidate pool from historical TM/TR data
+  and compatibility rules.
+- If all virtual candidates are always available, no save data is required.
+- If story progression should unlock virtual TM candidates, a compact bitset for
+  250-300 moves is far smaller than expanding the bag pocket, but it is still a
+  save layout decision.
+- Unlocks can be modeled as rank / clear-flag / group metadata, so story
+  progress can unlock "this TM move" without granting an item.
+- Story rewards can therefore grant access to a subset of TM-family moves in the
+  Move Relearner, not a physical TM item.
+- The main blocker becomes candidate count / UI: Mew must fit the chosen
+  relearner storage and display policy.
+- Historical TM candidates can overlap tutor / Battle Tower candidates. The
+  current Move Relearner requirement is to preserve those overlaps as separate
+  source entries, so the player can see that the same move is available through
+  both TM and tower/tutor routes.
 
 ## Immediate Design Constraint
 
-For 250 TMs, choose one before implementation:
+For 250-300 physical TMs, choose one before implementation:
 
 | Option | Consequence |
 |---|---|
 | Repurpose at least one existing item ID | Keeps `ITEMS_COUNT < 1024`, avoids save layout change, but needs a deliberate unused-item policy. |
 | Repurpose the 8 HM item IDs as TM IDs | Works well if HM items are removed as actual bag items, but every `ITEM_HM_*` script gift / alias needs migration. |
-| Keep HM items and add only 249 total TMs | Avoids the 10-bit limit with no item repurpose, but misses the requested 250. |
+| Keep HM items and add only 249 total TMs | Avoids the 10-bit limit with no item repurpose, but misses the requested 250-300 range. |
 | Increase held item bitfield | Allows more item IDs, but changes Pokemon save layout and is high risk. |
 | Make some TMs virtual rather than items | Avoids item ID pressure, but requires new UI/shop/relearner logic outside the current TM/HM item path. |
 
-The least invasive path for "about 250" is likely: use `ITEM_TM51`-`ITEM_TM100`, repurpose HM item IDs if HMs become key-item/flag unlocks, then add only the remaining new TM item constants needed after that.
+For the Move Relearner feature, the least risky direction is a virtual registry:
+keep a limited physical item set where needed, and expose broader TM
+compatibility / relearner candidates through generated data instead of one bag
+item per TM.
 
 ## Files That Must Change Later
 
@@ -67,12 +101,13 @@ This is not an implementation plan yet, but these are the local files that a fut
 | `include/constants/tms_hms.h` | Add the extra `FOREACH_TM` entries. This drives numbering, item aliases, teachability, and relearner scan count. |
 | `include/constants/items.h` | Add or repurpose `ITEM_TM101+` constants. Watch `ITEMS_COUNT < 1024`. |
 | `src/data/items.h` | Add item data entries for new TMs. Existing `ITEM_TM51`-`ITEM_TM100` are placeholder `sQuestionMarksDesc`. |
-| `include/constants/global.h` | `BAG_TMHM_COUNT 64` is too small for 250 TMs if the player can hold many/all of them. |
+| `include/constants/global.h` | `BAG_TMHM_COUNT 64` is too small for 250-300 TMs if the player can hold many/all of them. |
 | `include/global.h` | `struct Bag::TMsHMs[BAG_TMHM_COUNT]` is saveblock layout. Enlarging it breaks existing saves unless migration exists. |
-| `include/constants/move_relearner.h` | `MAX_RELEARNER_MOVES 60` cannot hold a broad TM list. |
+| `include/constants/move_relearner.h` | `MAX_RELEARNER_MOVES 60` cannot hold a broad 250-300 TM list. |
 | `src/move_relearner.c` | `GetRelearnerTMMoves` writes into `movesToLearn[MAX_RELEARNER_MOVES]` with no local cap in the loop. |
 | `tools/learnset_helpers/make_teachables.py` | Automatically reads all `FOREACH_TM/HM` entries; output grows with TM count. |
 | `data/maps/**/scripts.inc`, `data/scripts/*.inc` | Any shop/gift/hidden item placement for new TMs lives here. |
+| `src/move_relearner.c` / generated virtual pool | Required if broad TM candidates are relearner-only and not physical items. |
 
 ## High-Risk Local Findings
 
@@ -80,13 +115,21 @@ This is not an implementation plan yet, but these are the local files that a fut
 
 `src/move_relearner.c` stores candidates in `movesToLearn[MAX_RELEARNER_MOVES]` and menu rows in `menuItems[MAX_RELEARNER_MOVES + 1]`. `GetRelearnerTMMoves`, `GetRelearnerTutorMoves`, and egg/level-up helpers increment `numMoves` without checking `MAX_RELEARNER_MOVES` before writing.
 
-With 250 TMs, this is safe only if TM relearner is disabled or the candidate set is guaranteed below the cap. If `P_TM_MOVES_RELEARNER`, `P_ENABLE_MOVE_RELEARNERS`, or `P_ENABLE_ALL_TM_MOVES` is enabled later, this needs a guard and a larger UI policy before runtime testing.
+With 250-300 virtual TM candidates, this is safe only if the candidate set is
+guaranteed below the cap or the UI is paged/tabbed. If `P_TM_MOVES_RELEARNER`,
+`P_ENABLE_MOVE_RELEARNERS`, or a new virtual TM pool is enabled later, this
+needs a guard and a larger UI policy before runtime testing. Raising
+`MAX_RELEARNER_MOVES` alone is a storage fix, not a UX fix.
 
 ### Bag capacity / save layout
 
-`BAG_TMHM_COUNT` is 64. That is enough for the current 50 TM + 8 HM set, but not for 250 owned TMs.
+`BAG_TMHM_COUNT` is 64. That is enough for the current 50 TM + 8 HM set, but not for 250-300 owned TMs.
 
 Increasing it changes `struct Bag` inside `SaveBlock1`, so it is not a docs-only risk. It is a save compatibility decision. If TMs are reusable and many are sold in shops, the project needs either a save migration, a virtual TM registry, or a policy that the bag never stores all TMs as item slots.
+
+If virtual TM relearner candidates are always available, this bag capacity issue
+does not apply. If virtual TM candidates are unlockable, persistent state should
+be modeled as compact unlock data rather than extra bag slots.
 
 ### Item ID pressure
 
@@ -94,7 +137,7 @@ Current item IDs leave 150 IDs before `ITEMS_COUNT == 1024`, but the strict asse
 
 ### UI numbering
 
-`src/item_menu.c` already switches TM numbering to 3 digits when `NUM_TECHNICAL_MACHINES >= 100`, so TM100-TM250 numbering is anticipated. The same pocket display still needs screenshot verification because longer move names are squeezed with `PrependFontIdToFit(..., 60)`.
+`src/item_menu.c` already switches TM numbering to 3 digits when `NUM_TECHNICAL_MACHINES >= 100`, so TM100-TM300 numbering is anticipated. The same pocket display still needs screenshot verification because longer move names are squeezed with `PrependFontIdToFit(..., 60)`.
 
 ### Item icons / palettes
 
@@ -128,15 +171,20 @@ For key-item/flag unlock, do not only change `IsFieldMoveUnlocked`. That would l
 ## Suggested Investigation Queue
 
 1. Decide whether HM item IDs may be repurposed if field moves become badge/key-item/flag unlocks.
-2. Count which existing non-HM item IDs are safe to repurpose if one more slot is needed for exactly 250 TMs.
-3. Decide whether TM ownership is bag-slot based, virtual registry based, or shop-only/reusable with limited storage.
-4. Before enabling TM relearner, define cap behavior: truncate, paginate, or enlarge `MAX_RELEARNER_MOVES`.
+2. Count which existing non-HM item IDs are safe to repurpose if physical IDs are still required for the 250-300 TM range.
+3. Decide whether relearner TM availability is always-on virtual pool, story unlock bitset, current physical registry, or mixed.
+4. Before enabling broad TM relearner, define cap behavior and UX: truncate,
+   paginate, source-tab, 50-60 move chunks, or enlarge `MAX_RELEARNER_MOVES`.
 5. For field moves, prototype design on paper around `ScrCmd_checkfieldmove` replacement/extension and a party-slot-free field effect path.
 
 ## Open Questions
 
-- Is "250" exact, or is 249 acceptable if all existing items and HMs remain physical items?
+- Is the upper target closer to 250 or 300, and which subset, if any, must be physical bag items?
 - If HMs stop being bag items, should `FOREACH_HM` remain only for move-forget compatibility, or should HM moves become normal moves?
 - Should field move unlock state be badge-only, story flag, key item possession, or a small table combining all three?
 - Should new TMs be physical item slots, virtual unlocks, or mixed?
-- Should TM relearner support all 250 moves, or stay disabled / bag-limited?
+- Should TM relearner support all 250-300 virtual candidates as always available, or should some candidates require story unlock state?
+- If story unlocks exist, should they be tracked per move, per rank group, or
+  per generated TM group?
+- Should Mew's broad TM pool be grouped into 50-entry chunks, 60-entry chunks,
+  source tabs, or a combined tab+chunk flow?
