@@ -21,6 +21,9 @@ the unified config is disabled.
 | NPC/script entry | Common, Fallarbor, and Two Island relearner scripts set unified state when enabled. Script-mode return is forced through `RELEARN_MODE_SCRIPT` after PC/party selection. |
 | Long list UX | The existing list is retained, but D-pad left/right page-scroll is enabled for unified long lists. |
 
+Candidate generation details are recorded in
+[Candidate Data Flow](candidate_data_flow.md).
+
 The generated header is intentionally ignored:
 
 ```text
