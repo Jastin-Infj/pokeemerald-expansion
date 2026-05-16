@@ -127,3 +127,21 @@ build/check and mGBA evidence above before push.
 - Some special JSON entries are deliberate seed candidates with audit notes.
   They should receive a full distribution-data pass before treating the list as
   complete.
+
+## Merge Handoff Notes
+
+- This branch intentionally does not expand physical TM item storage. TM rows in
+  the unified list are virtual relearner candidates.
+- `src/data/pokemon/unified_relearner_learnsets.h` must remain generated and
+  ignored. Review the generator and JSON inputs instead of hand-editing the
+  header.
+- Current special data covers the discussed high-value examples, including
+  Arceus event moves, XD/Ranger examples, Rotom appliance moves, Cosplay
+  Pikachu, and LGPE Partner Pikachu / Eevee. It is not a complete global event
+  database.
+- The next policy dependency is runtime unlock gating. The JSON already carries
+  `unlockGroup` and `display`, but no story/rank/clear-flag gate consumes those
+  fields yet.
+- The next UX dependency is source tabs or faster filtering for future 600+
+  candidate targets. The current page-scrollable list is adequate for the
+  current stress tests, but not a final large-scale UX.

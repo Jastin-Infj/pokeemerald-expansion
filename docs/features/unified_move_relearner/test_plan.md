@@ -69,6 +69,13 @@
 - Candidate overflow behavior is validated with a high-candidate species.
 - Docs record any skipped long GitHub Actions wait and remaining manual checks.
 
+Before final merge, add one manual overwrite-learning pass if possible:
+
+- Teach one level-up candidate from the Summary entry.
+- Teach one TM or tutor candidate from the party entry.
+- Teach one `Sp` candidate from the NPC/script entry.
+- Cancel during overwrite once after selecting a candidate on a full moveset.
+
 ## Open Questions
 
 - Which debug command should create the canonical Mew / broad-candidate test route?

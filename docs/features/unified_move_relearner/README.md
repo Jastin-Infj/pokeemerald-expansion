@@ -13,8 +13,9 @@
 
 Status: Implemented draft. Unified mode is guarded by config, uses generated
 historical candidate data, and has local build plus mGBA Live evidence. The
-special event / XD / Ranger seed is now connected as a `Sp` source; story
-unlock gating remains future work.
+special event / XD / Ranger / form-specific / LGPE partner seed data is now
+connected as a `Sp` source; story unlock gating and per-entry special labels
+remain future work.
 
 ## Goal
 
@@ -54,6 +55,22 @@ Move Relearner を「レベル技 / egg move / TM / tutor」を別メニュー�
 - [Implementation](implementation.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)
+
+## Implementation Handoff
+
+The current feature branch is a functional implementation candidate rather than
+only a design branch. The remaining work is mostly policy and polish:
+
+- Decide whether broad historical TM / tutor sources stay always-on, or become
+  story/rank/clear-flag gated.
+- Decide whether `Sp` stays as one compact label, or whether JSON `display`
+  metadata becomes visible as per-entry badges such as `EV`, `XD`, `FC`, or
+  `LP`.
+- Run one manual pass that actually teaches / overwrites a move from each major
+  entry route. Current mGBA evidence covers rendering, page navigation, cancel,
+  and selected special candidates.
+- Continue expanding and auditing special-event data in small source-referenced
+  JSON commits.
 
 ## Current Baseline
 

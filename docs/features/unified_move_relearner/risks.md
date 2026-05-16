@@ -19,6 +19,9 @@
 | Historical move availability | Medium | Some historical moves may not exist as enabled move constants or may be signature-only. | Generated source should skip unavailable moves or fail clearly. |
 | Special data audit drift | Medium | Distribution-only data can differ by region, language, and event family; seed rows may be incomplete. | Keep source refs and audit notes in `special_relearner_moves.json`; expand through small reviewed data commits. |
 | Generated file churn | Medium | `teachable_learnsets.h` and `tutor_moves.h` are generated and can change broadly. | Do not hand-edit generated files. Isolate generator changes and inspect diffs. |
+| Supplemental species drift | Medium | Form / partner species that are not listed in `all_teaching_types.json` can silently lose special candidates if species constants or porymoves names change. | Keep `make_relearner_learnsets.py` resolving `SPECIES_*` numeric slots, audit supplemental species counts, and record source-specific examples in mGBA evidence. |
+| Shared `Sp` label ambiguity | Medium | Event, XD, Ranger, form-change, and LGPE partner candidates all render as `Sp`, even though JSON keeps richer `display` metadata. | Treat `Sp` as MVP display only; use JSON `display` / `unlockGroup` when adding per-entry labels or gating. |
+| Actual learn / overwrite gap | Medium | Current focused mGBA passes verify candidate rendering and cancel behavior more than successful move replacement from every entry route. | Before merge, manually teach at least one level, TM/tutor, and special move from party, summary, and script paths. |
 
 ## Impact Notes
 
@@ -28,6 +31,18 @@
   feature. Unified relearner should not imply 250-300 physical TMs.
 - If Gen allow-list filtering is accepted for MVP, the feature becomes partly a
   build-tool / generated-data change, not just runtime UI.
+
+## Current Dependencies
+
+| Dependency | Current state | Follow-up concern |
+|---|---|---|
+| `tools/learnset_helpers/porymoves_files/*.json` | Drives generated historical egg / TM / tutor pools. Includes ZA normal Pikachu / Eevee data. | It does not retain enough runtime metadata for Gen 1 OK / Gen 2 OK allow-list policy without generator changes. |
+| `tools/learnset_helpers/build/all_teaching_types.json` | Main species list for generated runtime tables. | Some form / partner species are absent, so supplemental species emission must stay covered by audits. |
+| `include/constants/species.h` | Used by the generator to resolve supplemental `SPECIES_*` slots and avoid alias duplicates. | Species aliases or renames can change generated coverage without touching runtime code. |
+| `tools/learnset_helpers/special_relearner_moves.json` | Owns event, XD, Ranger, form-specific, Cosplay, and LGPE partner candidates. | Data is intentionally seed-like; future expansion needs source refs, audit status, and small reviewed commits. |
+| `src/data/pokemon/unified_relearner_learnsets.h` | Ignored generated runtime header. | Build reproducibility depends on the committed generator and JSON inputs; do not hand-edit this file. |
+| `include/config/summary_screen.h` | Owns unified relearner and source toggles. | Future story/rank unlocks likely need additional runtime flags or save-backed state outside this config-only layer. |
+| `src/move_relearner.c` / Summary / Party / scripts | Runtime UI and entry-route integration. | Candidate rendering is validated; broader successful learn/overwrite checks still need a final manual pass. |
 
 ## Accepted Risks
 
@@ -39,8 +54,10 @@
   full source-tab UX. This is usable for the current Mew stress route but should
   be revisited before a 600+ Gen 10-scale candidate target.
 - The first special-source implementation uses one `Sp` badge for all event,
-  XD, birthday, and Ranger candidates. The JSON keeps richer labels for a later
-  UI/gating pass.
+  XD, birthday, Ranger, form-specific, and LGPE partner candidates. The JSON
+  keeps richer labels for a later UI/gating pass.
+- The first implementation treats broad historical TM / tutor pools as a virtual
+  relearner source, not as physical TM item expansion.
 
 ## Open Questions
 
@@ -55,3 +72,8 @@
   `include/config/pokemon.h`, or a new learnset/relearner config section?
 - Which special candidates are acceptable by default: public-reference-backed
   only, or locally accepted seed rows that still carry audit notes?
+- Should LGPE Partner / Starter species remain special-only, or inherit base
+  Pikachu / Eevee historical TM / tutor pools in addition to partner-exclusive
+  moves?
+- Should ZA-specific move availability remain folded into the porymoves union,
+  or become a separate future source label / generation gate?
