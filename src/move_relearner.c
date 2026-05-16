@@ -177,6 +177,7 @@ enum RelearnerMoveSource
     RELEARNER_MOVE_SOURCE_EGG,
     RELEARNER_MOVE_SOURCE_TM,
     RELEARNER_MOVE_SOURCE_TUTOR,
+    RELEARNER_MOVE_SOURCE_SPECIAL,
 };
 
 struct RelearnerMoveCandidate
@@ -190,6 +191,7 @@ struct UnifiedRelearnerLearnset
     const u16 *eggMoves;
     const u16 *tmMoves;
     const u16 *tutorMoves;
+    const u16 *specialMoves;
 };
 
 #include "data/pokemon/unified_relearner_learnsets.h"
@@ -224,6 +226,7 @@ static const u8 sMoveSourceLevel[] = _("Lv");
 static const u8 sMoveSourceEgg[] = _("Eg");
 static const u8 sMoveSourceTM[] = _("TM");
 static const u8 sMoveSourceTutor[] = _("Tu");
+static const u8 sMoveSourceSpecial[] = _("Sp");
 static const u8 sMoveSourceUnknown[] = _("--");
 
 static const u16 sUI_Pal[] = INCGFX_U16("graphics/interface/ui_learn_move.png", ".gbapal");
@@ -1032,6 +1035,8 @@ const u8 *MoveRelearnerGetSourceLabelForMenuId(s32 menuId)
         return sMoveSourceTM;
     case RELEARNER_MOVE_SOURCE_TUTOR:
         return sMoveSourceTutor;
+    case RELEARNER_MOVE_SOURCE_SPECIAL:
+        return sMoveSourceSpecial;
     default:
         return sMoveSourceUnknown;
     }
@@ -1311,6 +1316,9 @@ static const u16 *GetUnifiedRelearnerSourceMoves(u32 species, enum RelearnerMove
     case RELEARNER_MOVE_SOURCE_TUTOR:
         moves = learnset->tutorMoves;
         break;
+    case RELEARNER_MOVE_SOURCE_SPECIAL:
+        moves = learnset->specialMoves;
+        break;
     default:
         break;
     }
@@ -1492,6 +1500,9 @@ static u32 GetUnifiedRelearnerMoves(struct BoxPokemon *mon, struct RelearnerMove
                 AppendRelearnerMove(mon, moves, &numMoves, move, RELEARNER_MOVE_SOURCE_TUTOR);
         }
     }
+
+    if (P_UNIFIED_RELEARNER_SPECIAL_MOVES && numMoves < MAX_RELEARNER_MOVES)
+        AppendGeneratedRelearnerMoves(mon, moves, &numMoves, GetUnifiedRelearnerSourceMoves(species, RELEARNER_MOVE_SOURCE_SPECIAL), RELEARNER_MOVE_SOURCE_SPECIAL);
 
     if (P_SORT_MOVES)
         SortCandidatesAlphabetically(moves, numMoves);
@@ -1715,6 +1726,10 @@ static bool32 HasUnifiedRelearnerMoves(struct BoxPokemon *boxMon)
                 return TRUE;
         }
     }
+
+    if (P_UNIFIED_RELEARNER_SPECIAL_MOVES
+     && HasAnyGeneratedRelearnerMove(boxMon, GetUnifiedRelearnerSourceMoves(species, RELEARNER_MOVE_SOURCE_SPECIAL)))
+        return TRUE;
 
     return FALSE;
 }

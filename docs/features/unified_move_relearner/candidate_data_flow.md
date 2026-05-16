@@ -8,13 +8,16 @@
 今回の実装で新しく外部から learnset data を持ってきたわけではない。
 既に repo にあった `tools/learnset_helpers/porymoves_files/*.json` を再利用し、
 既存の `all_learnables.json` とは別に、source label 付きの relearner 用 table を
-build 時に生成する。
+build 時に生成する。配布 / XD / Ranger 系の special move は
+`tools/learnset_helpers/special_relearner_moves.json` に project-owned runtime
+data として持ち、porymoves regeneration とは別に保つ。
 
 ## Existing Source Data
 
 | Path | Role |
 |---|---|
 | `tools/learnset_helpers/porymoves_files/*.json` | 既存の世代 / version 別 move data。各 species に `LevelMoves`, `EggMoves`, `TMMoves`, `TutorMoves` が入っている。 |
+| `tools/learnset_helpers/special_relearner_moves.json` | 配布、XD purification、Ranger transfer など、通常 learnset に残らない special move 候補。 |
 | `src/data/pokemon/all_learnables.json` | 既存 helper が porymoves JSON を全 version union して作る平坦な move set。source / generation metadata は残らない。 |
 | `tools/learnset_helpers/build/all_teaching_types.json` | repo の `species_info` から、teachable learnset を持つ species 名と teaching type を抽出した build intermediate。 |
 | `src/data/pokemon/teachable_learnsets.h` | 既存 helper が physical TM/HM registry、script tutor、universal moves から作る current teachable table。 |
@@ -64,6 +67,7 @@ script tutor を中心にした compatibility table なので、Gen 1-9 の hist
 
 ```text
 tools/learnset_helpers/porymoves_files/*.json
+tools/learnset_helpers/special_relearner_moves.json
 tools/learnset_helpers/build/all_teaching_types.json
   -> make_relearner_learnsets.py
   -> src/data/pokemon/unified_relearner_learnsets.h
@@ -77,6 +81,8 @@ Generator のルール:
 
 - porymoves JSON は version order (`rgb`, `y`, `gs`, ..., `sv`, `za`) で読む。
 - `EggMoves`, `TMMoves`, `TutorMoves` だけを relearner source table にする。
+- special JSON は `species + moves` だけを runtime table に使い、source refs や
+  region / distribution metadata は audit 用に保持する。
 - `LevelMoves` は generated historical table には入れない。runtime の current
   level-up learnset を `MAX_LEVEL` まで見る。
 - 同じ source 内の同じ move は重複排除する。
@@ -96,12 +102,13 @@ Move Relearner entry
      -> Egg: current egg table + generated historical EggMoves
      -> TM: generated historical TMMoves
      -> Tutor: generated historical TutorMoves + current gTutorMoves compatibility fallback
+     -> Special: generated special event / XD / Ranger-transfer candidates
      -> hide moves the Pokemon already knows
      -> de-dupe only within the same source
      -> preserve cross-source duplicates
      -> cap at MAX_RELEARNER_MOVES
   -> list rows use candidate index as menu id
-  -> row name is move name; right label is Lv / Eg / TM / Tu
+  -> row name is move name; right label is Lv / Eg / TM / Tu / Sp
 ```
 
 重要な分担:
@@ -110,8 +117,9 @@ Move Relearner entry
   compiled level-up data を使う。
 - TM source は physical TM item を増やさず、historical virtual candidate として出す。
 - Tutor source は historical tutor と current script tutor の両方を見る。
-- Special event / XD / distribution-only move candidates はこの runtime flow には
-  まだ接続していない。別 seed data として docs に残している段階。
+- Special source は配布、XD purification、Ranger transfer などをまとめて扱う。
+  MVP 表示は `Sp` の共通 label で、個別の `EV` / `XD` / `RG` badge や unlock
+  group は runtime gating の follow-up に残している。
 
 ## Coverage Snapshot
 
@@ -127,6 +135,7 @@ Move Relearner entry
 | repo teaching species with porymoves Egg/TM/Tutor entries | 1097 |
 | repo species without porymoves Egg/TM/Tutor entries | Cosmog, Ditto, Smeargle |
 | porymoves keys not emitted by current repo teaching names | 14 form / naming keys |
+| special runtime candidate blocks | 25 blocks / 50 moves |
 
 この数字は「全 `SPECIES_*` enum を網羅」という意味ではない。
 `make_teaching_types.py` が repo の `species_info` から teachable learnset を持つ species
@@ -157,5 +166,8 @@ source-aware relearner UI には情報が足りない。
 - Gen 1-9 allow-list config を runtime で本当に使うなら、generated table に version /
   generation metadata を残す必要がある。
 - form-specific porymoves keys をどこまで repo species/form に alias するかを決める。
-- Special event / XD / distribution-only move candidates を runtime table に接続する。
+- Special source の個別 unlock group (`special_event_movie`, `special_xd`,
+  `special_ranger` など) を story flag / rank gating に接続する。
+- `Sp` の共通 label を、候補が増えた段階で `EV` / `XD` / `RG` などの
+  per-entry label に分けるか決める。
 - 600+ candidate target に備えて、source tab / search / chunk UX を追加検討する。

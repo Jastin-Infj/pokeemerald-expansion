@@ -239,6 +239,7 @@ endif
 LEARNSET_HELPERS_DIR := $(TOOLS_DIR)/learnset_helpers
 LEARNSET_HELPERS_DATA_DIR := $(LEARNSET_HELPERS_DIR)/porymoves_files
 LEARNSET_HELPERS_BUILD_DIR := $(LEARNSET_HELPERS_DIR)/build
+SPECIAL_RELEARNER_MOVES_JSON := $(LEARNSET_HELPERS_DIR)/special_relearner_moves.json
 ALL_LEARNABLES_JSON := $(DATA_SRC_SUBDIR)/pokemon/all_learnables.json
 ALL_TUTORS_JSON := $(LEARNSET_HELPERS_BUILD_DIR)/all_tutors.json
 ALL_TEACHING_TYPES_JSON := $(LEARNSET_HELPERS_BUILD_DIR)/all_teaching_types.json
@@ -561,7 +562,7 @@ $(DATA_SRC_SUBDIR)/pokemon/teachable_learnsets.h: $(TEACHABLE_DEPS) | $(ALL_TUTO
 $(DATA_SRC_SUBDIR)/tutor_moves.h: $(DATA_SRC_SUBDIR)/pokemon/special_movesets.json | $(ALL_TUTORS_JSON)
 	python3 $(LEARNSET_HELPERS_DIR)/make_teachables.py  --tutors $(LEARNSET_HELPERS_BUILD_DIR)
 
-$(UNIFIED_RELEARNER_LEARNSETS): $(wildcard $(LEARNSET_HELPERS_DATA_DIR)/*.json) $(LEARNSET_HELPERS_DIR)/make_relearner_learnsets.py $(ALL_TEACHING_TYPES_JSON)
+$(UNIFIED_RELEARNER_LEARNSETS): $(wildcard $(LEARNSET_HELPERS_DATA_DIR)/*.json) $(SPECIAL_RELEARNER_MOVES_JSON) $(LEARNSET_HELPERS_DIR)/make_relearner_learnsets.py $(ALL_TEACHING_TYPES_JSON)
 	python3 $(LEARNSET_HELPERS_DIR)/make_relearner_learnsets.py $(LEARNSET_HELPERS_DATA_DIR) $(LEARNSET_HELPERS_BUILD_DIR) $@
 
 # Linker script

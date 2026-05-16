@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Unified Move Relearner should eventually support special move candidates that
-are not normal level-up, egg, TM/HM/TR, or tutor moves.
+Unified Move Relearner supports special move candidates that are not normal
+level-up, egg, TM/HM/TR, or tutor moves.
 
 This covers official distribution and side-game cases such as event-exclusive
 moves, Cherish Ball distribution Pokemon, PCNY / Wish Egg style legacy events,
@@ -15,6 +15,12 @@ The global special-move dataset may be large because event distributions cover
 many species. That should not imply a large visible list for every selected
 Pokemon. Runtime lookup should filter by the selected species/form first, then
 append only matching special candidates to that Pokemon's candidate list.
+
+Current implementation status: the seed has been copied into
+`tools/learnset_helpers/special_relearner_moves.json` and is compiled into the
+generated unified relearner table. Runtime display uses the shared `Sp` label
+for now; per-entry `EV` / `XD` / `RG` labels and unlock-group gating are still
+future work.
 
 ## Source Policy
 
@@ -109,7 +115,12 @@ Audit workflow:
 Seed data for this design is tracked in
 [`special_move_candidates_seed.json`](special_move_candidates_seed.json).
 
-Implementation should add a generated or checked-in JSON source similar to:
+Runtime data is tracked in
+`tools/learnset_helpers/special_relearner_moves.json`. It keeps the same
+normalized candidate facts and source-ref metadata, while the generator uses
+only `species` and `moves` to build `src/data/pokemon/unified_relearner_learnsets.h`.
+
+The runtime JSON shape is:
 
 ```json
 {
@@ -192,7 +203,7 @@ shape correct before a full event-data pass.
 
 ## UX Contract
 
-Special moves should use a distinct badge, for example `SP`, `EV`, or `XD`.
+Special moves currently use a distinct `Sp` badge.
 They should not be hidden inside the normal TM/tutor source because these moves
 often exist only due to a specific distribution or side-game acquisition path.
 
@@ -201,8 +212,8 @@ show special entries that match the current Pokemon, so the existing 600+
 candidate target remains driven by per-Pokemon stress cases rather than by the
 total size of the external JSON.
 
-For the first implementation, keep special moves behind a separate config and
-unlock group:
+The first implementation keeps special moves behind a separate config and keeps
+unlock group metadata in JSON:
 
 ```text
 P_UNIFIED_RELEARNER_SPECIAL_MOVES

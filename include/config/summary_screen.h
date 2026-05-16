@@ -37,6 +37,7 @@ Info taken from https://bulbapedia.bulbagarden.net/wiki/Stats_judge.
 #define P_UNIFIED_RELEARNER_EGG_MOVES    TRUE    // If TRUE, unified mode includes current and historical egg move candidates.
 #define P_UNIFIED_RELEARNER_TM_MOVES     TRUE    // If TRUE, unified mode includes historical TM/TR candidates without requiring physical TM items.
 #define P_UNIFIED_RELEARNER_TUTOR_MOVES  TRUE    // If TRUE, unified mode includes historical tutor / tower candidates.
+#define P_UNIFIED_RELEARNER_SPECIAL_MOVES TRUE   // If TRUE, unified mode includes special event / distribution-only / XD move candidates.
 
 // Level up Relearner
 #define P_PRE_EVO_MOVES                  FALSE   // If TRUE, it enables the Pokémon to learn moves from it's pre evolution.

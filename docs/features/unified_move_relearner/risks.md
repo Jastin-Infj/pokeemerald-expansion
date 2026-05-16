@@ -17,6 +17,7 @@
 | Party menu UX drift | Medium | Existing party path creates a `MOVES` submenu. A direct action may conflict with field moves / summary action order. | Keep direct action guarded and test normal field party menu. |
 | Source-duplicate storage | High | Existing candidate storage is move-only, so preserving TM + tower duplicates needs more metadata than `u16 move`. | Store candidate entries with move and source, and use candidate index as the menu id if needed. |
 | Historical move availability | Medium | Some historical moves may not exist as enabled move constants or may be signature-only. | Generated source should skip unavailable moves or fail clearly. |
+| Special data audit drift | Medium | Distribution-only data can differ by region, language, and event family; seed rows may be incomplete. | Keep source refs and audit notes in `special_relearner_moves.json`; expand through small reviewed data commits. |
 | Generated file churn | Medium | `teachable_learnsets.h` and `tutor_moves.h` are generated and can change broadly. | Do not hand-edit generated files. Isolate generator changes and inspect diffs. |
 
 ## Impact Notes
@@ -37,6 +38,9 @@
 - The first implementation accepts a page-scrollable single list instead of a
   full source-tab UX. This is usable for the current Mew stress route but should
   be revisited before a 600+ Gen 10-scale candidate target.
+- The first special-source implementation uses one `Sp` badge for all event,
+  XD, birthday, and Ranger candidates. The JSON keeps richer labels for a later
+  UI/gating pass.
 
 ## Open Questions
 
@@ -49,3 +53,5 @@
 - Should event scripts expose both "unified" and "category" NPC variants?
 - Should historical data configs live in `include/config/summary_screen.h`,
   `include/config/pokemon.h`, or a new learnset/relearner config section?
+- Which special candidates are acceptable by default: public-reference-backed
+  only, or locally accepted seed rows that still carry audit notes?

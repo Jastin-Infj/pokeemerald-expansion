@@ -42,6 +42,8 @@ PORYMOVES_ORDER = [
     "za",
 ]
 
+SPECIAL_MOVES_FILE = "special_relearner_moves.json"
+
 
 def species_to_upper(name: str) -> str:
     return SNAKIFY_PAT.sub("_", name).upper()
@@ -51,6 +53,13 @@ def normalize_pory_species(name: str) -> str:
     name = name.replace("Â€™", "").replace("’", "").replace("'", "")
     normalized = NORMALIZE_PAT.sub("_", name.upper()).strip("_")
     normalized = normalized.replace("FARFETCH_D", "FARFETCHD")
+    return normalized
+
+
+def normalize_species_constant(name: str) -> str:
+    normalized = name.strip().upper()
+    if normalized.startswith("SPECIES_"):
+        normalized = normalized[len("SPECIES_"):]
     return normalized
 
 
@@ -87,6 +96,24 @@ def collect_source_moves(inputs_dir: pathlib.Path) -> dict[str, dict[str, list[s
     return moves
 
 
+def collect_special_moves(special_moves_file: pathlib.Path) -> dict[str, list[str]]:
+    moves = defaultdict(list)
+    seen = defaultdict(set)
+
+    if not special_moves_file.is_file():
+        return moves
+
+    with open(special_moves_file, "r", encoding="utf-8") as fp:
+        data = json.load(fp)
+
+    for candidate in data.get("candidates", []):
+        species_key = normalize_species_constant(candidate["species"])
+        for move in candidate.get("moves", []):
+            append_unique(moves[species_key], seen[species_key], normalize_move(move))
+
+    return moves
+
+
 def write_move_array(lines: list[str], name: str, source: str, moves: list[str]) -> str:
     if not moves:
         return "sNoneUnifiedRelearnerMoves"
@@ -116,6 +143,7 @@ def main() -> None:
     assert output_file.parent.is_dir(), f"parent of {output_file=} is not a directory"
 
     source_moves = collect_source_moves(inputs_dir)
+    special_moves = collect_special_moves(inputs_dir.parent / SPECIAL_MOVES_FILE)
 
     with open(teaching_types_file, "r", encoding="utf-8") as fp:
         repo_species_data = json.load(fp)
@@ -136,6 +164,7 @@ def main() -> None:
         "        .eggMoves = sNoneUnifiedRelearnerMoves,",
         "        .tmMoves = sNoneUnifiedRelearnerMoves,",
         "        .tutorMoves = sNoneUnifiedRelearnerMoves,",
+        "        .specialMoves = sNoneUnifiedRelearnerMoves,",
         "    },",
     ]
 
@@ -151,12 +180,14 @@ def main() -> None:
         egg_symbol = write_move_array(array_lines, name, "Egg", species_moves.get("EggMoves", []))
         tm_symbol = write_move_array(array_lines, name, "Tm", species_moves.get("TMMoves", []))
         tutor_symbol = write_move_array(array_lines, name, "Tutor", species_moves.get("TutorMoves", []))
+        special_symbol = write_move_array(array_lines, name, "Special", special_moves.get(species_upper, []))
 
         entries.extend([
             f"    [SPECIES_{species_upper}] = {{",
             f"        .eggMoves = {egg_symbol},",
             f"        .tmMoves = {tm_symbol},",
             f"        .tutorMoves = {tutor_symbol},",
+            f"        .specialMoves = {special_symbol},",
             "    },",
         ])
 
