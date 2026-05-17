@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
+| Last reviewed | 2026-05-17 |
 | Baseline | `master` `f5a3b7b6c2`; `git describe` = `expansion/1.15.2-27-gf5a3b7b6c2` |
 | Code status | Docs-only adoption investigation |
 | Provenance | Local project overlay |
@@ -17,7 +17,7 @@ No Random Encounters docs-only handoff. It does not copy runtime source into
 
 Primary inputs:
 
-- PR #10: `feature/trainer-battle-aftercare-heal`
+- Closed PR #10: `feature/trainer-battle-aftercare-heal`
 - `docs/features/battle_item_restore_policy/`
 - `docs/features/trainer_battle_aftercare/`
 - `docs/features/feature_registry.md`
@@ -36,8 +36,9 @@ Primary inputs:
 
 ## PR #10 Split
 
-PR #10 is a staging PR, not a direct merge candidate. It contains two runtime
-slices plus docs/tooling notes.
+PR #10 was a staging PR, not a direct merge candidate, and is now closed
+unmerged. It is still useful as historical branch evidence because it contained
+two runtime slices plus docs/tooling notes.
 
 | Slice | Commit evidence | Runtime files | Adoption note |
 |---|---|---|---|
@@ -70,11 +71,11 @@ policy.
 
 | Decision | Why it matters | Current recommendation |
 |---|---|---|
-| `B_RESTORE_HELD_BATTLE_BERRIES` default | PR #10 source uses `TRUE`, while `risks.md` says default-off is safer for partygen-owned trainers. | Use `TRUE` on `feature/battle-item-restore-policy` per user direction. Revisit only if a conservative baseline branch is created later. |
+| `B_RESTORE_HELD_BATTLE_BERRIES` default | Historical PR #10 / #14 source uses `TRUE`, while `risks.md` says default-off is safer for partygen-owned trainers. | Use `TRUE` on `feature/battle-item-restore-policy` per user direction. Revisit only if a conservative baseline branch is created later. |
 | Battle type scope | Existing `TryRestoreHeldItems()` is called from battle end broadly when restore configs are enabled. Berry restore therefore affects wild, trainer, and facility paths unless guarded. | Preserve existing call breadth for the first slice, but document that this is competitive-style restore, not RPG item loss. |
-| Final ownership after item transfer | Trick, Thief, Bestow, Symbiosis, Pickpocket, Magician, Corrosive Gas, and Air Balloon can make final ownership ambiguous. PR #10 restores original berries broadly from `itemLost`, not only ordinary HP berries. | Decide whether to accept broad competitive-style restore. If the desired slice is consumed-berry-only, add an explicit guard/state and focused tests before implementation. |
+| Final ownership after item transfer | Trick, Thief, Bestow, Symbiosis, Pickpocket, Magician, Corrosive Gas, and Air Balloon can make final ownership ambiguous. The historical source restores original berries broadly from `itemLost`, not only ordinary HP berries. | Decide whether to accept broad competitive-style restore. If the desired slice is consumed-berry-only, add an explicit guard/state and focused tests before implementation. |
 | Aftercare test gate | Heal-only source is default-off, but it changes the central trainer battle return path. | Add at least one focused test or mGBA scenario for normal win, excluded facility/secret-base/early-rival, and config-off behavior. |
-| Cherry-pick strategy | PR #10 docs/source were authored before current docs-only `master` policy. | Create a fresh feature branch from current `master` and re-apply only the source/test slice requested by the user. |
+| Cherry-pick strategy | PR #10 / #14 docs/source were authored before the current docs-only `master` policy and are now closed PR evidence, not open queue items. | Create a fresh feature branch from current `master` and re-apply only the source/test slice requested by the user. |
 
 ## If User Approves The Item-Restore Branch
 

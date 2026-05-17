@@ -52,7 +52,7 @@ Code status: not on `master`; berry-inclusive battle-end restore exists on `feat
 
 ただし、`master` へは source を入れない運用に更新済み。次に実装する場合は
 current `master` から fresh feature / integration branch を切る。今回の branch は
-PR #10 由来の battle item restore source/test slice だけを、aftercare heal hook
+closed PR #14 由来の battle item restore source/test slice だけを、aftercare heal hook
 なしで再適用したもの。採用前の確認事項は
 `adoption_investigation_2026_05_09.md` に整理している。
 

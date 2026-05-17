@@ -11,8 +11,10 @@
 
 Status: Phase 2 implemented. Focused mGBA routes validated single 3-of-6,
 double 4-of-6, player Summary entry, in-battle viewer, and action-menu return.
-Code status: source changes present in this branch; docs-only master handoff should use
-docs-only branch / PR.
+Code status: staged on open draft PR #20 (`feature/prebattle-team-viewer`);
+docs-only master handoff should use docs-only branch / PR. Older references to
+`feature/prebattle-team-viewer-phase2` below are historical implementation notes
+from the branch that supplied the current PR contents.
 
 ## Goal
 
