@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `b724a58874`; `git describe` = `expansion/1.15.2-58-gb724a58874` |
+| Baseline | `master` `36fa0b2dc4`; `git describe` = `expansion/1.15.2-61-g36fa0b2dc4` |
 | Code status | Docs-only manual index |
 | Provenance | Local project overlay |
 
@@ -45,7 +45,8 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | 技を新しく追加したい | [Move Data Manual](move_data_manual.md) | `include/constants/moves.h`, `src/data/moves_info.h` |
 | TM/HM を増やしたい、フィールド技を整理したい | [TM/HM Manual](tm_hm_manual.md) | `include/constants/tms_hms.h` |
 | Field Kit のアイコンやパレットを差し替えたい | [Field Kit Icon And Palette Manual](field_kit_icon_palette_manual.md) | `graphics/items/icons/`, `graphics/items/icon_palettes/`, `src/data/items.h` |
-| 新規マップ、タウンマップ、Fly 登録を整理したい | [Map / Fly Manual](map_fly_manual.md) | map data, region map data, Fly flags |
+| 新規マップを作りたい、Porymap と生成物の境界を確認したい | [新規マップ作成マニュアル](map_creation_manual.md) / [Map Creation Flow](../flows/map_creation_flow_v15.md) | `data/maps/<MapName>/map.json`, `scripts.inc`, `data/event_scripts.s`, `data/maps/map_groups.json`, `data/layouts/layouts.json` |
+| タウンマップ、Fly 登録を整理したい | [Map / Fly Manual](map_fly_manual.md) | map data, region map data, Fly flags |
 | Battle message、field message、UI text の影響範囲を整理したい | [Message Text Manual](message_text_manual.md) | `src/battle_message.c`, `data/battle_scripts_*.s`, `src/field_message_box.c` |
 | NPC の配置、移動、条件付きタイル変更を調べたい | [Map Script Flow](../flows/map_script_flow_v15.md) / [NPC Object Event Flow](../flows/npc_object_event_flow_v15.md) | `data/maps/*/events.inc`, `data/maps/*/scripts.inc` |
 | 性格、EV、IV、技を Champions 風に調整したい | [Champions Training UI Feasibility](../overview/champions_training_ui_feasibility_v15.md) | `src/pokemon.c`, `src/party_menu.c`, `src/move_relearner.c` |
