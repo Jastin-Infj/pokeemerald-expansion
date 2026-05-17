@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented and locally validated on `feature/no-random-encounters-step-only`.
+Implemented and locally validated on `feature/no-random-encounters-step-only-runtime-20260517`.
 Source changes are still not on `master`.
 
 ## MVP Scope
@@ -31,6 +31,13 @@ Source changes are still not on `master`.
 5. 通常 map で草むら / cave / surf を歩き、random encounter が発生しないことを確認する。
 6. Fishing / Sweet Scent / Rock Smash / static encounter が現状どおり発火することを確認する。
 7. Save / Load 経由で flag 状態が persist することを確認する (SYSTEM region の flag を選んでいれば persistent)。
+
+## Debug Command
+
+MVP は専用 `Scripts...` entry を追加しない。debug route は既存の
+`Flags & Vars... > Toggle Encounter OFF` を使う。この項目は
+`OW_FLAG_NO_ENCOUNTER != 0` の時だけ実際の toggle になり、未割り当ての
+`master` では config 未設定 message を出す。
 
 ## Future Broad Mode
 

@@ -28,6 +28,22 @@ No new encounter hook was added. The feature uses the existing
 `CheckStandardWildEncounter` gate in `src/field_control_avatar.c` and the
 existing Debug menu toggle in `src/debug.c`.
 
+## Difference From Earlier Branches
+
+Runtime behavior is unchanged from the earlier `feature/no-random-encounters`
+and `feature/no-random-encounters-step-only` slices: all three branches only
+connect the existing `OW_FLAG_NO_ENCOUNTER` gate to a real flag. There is no
+encounter-rate optimization, RNG change, wild table rewrite, or new encounter
+hook in this feature.
+
+The 2026-05-17 branch differs operationally:
+
+- it starts from current `master` instead of merging an older feature branch;
+- it reapplies only the three runtime files listed above;
+- it records fresh `all` / `debug` / `check` local builds;
+- it adds an OFF / ON / OFF-restored mGBA Route 101 runtime pass;
+- it updates docs and the validation matrix for the current PR handoff.
+
 Adoption dependency notes:
 
 - `OW_FLAG_NO_ENCOUNTER` must be assigned to `FLAG_NO_ENCOUNTER`, not `TRUE`

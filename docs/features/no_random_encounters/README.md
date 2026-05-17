@@ -50,6 +50,22 @@ files only:
 この feature は runtime rule options、Champions Challenge、debug / facility rule の土台に
 なるが、option UI や broad wild suppression へ広げるのは別 feature に分ける。
 
+## Debug Command
+
+No new debug command was added for the runtime branch. The branch enables the
+existing overworld Debug menu toggle by assigning `OW_FLAG_NO_ENCOUNTER` to a
+real event flag.
+
+Runtime validation path:
+
+1. Open Debug menu with `R + START`.
+2. Choose `Flags & Vars...`.
+3. Use `Toggle Encounter OFF`.
+
+The menu item is `Toggle {STR_VAR_1}Encounter OFF` in `src/debug.c`. If
+`OW_FLAG_NO_ENCOUNTER` remains `0`, that same action shows the config-not-set
+message instead of toggling a flag.
+
 ## Master Policy Note
 
 As of 2026-05-17, the validated implementation exists on
