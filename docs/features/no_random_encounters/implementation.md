@@ -101,7 +101,7 @@ Docs-only review on 2026-05-17:
 |---|---|
 | `rtk git status --short --branch` | Clean `master` before the adoption branch was created. |
 | `rtk git describe --tags --always --dirty` | `expansion/1.15.2-56-gc8b8e57183`. |
-| `rtk gh pr list --state open ...` | Open runtime shelves were rechecked; no random encounters has no open PR yet. |
+| `rtk gh pr list --state open ...` | Open runtime shelves were rechecked before the fresh runtime PR was opened; later opened and closed as completed shelf #41 after CI success. |
 | Source scope review | Historical branch diff is still limited to `include/config/overworld.h`, `include/constants/flags.h`, and `include/constants/flags_frlg.h`. |
 | Runtime build / mGBA | Superseded by the 2026-05-17 runtime branch validation above. |
 

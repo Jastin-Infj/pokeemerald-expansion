@@ -5,42 +5,41 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
+| Baseline | `master` `b31c695dc5`; `git describe` = `expansion/1.15.2-66-gb31c695dc5` |
 | Code status | Docs-only evidence index |
-| Provenance | Feature test plans and current `gh pr list` snapshot |
+| Provenance | Feature test plans, current `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup |
 
-この matrix は open implementation shelf の横断 evidence。未確認は未確認として残す。
+この matrix は open / closed implementation shelf の横断 evidence。未確認は未確認として残す。
 採用前は owning feature の `test_plan.md` を source of truth として再確認する。
 
 ## Current Open PR Snapshot
 
-2026-05-17 の `gh pr list` では、#31 / #28 / #26 / #23 / #20 はすべて
-`mergeStateStatus = UNKNOWN`。CI は label / allcontributors skip を除き成功済み。
+2026-05-17 cleanup 後、open runtime PR は 0 件。
 
 | PR | Feature | Draft | Branch | Merge state | CI snapshot |
 |---|---|---|---|---|---|
-| #31 | TM Shop Migration | Yes | `feature/tm-shop-migration` | `UNKNOWN` | build / release / test / docs_validate success; label/allcontributors skipped. |
-| #28 | Unified Move Relearner | Yes | `feature/unified-move-relearner` | `UNKNOWN` | build / release / test / docs_validate success; label/allcontributors skipped. |
-| #26 | Summary Tera Type Icon | Yes | `feature/summary-tera-type-badge` | `UNKNOWN` | build / release / test / docs_validate success; label/allcontributors skipped. |
-| #23 | Pokemon State Editor | No | `feature/pokemon-state-editor-expansion` | `UNKNOWN` | build / release / test / docs_validate success; label/allcontributors skipped. |
-| #20 | Pre-Battle / In-Battle Team Viewer | Yes | `feature/prebattle-team-viewer` | `UNKNOWN` | build / release / test / docs_validate success; label/allcontributors skipped. |
+| None | - | - | - | - | - |
 
-## Evidence Matrix
+The successful runtime PRs #41 / #39 / #31 / #28 / #26 / #23 / #20 were closed
+on 2026-05-17 as completed implementation shelves. Their branches remain
+preserved.
 
-| Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
+## Closed / PR-less Implementation Shelves
+
+| Feature | Branch / PR | Docs | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
-| TM Shop Migration | [test_plan](../features/tm_shop_migration/test_plan.md) | Passed with existing warnings on branch. | `all`, `debug`, `check` passed on 2026-05-16. | Static grep and map JSON parse checks recorded. | Booted, continued save, opened Start menu; HM source route not fully confirmed. | FRLG routes follow-up; debug TM shop screen not confirmed in mGBA; old stale defunct mGBA entry noted. |
-| Unified Move Relearner | [test_plan](../features/unified_move_relearner/test_plan.md) | Required / recorded in branch validation context. | `all`, `debug`, `check` passed on 2026-05-16. | JSON audits, candidate list checks, special/form/LGPE smoke checks. | mGBA evidence covers Mew long list, Arceus special moves, Rotom, Cosplay Pikachu, LGPE partners, NPC cancel. | Actual teach / overwrite pass across summary / party / NPC remains recommended before merge. |
-| Summary Tera Type Icon | [test_plan](../features/summary_tera_type_icon/test_plan.md) | Passed with existing warnings. | `all`, `debug`, `check` passed on 2026-05-15. | Diff lint only; UI is visual. | mGBA Summary Info screenshot for dual-type Magearna at `(205, 48)`. | Single-type Pokemon and egg stale-icon path not run. |
-| Pokemon State Editor | [test_plan](../features/pokemon_state_editor/test_plan.md) | Not separately summarized in test_plan; local docs should be rebuilt before adoption. | `all`, `debug`, `check` passed after final visual follow-up. | Full `check`; no focused unit test listed. | Multiple mGBA sessions confirmed editor pages, values, slide/layout, redraw, and direct Lua data checks. | Several mGBA cleanup attempts left stale status entries; box Summary and legality locks remain follow-up. |
-| Pre-Battle / In-Battle Team Viewer | [test_plan](../features/prebattle_team_viewer/test_plan.md) | Not separately summarized in test_plan; local docs should be rebuilt before adoption. | `all`, `debug`, `check` passed after W route. | Full `check`; no automated preview-cache assertion yet. | Extensive mGBA screenshots cover single, double, in-battle viewer, held-key guard, Summary return, details persistence. | Trainer pool / randomized party identity still needs focused validation. |
-
-## Integration Candidates Without Open PR
-
-| Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
-|---|---|---|---|---|---|---|
-| No Random Encounters step-only | [test_plan](../features/no_random_encounters/test_plan.md) | Required before runtime PR handoff. | `all`, `debug`, `check` passed on `feature/no-random-encounters-step-only-runtime-20260517` on 2026-05-17. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild Wurmple battle, flag ON no-encounter walking for 2400 macro frames, and flag OFF-restored Poochyena battle recorded on 2026-05-17. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; Fishing / Sweet Scent / Rock Smash / scripted wild remain out of MVP scope. |
-| Battle BGM Selector / Sound Archive | [test_plan](../features/battle_bgm_selector/test_plan.md) | Passed with existing warnings on branch. | `all`, `debug`, `check` passed on `feature/battle-bgm-selector-mvp-20260517` on 2026-05-17 after the split Trainer/Wild rewrite and BW/BW2 + DPPt/Platinum/HGSS imports. | `test/battle_bgm.c` covers Default, Trainer/Wild independence, expanded trainer choices, expanded wild/legendary choices, and imported BW/BW2, DPPt, Platinum, and HGSS song routing, including Galactic/Rocket/Frontier/legendary choices. Generated imported battle `.s` files were scanned and no `PRIO` commands remain in the newly added tracks after `mus_pl_vs_regi` was moved to `-Q`. | mGBA Live booted existing save, opened split debug `Trainer BGM...` / `Wild BGM...`, set Kanto choices, started debug trainer battle, and confirmed BGM song header matched `mus_rg_vs_trainer`. Later passes selected and previewed `BW2 Iris` / `BW Legend`, `HGSS Ho-Oh` / `DPPt Legend` / `DPPt Champ`, and `HGSS Rocket` / `DPPt Cyrus`. Expanded preview pass selected `Plt Frontier`, `HGSS Arceus`, and `Plt Regi` and confirmed `gMPlayInfo_BGM.songHeader` matched the imported song headers. | Actual wild step encounter after split choice and actual Trainer/Wild battle starts using the expanded imported batch remain manual follow-up. Modern Emerald source license / permission status is unresolved for master adoption. |
+| No Random Encounters step-only | Closed PR #41 / `feature/no-random-encounters-step-only-runtime-20260517` | [test_plan](../features/no_random_encounters/test_plan.md) | `all`, `debug`, `check`, CI build / release / test / docs_validate passed. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild Wurmple battle, flag ON no-encounter walking for 2400 macro frames, flag OFF-restored Poochyena battle, and user confirmation recorded on 2026-05-17. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; Fishing / Sweet Scent / Rock Smash / scripted wild remain out of MVP scope. |
+| Battle BGM Selector / Sound Archive | Closed PR #39 / `feature/battle-bgm-selector-mvp-20260517` | [test_plan](../features/battle_bgm_selector/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | `test/battle_bgm.c` covers routing and imported song choices. | mGBA selector, preview, debug trainer battle, and song-header evidence recorded. | Large asset/audio shelf; source permission risk remains before adoption. |
+| TM Shop Migration | Closed PR #31 / `feature/tm-shop-migration` | [test_plan](../features/tm_shop_migration/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | Static grep and map JSON parse checks recorded. | Booted, continued save, opened Start menu; HM source route not fully confirmed. | FRLG routes follow-up; debug TM shop screen not confirmed in mGBA. |
+| Unified Move Relearner | Closed PR #28 / `feature/unified-move-relearner` | [test_plan](../features/unified_move_relearner/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | JSON audits, candidate list checks, special/form/LGPE smoke checks. | mGBA evidence covers Mew long list, Arceus special moves, Rotom, Cosplay Pikachu, LGPE partners, NPC cancel. | Actual teach / overwrite pass remains recommended before adoption. |
+| Summary Tera Type Icon | Closed PR #26 / `feature/summary-tera-type-badge` | [test_plan](../features/summary_tera_type_icon/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | Diff lint only; UI is visual. | mGBA Summary Info screenshot for dual-type Magearna at `(205, 48)`. | Single-type Pokemon and egg stale-icon path not run. |
+| Pokemon State Editor | Closed PR #23 / `feature/pokemon-state-editor-expansion` | [test_plan](../features/pokemon_state_editor/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | Full `check`; no focused unit test listed. | Multiple mGBA sessions confirmed editor pages, values, slide/layout, redraw, and direct Lua data checks. | Box Summary and legality locks remain follow-up. |
+| Pre-Battle / In-Battle Team Viewer | Closed PR #20 / `feature/prebattle-team-viewer` | [test_plan](../features/prebattle_team_viewer/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | Full `check`; no automated preview-cache assertion yet. | Extensive mGBA screenshots cover single, double, in-battle viewer, held-key guard, Summary return, details persistence. | Trainer pool / randomized party identity still needs focused validation. |
+| Battle Item Restore Policy | Closed PR #14 / `feature/battle-item-restore-policy` | [test_plan](../features/battle_item_restore_policy/test_plan.md) | `all`, `debug`, focused `check` routes recorded in PR body. | Direct restore and full Oran Berry consume/restore tests recorded. | mGBA test-runner memory read reported pass / exit state. | Default TRUE/FALSE adoption policy still needs final decision. |
+| Trainer Battle Aftercare heal hook | Closed PR #10 / `feature/trainer-battle-aftercare-heal` | [test_plan](../features/trainer_battle_aftercare/test_plan.md) | `all`, `debug`, `check` recorded in PR body. | No focused exclusion test suite yet. | mGBA title/boot smoke reached title splash. | Needs focused normal-win and exclusion-path tests before adoption. |
+| Champions Partygen catalog expansion | Closed PR #7 / `feature/trainer-partygen-catalog-expansion` | [partygen validation report](../features/champions_challenge/partygen_validation_report.md) | `make`, `make debug`, mdBook recorded in PR body. | Cargo test / clippy / partygen doctor-generate-validate-diff recorded. | mGBA trainer memory read confirmed generated Elite Four party pools. | Large tool/data/generated workflow review before adoption; Champions runtime remains separate. |
+| Trainer Battle Party Selection | `feature/battle-selection-mvp` | [test_plan](../features/battle_selection/test_plan.md) | Branch docs record build/manual evidence. | No current fresh v15 check in this audit. | User manual validation for single/double/party restore recorded. | Re-apply before Team Viewer if not taking #20 wholesale. |
+| Field Move Modernization / Field Kit | `feature/field-move-modernization-mvp`, `feature/field-move-toolkit-item` | [test_plan](../features/field_move_modernization/test_plan.md) | Branch docs record local validation. | No current fresh v15 check in this audit. | Docs record user-confirmed HM-free MVP and Field Kit itemization. | Needs selected fresh PR / integration branch; graphics are implementation artifacts. |
 
 ## Docs-Only Planned Policy Features
 
@@ -64,5 +63,5 @@ Current `master` docs build was checked before this matrix update:
 - Add a row when a new implementation shelf opens.
 - Move a row out only after the PR is merged, closed as superseded, or explicitly
   abandoned.
-- Do not change `UNKNOWN` merge state to `CLEAN` without fresh `gh` output.
+- Do not change merge state without fresh `gh` output.
 - Keep skipped long GitHub Actions waits in the feature `test_plan.md`.

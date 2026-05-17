@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Branch | `feature/summary-tera-type-badge` / PR #26 |
+| Branch | `feature/summary-tera-type-badge` / completed shelf #26 |
 | Baseline | `master` `c13184c0b1`; `git describe` = `expansion/1.15.2-45-gc13184c0b1` |
-| Status | Validated branch; open draft PR #26; not on `master` |
+| Status | Validated branch; completed shelf #26 closed 2026-05-17 after CI success; not on `master` |
 | Date | 2026-05-15 |
 
 ## Source Changes

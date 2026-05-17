@@ -4,20 +4,20 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-16 |
+| Last reviewed | 2026-05-17 |
 | Baseline | `master` `459703c0aa`; `git describe` = `expansion/1.15.2-48-g459703c0aa` |
-| Code status | Implemented draft on `feature/unified-move-relearner` |
+| Code status | Implemented completed shelf #28 on `feature/unified-move-relearner`; not on `master` |
 | Provenance | User request and local code/docs review |
 
 ## Status
 
-Status: Implemented draft on open draft PR #28 (`feature/unified-move-relearner`).
+Status: Implemented completed shelf #28 (`feature/unified-move-relearner`).
 Unified mode is guarded by config, uses generated historical candidate data, and
 has local build plus mGBA Live evidence. The special event / XD / Ranger /
 form-specific / LGPE partner seed data is now connected as a `Sp` source; story
-unlock gating and per-entry special labels remain future work. As of the latest
-2026-05-17 `gh pr list` snapshot, GitHub reports `mergeStateStatus` = `UNKNOWN`;
-re-check with `gh pr view 28` before source integration.
+unlock gating and per-entry special labels remain future work. PR #28 was closed
+on 2026-05-17 as a completed implementation shelf after CI success; re-check
+with `gh pr view 28` and local branch diffs before source integration.
 
 ## Goal
 

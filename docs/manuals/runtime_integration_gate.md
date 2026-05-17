@@ -9,8 +9,8 @@
 | Code status | Docs-only integration manual |
 | Provenance | Local project overlay |
 
-この manual は open PR / feature branch を current `master` に採用する前の共通 gate。
-open PR は implementation shelf であり、merge 許可ではない。
+この manual は open PR / closed shelf / feature branch を current `master` に採用する前の共通 gate。
+PR と branch は implementation shelf であり、merge 許可ではない。
 
 ## Required Snapshot
 
@@ -28,9 +28,10 @@ rtk gh pr list --state open --json number,title,isDraft,headRefName,baseRefName,
 rtk gh pr view <number> --json number,title,state,isDraft,headRefName,baseRefName,updatedAt,mergeStateStatus,statusCheckRollup,files,commits
 ```
 
-2026-05-17 の open PR snapshot では #31 / #28 / #26 / #23 / #20 はすべて
-`mergeStateStatus = UNKNOWN` と返った。過去 docs の `CLEAN` / `DIRTY` 表記を
-信じず、採用直前の `gh` 出力を source of truth にする。
+2026-05-17 cleanup 後、open runtime PR は 0 件。#41 / #39 / #31 / #28 /
+#26 / #23 / #20 は successful implementation shelf として close 済みで、branch は
+preserved。過去 docs の `CLEAN` / `DIRTY` 表記を信じず、採用直前の `gh` 出力と
+local branch diff を source of truth にする。
 
 ## Gate Checklist
 
@@ -53,6 +54,7 @@ rtk gh pr view <number> --json number,title,state,isDraft,headRefName,baseRefNam
 
 | PR | Use as example for | Adoption caution |
 |---|---|---|
+| #41 No Random Encounters step-only | minimal flag / config runtime slice | `master` still keeps `OW_FLAG_NO_ENCOUNTER 0`; broad-wild mode is out of MVP scope. |
 | #31 TM Shop Migration | data / script / config retirement slice | Emerald scope は確認済みだが FRLG-specific routes は follow-up。`I_REUSABLE_TMS` は branch-only change。 |
 | #28 Unified Move Relearner | generated candidate data + Summary / party / NPC entry points | special labels、virtual TM unlock policy、actual overwrite-learning gap を確認する。 |
 | #26 Summary Tera Type Icon | small Summary display UI + imported graphics | graphics / CREDITS / asset provenance を docs-only master に混ぜない。 |
@@ -72,4 +74,3 @@ rtk gh pr view <number> --json number,title,state,isDraft,headRefName,baseRefNam
 - unknown merge state を推測で `CLEAN` と書かない。
 - CI success だけで mGBA / manual evidence を省略しない。
 - `validated branch` を `shipped` と書かない。
-

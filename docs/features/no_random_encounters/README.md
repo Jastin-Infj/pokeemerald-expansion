@@ -6,11 +6,11 @@
 |---|---|
 | Last reviewed | 2026-05-17 |
 | Baseline | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
-| Code status | Runtime source applied on `feature/no-random-encounters-step-only-runtime-20260517`; not on `master` |
+| Code status | Completed shelf #41 on `feature/no-random-encounters-step-only-runtime-20260517`; not on `master` |
 | Provenance | Local project feature docs |
 
-Status: Implemented runtime branch
-Code status: not on `master`; validated 3 file implementation is on `feature/no-random-encounters-step-only-runtime-20260517`
+Status: Implemented completed shelf
+Code status: not on `master`; validated 3 file implementation is on `feature/no-random-encounters-step-only-runtime-20260517` / closed PR #41
 
 ## Goal
 
@@ -69,10 +69,10 @@ message instead of toggling a flag.
 ## Master Policy Note
 
 As of 2026-05-17, the validated implementation exists on
-`feature/no-random-encounters-step-only-runtime-20260517`, but source changes
-are intentionally not copied to `master`. `master` remains the upstream intake
-baseline plus docs / workflow overlay. Keep `include/config/overworld.h` at
-`OW_FLAG_NO_ENCOUNTER 0` on `master`.
+`feature/no-random-encounters-step-only-runtime-20260517` / closed PR #41, but
+source changes are intentionally not copied to `master`. `master` remains the
+upstream intake baseline plus docs / workflow overlay. Keep
+`include/config/overworld.h` at `OW_FLAG_NO_ENCOUNTER 0` on `master`.
 
 When this feature is needed in a playable build, create a fresh
 `feature/no-random-encounters-*` or `integration/*` branch from current

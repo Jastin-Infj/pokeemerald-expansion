@@ -2,6 +2,7 @@
 
 調査日: 2026-05-02
 再確認日: 2026-05-16
+PR 整理: 2026-05-17
 
 Legacy Gen 3 TM acquisition を退役させるための feature handoff。2026-05-16
 時点では `feature/tm-shop-migration` で implementation を入れ、Emerald
@@ -66,14 +67,14 @@ move 解放は別 feature / story flag 側へ寄せる。
 
 | Item | Status |
 |---|---|
-| Branch | `feature/tm-shop-migration` / PR #31 |
+| Branch | `feature/tm-shop-migration` / completed shelf #31 |
 | Code changes | Emerald normal-progression legacy TM acquisition retired; reusable TMs enabled |
 | Data changes | Emerald TM item balls / hidden item removed from `map.json`; Emerald HM item grants removed from scripts; debug-only TM shop added |
 | Docs | Implementation handoff updated |
 
-As of the latest 2026-05-17 `gh pr list` snapshot, PR #31 is an open draft with
-`mergeStateStatus` = `UNKNOWN`; checks are successful except skipped
-label/allcontributors jobs. Re-check with `gh pr view 31` before source integration.
+PR #31 was closed on 2026-05-17 as a completed implementation shelf after CI
+success. The branch remains preserved. Re-check with `gh pr view 31` and local
+branch diffs before source integration.
 
 ## Scope Note
 

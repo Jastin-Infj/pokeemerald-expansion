@@ -81,15 +81,25 @@ adopted through fresh runtime branches.
 
 ## Current Runtime Shelves
 
-2026-05-17 の `gh pr list` snapshot では、open runtime implementation shelf は
-次の 5 件。
+2026-05-17 cleanup 後、GitHub 上で open の runtime implementation shelf は
+0 件。成功済み runtime PR は completed shelf として close し、branch は
+preserved のまま残す。
 
 | PR | Feature | Branch | Merge state from `gh pr list` |
 |---|---|---|---|
-| #31 | TM Shop Migration | `feature/tm-shop-migration` | `UNKNOWN` |
-| #28 | Unified Move Relearner | `feature/unified-move-relearner` | `UNKNOWN` |
-| #26 | Summary Tera Type Icon | `feature/summary-tera-type-badge` | `UNKNOWN` |
-| #23 | Pokemon State Editor | `feature/pokemon-state-editor-expansion` | `UNKNOWN` |
-| #20 | Pre-Battle / In-Battle Team Viewer | `feature/prebattle-team-viewer` | `UNKNOWN` |
+| None | - | - | - |
 
-この snapshot は古くなる。実装採用前は必ず `gh pr list` と `gh pr view` で再確認する。
+Completed shelves closed on 2026-05-17:
+
+| PR | Feature | Branch |
+|---|---|---|
+| #41 | No Random Encounters step-only | `feature/no-random-encounters-step-only-runtime-20260517` |
+| #39 | Battle BGM Selector / Sound Archive | `feature/battle-bgm-selector-mvp-20260517` |
+| #31 | TM Shop Migration | `feature/tm-shop-migration` |
+| #28 | Unified Move Relearner | `feature/unified-move-relearner` |
+| #26 | Summary Tera Type Icon | `feature/summary-tera-type-badge` |
+| #23 | Pokemon State Editor | `feature/pokemon-state-editor-expansion` |
+| #20 | Pre-Battle / In-Battle Team Viewer | `feature/prebattle-team-viewer` |
+
+この snapshot は古くなる。実装採用前は必ず `gh pr list --state all` と
+`gh pr view` で再確認する。

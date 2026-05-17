@@ -160,7 +160,7 @@ Non-invasive checks performed from current `master` before this docs update:
 |---|---|---|
 | `rtk git status --short --branch` | passed | Clean `master` before creating the docs/adoption review branch. |
 | `rtk git describe --tags --always --dirty` | passed | `expansion/1.15.2-56-gc8b8e57183`. |
-| `rtk gh pr list --state open ...` | passed | Open runtime shelves rechecked; no random encounters has no open PR. |
+| `rtk gh pr list --state open ...` | passed | Open runtime shelves rechecked before the fresh runtime PR was opened; later opened and closed as completed shelf #41 after CI success. |
 | `rtk git diff master..feature/no-random-encounters-step-only -- include/config/overworld.h include/constants/flags.h include/constants/flags_frlg.h` | passed | Historical runtime slice remains limited to the expected three files. |
 | `rg OW_FLAG_NO_ENCOUNTER ...` | passed | Current `master` still has the existing gate / debug toggle and config remains `0`. |
 

@@ -4,15 +4,15 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-10 |
+| Last reviewed | 2026-05-17 |
 | Baseline | `master` `7c19f56901`; `git describe` = `expansion/1.15.2-38-g7c19f56901` |
 | Code status | Phase 2 integrated selection implemented; build/check and focused mGBA routes passed |
 | Provenance | Local project feature docs |
 
 Status: Phase 2 implemented. Focused mGBA routes validated single 3-of-6,
 double 4-of-6, player Summary entry, in-battle viewer, and action-menu return.
-Code status: staged on open draft PR #20 (`feature/prebattle-team-viewer`);
-docs-only master handoff should use docs-only branch / PR. Older references to
+Code status: preserved as completed shelf #20 (`feature/prebattle-team-viewer`),
+closed 2026-05-17 after CI success; docs-only master handoff should use docs-only branch / PR. Older references to
 `feature/prebattle-team-viewer-phase2` below are historical implementation notes
 from the branch that supplied the current PR contents.
 

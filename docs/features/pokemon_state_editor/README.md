@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-15 |
-| Working branch | `feature/pokemon-state-editor-expansion` / PR #23 |
+| Last reviewed | 2026-05-17 |
+| Working branch | `feature/pokemon-state-editor-expansion` / completed shelf #23 |
 | Baseline | `master` `ab5abcad53`; `git describe` = `expansion/1.15.2-44-gab5abcad53` |
-| Code status | MVP implemented; open PR #23; UI polish and extra status fields added |
+| Code status | MVP implemented; completed shelf #23 closed 2026-05-17 after CI success; not on `master` |
 | Provenance | User request, local code review, and Pokemon Champions UI reference review |
 
 ## Goal

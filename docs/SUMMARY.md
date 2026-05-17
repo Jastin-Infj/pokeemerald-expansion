@@ -38,6 +38,7 @@
     - [Docs Audit 2026-05-09](manuals/docs_audit_2026_05_09.md)
     - [Feature Docs Entry](features/README.md)
     - [Feature Registry](features/feature_registry.md)
+    - [Implementation Shelf Audit 2026-05-17](features/implementation_shelf_audit_2026_05_17.md)
     - [Runtime Integration Gate](manuals/runtime_integration_gate.md)
     - [Local Config And Flag Ledger](manuals/local_config_and_flag_ledger.md)
     - [Validation Evidence Matrix](manuals/validation_evidence_matrix.md)
