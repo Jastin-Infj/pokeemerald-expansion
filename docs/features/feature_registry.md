@@ -36,6 +36,21 @@
 | Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
 | Field Move Modernization / HM Removal | `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item` hold runtime slices. Docs say both the HM-free MVP and Field Kit itemization were locally validated and user-confirmed. | Do not describe this as unimplemented / no-code. Runtime source still stays off `master` until a selected implementation PR / integration branch is created. |
 
+### New Feature Candidate Snapshot (2026-05-17)
+
+These are fully new local feature candidates. They are docs-only planning
+entries, not open runtime implementation shelves, and they have no source
+changes on `master`.
+
+| Feature | Status | Code status | Docs | Runtime branch | Notes |
+|---|---|---|---|---|---|
+| Jukebox / Sound Archive | Planned | Docs only / No code changes | `docs/features/jukebox_sound_archive/` | None | Recommended first new runtime candidate. Avoids SaveBlock, battle hooks, Summary, TM/HM, Move Relearner, Bag, and Champions systems in MVP. |
+| Weather Lab Terminal | Planned | Docs only / No code changes | `docs/features/weather_lab_terminal/` | None | Debug / presentation utility for existing weather types. Default weather restore is TBD. |
+| Bounty Board / Request Board | Planned | Docs only / No code changes | `docs/features/bounty_board/` | None | Script-only item delivery first slice. No battle / catch hooks in MVP. |
+| Field Notes / Lore Codex | Planned | Docs only / No code changes | `docs/features/field_notes_codex/` | None | Worldbuilding archive with static text entries. No save / unlock / PokeNav in MVP. |
+| Route Mastery Passport | Planned | Docs only / No code changes | `docs/features/route_mastery_passport/` | None | Medium complexity. Needs route-specific map / trainer / item flag ownership audit. |
+| Trainer Titles / Achievement Badges | Planned | Docs only / No code changes | `docs/features/trainer_titles_achievement_badges/` | None | Event-flag title clerk MVP. Avoid Trainer Card and selected-title save state. |
+
 ### GitHub PR Queue Snapshot (2026-05-17)
 
 Open PR は「通したい実装候補」だけに絞る。ただし open は merge 許可ではなく、
@@ -138,6 +153,13 @@ feature complete にする前に、最低限次を確認する。
 | Feature | Status | Code Status | Docs | Notes |
 |---|---|---|---|---|
 | Project Work Manuals | Investigating | No code changes | `docs/manuals/` | 作業者向けの入口 manual。docs navigation、環境構築、GitHub 運用、データ編集、rebuild/test、generated data workflow、未調査 queue、種族値、技、TM/HM、Map/Fly の初動を整理。 |
+| Future Feature Candidates | Planned | Docs only / No code changes | `docs/features/future_feature_candidates.md` | 完全新規 feature 候補の一覧。Jukebox / Weather Lab / Bounty Board / Field Notes / Route Mastery / Trainer Titles を初期候補として整理。 |
+| Jukebox / Sound Archive | Planned | Docs only / No code changes | `docs/features/jukebox_sound_archive/` | 推奨 first new runtime candidate。既存 BGM の小型 sound test。save / battle / Summary / TM/HM / Bag / Champions を避ける。 |
+| Weather Lab Terminal | Planned | Docs only / No code changes | `docs/features/weather_lab_terminal/` | 既存 weather を debug / presentation 用に切り替える小型 terminal 候補。story weather と default restore が主リスク。 |
+| Bounty Board / Request Board | Planned | Docs only / No code changes | `docs/features/bounty_board/` | script-driven item delivery request board 候補。battle / catch / daily / SaveBlock は MVP 外。 |
+| Field Notes / Lore Codex | Planned | Docs only / No code changes | `docs/features/field_notes_codex/` | worldbuilding / lore archive 候補。3 fixed text entries の MVP から開始する。 |
+| Route Mastery Passport | Planned | Docs only / No code changes | `docs/features/route_mastery_passport/` | route completion checklist 候補。flag ownership と map section audit が必要。 |
+| Trainer Titles / Achievement Badges | Planned | Docs only / No code changes | `docs/features/trainer_titles_achievement_badges/` | event-flag based title clerk 候補。Trainer Card UI と selected-title save state は MVP 外。 |
 | Trainer Battle Party Selection | Validated branch | Implemented on `feature/battle-selection-mvp`; not on `master` | `docs/features/battle_selection/` | 通常 trainer battle 前に 6 匹から 3/4 匹を選出する MVP。既存 choose-half UI を流用し、single / double / party restore の user manual validation 済み。transition animation の影表示は cosmetic accepted issue。 |
 | Pokemart / Shop Configuration | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | `ScrCmd_pokemart`、`CreatePokemartMenu`、`Task_BuyMenu`、`data/maps/*Mart*/scripts.inc` を入口に調査。 |
 | Wild Pokemon Randomizer | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | `src/wild_encounter.c`、`src/data/wild_encounters.json`、DexNav / Pokedex area への影響を確認済み。build-time か runtime かは未決定。 |

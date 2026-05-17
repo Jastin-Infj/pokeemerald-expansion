@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `9376760f68`; `git describe` = `expansion/1.15.2-54-g9376760f68` |
+| Baseline | `master` `c8b8e57183`; `git describe` = `expansion/1.15.2-56-gc8b8e57183` |
 | Code status | Docs-only navigation |
 | Provenance | Local project overlay |
 
@@ -57,6 +57,19 @@ docs handoff、validation evidence を確認せずに `gh pr merge` しない。
 
 `validated branch`、`implemented draft`、`shipped` は混同しない。
 
+## New Feature Candidates
+
+These are docs-only candidates for future local features. They are not runtime
+implementation shelf PRs and have no source changes on `master`.
+
+- [Future Feature Candidates](future_feature_candidates.md)
+- [Jukebox / Sound Archive](jukebox_sound_archive/README.md)
+- [Weather Lab Terminal](weather_lab_terminal/README.md)
+- [Bounty Board / Request Board](bounty_board/README.md)
+- [Field Notes / Lore Codex](field_notes_codex/README.md)
+- [Route Mastery Passport](route_mastery_passport/README.md)
+- [Trainer Titles / Achievement Badges](trainer_titles_achievement_badges/README.md)
+
 ## Current Runtime Shelves
 
 2026-05-17 の `gh pr list` snapshot では、open runtime implementation shelf は
@@ -71,4 +84,3 @@ docs handoff、validation evidence を確認せずに `gh pr merge` しない。
 | #20 | Pre-Battle / In-Battle Team Viewer | `feature/prebattle-team-viewer` | `UNKNOWN` |
 
 この snapshot は古くなる。実装採用前は必ず `gh pr list` と `gh pr view` で再確認する。
-
