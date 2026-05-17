@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `9376760f68`; `git describe` = `expansion/1.15.2-54-g9376760f68` |
+| Baseline | `master` `c8b8e57183`; `git describe` = `expansion/1.15.2-56-gc8b8e57183` |
 | Code status | Docs-only evidence index |
 | Provenance | Feature test plans and current `gh pr list` snapshot |
 
@@ -35,6 +35,12 @@
 | Pokemon State Editor | [test_plan](../features/pokemon_state_editor/test_plan.md) | Not separately summarized in test_plan; local docs should be rebuilt before adoption. | `all`, `debug`, `check` passed after final visual follow-up. | Full `check`; no focused unit test listed. | Multiple mGBA sessions confirmed editor pages, values, slide/layout, redraw, and direct Lua data checks. | Several mGBA cleanup attempts left stale status entries; box Summary and legality locks remain follow-up. |
 | Pre-Battle / In-Battle Team Viewer | [test_plan](../features/prebattle_team_viewer/test_plan.md) | Not separately summarized in test_plan; local docs should be rebuilt before adoption. | `all`, `debug`, `check` passed after W route. | Full `check`; no automated preview-cache assertion yet. | Extensive mGBA screenshots cover single, double, in-battle viewer, held-key guard, Summary return, details persistence. | Trainer pool / randomized party identity still needs focused validation. |
 
+## Integration Candidates Without Open PR
+
+| Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
+|---|---|---|---|---|---|---|
+| No Random Encounters step-only | [test_plan](../features/no_random_encounters/test_plan.md) | Required for the docs-only adoption branch. | `all`, `debug`, `check` passed on `feature/no-random-encounters-step-only` on 2026-05-09. Not rerun in the 2026-05-17 docs-only pass. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild battle and flag ON no-encounter walking evidence recorded on 2026-05-09. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; runtime adoption needs a fresh branch, 3 file reapply, OFF / ON / OFF-restored mGBA pass, and Fishing / Sweet Scent / Rock Smash / scripted wild remain out of scope. |
+
 ## Docs-only Baseline Check
 
 Current `master` docs build was checked before this matrix update:
@@ -53,4 +59,3 @@ Current `master` docs build was checked before this matrix update:
   abandoned.
 - Do not change `UNKNOWN` merge state to `CLEAN` without fresh `gh` output.
 - Keep skipped long GitHub Actions waits in the feature `test_plan.md`.
-

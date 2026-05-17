@@ -23,6 +23,40 @@
 - Flag clear 後に encounter immunity steps が不自然に残らないこと。
 - Debug menu の ON/OFF 表示が flag 状態と一致すること。
 
+## Docs-Only Adoption Review: 2026-05-17
+
+Current decision:
+
+- This pass updates docs only. No source / include runtime file remains changed.
+- The future runtime branch should be
+  `feature/no-random-encounters-step-only-adopt-20260517` or a newer fresh branch
+  from current `master`.
+- Runtime adoption must re-apply only:
+  - `include/config/overworld.h`
+  - `include/constants/flags.h`
+  - `include/constants/flags_frlg.h`
+
+Required validation when runtime source is applied:
+
+| Check | Required result |
+|---|---|
+| `rtk mdbook build docs` | Passes with only known baseline warnings. |
+| `rtk make -j16 -O all` | Passes for the normal ROM. |
+| `rtk make -j16 -O debug` | Passes because the existing debug toggle is the intended validation route. |
+| `rtk make -j16 -O check` | Passes; no encounter logic regression should be introduced by flag allocation. |
+| mGBA flag OFF | Route 101 or equivalent grass still starts a normal wild encounter. |
+| mGBA flag ON | Standard walking encounters do not start after the debug toggle / flag set. |
+| mGBA flag OFF restored | Clearing the flag restores normal walking encounters. |
+
+Out-of-scope for this slice and should be recorded as unvalidated unless a later
+feature explicitly expands scope:
+
+- Fishing
+- Sweet Scent
+- Rock Smash
+- scripted `setwildbattle` / `dowildbattle`
+- option menu / runtime rule UI
+
 ## Validation Record: `feature/no-random-encounters`
 
 Date: 2026-05-05.
@@ -117,3 +151,17 @@ no source / data / config file changed on this branch. Before opening an
 implementation PR, re-apply the three-file slice on a current-master feature
 branch and rerun `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and one
 focused mGBA runtime check.
+
+## Docs-Only Adoption Record: 2026-05-17
+
+Non-invasive checks performed from current `master` before this docs update:
+
+| Check | Result | Notes |
+|---|---|---|
+| `rtk git status --short --branch` | passed | Clean `master` before creating the docs/adoption review branch. |
+| `rtk git describe --tags --always --dirty` | passed | `expansion/1.15.2-56-gc8b8e57183`. |
+| `rtk gh pr list --state open ...` | passed | Open runtime shelves rechecked; no random encounters has no open PR. |
+| `rtk git diff master..feature/no-random-encounters-step-only -- include/config/overworld.h include/constants/flags.h include/constants/flags_frlg.h` | passed | Historical runtime slice remains limited to the expected three files. |
+| `rg OW_FLAG_NO_ENCOUNTER ...` | passed | Current `master` still has the existing gate / debug toggle and config remains `0`. |
+
+No mGBA run was performed in this docs-only pass.

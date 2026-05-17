@@ -4,13 +4,13 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `5591163a09`; fresh implementation branch `feature/no-random-encounters-step-only` |
-| Code status | Implemented and locally validated on feature branch; not on `master` |
+| Last reviewed | 2026-05-17 |
+| Baseline | `master` `c8b8e57183`; `git describe` = `expansion/1.15.2-56-gc8b8e57183` |
+| Code status | Integration candidate; docs-only review on `feature/no-random-encounters-step-only-adopt-20260517`; runtime source not applied |
 | Provenance | Local project feature docs |
 
-Status: Feature branch validated
-Code status: not on `master`; 3 file implementation is active on `feature/no-random-encounters-step-only`
+Status: Integration candidate
+Code status: not on `master`; validated 3 file implementation remains on `feature/no-random-encounters-step-only`
 
 ## Goal
 
@@ -31,9 +31,27 @@ Code status: not on `master`; 3 file implementation is active on `feature/no-ran
 
 MVP は既存 flag を使う。新しい encounter table や randomizer と混ぜない。`feature/no-random-encounters-step-only` では `FLAG_UNUSED_0x8E5` を `FLAG_NO_ENCOUNTER` に rename し、`OW_FLAG_NO_ENCOUNTER` へ割り当てる 3 file 実装を current `master` から切り直して再検証済み。
 
+## 2026-05-17 Docs-Only Adoption Review
+
+この review では source / include を変更しない。runtime 採用時の差分は過去 branch
+の merge ではなく、current `master` から切った fresh branch に次の 3 files だけを
+再適用する。
+
+| Area | Dependency / decision |
+|---|---|
+| Flag allocation | `OW_FLAG_NO_ENCOUNTER` は bool ではなく event flag id config。`TRUE` / `1` は使わず、明示 ID `FLAG_NO_ENCOUNTER` を割り当てる。 |
+| Candidate flag | 既存 evidence では `FLAG_UNUSED_0x8E5` (`SYSTEM_FLAGS + 0x85`) を `FLAG_NO_ENCOUNTER` に rename する。 |
+| Runtime gate | `src/field_control_avatar.c` の既存 `CheckStandardWildEncounter` gate を使う。新しい encounter hook は追加しない。 |
+| Debug route | `src/debug.c` の既存 toggle は `OW_FLAG_NO_ENCOUNTER != 0` の時だけ有効。flag id 割り当て後に validation route として使える。 |
+| Wild data | `src/data/wild_encounters.json` / generated wild encounter tables は変更しない。 |
+| Scope boundary | land / water の通常歩行 encounter だけを止める。Fishing、Sweet Scent、Rock Smash、scripted wild battle はこの slice では触らない。 |
+
+この feature は runtime rule options、Champions Challenge、debug / facility rule の土台に
+なるが、option UI や broad wild suppression へ広げるのは別 feature に分ける。
+
 ## Master Policy Note
 
-As of 2026-05-09, the validated implementation exists on
+As of 2026-05-17, the validated implementation exists on
 `feature/no-random-encounters-step-only`, but source changes are intentionally
 not copied to `master`. `master` remains the upstream intake baseline plus docs
 / workflow overlay. Keep `include/config/overworld.h` at
