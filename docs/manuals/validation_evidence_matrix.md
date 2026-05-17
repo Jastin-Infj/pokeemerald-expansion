@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
+| Baseline | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
 | Code status | Docs-only evidence index |
 | Provenance | Feature test plans and current `gh pr list` snapshot |
 
@@ -39,7 +39,7 @@
 
 | Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
-| No Random Encounters step-only | [test_plan](../features/no_random_encounters/test_plan.md) | Required for the docs-only adoption branch. | `all`, `debug`, `check` passed on `feature/no-random-encounters-step-only` on 2026-05-09. Not rerun in the 2026-05-17 docs-only pass. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild battle and flag ON no-encounter walking evidence recorded on 2026-05-09. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; runtime adoption needs a fresh branch, 3 file reapply, OFF / ON / OFF-restored mGBA pass, and Fishing / Sweet Scent / Rock Smash / scripted wild remain out of scope. |
+| No Random Encounters step-only | [test_plan](../features/no_random_encounters/test_plan.md) | Required before runtime PR handoff. | `all`, `debug`, `check` passed on `feature/no-random-encounters-step-only-runtime-20260517` on 2026-05-17. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild Wurmple battle, flag ON no-encounter walking for 2400 macro frames, and flag OFF-restored Poochyena battle recorded on 2026-05-17. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; Fishing / Sweet Scent / Rock Smash / scripted wild remain out of MVP scope. |
 | Battle BGM Selector / Sound Archive | [test_plan](../features/battle_bgm_selector/test_plan.md) | Passed with existing warnings on branch. | `all`, `debug`, `check` passed on `feature/battle-bgm-selector-mvp-20260517` on 2026-05-17 after the split Trainer/Wild rewrite and BW/BW2 + DPPt/Platinum/HGSS imports. | `test/battle_bgm.c` covers Default, Trainer/Wild independence, expanded trainer choices, expanded wild/legendary choices, and imported BW/BW2, DPPt, Platinum, and HGSS song routing, including Galactic/Rocket/Frontier/legendary choices. Generated imported battle `.s` files were scanned and no `PRIO` commands remain in the newly added tracks after `mus_pl_vs_regi` was moved to `-Q`. | mGBA Live booted existing save, opened split debug `Trainer BGM...` / `Wild BGM...`, set Kanto choices, started debug trainer battle, and confirmed BGM song header matched `mus_rg_vs_trainer`. Later passes selected and previewed `BW2 Iris` / `BW Legend`, `HGSS Ho-Oh` / `DPPt Legend` / `DPPt Champ`, and `HGSS Rocket` / `DPPt Cyrus`. Expanded preview pass selected `Plt Frontier`, `HGSS Arceus`, and `Plt Regi` and confirmed `gMPlayInfo_BGM.songHeader` matched the imported song headers. | Actual wild step encounter after split choice and actual Trainer/Wild battle starts using the expanded imported batch remain manual follow-up. Modern Emerald source license / permission status is unresolved for master adoption. |
 
 ## Docs-Only Planned Policy Features

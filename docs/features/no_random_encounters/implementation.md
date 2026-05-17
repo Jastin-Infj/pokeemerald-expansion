@@ -5,18 +5,16 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Branch | `feature/no-random-encounters-step-only` |
-| Base | Validated runtime branch from `master` `5591163a09`; docs-only adoption review from `master` `c8b8e57183` |
+| Branch | `feature/no-random-encounters-step-only-runtime-20260517` |
+| Base | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
 | Scope | Step-based random encounter suppression via existing overworld flag gate |
 
 ## Implementation Summary
 
 The referenced implementation branch re-applies the previously validated
 runtime slice on top of current `master` without merging the old feature branch.
-
-The 2026-05-17 adoption pass is docs-only. The runtime slice below was reviewed
-against current `master`, then left unapplied because source / include changes
-are not part of this pass.
+The 2026-05-17 runtime branch keeps the source scope to the same three files
+and records fresh local build plus mGBA evidence.
 
 Changed files:
 
@@ -52,22 +50,34 @@ scripted `setwildbattle` / `dowildbattle` paths.
 
 ## Validation
 
-Local validation on 2026-05-09:
+Local validation on `feature/no-random-encounters-step-only-runtime-20260517`
+on 2026-05-17:
 
 | Check | Result |
 |---|---|
 | `rtk git diff --check` | Passed. |
-| `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
 | `rtk make -j16 -O all` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
 | `rtk make -j16 -O check` | Passed with existing RWX linker warning. |
-| mGBA Live OFF check | Passed. `FLAG_NO_ENCOUNTER=false`, `repel=0`, Route 101 grass movement started a wild Wurmple battle. |
+| mGBA Live OFF check | Passed. `FLAG_NO_ENCOUNTER=false`, `repel=0`, Route 101 grass movement started a wild Wurmple battle after 163 macro frames. |
 | mGBA Live ON check | Passed. `FLAG_NO_ENCOUNTER=true`, `repel=0`, Route 101 grass movement for 2400 macro frames stayed on `CB2_Overworld`. |
-| mGBA Live cleanup | Passed. Both sessions stopped and CLI `status --all` returned `[]`. |
+| mGBA Live OFF-restored check | Passed. Clearing `FLAG_NO_ENCOUNTER` restored a Route 101 wild battle after 394 macro frames. |
+| mGBA Live cleanup | Passed after retry. CLI `stop` initially left `mgba-qt` defunct / `alive_after:true`; MCP `mgba_live_stop` cleared the stale session and final CLI `status --all` returned `[]`. |
 
 Screenshots:
 
-- `/tmp/mgba-noencounter-fresh-off-wild-battle-20260509.png`
-- `/tmp/mgba-noencounter-fresh-on-after-2400frames-20260509.png`
+- `/tmp/no-random-encounters-20260517/off-wild-battle.png`
+- `/tmp/no-random-encounters-20260517/on-after-2400frames.png`
+- `/tmp/no-random-encounters-20260517/off-restored-wild-battle.png`
+
+Runtime setup notes:
+
+- ROM copy: `/tmp/no-random-encounters-20260517/no-random.gba`
+- Save copy: `/tmp/no-random-encounters-20260517/no-random.sav`, copied from ignored local `pokeemerald.sav`
+- Session: `codex-no-random-20260517`
+- Route: Debug menu warp to `MAP_ROUTE101` (`map_group=0`, `map_num=16`)
+- Symbol anchors: `gSaveBlock1Ptr=0x03005208`, `gMain=0x03006704`, `FLAG_NO_ENCOUNTER=0x8E5`, `SaveBlock1.flags=save1+0x1270`
+- `gBattleTypeFlags` retained `0x4` after returning from the OFF battle; use callback / screen / flag state as the runtime oracle.
 
 Docs-only review on 2026-05-17:
 
@@ -77,7 +87,7 @@ Docs-only review on 2026-05-17:
 | `rtk git describe --tags --always --dirty` | `expansion/1.15.2-56-gc8b8e57183`. |
 | `rtk gh pr list --state open ...` | Open runtime shelves were rechecked; no random encounters has no open PR yet. |
 | Source scope review | Historical branch diff is still limited to `include/config/overworld.h`, `include/constants/flags.h`, and `include/constants/flags_frlg.h`. |
-| Runtime build / mGBA | Not run in this docs-only pass because no source / include file remains changed. |
+| Runtime build / mGBA | Superseded by the 2026-05-17 runtime branch validation above. |
 
 ## Remaining Risks
 
@@ -95,8 +105,3 @@ runtime files above plus these docs, and use local build / mGBA evidence for
 handoff instead of waiting on long Actions runs. If this branch is PR'd, target
 the selected feature / integration base; merging runtime source into `master`
 should remain an explicit policy decision, not an accidental docs merge.
-
-If runtime adoption resumes, create a fresh branch from current `master` and
-re-apply only the three file slice above, then rerun `rtk make -j16 -O all`,
-`rtk make -j16 -O debug`, `rtk make -j16 -O check`, and focused mGBA OFF / ON /
-OFF-restored encounter checks before opening the implementation PR.
