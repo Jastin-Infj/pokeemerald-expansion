@@ -64,6 +64,7 @@ implementation shelf PRs and have no source changes on `master`.
 
 - [Future Feature Candidates](future_feature_candidates.md)
 - [Jukebox / Sound Archive](jukebox_sound_archive/README.md)
+- [Battle BGM Selector / Sound Archive](battle_bgm_selector/README.md)
 - [Weather Lab Terminal](weather_lab_terminal/README.md)
 - [Bounty Board / Request Board](bounty_board/README.md)
 - [Field Notes / Lore Codex](field_notes_codex/README.md)

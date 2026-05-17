@@ -76,6 +76,7 @@
     - [TM/HM Expansion 250-300 v15](overview/tm_hm_expansion_250_v15.md)
     - [Future Feature Candidates](features/future_feature_candidates.md)
       - [Jukebox / Sound Archive](features/jukebox_sound_archive/README.md)
+      - [Battle BGM Selector / Sound Archive](features/battle_bgm_selector/README.md)
       - [Weather Lab Terminal](features/weather_lab_terminal/README.md)
       - [Bounty Board / Request Board](features/bounty_board/README.md)
       - [Field Notes / Lore Codex](features/field_notes_codex/README.md)

@@ -46,6 +46,7 @@ changes on `master`.
 | Feature | Status | Code status | Docs | Runtime branch | Notes |
 |---|---|---|---|---|---|
 | Jukebox / Sound Archive | Planned | Docs only / No code changes | `docs/features/jukebox_sound_archive/` | None | Recommended first new runtime candidate. Avoids SaveBlock, battle hooks, Summary, TM/HM, Move Relearner, Bag, and Champions systems in MVP. |
+| Battle BGM Selector / Sound Archive | Implemented draft | Runtime source plus BW/BW2, DPPt, Platinum, and HGSS battle BGM imports on feature branch; no code changes on `master` | `docs/features/battle_bgm_selector/` | `feature/battle-bgm-selector-mvp-20260517` | Debug Trainer/Wild selector plus selected Modern Emerald import slices, including Galactic/Rocket, Platinum, HGSS Kanto, beast, Frontier, and legendary follow-up choices. No SaveBlock or trainer data changes. DPPt / Platinum / HGSS uses imported `.aif` sample tooling. Modern Emerald license / permission status remains a master-adoption risk. |
 | Weather Lab Terminal | Planned | Docs only / No code changes | `docs/features/weather_lab_terminal/` | None | Debug / presentation utility for existing weather types. Default weather restore is TBD. |
 | Bounty Board / Request Board | Planned | Docs only / No code changes | `docs/features/bounty_board/` | None | Script-only item delivery first slice. No battle / catch hooks in MVP. |
 | Field Notes / Lore Codex | Planned | Docs only / No code changes | `docs/features/field_notes_codex/` | None | Worldbuilding archive with static text entries. No save / unlock / PokeNav in MVP. |
