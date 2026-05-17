@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_bgm.h"
 #include "battle_setup.h"
 #include "berry.h"
 #include "clock.h"
@@ -351,6 +352,9 @@ static void DebugAction_Sound_SE(u8 taskId);
 static void DebugAction_Sound_SE_SelectId(u8 taskId);
 static void DebugAction_Sound_MUS(u8 taskId);
 static void DebugAction_Sound_MUS_SelectId(u8 taskId);
+static void DebugAction_Sound_TrainerBGM(u8 taskId);
+static void DebugAction_Sound_WildBGM(u8 taskId);
+static void DebugAction_Sound_BattleBGM_SelectChoice(u8 taskId);
 
 static void DebugAction_BerryFunctions_ClearAll(u8 taskId);
 static void DebugAction_BerryFunctions_Ready(u8 taskId);
@@ -471,6 +475,7 @@ static const u8 sDebugText_EVs[] =                      _("EV {STR_VAR_1}:{CLEAR
 // Sound Menu
 static const u8 sDebugText_Sound_SFX_ID[] =             _("SFX ID: {STR_VAR_3}   {START_BUTTON} Stop\n{STR_VAR_1}    \n{STR_VAR_2}");
 static const u8 sDebugText_Sound_Music_ID[] =           _("Music ID: {STR_VAR_3}   {START_BUTTON} Stop\n{STR_VAR_1}    \n{STR_VAR_2}");
+static const u8 sDebugText_Sound_BattleBGM_Choice[] =   _("{STR_VAR_1} BGM:\n{STR_VAR_2}\nA Set/Preview\n{START_BUTTON} Map  B Back");
 
 const u8 *const gText_DigitIndicator[] =
 {
@@ -676,8 +681,10 @@ static const struct DebugMenuOption sDebugMenu_Actions_Trainers[] =
 
 static const struct DebugMenuOption sDebugMenu_Actions_Sound[] =
 {
-    { COMPOUND_STRING("SFX…"),   DebugAction_Sound_SE },
-    { COMPOUND_STRING("Music…"), DebugAction_Sound_MUS },
+    { COMPOUND_STRING("SFX…"),         DebugAction_Sound_SE },
+    { COMPOUND_STRING("Music…"),       DebugAction_Sound_MUS },
+    { COMPOUND_STRING("Trainer BGM…"), DebugAction_Sound_TrainerBGM },
+    { COMPOUND_STRING("Wild BGM…"),    DebugAction_Sound_WildBGM },
     { NULL }
 };
 
@@ -3902,6 +3909,86 @@ static const u8 *const sBGMNames[END_MUS - START_MUS + 1];
 static const u8 *const sSENames[END_SE + 1];
 
 #define tCurrentSong  data[5]
+#define tBattleBgmTarget data[6]
+
+static void Debug_Display_BattleBGMChoice(u8 windowId, u8 target, u8 choice)
+{
+    StringCopy(gStringVar1, GetBattleBgmTargetName(target));
+    StringCopy(gStringVar2, GetBattleBgmChoiceName(choice));
+    StringExpandPlaceholders(gStringVar4, sDebugText_Sound_BattleBGM_Choice);
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(1));
+    AddTextPrinterParameterized(windowId, DEBUG_MENU_FONT, gStringVar4, 0, 0, 0, NULL);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
+}
+
+static void DebugAction_Sound_BattleBGM(u8 taskId, u8 target)
+{
+    u8 windowId;
+
+    ClearStdWindowAndFrame(gTasks[taskId].tWindowId, TRUE);
+    RemoveWindow(gTasks[taskId].tWindowId);
+
+    HideMapNamePopUpWindow();
+    LoadMessageBoxAndBorderGfx();
+    windowId = AddWindow(&sDebugMenuWindowTemplateSound);
+    DrawStdWindowFrame(windowId, FALSE);
+
+    Debug_Display_BattleBGMChoice(windowId, target, GetBattleBgmChoice(target));
+
+    gTasks[taskId].func = DebugAction_Sound_BattleBGM_SelectChoice;
+    gTasks[taskId].tSubWindowId = windowId;
+    gTasks[taskId].tInput = GetBattleBgmChoice(target);
+    gTasks[taskId].tBattleBgmTarget = target;
+}
+
+static void DebugAction_Sound_TrainerBGM(u8 taskId)
+{
+    DebugAction_Sound_BattleBGM(taskId, BATTLE_BGM_TARGET_TRAINER);
+}
+
+static void DebugAction_Sound_WildBGM(u8 taskId)
+{
+    DebugAction_Sound_BattleBGM(taskId, BATTLE_BGM_TARGET_WILD);
+}
+
+static void DebugAction_Sound_BattleBGM_SelectChoice(u8 taskId)
+{
+    if (JOY_NEW(DPAD_RIGHT | DPAD_DOWN))
+    {
+        PlaySE(SE_SELECT);
+        gTasks[taskId].tInput++;
+        if (gTasks[taskId].tInput >= BATTLE_BGM_CHOICE_COUNT)
+            gTasks[taskId].tInput = BATTLE_BGM_CHOICE_DEFAULT;
+        Debug_Display_BattleBGMChoice(gTasks[taskId].tSubWindowId, gTasks[taskId].tBattleBgmTarget, gTasks[taskId].tInput);
+    }
+    else if (JOY_NEW(DPAD_LEFT | DPAD_UP))
+    {
+        PlaySE(SE_SELECT);
+        if (gTasks[taskId].tInput == BATTLE_BGM_CHOICE_DEFAULT)
+            gTasks[taskId].tInput = BATTLE_BGM_CHOICE_COUNT - 1;
+        else
+            gTasks[taskId].tInput--;
+        Debug_Display_BattleBGMChoice(gTasks[taskId].tSubWindowId, gTasks[taskId].tBattleBgmTarget, gTasks[taskId].tInput);
+    }
+
+    if (JOY_NEW(A_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        SetBattleBgmChoice(gTasks[taskId].tBattleBgmTarget, gTasks[taskId].tInput);
+        PlayBGM(GetBattleBgmChoicePreviewSong(gTasks[taskId].tBattleBgmTarget, gTasks[taskId].tInput));
+        Debug_Display_BattleBGMChoice(gTasks[taskId].tSubWindowId, gTasks[taskId].tBattleBgmTarget, gTasks[taskId].tInput);
+    }
+    else if (JOY_NEW(START_BUTTON))
+    {
+        PlayBGM(GetCurrentMapMusic());
+    }
+    else if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        PlayBGM(GetCurrentMapMusic());
+        DebugAction_DestroyExtraWindow(taskId);
+    }
+}
 
 static void DebugAction_Sound_SE(u8 taskId)
 {
@@ -4072,6 +4159,7 @@ static void DebugAction_DestroyFollowerNPC(u8 taskId)
 }
 
 #undef tCurrentSong
+#undef tBattleBgmTarget
 
 
 #define SOUND_LIST_BGM              \
@@ -4283,7 +4371,42 @@ static void DebugAction_DestroyFollowerNPC(u8 taskId)
     X(MUS_RG_ENCOUNTER_DEOXYS)      \
     X(MUS_RG_TRAINER_TOWER)         \
     X(MUS_RG_SLOW_PALLET)           \
-    X(MUS_RG_TEACHY_TV_MENU)
+    X(MUS_RG_TEACHY_TV_MENU)         \
+    X(MUS_BW_VS_IRIS)                \
+    X(MUS_BW_VS_LEGEND)              \
+    X(MUS_DP_VS_WILD)                \
+    X(MUS_DP_VS_TRAINER)             \
+    X(MUS_DP_VS_GYM_LEADER)          \
+    X(MUS_DP_VS_CHAMPION)            \
+    X(MUS_DP_VS_LEGEND)              \
+    X(MUS_DP_VS_ELITE_FOUR)          \
+    X(MUS_DP_VS_GALACTIC)            \
+    X(MUS_DP_VS_GALACTIC_COMMANDER)  \
+    X(MUS_DP_VS_GALACTIC_BOSS)       \
+    X(MUS_DP_VS_RIVAL)               \
+    X(MUS_DP_VS_UXIE_MESPRIT_AZELF)  \
+    X(MUS_DP_VS_DIALGA_PALKIA)       \
+    X(MUS_DP_VS_ARCEUS)              \
+    X(MUS_PL_VS_GIRATINA)            \
+    X(MUS_PL_VS_FRONTIER_BRAIN)      \
+    X(MUS_PL_VS_REGI)                \
+    X(MUS_HG_VS_WILD)                \
+    X(MUS_HG_VS_TRAINER)             \
+    X(MUS_HG_VS_GYM_LEADER)          \
+    X(MUS_HG_VS_CHAMPION)            \
+    X(MUS_HG_VS_LUGIA)               \
+    X(MUS_HG_VS_HO_OH)               \
+    X(MUS_HG_VS_ROCKET)              \
+    X(MUS_HG_VS_RIVAL)               \
+    X(MUS_HG_VS_SUICUNE)             \
+    X(MUS_HG_VS_ENTEI)               \
+    X(MUS_HG_VS_RAIKOU)              \
+    X(MUS_HG_VS_WILD_KANTO)          \
+    X(MUS_HG_VS_TRAINER_KANTO)       \
+    X(MUS_HG_VS_GYM_LEADER_KANTO)    \
+    X(MUS_HG_VS_FRONTIER_BRAIN)      \
+    X(MUS_HG_VS_KYOGRE_GROUDON)      \
+    X(MUS_HG_VS_ARCEUS)
 
 #define SOUND_LIST_SE               \
     X(SE_USE_ITEM)                  \

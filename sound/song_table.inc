@@ -565,6 +565,41 @@ gSongTable::
 	song mus_rg_trainer_tower, MUSIC_PLAYER_BGM, 0
 	song mus_rg_slow_pallet, MUSIC_PLAYER_BGM, 0
 	song mus_rg_teachy_tv_menu, MUSIC_PLAYER_BGM, 0
+	song mus_bw_vs_iris, MUSIC_PLAYER_BGM, 0
+	song mus_bw_vs_legend, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_wild, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_trainer, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_gym_leader, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_champion, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_legend, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_elite_four, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_galactic, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_galactic_commander, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_galactic_boss, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_wild, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_trainer, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_gym_leader, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_champion, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_lugia, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_ho_oh, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_rocket, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_rival, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_uxie_mesprit_azelf, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_dialga_palkia, MUSIC_PLAYER_BGM, 0
+	song mus_dp_vs_arceus, MUSIC_PLAYER_BGM, 0
+	song mus_pl_vs_giratina, MUSIC_PLAYER_BGM, 0
+	song mus_pl_vs_frontier_brain, MUSIC_PLAYER_BGM, 0
+	song mus_pl_vs_regi, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_rival, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_suicune, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_entei, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_raikou, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_wild_kanto, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_trainer_kanto, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_gym_leader_kanto, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_frontier_brain, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_kyogre_groudon, MUSIC_PLAYER_BGM, 0
+	song mus_hg_vs_arceus, MUSIC_PLAYER_BGM, 0
 	song ph_trap_blend, MUSIC_PLAYER_SE2, 2
 	song ph_trap_held, MUSIC_PLAYER_SE2, 2
 	song ph_trap_solo, MUSIC_PLAYER_SE2, 2

@@ -41,6 +41,7 @@ int g_reverb = -1;
 int g_clocksPerBeat = 1;
 bool g_exactGateTime = false;
 bool g_compressionEnabled = true;
+bool g_suppressTrackPriority = false;
 
 [[noreturn]] static void PrintUsage()
 {
@@ -58,6 +59,7 @@ bool g_compressionEnabled = true;
         "            -X  48 clocks/beat (default:24 clocks/beat)\n"
         "            -E  exact gate-time\n"
         "            -N  no compression\n"
+        "            -Q  suppress MIDI PRIO controller output\n"
     );
     std::exit(1);
 }
@@ -165,6 +167,9 @@ int main(int argc, char** argv)
                 if (arg == nullptr)
                     PrintUsage();
                 g_priority = std::stoi(arg);
+                break;
+            case 'Q':
+                g_suppressTrackPriority = true;
                 break;
             case 'R':
                 arg = GetArgument(argc, argv, i);
