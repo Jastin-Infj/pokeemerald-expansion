@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
+| Baseline | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -30,7 +30,7 @@
 | Summary Tera Type Icon | Runtime implementation is staged in draft PR #26 on `feature/summary-tera-type-badge`. | Keep runtime source / imported graphics off `master` unless the implementation PR is explicitly selected. |
 | Pokemon State Editor | Runtime implementation is staged in PR #23 on `feature/pokemon-state-editor-expansion`. | Treat as an implementation PR shelf; resolve adoption order and merge state before touching `master`. |
 | Pre-Battle / In-Battle Team Viewer | Runtime implementation is staged in draft PR #20 on `feature/prebattle-team-viewer`. | Keep as a validated implementation shelf; verify merge state before any integration branch. |
-| No Random Encounters | `feature/no-random-encounters-step-only` に current `master` から切り直した 3 file の flag 割り当て実装がある。`master` の `OW_FLAG_NO_ENCOUNTER` はまだ `0`。2026-05-17 の adoption review は docs-only。 | 最初の小型 runtime adoption 候補。実装時は fresh branch に 3 file だけ再適用し、PR 上で build / mGBA evidence を確認する。docs-only branch は `master` へ merge 可能。 |
+| No Random Encounters | `feature/no-random-encounters-step-only-runtime-20260517` に current `master` から切り直した 3 file の flag 割り当て実装がある。`master` の `OW_FLAG_NO_ENCOUNTER` はまだ `0`。 | 最初の小型 runtime adoption 候補。fresh branch で `all` / `debug` / `check` と Route 101 OFF / ON / OFF-restored mGBA evidence を取り直し済み。 |
 | Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
 | Nonconsumable Held Items | `docs/features/nonconsumable_held_items/` に docs-only investigation を追加。Battle-end restore、Bag/party catalog assignment、item clause を分離して整理済み。 | Source は未実装。最初の runtime 候補は battle-end restore refresh。1 個の held item を複数匹へ割り当てる catalog mode は別 branch で Party / Bag / Storage UI を所有する。 |
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
@@ -86,7 +86,7 @@ close する。
 | # | 対象 | 期待 status 遷移 | Why first | 依存 |
 |---|---|---|---|---|
 | 0 | `docs/flows/save_data_flow_v15.md` | Planned を維持 | 既に SaveBlock / saved flag 方針は決定済み。実装 item ではなく、各 branch の gate として参照する。 | なし (docs only) |
-| 1 | `docs/features/no_random_encounters/` | Integration candidate → Fresh runtime PR | 影響範囲が最小。差分は flag rename と config 割り当ての 3 files だけで、既存 gate / debug toggle を使う。runtime integration gate の最初の小型採用テストに向く。 | 2026-05-09 に all/debug/check と mGBA Route 101 OFF/ON runtime check 済み。2026-05-17 は docs-only adoption review。 |
+| 1 | `docs/features/no_random_encounters/` | Integration candidate → Fresh runtime PR | 影響範囲が最小。差分は flag rename と config 割り当ての 3 files だけで、既存 gate / debug toggle を使う。runtime integration gate の最初の小型採用テストに向く。 | 2026-05-17 に fresh runtime branch で all/debug/check と mGBA Route 101 OFF/ON/OFF-restored runtime check 済み。 |
 | 2 | `docs/features/tm_shop_migration/` / PR #31 | Implemented draft → Merge-state recheck / ready decision | Current implementation PR is open draft; latest `gh pr list` returned `UNKNOWN`, so do not rely on older `CLEAN` notes. Docs handoff is already merged. | Unified Move Relearner virtual TM policy stays separate; FRLG-specific routes remain follow-up. |
 | 3 | `docs/features/unified_move_relearner/` / PR #28 | Implemented draft → Merge-state recheck / conflict resolution | Broad move candidate builder and long-list UX are implemented, but latest `gh pr list` returned `UNKNOWN`, so conflict state must be rechecked with `gh pr view`. | TM Shop Migration source branch and future virtual TM unlock policy. |
 | 4 | `docs/features/summary_tera_type_icon/` / PR #26 | Validated branch → Merge-state check | Small display-only UI slice with imported icon assets and local validation. | Pokemon Icon UI flow; imported graphics credit policy. |
@@ -167,7 +167,7 @@ feature complete にする前に、最低限次を確認する。
 | Trainer Battle Party Selection | Validated branch | Implemented on `feature/battle-selection-mvp`; not on `master` | `docs/features/battle_selection/` | 通常 trainer battle 前に 6 匹から 3/4 匹を選出する MVP。既存 choose-half UI を流用し、single / double / party restore の user manual validation 済み。transition animation の影表示は cosmetic accepted issue。 |
 | Pokemart / Shop Configuration | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | `ScrCmd_pokemart`、`CreatePokemartMenu`、`Task_BuyMenu`、`data/maps/*Mart*/scripts.inc` を入口に調査。 |
 | Wild Pokemon Randomizer | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | `src/wild_encounter.c`、`src/data/wild_encounters.json`、DexNav / Pokedex area への影響を確認済み。build-time か runtime かは未決定。 |
-| No Random Encounters | Integration candidate | Implemented on `feature/no-random-encounters-step-only`; docs-only adoption review on `feature/no-random-encounters-step-only-adopt-20260517`; not on `master` | `docs/features/no_random_encounters/` | `OW_FLAG_NO_ENCOUNTER` を使い、通常歩行中の land / water random encounter を止める候補。runtime 採用時は 3 file だけ fresh branch に再適用する。MVP は step-only。Fishing / Sweet Scent / Rock Smash / static wild battle / option UI は後続扱い。 |
+| No Random Encounters | Implemented runtime branch | Implemented on `feature/no-random-encounters-step-only-runtime-20260517`; not on `master` | `docs/features/no_random_encounters/` | `OW_FLAG_NO_ENCOUNTER` を使い、通常歩行中の land / water random encounter を止める候補。fresh branch の source diff は 3 file。MVP は step-only。Fishing / Sweet Scent / Rock Smash / static wild battle / option UI は後続扱い。 |
 | DexNav / Encounter UI | Investigating | No code changes | `docs/flows/dexnav_flow_v15.md` | Start menu DexNav、detector mode、SaveBlock3、12 land slots、Pokemon icon 描画を整理。 |
 | Trainer Party Reorder / Randomizer | Investigating | No code changes | `docs/features/battle_selection/opponent_party_and_randomizer.md` | `DoTrainerPartyPool`、`RandomizePoolIndices`、`AI_FLAG_RANDOMIZE_PARTY_INDICES` を確認。相手 party preview と関係。 |
 | TM/HM and Field Move Policy | Investigating | No code changes | `docs/overview/tm_hm_expansion_250_v15.md` | 250 TM 前提の item ID / bag / relearner / field HM coupling を確認。`FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CannotForgetMove` も継続参照。 |
