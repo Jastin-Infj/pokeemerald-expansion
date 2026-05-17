@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `c8b8e57183`; `git describe` = `expansion/1.15.2-56-gc8b8e57183` |
+| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -32,6 +32,7 @@
 | Pre-Battle / In-Battle Team Viewer | Runtime implementation is staged in draft PR #20 on `feature/prebattle-team-viewer`. | Keep as a validated implementation shelf; verify merge state before any integration branch. |
 | No Random Encounters | `feature/no-random-encounters-step-only` に current `master` から切り直した 3 file の flag 割り当て実装がある。`master` の `OW_FLAG_NO_ENCOUNTER` はまだ `0`。2026-05-17 の adoption review は docs-only。 | 最初の小型 runtime adoption 候補。実装時は fresh branch に 3 file だけ再適用し、PR 上で build / mGBA evidence を確認する。docs-only branch は `master` へ merge 可能。 |
 | Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
+| Nonconsumable Held Items | `docs/features/nonconsumable_held_items/` に docs-only investigation を追加。Battle-end restore、Bag/party catalog assignment、item clause を分離して整理済み。 | Source は未実装。最初の runtime 候補は battle-end restore refresh。1 個の held item を複数匹へ割り当てる catalog mode は別 branch で Party / Bag / Storage UI を所有する。 |
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
 | Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
 | Field Move Modernization / HM Removal | `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item` hold runtime slices. Docs say both the HM-free MVP and Field Kit itemization were locally validated and user-confirmed. | Do not describe this as unimplemented / no-code. Runtime source still stays off `master` until a selected implementation PR / integration branch is created. |
@@ -50,6 +51,7 @@ changes on `master`.
 | Field Notes / Lore Codex | Planned | Docs only / No code changes | `docs/features/field_notes_codex/` | None | Worldbuilding archive with static text entries. No save / unlock / PokeNav in MVP. |
 | Route Mastery Passport | Planned | Docs only / No code changes | `docs/features/route_mastery_passport/` | None | Medium complexity. Needs route-specific map / trainer / item flag ownership audit. |
 | Trainer Titles / Achievement Badges | Planned | Docs only / No code changes | `docs/features/trainer_titles_achievement_badges/` | None | Event-flag title clerk MVP. Avoid Trainer Card and selected-title save state. |
+| Nonconsumable Held Items | Planned | Docs only / No code changes | `docs/features/nonconsumable_held_items/` | None | Champions-style held item policy. Battle-end restore is the first small runtime candidate; catalog assignment is a separate UI/ownership slice. |
 
 ### GitHub PR Queue Snapshot (2026-05-17)
 
@@ -91,11 +93,12 @@ close する。
 | 6 | `docs/features/prebattle_team_viewer/` / PR #20 | Implemented MVP → Merge-state check | Team preview / selection and in-battle viewer have focused mGBA evidence; remaining work is pool/randomized preview validation and stale merge-state review. | Battle selection restore flow and trainer pool behavior. |
 | 7 | `docs/features/field_move_modernization/` | Validated branch evidence → Fresh PR / integration branch | README records HM-free field move MVP plus Field Kit itemization as implemented and user-confirmed. | TM Shop Migration retired old HM receive flags; capability flags must stay owned by field move feature. |
 | 8 | `docs/features/battle_item_restore_policy/` | Closed PR evidence → Fresh branch if resumed | #14 は閉じたため open queue ではない。item restore 自体は focused tests と mGBA evidence を持つ integration candidate として docs に残す。 | aftercare と同一旧 branch 由来だが独立して取り込む |
-| 9 | `docs/features/trainer_battle_aftercare/` | Closed PR evidence → Fresh branch if resumed | #10 は閉じたため open queue ではない。default off の heal-only hook を再開するなら focused test gate を先に置く。 | battle item restore の取り込み後に競合を避ける |
-| 10 | `docs/features/champions_challenge/` partygen CLI + catalog | Closed PR evidence → Review / Testing | #7 は閉じたため open queue ではない。Rust CLI、catalog、`src/data/trainers.party` の大型差分を含むため、generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
-| 11 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
-| 12 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
-| 13 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / team_viewer / aftercare ordering |
+| 9 | `docs/features/nonconsumable_held_items/` | Planned → Fresh runtime PR | User-requested Champions-style held item policy. The first slice can reuse battle-end restore evidence, but catalog / one-copy assignment must be a separate UI ownership branch. | battle_item_restore_policy; Party / Bag / Storage held-item paths; optional Champions Challenge runtime. |
+| 10 | `docs/features/trainer_battle_aftercare/` | Closed PR evidence → Fresh branch if resumed | #10 は閉じたため open queue ではない。default off の heal-only hook を再開するなら focused test gate を先に置く。 | battle item restore の取り込み後に競合を避ける |
+| 11 | `docs/features/champions_challenge/` partygen CLI + catalog | Closed PR evidence → Review / Testing | #7 は閉じたため open queue ではない。Rust CLI、catalog、`src/data/trainers.party` の大型差分を含むため、generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
+| 12 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
+| 13 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
+| 14 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / team_viewer / aftercare ordering |
 
 このリストは branch 切り替え時に必ず読む。実装着手で順序が変わった場合はこの section を更新する。
 
@@ -183,6 +186,7 @@ feature complete にする前に、最低限次を確認する。
 | TM Shop Migration | Implemented draft / PR #31 draft | Implemented on `feature/tm-shop-migration`; not on `master` | `docs/features/tm_shop_migration/` | Emerald normal-progression legacy TM/HM acquisition retirement is staged in PR #31. Docs-only handoff is on `master` via PR #30. FRLG-specific routes remain follow-up. |
 | Custom Items / Moves / Abilities | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | constants、data table、UI、battle behavior、AI、tests への影響範囲を横断 map に整理。 |
 | Battle Item Restore Policy | Integration candidate | Branch implementation exists; not on `master` | `docs/features/battle_item_restore_policy/` | `feature/battle-item-restore-policy` に `B_RESTORE_HELD_BATTLE_BERRIES` default `TRUE`、`TryRestoreHeldItems()` の berry restore、direct / full battle tests、mGBA Live evidence がある。`master` へは source 未反映。 |
+| Nonconsumable Held Items | Planned | Docs only / No code changes | `docs/features/nonconsumable_held_items/` | Champions-style policy for nonconsuming battle held items and future one-copy catalog assignment. Does not change runtime source on `master`. |
 | Trainer Battle Aftercare / Forced Release | Planned / branch implementation | Heal-only branch implementation exists; not on `master` | `docs/features/trainer_battle_aftercare/` | `feature/trainer-battle-aftercare-heal` に `B_TRAINER_BATTLE_AFTERCARE` default off の通常 trainer battle 勝利後 heal-only hook がある。no-whiteout、forced release、battle selection integration は後続。 |
 | Callback / Dispatch Audit | Investigating | No code changes | `docs/overview/callback_dispatch_map_v15.md` | `SetMainCallback2`、`CB2_*`、`CreateTask`、`ScrCmd_*`、`special`、field callback の確認用 docs。 |
 | Map Script / Flag / Var Audit | Investigating | No code changes | `docs/flows/map_script_flag_var_flow_v15.md` | `map.json`、generated `.inc`、hand-written `scripts.inc`、NPC hide flag、coord/bg event、item ball / hidden item flow を整理。 |

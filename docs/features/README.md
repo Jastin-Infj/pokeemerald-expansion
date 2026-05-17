@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `c8b8e57183`; `git describe` = `expansion/1.15.2-56-gc8b8e57183` |
+| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
 | Code status | Docs-only navigation |
 | Provenance | Local project overlay |
 
@@ -69,6 +69,14 @@ implementation shelf PRs and have no source changes on `master`.
 - [Field Notes / Lore Codex](field_notes_codex/README.md)
 - [Route Mastery Passport](route_mastery_passport/README.md)
 - [Trainer Titles / Achievement Badges](trainer_titles_achievement_badges/README.md)
+
+## Policy Feature Candidates
+
+These docs track larger gameplay policy candidates that are not source changes
+on `master`. They often depend on existing implementation shelves but should be
+adopted through fresh runtime branches.
+
+- [Nonconsumable Held Items](nonconsumable_held_items/README.md)
 
 ## Current Runtime Shelves
 

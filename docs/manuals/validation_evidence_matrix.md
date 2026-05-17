@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `c8b8e57183`; `git describe` = `expansion/1.15.2-56-gc8b8e57183` |
+| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
 | Code status | Docs-only evidence index |
 | Provenance | Feature test plans and current `gh pr list` snapshot |
 
@@ -40,6 +40,12 @@
 | Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
 | No Random Encounters step-only | [test_plan](../features/no_random_encounters/test_plan.md) | Required for the docs-only adoption branch. | `all`, `debug`, `check` passed on `feature/no-random-encounters-step-only` on 2026-05-09. Not rerun in the 2026-05-17 docs-only pass. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild battle and flag ON no-encounter walking evidence recorded on 2026-05-09. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; runtime adoption needs a fresh branch, 3 file reapply, OFF / ON / OFF-restored mGBA pass, and Fishing / Sweet Scent / Rock Smash / scripted wild remain out of scope. |
+
+## Docs-Only Planned Policy Features
+
+| Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
+|---|---|---|---|---|---|---|
+| Nonconsumable Held Items | [test_plan](../features/nonconsumable_held_items/test_plan.md) | Required for this docs-only branch. | Not required until runtime adoption. | Not implemented. Future tests must cover battle-end restore and Bag quantity drift separately. | Not required until runtime adoption. | Battle-end restore is separable from catalog assignment. Party / Bag / Storage UI ownership, Mail exclusion, and stolen / swapped item ownership remain open. |
 
 ## Docs-only Baseline Check
 
