@@ -71,9 +71,9 @@ move 解放は別 feature / story flag 側へ寄せる。
 | Data changes | Emerald TM item balls / hidden item removed from `map.json`; Emerald HM item grants removed from scripts; debug-only TM shop added |
 | Docs | Implementation handoff updated |
 
-As of the 2026-05-17 PR snapshot, PR #31 is an open draft with
-`mergeStateStatus` = `CLEAN`; checks are successful except skipped
-label/allcontributors jobs.
+As of the latest 2026-05-17 `gh pr list` snapshot, PR #31 is an open draft with
+`mergeStateStatus` = `UNKNOWN`; checks are successful except skipped
+label/allcontributors jobs. Re-check with `gh pr view 31` before source integration.
 
 ## Scope Note
 

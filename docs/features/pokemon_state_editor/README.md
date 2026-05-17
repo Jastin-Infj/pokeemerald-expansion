@@ -166,6 +166,7 @@ These notes remain open for a later UI/data polish pass:
 ## Child Docs
 
 - [Dependencies](dependencies.md)
+- [Investigation](investigation.md)
 - [MVP Plan](mvp_plan.md)
 - [Implementation](implementation.md)
 - [Risks](risks.md)

@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-17 |
-| Baseline | `master` `a08dd372f2`; `git describe` = `expansion/1.15.2-52-ga08dd372f2` |
+| Baseline | `master` `9376760f68`; `git describe` = `expansion/1.15.2-54-g9376760f68` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -51,8 +51,8 @@ close する。
 
 | PR | Branch | State | Action |
 |---|---|---|---|
-| #31 `[codex] Implement TM shop migration` | `feature/tm-shop-migration` | Open draft. `mergeStateStatus` = `CLEAN`. Current checks are successful except skipped label/allcontributors jobs. | Current implementation shelf for TM/HM acquisition retirement. Docs-only handoff is already on `master` via #30; do not merge this PR for docs-only work. |
-| #28 `[codex] Implement unified move relearner` | `feature/unified-move-relearner` | Open draft. `mergeStateStatus` = `DIRTY`. Current checks are successful except skipped label/allcontributors jobs. | Implementation shelf for the unified relearner. Resolve conflict / rebase before any source integration. Docs-only handoff is already on `master` via #29. |
+| #31 `[codex] Implement TM shop migration` | `feature/tm-shop-migration` | Open draft. `mergeStateStatus` = `UNKNOWN` in the 2026-05-17 `gh pr list` snapshot. Current checks are successful except skipped label/allcontributors jobs. | Current implementation shelf for TM/HM acquisition retirement. Docs-only handoff is already on `master` via #30; do not merge this PR for docs-only work. Re-check merge state with `gh pr view` before source integration. |
+| #28 `[codex] Implement unified move relearner` | `feature/unified-move-relearner` | Open draft. `mergeStateStatus` = `UNKNOWN` in the 2026-05-17 `gh pr list` snapshot. Current checks are successful except skipped label/allcontributors jobs. | Implementation shelf for the unified relearner. Re-check merge state / conflicts before any source integration. Docs-only handoff is already on `master` via #29. |
 | #26 `[codex] Add summary Tera type badge` | `feature/summary-tera-type-badge` | Open draft. `mergeStateStatus` = `UNKNOWN`. Current checks are successful except skipped label/allcontributors jobs. | Display-only Summary Tera icon shelf. Verify merge state before adoption; imported graphics stay out of docs-only `master`. |
 | #23 `[codex] Add Pokemon state editor` | `feature/pokemon-state-editor-expansion` | Open, non-draft. `mergeStateStatus` = `UNKNOWN`. Current checks are successful except skipped label/allcontributors jobs. | Pokemon State Editor implementation shelf. Confirm adoption order and remaining UI/data risks before merge. |
 | #20 `[codex] Implement prebattle team viewer` | `feature/prebattle-team-viewer` | Open draft. `mergeStateStatus` = `UNKNOWN`. Current checks are successful except skipped label/allcontributors jobs. | Pre-battle / in-battle team viewer shelf. Verify merge state and dependency order before integration. |
@@ -68,8 +68,8 @@ close する。
 | # | 対象 | 期待 status 遷移 | Why first | 依存 |
 |---|---|---|---|---|
 | 0 | `docs/flows/save_data_flow_v15.md` | Planned を維持 | 既に SaveBlock / saved flag 方針は決定済み。実装 item ではなく、各 branch の gate として参照する。 | なし (docs only) |
-| 1 | `docs/features/tm_shop_migration/` / PR #31 | Implemented draft → Review / ready decision | Current implementation PR is open draft and `CLEAN`; docs handoff is already merged. This is the freshest accepted runtime slice, but still not a `master` source merge by default. | Unified Move Relearner virtual TM policy stays separate; FRLG-specific routes remain follow-up. |
-| 2 | `docs/features/unified_move_relearner/` / PR #28 | Implemented draft → Rebase / conflict resolution | Broad move candidate builder and long-list UX are implemented, but GitHub reports `DIRTY`. | TM Shop Migration source branch and future virtual TM unlock policy. |
+| 1 | `docs/features/tm_shop_migration/` / PR #31 | Implemented draft → Merge-state recheck / ready decision | Current implementation PR is open draft; latest `gh pr list` returned `UNKNOWN`, so do not rely on older `CLEAN` notes. Docs handoff is already merged. | Unified Move Relearner virtual TM policy stays separate; FRLG-specific routes remain follow-up. |
+| 2 | `docs/features/unified_move_relearner/` / PR #28 | Implemented draft → Merge-state recheck / conflict resolution | Broad move candidate builder and long-list UX are implemented, but latest `gh pr list` returned `UNKNOWN`, so conflict state must be rechecked with `gh pr view`. | TM Shop Migration source branch and future virtual TM unlock policy. |
 | 3 | `docs/features/summary_tera_type_icon/` / PR #26 | Validated branch → Merge-state check | Small display-only UI slice with imported icon assets and local validation. | Pokemon Icon UI flow; imported graphics credit policy. |
 | 4 | `docs/features/pokemon_state_editor/` / PR #23 | Implemented MVP → Adoption review | Summary-launched editor is implemented; remaining risk is UI polish / box-summary / value legality, not initial investigation. | Summary UI ownership and future move editor separation. |
 | 5 | `docs/features/prebattle_team_viewer/` / PR #20 | Implemented MVP → Merge-state check | Team preview / selection and in-battle viewer have focused mGBA evidence; remaining work is pool/randomized preview validation and stale merge-state review. | Battle selection restore flow and trainer pool behavior. |

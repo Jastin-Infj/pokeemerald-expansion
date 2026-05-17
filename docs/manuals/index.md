@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `050a5ab7a3`; `git describe` = `expansion/1.15.2-25-g050a5ab7a3` |
+| Last reviewed | 2026-05-17 |
+| Baseline | `master` `9376760f68`; `git describe` = `expansion/1.15.2-54-g9376760f68` |
 | Code status | Docs-only manual index |
 | Provenance | Local project overlay |
 
@@ -30,6 +30,9 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | docs の調査日、baseline、由来、GitHub で見やすい Markdown ルールを確認したい | [Docs Markdown Policy](docs_markdown_policy.md) | `docs/manuals/`, `docs/features/`, `docs/flows/` |
 | 外部 ROM hack / GitHub / PokeCommunity / Discord / asset credit の調査ルールを確認したい | [External Reference And Credit Workflow](external_reference_credit_workflow.md) | GitHub, PokeCommunity, Hackdex, Discord, DeviantArt 等の外部 reference |
 | 最新 docs audit と既知の矛盾修正を確認したい | [Docs Audit 2026-05-09](docs_audit_2026_05_09.md) | docs metadata, baseline notes |
+| open PR / feature branch を current master に採用したい | [Runtime Integration Gate](runtime_integration_gate.md) | GitHub PR, feature branch, local validation |
+| local config macro / flag / save state の owner を確認したい | [Local Config And Flag Ledger](local_config_and_flag_ledger.md) | `include/config/*`, `include/constants/flags.h`, save flow docs |
+| open implementation shelf の検証証跡を横断したい | [Validation Evidence Matrix](validation_evidence_matrix.md) | feature `test_plan.md`, GitHub PR checks |
 | build / rebuild / test の作業順を確認したい | [Rebuild and Test Manual](rebuild_and_test_manual.md) | Makefile, feature `test_plan.md` |
 | mGBA Live MCP の設定、起動確認、失敗時の記録方法を確認したい | [mGBA Live MCP Manual](mgba_live_mcp_manual.md) | `docs/tools/mgba_live_*`, feature `test_plan.md` |
 | generated data の入力、lint、出力、差し替えを整理したい | [Generated Data Workflow Manual](generated_data_workflow.md) | `tools/`, generated data, feature docs |
