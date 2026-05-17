@@ -66,10 +66,14 @@ move 解放は別 feature / story flag 側へ寄せる。
 
 | Item | Status |
 |---|---|
-| Branch | `feature/tm-shop-migration` |
+| Branch | `feature/tm-shop-migration` / PR #31 |
 | Code changes | Emerald normal-progression legacy TM acquisition retired; reusable TMs enabled |
 | Data changes | Emerald TM item balls / hidden item removed from `map.json`; Emerald HM item grants removed from scripts; debug-only TM shop added |
 | Docs | Implementation handoff updated |
+
+As of the 2026-05-17 PR snapshot, PR #31 is an open draft with
+`mergeStateStatus` = `CLEAN`; checks are successful except skipped
+label/allcontributors jobs.
 
 ## Scope Note
 

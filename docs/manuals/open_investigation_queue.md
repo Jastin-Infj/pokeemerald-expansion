@@ -3,15 +3,28 @@
 この文書は、今後の branch で優先的に追加調査する候補をまとめる。
 各項目は、実装へ進む前に owning feature docs へ移すか、既存 feature docs の `Open Questions` / `risks.md` / `test_plan.md` に反映する。
 
+## Current Open Implementation Shelves (2026-05-17)
+
+以下は「未実装調査」ではなく、GitHub 上で open PR として残っている runtime
+implementation shelf。`master` へ直接 source を入れる許可ではない。
+
+| Feature | PR / branch | Current state | Remaining investigation |
+|---|---|---|---|
+| TM Shop Migration | #31 `feature/tm-shop-migration` | Open draft, `mergeStateStatus` = `CLEAN`, checks successful except skipped label/allcontributors jobs. Docs handoff merged via #30. | FRLG-specific TM/HM acquisition routes are outside the Emerald MVP; confirm before widening scope. |
+| Unified Move Relearner | #28 `feature/unified-move-relearner` | Open draft, `mergeStateStatus` = `DIRTY`, checks successful except skipped label/allcontributors jobs. Docs handoff merged via #29. | Resolve conflict / rebase, then decide virtual TM unlock policy and special-source label granularity. |
+| Summary Tera Type Icon | #26 `feature/summary-tera-type-badge` | Open draft, `mergeStateStatus` = `UNKNOWN`, checks successful except skipped label/allcontributors jobs. | Verify current merge state and asset credit before adoption. |
+| Pokemon State Editor | #23 `feature/pokemon-state-editor-expansion` | Open non-draft, `mergeStateStatus` = `UNKNOWN`, checks successful except skipped label/allcontributors jobs. | Confirm adoption order, box-summary policy, and remaining redraw / legality polish. |
+| Pre-Battle / In-Battle Team Viewer | #20 `feature/prebattle-team-viewer` | Open draft, `mergeStateStatus` = `UNKNOWN`, checks successful except skipped label/allcontributors jobs. | Validate trainer pool / randomized party preview consistency before treating the feature as ready. |
+
 ## High Priority
 
 | Topic | Current owner | Why it matters | Next investigation |
 |---|---|---|---|
-| battle item restore adoption defaults | `docs/features/battle_item_restore_policy/` | PR #10 source uses `B_RESTORE_HELD_BATTLE_BERRIES TRUE`, while conservative branch policy may prefer default off. | Decide default TRUE/FALSE before source re-apply; keep the decision in `adoption_investigation_2026_05_09.md` and `mvp_plan.md`. |
+| battle item restore adoption defaults | `docs/features/battle_item_restore_policy/` | Closed PR #14 and older branch evidence use `B_RESTORE_HELD_BATTLE_BERRIES TRUE`, while conservative branch policy may prefer default off. | Decide default TRUE/FALSE before source re-apply; keep the decision in `adoption_investigation_2026_05_09.md` and `mvp_plan.md`. |
 | trainer aftercare focused test gate | `docs/features/trainer_battle_aftercare/` | The source hook is small but touches `CB2_EndTrainerBattle`, a central callback for win/loss/facility return. | Add focused config-off, normal-win, and exclusion-path tests before adopting the aftercare slice. |
-| prebattle team viewer pool validation | `docs/features/prebattle_team_viewer/` | Single route は `Party -> Team Viewer Battle`、double 4-of-6 route は `Party -> Team Viewer W` で mGBA 確認済み。残りは trainer pool / randomized party の preview-cache一致確認。 | W route を regression に使いつつ、cached opponent party と pool / randomized battle 実体の一致を確認する。 |
-| unified move relearner implementation | `docs/features/unified_move_relearner/` | level-up / egg / TM / tutor を 1 list に混ぜると候補数上限、dedupe、TM 所持 policy が大きく変わる。 | `MAX_RELEARNER_MOVES` overflow policy と TM ownership policy を決め、candidate builder を実装する前に focused tests を置く。 |
-| pokemon state editor expansion | `docs/features/pokemon_state_editor/` | IV / EV 以外に性格、特性、性別、産地、なつき度を触ると personality / stat recalculation / summary 表示に影響する。 | 既存 Uroxido/state-editor source path を特定し、party-only MVP か box 対応込みかを決める。 |
+| prebattle team viewer pool validation | `docs/features/prebattle_team_viewer/` | PR #20 has implemented viewer / selection routes and mGBA evidence. Remaining risk is not initial implementation, but whether cached preview matches trainer pools / randomized party behavior. | W route を regression に使いつつ、cached opponent party と pool / randomized battle 実体の一致を確認する。 |
+| unified move relearner adoption policy | `docs/features/unified_move_relearner/` | PR #28 implements the candidate builder and long-list handling, but GitHub reports `DIRTY`. Policy decisions still affect runtime semantics. | Resolve the merge conflict first, then decide virtual TM unlock default, special-source labels, and manual teach/overwrite validation coverage. |
+| pokemon state editor adoption polish | `docs/features/pokemon_state_editor/` | PR #23 implements the party Summary MVP. Remaining questions are box support, redraw artifacts, legality locks, and whether the open non-draft PR is still the desired next adoption point. | Confirm box-summary policy and remaining UI/data polish before merging or replacing the PR. |
 
 ### Resolved (2026-05-05)
 
@@ -27,8 +40,9 @@
 | Topic | Current owner | Why it matters | Next investigation |
 |---|---|---|---|
 | no random encounters scope | `docs/features/no_random_encounters/` | step-only MVP と broad-wild mode の境界を決めないと option 名が曖昧になる。 | Fishing / Sweet Scent / Rock Smash / static wild battle の call path を分ける。MVP scope は `mvp_plan.md` で確定済み、broad mode の追加 hook は実装着手時に再調査。 |
-| ~~HM / field move modernization scope~~ | `docs/features/field_move_modernization/` | Resolved 2026-05-05: `mvp_plan.md#Per-HM Decision Table` で HM ごとの badge / map obstacle / MVP slice 順序 (Cut → Rock Smash → Strength → Flash → ... → Fly) を確定。 | — |
-| TM shop migration | `docs/features/tm_shop_migration/` | Legacy Gen 3 TM acquisition の退役範囲、既存 reward、visible / hidden item 置換、save flag の扱いが未確定。 | NPC/gym reward replacement、item ball removal / replacement、debug-only TM shop test route の採否を整理する。 |
+| ~~HM / field move modernization scope~~ | `docs/features/field_move_modernization/` | Resolved 2026-05-05: `mvp_plan.md#Per-HM Decision Table` で HM ごとの badge / map obstacle / MVP slice 順序 (Cut → Rock Smash → Strength → Flash → ... → Fly) を確定。README now records implemented MVP / Field Kit branches, so this is not an unimplemented investigation item. | — |
+| TM shop migration follow-up scope | `docs/features/tm_shop_migration/` | PR #31 implements the Emerald normal-progression retirement slice. Legacy Gen 3 TM acquisition is no longer just an investigation item. | Decide whether to widen scope to FRLG-specific routes, and keep 200+ Gen 9 reusable TM itemization as a separate feature. |
+| summary tera type icon merge-state check | `docs/features/summary_tera_type_icon/` | PR #26 is the open display-only implementation shelf, but GitHub reports `mergeStateStatus` = `UNKNOWN`. | Re-check merge state and asset credit before selecting it for implementation merge. |
 | generated data rebuild flow | `docs/manuals/generated_data_workflow.md` | partygen 以外にも shop / encounter randomizer で同じ問題が起きる。 | CLI doctor / lint / diff / drift check の共通 contract を feature に適用する。 |
 | partygen player-style optimization | `docs/features/champions_challenge/partygen_player_style_logging.md` | Player style に合わせた partygen tuning は最適化 branch として catalog / profile / validation の境界を決める必要がある。 | style signal の入力形式、重み更新、regression lint を設計してから partygen branch に入る。 |
 | forced release system | `docs/overview/roguelike_party_policy_impact_v15.md` / future feature docs | 禁止条件に入った Pokemon を自動で逃がす rule は party state、PC storage、challenge aftercare、player messaging に跨る。 | release 条件、保護対象、PC box 処理、battle end / field return の実行タイミングを owning feature docs に切り出す。 |

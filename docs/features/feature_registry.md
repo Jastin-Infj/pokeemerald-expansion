@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-15 |
-| Baseline | `master` `c13184c0b1`; `git describe` = `expansion/1.15.2-45-gc13184c0b1` |
+| Last reviewed | 2026-05-17 |
+| Baseline | `master` `a08dd372f2`; `git describe` = `expansion/1.15.2-52-ga08dd372f2` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay |
 
@@ -16,7 +16,7 @@
 実装着手の優先順位。`open_investigation_queue.md` の High Priority、feature の `Status`、現行 `master` に入っている実コードの有無を組み合わせた snapshot。
 順序は固定ではなく、上から「次の feature branch で着手しやすい」順に並ぶ。新規 task 開始時はここを基準に owning feature docs を更新する。
 
-### Master Baseline Snapshot (2026-05-09)
+### Master Baseline Snapshot (2026-05-17)
 
 `master` は upstream 追従の受け皿で、local runtime source は原則入れない。
 次の branch / docs は存在するが、runtime source は `master` にはまだ入って
@@ -25,13 +25,18 @@
 
 | Topic | Evidence | Master action |
 |---|---|---|
+| Unified Move Relearner | Runtime implementation is staged in draft PR #28 on `feature/unified-move-relearner`. Docs-only handoff was merged through PR #29. | Keep runtime source off `master`; rebase / conflict-check the draft PR before any implementation merge. |
+| TM Shop Migration | Runtime implementation is staged in draft PR #31 on `feature/tm-shop-migration`. Docs-only handoff was merged through PR #30. | Keep runtime source off `master`; PR #31 is the current implementation shelf for the accepted TM/HM acquisition retirement slice. |
+| Summary Tera Type Icon | Runtime implementation is staged in draft PR #26 on `feature/summary-tera-type-badge`. | Keep runtime source / imported graphics off `master` unless the implementation PR is explicitly selected. |
+| Pokemon State Editor | Runtime implementation is staged in PR #23 on `feature/pokemon-state-editor-expansion`. | Treat as an implementation PR shelf; resolve adoption order and merge state before touching `master`. |
+| Pre-Battle / In-Battle Team Viewer | Runtime implementation is staged in draft PR #20 on `feature/prebattle-team-viewer`. | Keep as a validated implementation shelf; verify merge state before any integration branch. |
 | No Random Encounters | `feature/no-random-encounters-step-only` に current `master` から切り直した 3 file の flag 割り当て実装がある。`master` の `OW_FLAG_NO_ENCOUNTER` はまだ `0`。 | 通常の feature PR 候補。実装は `master` へ直接入れず、PR上で build / mGBA evidence を確認する。 |
 | Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
 | Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
-| Pre-Battle / In-Battle Team Viewer | `feature/prebattle-team-viewer` で battle selection source slice を current `master` に再適用し、opponent party cache、icon-grid pre-battle viewer、battle 中 action-menu viewer、selection `B` -> viewer return を実装。 | Debug-only `Team Viewer Battle` route で viewer -> selection -> trainer battle -> in-battle viewer -> action-menu return を mGBA 確認済み。 |
+| Field Move Modernization / HM Removal | `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item` hold runtime slices. Docs say both the HM-free MVP and Field Kit itemization were locally validated and user-confirmed. | Do not describe this as unimplemented / no-code. Runtime source still stays off `master` until a selected implementation PR / integration branch is created. |
 
-### GitHub PR Queue Snapshot (2026-05-09)
+### GitHub PR Queue Snapshot (2026-05-17)
 
 Open PR は「通したい実装候補」だけに絞る。ただし open は merge 許可ではなく、
 review / staging shelf として扱う。マージボタンや `gh pr merge` で直接
@@ -46,9 +51,14 @@ close する。
 
 | PR | Branch | State | Action |
 |---|---|---|---|
-| #14 `[codex] Add battle item restore policy` | `feature/battle-item-restore-policy` | Draft, fresh from `master` `f5a3b7b6c2`. Local checks passed; GitHub Actions not waited. | Current item-restore adoption PR. Review explicitly before marking ready or merging; not part of docs-only `master` intake. |
-| #10 `Add trainer battle aftercare heal hook` | `feature/trainer-battle-aftercare-heal` | Open, non-draft. CI checks later completed successfully, but merge state is unknown after docs-only `master` updates. | 採用候補として残す。ただし item restore と aftercare は direct merge ではなく fresh branch で分割する。詳細は `battle_item_restore_policy/adoption_investigation_2026_05_09.md`。 |
-| #7 `Add Elite Four partygen pools and battlefield lint` | `feature/trainer-partygen-catalog-expansion` | Open, non-draft, checks passed on 2026-05-06. Merge state is unknown / stale after current `master` docs updates. | 大型 tool/data PR として残す。実装順では no_random / battle-end policy の後。current `master` へ更新してから判断する。 |
+| #31 `[codex] Implement TM shop migration` | `feature/tm-shop-migration` | Open draft. `mergeStateStatus` = `CLEAN`. Current checks are successful except skipped label/allcontributors jobs. | Current implementation shelf for TM/HM acquisition retirement. Docs-only handoff is already on `master` via #30; do not merge this PR for docs-only work. |
+| #28 `[codex] Implement unified move relearner` | `feature/unified-move-relearner` | Open draft. `mergeStateStatus` = `DIRTY`. Current checks are successful except skipped label/allcontributors jobs. | Implementation shelf for the unified relearner. Resolve conflict / rebase before any source integration. Docs-only handoff is already on `master` via #29. |
+| #26 `[codex] Add summary Tera type badge` | `feature/summary-tera-type-badge` | Open draft. `mergeStateStatus` = `UNKNOWN`. Current checks are successful except skipped label/allcontributors jobs. | Display-only Summary Tera icon shelf. Verify merge state before adoption; imported graphics stay out of docs-only `master`. |
+| #23 `[codex] Add Pokemon state editor` | `feature/pokemon-state-editor-expansion` | Open, non-draft. `mergeStateStatus` = `UNKNOWN`. Current checks are successful except skipped label/allcontributors jobs. | Pokemon State Editor implementation shelf. Confirm adoption order and remaining UI/data risks before merge. |
+| #20 `[codex] Implement prebattle team viewer` | `feature/prebattle-team-viewer` | Open draft. `mergeStateStatus` = `UNKNOWN`. Current checks are successful except skipped label/allcontributors jobs. | Pre-battle / in-battle team viewer shelf. Verify merge state and dependency order before integration. |
+| #14 `[codex] Add battle item restore policy` | `feature/battle-item-restore-policy` | Closed 2026-05-09, unmerged. | No longer an open PR queue item. Keep branch evidence in docs only; reopen / recreate only if this slice becomes active again. |
+| #10 `Add trainer battle aftercare heal hook` | `feature/trainer-battle-aftercare-heal` | Closed 2026-05-10, unmerged. | No longer an open PR queue item. Re-apply on a fresh branch if aftercare becomes active. |
+| #7 `Add Elite Four partygen pools and battlefield lint` | `feature/trainer-partygen-catalog-expansion` | Closed 2026-05-10, unmerged. | No longer an open PR queue item. Preserve as branch evidence for a later partygen / Champions integration branch. |
 | #5 `Add trainer party generator MVP` | `feature/trainer-party-generator` | Closed 2026-05-09, remote branch deleted. | #7 が後継で同一 MVP commit を含むため superseded。 |
 | #4 `Add Rouge Cave map draft` | `feature/new-map-test-v15` | Closed 2026-05-09, branch preserved. | CI failure 付き draft map work。今回の feature queue からは外し、再開時は新 branch で復帰する。 |
 | #2 `Document v15 source investigation` | `codex-docs-v15-investigation` | Closed 2026-05-09, remote branch deleted. | docs は後続 snapshot / handoff で `master` に反映済み。古い branch は stale diff が大きいため閉じた。 |
@@ -58,17 +68,19 @@ close する。
 | # | 対象 | 期待 status 遷移 | Why first | 依存 |
 |---|---|---|---|---|
 | 0 | `docs/flows/save_data_flow_v15.md` | Planned を維持 | 既に SaveBlock / saved flag 方針は決定済み。実装 item ではなく、各 branch の gate として参照する。 | なし (docs only) |
-| 1 | `docs/features/no_random_encounters/` | Validated feature branch / PR candidate | 影響範囲が最小。`feature/no-random-encounters-step-only` の差分は flag rename と config 割り当てのみで、既存 gate / debug toggle を使う。`master` へは直接実装を入れない。 | 2026-05-09 に all/debug build と mGBA Route 101 OFF/ON runtime check 済み |
-| 2 | `docs/features/battle_item_restore_policy/` | Validated branch → Integration candidate | focused tests と mGBA evidence がある。battle 中の item consumption を変えず、battle-end restore policy だけを入れる。`feature/battle-item-restore-policy` では user 指示どおり `B_RESTORE_HELD_BATTLE_BERRIES` default `TRUE`。`master` へは実装を入れない。 | なし。aftercare と同一旧 branch 由来だが独立して取り込む |
-| 3 | `docs/features/trainer_battle_aftercare/` | Planned / branch implementation → Testing | default off の heal-only hook。battle selection / Champions runtime より先に `CB2_EndTrainerBattle` の guard helper を固める。ただし focused test gate を追加してから採用する。 | battle item restore の取り込み後に競合を避ける |
-| 4 | `docs/features/champions_challenge/` partygen CLI + catalog | Branch implementation → Review / Testing | ROM runtime とは切り離せるが、Rust CLI、catalog、`src/data/trainers.party` の大型差分を含む。generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
-| 5 | `docs/features/battle_selection/` | Planned → Testing | `feature/battle-selection-mvp` に normal trainer battle の 3/4 匹選出 MVP がある。selection UI runtime manual check と restore matrix を残して testing に進める。 | save_data flow + battle-end restore ordering |
-| 6 | `docs/features/prebattle_team_viewer/` | Implemented MVP → Focused runtime validated | ユーザー要望の「相手6体を見てから選出する」画面と、battle 中にボタンで開く read-only team view。icon-grid、BG corruption、OBJ display、window-buffer、battle palette、callback1 pause、action-menu return / held-key guard 後の build/check と mGBA focused route は通過。 | double battle / trainer pool visual validation |
-| 7 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
-| 8 | `docs/features/field_move_modernization/` | Planned → Slice 1 Implementing | Cut / Rock Smash / Strength / Flash の object interaction から小さく進められる。battle 系とは独立だが field runtime と HM forget policy の確認が必要。 | bag_expansion は per-HM item 化する場合のみ先行 |
-| 9 | `docs/features/tm_shop_migration/` | Investigating → Planned | data / script 変更中心だが、legacy TM acquisition の退役範囲、NPC reward 置換、item ball flag、TM/HM pocket model の整合を先に詰める。 | bag_expansion または virtual TM ownership decision |
-| 10 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
-| 11 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / team_viewer / aftercare ordering |
+| 1 | `docs/features/tm_shop_migration/` / PR #31 | Implemented draft → Review / ready decision | Current implementation PR is open draft and `CLEAN`; docs handoff is already merged. This is the freshest accepted runtime slice, but still not a `master` source merge by default. | Unified Move Relearner virtual TM policy stays separate; FRLG-specific routes remain follow-up. |
+| 2 | `docs/features/unified_move_relearner/` / PR #28 | Implemented draft → Rebase / conflict resolution | Broad move candidate builder and long-list UX are implemented, but GitHub reports `DIRTY`. | TM Shop Migration source branch and future virtual TM unlock policy. |
+| 3 | `docs/features/summary_tera_type_icon/` / PR #26 | Validated branch → Merge-state check | Small display-only UI slice with imported icon assets and local validation. | Pokemon Icon UI flow; imported graphics credit policy. |
+| 4 | `docs/features/pokemon_state_editor/` / PR #23 | Implemented MVP → Adoption review | Summary-launched editor is implemented; remaining risk is UI polish / box-summary / value legality, not initial investigation. | Summary UI ownership and future move editor separation. |
+| 5 | `docs/features/prebattle_team_viewer/` / PR #20 | Implemented MVP → Merge-state check | Team preview / selection and in-battle viewer have focused mGBA evidence; remaining work is pool/randomized preview validation and stale merge-state review. | Battle selection restore flow and trainer pool behavior. |
+| 6 | `docs/features/field_move_modernization/` | Validated branch evidence → Fresh PR / integration branch | README records HM-free field move MVP plus Field Kit itemization as implemented and user-confirmed. | TM Shop Migration retired old HM receive flags; capability flags must stay owned by field move feature. |
+| 7 | `docs/features/no_random_encounters/` | Validated feature branch / PR candidate | 影響範囲が最小。`feature/no-random-encounters-step-only` の差分は flag rename と config 割り当てのみで、既存 gate / debug toggle を使う。`master` へは直接実装を入れない。 | 2026-05-09 に all/debug build と mGBA Route 101 OFF/ON runtime check 済み |
+| 8 | `docs/features/battle_item_restore_policy/` | Closed PR evidence → Fresh branch if resumed | #14 は閉じたため open queue ではない。item restore 自体は focused tests と mGBA evidence を持つ integration candidate として docs に残す。 | aftercare と同一旧 branch 由来だが独立して取り込む |
+| 9 | `docs/features/trainer_battle_aftercare/` | Closed PR evidence → Fresh branch if resumed | #10 は閉じたため open queue ではない。default off の heal-only hook を再開するなら focused test gate を先に置く。 | battle item restore の取り込み後に競合を避ける |
+| 10 | `docs/features/champions_challenge/` partygen CLI + catalog | Closed PR evidence → Review / Testing | #7 は閉じたため open queue ではない。Rust CLI、catalog、`src/data/trainers.party` の大型差分を含むため、generated workflow と data diff review が必要。 | no_random / battle-end policy とは独立 |
+| 11 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
+| 12 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
+| 13 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / team_viewer / aftercare ordering |
 
 このリストは branch 切り替え時に必ず読む。実装着手で順序が変わった場合はこの section を更新する。
 
@@ -133,9 +145,9 @@ feature complete にする前に、最低限次を確認する。
 | DexNav / Encounter UI | Investigating | No code changes | `docs/flows/dexnav_flow_v15.md` | Start menu DexNav、detector mode、SaveBlock3、12 land slots、Pokemon icon 描画を整理。 |
 | Trainer Party Reorder / Randomizer | Investigating | No code changes | `docs/features/battle_selection/opponent_party_and_randomizer.md` | `DoTrainerPartyPool`、`RandomizePoolIndices`、`AI_FLAG_RANDOMIZE_PARTY_INDICES` を確認。相手 party preview と関係。 |
 | TM/HM and Field Move Policy | Investigating | No code changes | `docs/overview/tm_hm_expansion_250_v15.md` | 250 TM 前提の item ID / bag / relearner / field HM coupling を確認。`FOREACH_TM`、`FOREACH_HM`、`ScrCmd_checkfieldmove`、`gFieldMoveInfo`、`CannotForgetMove` も継続参照。 |
-| Summary Tera Type Icon | Validated branch | Implemented and locally validated on `feature/docs-first-next-work-20260515`; not on `master` | `docs/features/summary_tera_type_icon/` | Summary Info page の通常タイプ欄の右側に RavePossum / Zatsu 由来の16x16 Tera badge だけを表示する display-only UI slice。現在の badge 位置は `P_SUMMARY_TERA_TYPE_ICON_X/Y = (205, 48)`。 |
+| Summary Tera Type Icon | Validated branch / PR #26 draft | Implemented and locally validated on `feature/summary-tera-type-badge`; not on `master` | `docs/features/summary_tera_type_icon/` | Summary Info page の通常タイプ欄の右側に RavePossum / Zatsu 由来の16x16 Tera badge だけを表示する display-only UI slice。現在の badge 位置は `P_SUMMARY_TERA_TYPE_ICON_X/Y = (205, 48)`。 |
 | Bag Expansion | Investigating | No code changes | `docs/features/bag_expansion/` | 通常 bag pocket capacity の新規 feature。`struct Bag` は SaveBlock1 layout なので、Key Items / TM-HM pocket 拡張は save compatibility、bag UI、debug fill、ROM header count、`test/save.c` に波及する。 |
-| Field Move Modernization / HM Removal | Planned | No code changes | `docs/features/field_move_modernization/` | Gen7/Gen8 風に HM 技所持へ依存しない field move / obstacle / animation / forget restriction を調査。HM ごとの badge / map obstacle / MVP slice 表を `mvp_plan.md` に確定。Slice 1: Cut → Slice 4: Flash まで object interaction で揃えてから、Surf / Waterfall / Dive / Fly を Phase 2-3 で扱う方針。 |
+| Field Move Modernization / HM Removal | Validated branch | Implemented on `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item`; not on `master` | `docs/features/field_move_modernization/` | README records the HM-free field move MVP, Field Kit itemization, menu entry, icon/palette handoff, and manual validation as implemented / user-confirmed. |
 | Champions-style EV/IV Training UI | Investigating | No code changes | `docs/overview/champions_training_ui_feasibility_v15.md` | EV/IV/nature/moveset 編集 UI は実装可能。32 point EV は UI 表示と内部 EV 変換を分ける方針が安全。EV total 518 と wild IV mode も調査済み。 |
 | Scout Selection / Starting Battlefield Status | Investigating | No code changes | `docs/overview/scout_selection_and_battlefield_status_v15.md` | Battle Factory / Champions 風の候補 Pokemon 選択 UI、gift mon 付与 flow、trainer flag cleanup、Frontier 風 save / pause / power-cut recovery、held item duplicate restriction、post-battle heal / item restore / PP-EP policy、pickup object / sprite / UI asset 注意点、starting status、PB / ability 強化の調査観点を整理。 |
 | Champions Challenge Facility | Planned | Partygen implementation exists on feature branch; runtime not on `master` | `docs/features/champions_challenge/` | 0 匹開始、6 匹作成、Lv.50 battle-only、EXP 無効、bag 退避 / 空 challenge bag、egg-only default eligibility、optional Frontier ban、敗北時 challenge party 破棄と通常 party / bag 復元の仕様を整理。`feature/trainer-partygen-catalog-expansion` に CLI / catalog / trainer data 差分がある。runtime は未実装。 |
@@ -146,13 +158,15 @@ feature complete にする前に、最低限次を確認する。
 | Map Registration / Region Map / Fly | Investigating | No code changes | `docs/flows/map_registration_fly_region_flow_v15.md` | 新規 map の `MAPSEC_*`、Town Map/Region Map、Fly icon、visited/world map flag、warp callback を整理。FRLG map preview と Fly 点滅の疑いどころも記録。 |
 | NPC / Object Event / Conditional Tiles | Investigating | No code changes | `docs/flows/npc_object_event_flow_v15.md` | `events.inc` の `object_event`、`scripts.inc` の `applymovement` / `setobjectxyperm` / `setmetatile` / `setmaplayoutindex`、Town Map R Fly 後の popup リスクを整理。 |
 | Battle Frontier Level Scaling | Investigating | No code changes | `docs/flows/battle_frontier_level_scaling_flow_v15.md` | 現行 Lv.50 course は低レベルを Lv.50 化しない。対戦用に battle-only Lv.50 補正を入れる場合の hook とリスクを整理。 |
-| TM Shop Migration | Planned / branch recheck | No code changes on current branch yet | `docs/features/tm_shop_migration/` | Current 50 TM は legacy Gen 3 machine set として扱い、NPC/gym gift、field item、hidden item、shop、facility prize からの取得導線を退役させる方針。Legacy TM flags は参照削除後に `FLAG_UNUSED_0x...` 相当へ戻す。200+ / Gen 9 reusable TM は別 feature。 |
+| TM Shop Migration | Implemented draft / PR #31 draft | Implemented on `feature/tm-shop-migration`; not on `master` | `docs/features/tm_shop_migration/` | Emerald normal-progression legacy TM/HM acquisition retirement is staged in PR #31. Docs-only handoff is on `master` via PR #30. FRLG-specific routes remain follow-up. |
 | Custom Items / Moves / Abilities | Investigating | No code changes | `docs/overview/extension_impact_map_v15.md` | constants、data table、UI、battle behavior、AI、tests への影響範囲を横断 map に整理。 |
 | Battle Item Restore Policy | Integration candidate | Branch implementation exists; not on `master` | `docs/features/battle_item_restore_policy/` | `feature/battle-item-restore-policy` に `B_RESTORE_HELD_BATTLE_BERRIES` default `TRUE`、`TryRestoreHeldItems()` の berry restore、direct / full battle tests、mGBA Live evidence がある。`master` へは source 未反映。 |
 | Trainer Battle Aftercare / Forced Release | Planned / branch implementation | Heal-only branch implementation exists; not on `master` | `docs/features/trainer_battle_aftercare/` | `feature/trainer-battle-aftercare-heal` に `B_TRAINER_BATTLE_AFTERCARE` default off の通常 trainer battle 勝利後 heal-only hook がある。no-whiteout、forced release、battle selection integration は後続。 |
 | Callback / Dispatch Audit | Investigating | No code changes | `docs/overview/callback_dispatch_map_v15.md` | `SetMainCallback2`、`CB2_*`、`CreateTask`、`ScrCmd_*`、`special`、field callback の確認用 docs。 |
 | Map Script / Flag / Var Audit | Investigating | No code changes | `docs/flows/map_script_flag_var_flow_v15.md` | `map.json`、generated `.inc`、hand-written `scripts.inc`、NPC hide flag、coord/bg event、item ball / hidden item flow を整理。 |
 | Move Relearner / Summary Menu | Investigating | No code changes | `docs/flows/move_relearner_flow_v15.md` | summary / party / script からの技思い出し flow、`MAX_RELEARNER_MOVES`、TM 追加リスクを整理。 |
+| Unified Move Relearner | Implemented draft / PR #28 draft | Implemented on `feature/unified-move-relearner`; not on `master` | `docs/features/unified_move_relearner/` | Unified level / egg / TM / tutor / special move candidate list is staged in PR #28. Docs-only handoff is on `master` via PR #29; PR currently needs conflict resolution before source integration. |
+| Pokemon State Editor | Implemented MVP / PR #23 open | Implemented on `feature/pokemon-state-editor-expansion`; not on `master` | `docs/features/pokemon_state_editor/` | Summary-launched EV/IV/core/status editor MVP is staged in PR #23. Remaining items are adoption order, UI polish, box-summary follow-up, and legality policy decisions. |
 | Save Data / Runtime Flags | Planned | No code changes | `docs/flows/save_data_flow_v15.md` | SaveBlock1/2/3 capacity と FREE_* 切り替え分、flag/var 残量、後続 feature の割り当て先 (no encounter / champions challenge / partygen seed / runtime rule options) を確定。実装は伴わない policy doc。 |
 | Pokemon Icon UI | Investigating | No code changes | `docs/flows/pokemon_icon_ui_flow_v15.md` | `CreateMonIcon`、icon palette、sprite lifetime、DexNav / custom UI 影響を整理。 |
 | Upstream 1.15.2 Upgrade Impact | Investigating | No code changes | `docs/upgrades/1_15_1_to_1_15_2_impact.md` | `expansion/1.15.2` tag の差分を確認。INCGFX migration、DexNav、map script、battle engine、SaveBlock3 影響を整理。 |

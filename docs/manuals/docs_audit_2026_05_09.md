@@ -75,6 +75,6 @@ prefer one of these patterns:
 | Area | Why |
 |---|---|
 | `*_v15.md` naming | Keep for now. Rename only when upstream 1.16 changes flow enough to invalidate the doc. |
-| Partygen PR #7 | Open staging PR, not direct-merge ready; dirty against current master. |
-| Aftercare PR #10 | Open staging PR; if adopting only item restore first, split from a fresh branch. |
+| Partygen PR #7 | Closed unmerged as of 2026-05-10; keep as branch evidence only, not an open queue item. |
+| Aftercare PR #10 | Closed unmerged as of 2026-05-10; re-apply from a fresh branch if this slice becomes active again. |
 | mdBook warnings | Existing warnings are known; GitHub readability is the primary target for local planning docs. |

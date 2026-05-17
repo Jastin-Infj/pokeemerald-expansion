@@ -11,11 +11,12 @@
 
 ## Status
 
-Status: Implemented draft. Unified mode is guarded by config, uses generated
-historical candidate data, and has local build plus mGBA Live evidence. The
-special event / XD / Ranger / form-specific / LGPE partner seed data is now
-connected as a `Sp` source; story unlock gating and per-entry special labels
-remain future work.
+Status: Implemented draft on open draft PR #28 (`feature/unified-move-relearner`).
+Unified mode is guarded by config, uses generated historical candidate data, and
+has local build plus mGBA Live evidence. The special event / XD / Ranger /
+form-specific / LGPE partner seed data is now connected as a `Sp` source; story
+unlock gating and per-entry special labels remain future work. As of the
+2026-05-17 PR snapshot, GitHub reports `mergeStateStatus` = `DIRTY`.
 
 ## Goal
 
