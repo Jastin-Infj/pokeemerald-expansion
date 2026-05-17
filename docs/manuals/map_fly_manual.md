@@ -1,7 +1,9 @@
 # Map / Fly Manual
 
 この manual は、新規マップ、タウンマップ表示、Fly 登録を扱うときの入口です。
-詳細は [Map Registration Fly Region Flow](../flows/map_registration_fly_region_flow_v15.md) を参照します。
+新規 map の作り方そのものは [新規マップ作成マニュアル](map_creation_manual.md) と
+[Map Creation Flow v15](../flows/map_creation_flow_v15.md) を先に読みます。
+Fly / Town Map の詳細は [Map Registration Fly Region Flow](../flows/map_registration_fly_region_flow_v15.md) を参照します。
 
 ## 先に分けるもの
 
@@ -20,10 +22,10 @@
 
 ## 作業フロー
 
-1. 既存の近い town/city map を 1 つ選ぶ。
-2. map group、map number、map name の参照を検索する。
-3. 新規 map の登録箇所を既存例と同じ形式で追加する。
-4. region map 座標と icon を追加する。
+1. 既存の近い town/city/indoor/dungeon map を 1 つ選ぶ。
+2. [新規マップ作成マニュアル](map_creation_manual.md) に沿って `map.json`、`scripts.inc`、`map_groups.json`、`layouts.json`、`data/event_scripts.s` を揃える。
+3. map に入れる / 出られることを mGBA で確認する。
+4. 必要な場合だけ region map 座標と icon を追加する。
 5. Fly destination を追加する。
 6. Fly 解放 flag をどのイベントで立てるか決める。
 7. version 差分がある場合は、赤版、青版で条件を分ける。
