@@ -165,3 +165,56 @@ Non-invasive checks performed from current `master` before this docs update:
 | `rg OW_FLAG_NO_ENCOUNTER ...` | passed | Current `master` still has the existing gate / debug toggle and config remains `0`. |
 
 No mGBA run was performed in this docs-only pass.
+
+## Runtime Validation Record: 2026-05-17 Fresh Branch
+
+Branch / base checked:
+
+- Branch: `feature/no-random-encounters-step-only-runtime-20260517`
+- Base: `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd`
+
+Implementation slice:
+
+- `include/config/overworld.h`
+- `include/constants/flags.h`
+- `include/constants/flags_frlg.h`
+
+Build / static checks:
+
+| Command | Result | Notes |
+|---|---|---|
+| `rtk git diff --check` | passed | No whitespace errors. |
+| `rtk make -j16 -O all` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+| `rtk make -j16 -O debug` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+| `rtk make -j16 -O check` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+
+mGBA runtime:
+
+| Test | Result | Evidence |
+|---|---|---|
+| `FLAG_NO_ENCOUNTER=false`, repel var clear, Route 101 grass movement | passed | Debug menu warp to `MAP_ROUTE101` (`map_group=0`, `map_num=16`). Macro started at `x=10`, `y=10`; wild Wurmple battle started after 163 macro frames with `hit_cb=0x0808FBB5`. Screenshot: `/tmp/no-random-encounters-20260517/off-wild-battle.png`. |
+| `FLAG_NO_ENCOUNTER=true`, repel var clear, Route 101 grass movement for 2400 macro frames | passed | Lua set `FLAG_NO_ENCOUNTER` bit 5 at SaveBlock1 flags byte, confirmed `flag_on=true`, `repel=0`; after walking, `hit=false`, `callback2=0x081A3BE5` (`CB2_Overworld`), map stayed `0/16`, final coords `x=12`, `y=11`. Screenshot: `/tmp/no-random-encounters-20260517/on-after-2400frames.png`. |
+| `FLAG_NO_ENCOUNTER=false` restored, repel var clear, Route 101 grass movement | passed | Lua cleared the same flag bit; wild Poochyena battle started after 394 macro frames with `hit_cb=0x0808FBB5`. Screenshot: `/tmp/no-random-encounters-20260517/off-restored-wild-battle.png`. |
+| mGBA Live cleanup | passed after retry | CLI `input-clear` succeeded. CLI `stop` returned `alive_after:true` while `pgrep` showed `[mgba-qt] <defunct>`; MCP `mgba_live_stop` then cleared the stale session and final CLI `status --all` returned `[]`. |
+
+Runtime setup:
+
+| Item | Value |
+|---|---|
+| ROM copy | `/tmp/no-random-encounters-20260517/no-random.gba` |
+| Save copy | `/tmp/no-random-encounters-20260517/no-random.sav`, copied from ignored local `pokeemerald.sav` |
+| Session | `codex-no-random-20260517` |
+| mGBA path | `/home/jastin/.local/bin/mgba-qt` wrapper |
+| `gSaveBlock1Ptr` | `0x03005208` |
+| `gMain.callback2` | `gMain + 0x04` |
+| `SaveBlock1.flags` | `save1 + 0x1270` |
+| `FLAG_NO_ENCOUNTER` | `0x8E5`, bit `5` in the target byte |
+
+Important note: `gBattleTypeFlags` retained `0x4` after the OFF battle returned
+to field. The ON-test oracle is `callback2`, screenshot / field state, map /
+coords, and flag bytes, not `gBattleTypeFlags` alone.
+
+Remaining manual checks remain the same as the 2026-05-09 validation: Surf /
+cave step encounters were not separately walked, and Fishing, Sweet Scent, Rock
+Smash, static `setwildbattle` / `dowildbattle`, DexNav, and option UI are out of
+MVP scope.
