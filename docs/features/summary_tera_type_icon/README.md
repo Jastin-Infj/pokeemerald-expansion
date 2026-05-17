@@ -49,6 +49,7 @@ new interaction.
 ## Docs
 
 - [MVP Plan](mvp_plan.md)
+- [Investigation](investigation.md)
 - [Asset References](asset_references.md)
 - [Implementation](implementation.md)
 - [Risks](risks.md)

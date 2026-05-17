@@ -27,6 +27,7 @@ Code status: not on `master`; heal-only MVP exists on `feature/trainer-battle-af
 - `docs/features/battle_item_restore_policy/adoption_investigation_2026_05_09.md`
 - `docs/features/trainer_battle_aftercare/investigation.md`
 - `docs/features/trainer_battle_aftercare/mvp_plan.md`
+- `docs/features/trainer_battle_aftercare/implementation.md`
 - `docs/features/trainer_battle_aftercare/risks.md`
 - `docs/features/trainer_battle_aftercare/test_plan.md`
 
