@@ -6,6 +6,9 @@
 
 将来の「トレーナーバトル前選出」は、この flow のうち `gTrainerBattleParameter` が確定した後、実際に battle が始まる前へ差し込む想定になる。
 
+賞金、encounter music、battle BGM、victory BGM、mugshot transition、battle
+background の参照先は [Trainer Battle Reward And Audio Flow v15](trainer_battle_reward_audio_flow_v15.md) に分離している。
+
 ## Key Files
 
 | File | Role |
