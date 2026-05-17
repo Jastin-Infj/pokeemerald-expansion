@@ -65,6 +65,7 @@
     - [Summary Screen Flow v15](flows/summary_screen_flow_v15.md)
     - [Battle Start / End Flow v15](flows/battle_start_end_flow_v15.md)
     - [Trainer Battle Flow v15](flows/trainer_battle_flow_v15.md)
+    - [Trainer Battle Reward and Audio Flow v15](flows/trainer_battle_reward_audio_flow_v15.md)
     - [Battle UI Flow v15](flows/battle_ui_flow_v15.md)
     - [Field Move / HM Flow v15](flows/field_move_hm_flow_v15.md)
     - [Map Script / Flag / Var Flow v15](flows/map_script_flag_var_flow_v15.md)

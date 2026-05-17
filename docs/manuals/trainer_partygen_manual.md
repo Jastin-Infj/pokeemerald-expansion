@@ -2,6 +2,10 @@
 
 This manual covers day-to-day use of `tools/champions_partygen` and how it relates to `src/data/trainers.party`.
 
+For trainer battle prize money, encounter music, battle BGM, victory BGM,
+mugshot transition, and battle background routing, read
+[Trainer Battle Reward and Audio Flow](../flows/trainer_battle_reward_audio_flow_v15.md).
+
 ## When To Use
 
 Use partygen when a trainer's party should be generated from curated catalog data and materialized into the existing `trainers.party` DSL.
@@ -238,6 +242,11 @@ secret base: 20 * firstSecretBaseMonLevel * moneyMultiplier
 `trainerClassMoney` is defined in `gTrainerClasses` in `src/battle_main.c`; missing class money falls back to 5.
 
 Partygen can change the reward indirectly because it can change the last materialized party mon level. If reward stability matters, keep pool member levels consistent or add an expected money report to partygen before changing many major trainers.
+
+For the full source map, including `gTrainerClasses`, encounter music, battle
+BGM, victory BGM, mugshot color, and Leader / Champion battle background
+effects, see
+[Trainer Battle Reward and Audio Flow](../flows/trainer_battle_reward_audio_flow_v15.md).
 
 ## EXP
 
