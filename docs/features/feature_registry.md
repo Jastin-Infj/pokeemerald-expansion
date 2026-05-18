@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `b31c695dc5`; `git describe` = `expansion/1.15.2-66-gb31c695dc5` |
+| Last reviewed | 2026-05-18 |
+| Baseline | `master` `abbbf47554`; `git describe` = `expansion/1.15.2-67-gabbbf47554` |
 | Code status | Docs-only registry / PR queue snapshot |
 | Provenance | Local project overlay, `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup |
 
@@ -13,6 +13,8 @@
 
 Latest cross-branch audit:
 [Implementation Shelf Audit 2026-05-17](implementation_shelf_audit_2026_05_17.md).
+Latest next-work triage:
+[Next Runtime Triage 2026-05-18](next_runtime_triage_2026_05_18.md).
 Closed PRs and PR-less branches are implementation evidence when they carry
 runtime source and validation notes; do not infer "not implemented" from closed
 status alone.
@@ -21,6 +23,30 @@ status alone.
 
 実装着手の優先順位。`open_investigation_queue.md` の High Priority、feature の `Status`、現行 `master` に入っている実コードの有無を組み合わせた snapshot。
 順序は固定ではなく、上から「次の feature branch で着手しやすい」順に並ぶ。新規 task 開始時はここを基準に owning feature docs を更新する。
+
+### 2026-05-18 Practical Recommendation
+
+Default next implementation:
+**TM Shop Migration #31** on a fresh current-master adoption branch. This is
+adoption of an implemented shelf, not a from-scratch implementation. #41 No
+Random Encounters is complete and should only be adopted if a playable
+integration branch needs it now.
+
+Important correction:
+The HM replacement item is also already implemented. `ITEM_FIELD_KIT`, Field Kit
+capability flags, the Field Kit menu, and Emerald HM acquisition replacement live
+on `feature/field-move-toolkit-item`. TM Shop Migration retires the old TM/HM
+acquisition paths; Field Kit is the player-facing HM replacement shelf.
+
+Default new feature if not adopting an existing shelf:
+**Jukebox / Sound Archive**. It avoids SaveBlock, battle hooks, Summary, TM/HM,
+Move Relearner, Bag, and Champions systems while still creating visible
+in-game value.
+
+High-impact alternative:
+**Field Move Modernization / Field Kit**, after deciding whether TM Shop
+Migration should land first. This is also an implemented shelf adoption, not
+initial feature work.
 
 ### Master Baseline Snapshot (2026-05-17)
 
