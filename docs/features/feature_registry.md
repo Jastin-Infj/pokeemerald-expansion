@@ -13,6 +13,8 @@
 
 Latest cross-branch audit:
 [Implementation Shelf Audit 2026-05-17](implementation_shelf_audit_2026_05_17.md).
+Feature-by-feature branch audit:
+[Feature Branch Audit 2026-05-18](feature_branch_audit_2026_05_18.md).
 Latest next-work triage:
 [Next Runtime Triage 2026-05-18](next_runtime_triage_2026_05_18.md).
 Closed PRs and PR-less branches are implementation evidence when they carry
@@ -47,6 +49,11 @@ High-impact alternative:
 **Field Move Modernization / Field Kit**, after deciding whether TM Shop
 Migration should land first. This is also an implemented shelf adoption, not
 initial feature work.
+
+If the goal is to continue cleaning up already-built feature requirements
+instead of adopting shelves, the recommended next work is
+**Pre-Battle / In-Battle Team Viewer pool/randomizer consistency**. That is the
+clearest remaining requirement gap on an otherwise implemented feature.
 
 ### Master Baseline Snapshot (2026-05-17)
 
