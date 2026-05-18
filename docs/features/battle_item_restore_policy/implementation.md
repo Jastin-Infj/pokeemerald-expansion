@@ -118,6 +118,8 @@ explicitly changed for this feature.
 
 Historical closed PR: #14 `feature/battle-item-restore-policy` -> `master`.
 Current branch: `feature/battle-item-restore-current-master-20260519`.
+Current runtime PR: #47
+`feature/battle-item-restore-current-master-20260519` -> `master`.
 
 If updating `master` under the local docs-only policy, do not merge the entire
 branch into `master`. Create a docs-only branch from `master` or cherry-pick

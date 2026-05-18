@@ -12,7 +12,7 @@
 Status: Integration candidate
 Code status: not on `master`; berry-inclusive battle-end restore exists on
 `feature/battle-item-restore-current-master-20260519` behind
-`B_RESTORE_HELD_BATTLE_BERRIES`
+`B_RESTORE_HELD_BATTLE_BERRIES`; current runtime staging PR is #47
 
 ## Goal
 
