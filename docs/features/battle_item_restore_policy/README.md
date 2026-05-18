@@ -4,13 +4,15 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `f5a3b7b6c2`; implementation branch `feature/battle-item-restore-policy` |
-| Code status | Not on `master`; fresh feature branch implementation validated locally |
+| Last reviewed | 2026-05-19 |
+| Baseline | `master` `25731e81a0`; implementation branch `feature/battle-item-restore-current-master-20260519` |
+| Code status | Not on `master`; current-master feature branch implementation validated locally |
 | Provenance | Local project feature docs / feature handoff |
 
 Status: Integration candidate
-Code status: not on `master`; berry-inclusive battle-end restore exists on `feature/battle-item-restore-policy` behind `B_RESTORE_HELD_BATTLE_BERRIES`
+Code status: not on `master`; berry-inclusive battle-end restore exists on
+`feature/battle-item-restore-current-master-20260519` behind
+`B_RESTORE_HELD_BATTLE_BERRIES`; current runtime staging PR is #47
 
 ## Goal
 
@@ -39,25 +41,29 @@ Code status: not on `master`; berry-inclusive battle-end restore exists on `feat
 
 既存実装では、`B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9` でも、戦闘後に復元されるのは基本的に非きのみの single-use item だけだった。`src/battle_util.c` の `TryRestoreHeldItems` は、元の持ち物が Berry pocket の場合に復元対象から外していた。
 
-`feature/battle-item-restore-policy` の実装では `include/config/battle.h` に
+`feature/battle-item-restore-current-master-20260519` の実装では
+`include/config/battle.h` に
 `B_RESTORE_HELD_BATTLE_BERRIES` を追加し、この feature branch では default
 `TRUE` にした。`TRUE` の場合、
 `TryRestoreHeldItems()` は戦闘開始時に保存された
 `itemLost[B_SIDE_PLAYER][slot].originalItem` を source of truth として、
 きのみも戦闘終了時に元の party slot へ戻す。
 
-2026-05-09 時点で、直接 unit test、mGBA headless の full battle test、
-通常 / debug ROM build、mGBA Live MCP boot/input smoke で動作確認済み。
-実装内容と merge handoff は `implementation.md` に固定する。
+2026-05-19 時点で、現行 `master` `25731e81a0` から切った fresh feature
+branch に source/test slice を再適用済み。直接 unit test、mGBA headless の
+full battle test、全体 `check`、通常 / debug ROM build、mGBA Live MCP
+boot/input smoke で動作確認済み。実装内容と merge handoff は
+`implementation.md` に固定する。
 
 ただし、`master` へは source を入れない運用に更新済み。次に実装する場合は
 current `master` から fresh feature / integration branch を切る。今回の branch は
 closed PR #14 由来の battle item restore source/test slice だけを、aftercare heal hook
-なしで再適用したもの。採用前の確認事項は
+なしで `feature/battle-item-restore-current-master-20260519` へ再適用したもの。
+採用前の確認事項は
 `adoption_investigation_2026_05_09.md` に整理している。
 
-このため `feature/battle-item-restore-policy` は、既存 `master` 上の
-non-berry held item restore と別の二重 restore path を追加するものではない。
+このため current feature branch は、既存 `master` 上の non-berry held item
+restore と別の二重 restore path を追加するものではない。
 旧 `feature/trainer-battle-aftercare-heal` に混ざっていた berry-inclusive
 restore slice を、current `master` から切った独立 feature PR として整理した
 ものとして扱う。

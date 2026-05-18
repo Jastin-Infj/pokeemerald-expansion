@@ -4,19 +4,25 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `f5a3b7b6c2`; implementation branch `feature/battle-item-restore-policy` |
-| Code status | Implemented and locally validated on feature branch; not present in `master` source |
+| Last reviewed | 2026-05-19 |
+| Baseline | `master` `25731e81a0`; implementation branch `feature/battle-item-restore-current-master-20260519` |
+| Code status | Re-applied and locally validated on current-master feature branch; not present in `master` source |
 | Provenance | Feature handoff |
 
 ## Status
 
-Status: Implemented on `feature/battle-item-restore-policy`; not yet present in
-`master` source as of 2026-05-09 (`master` `f5a3b7b6c2`)
+Status: Implemented on `feature/battle-item-restore-current-master-20260519`;
+not yet present in `master` source as of 2026-05-19 (`master`
+`25731e81a0`).
 
 The berry-inclusive battle-end restore path is implemented, locally tested, and
-verified through mGBA headless battle tests plus an mGBA Live MCP boot/input
-smoke check.
+verified on the current baseline through focused battle tests, full `check`,
+normal / debug ROM builds, and an mGBA Live MCP boot/input smoke check.
+
+Historical source evidence is preserved on closed shelf
+`feature/battle-item-restore-policy` / PR #14. The current branch re-applies
+that source/test slice onto the latest docs-only `master` instead of merging
+the old branch.
 
 ## Implemented Behavior
 
@@ -53,12 +59,13 @@ coverage areas, not as battle-time behavior changes in this slice.
 
 ## Validation
 
-Confirmed commands:
+Confirmed commands on 2026-05-19:
 
 ```sh
 rtk git diff --check
 rtk make -j16 -O check TESTS=test/battle_item_restore.c
 rtk make -j16 -O check TESTS=test/battle/hold_effect/battle_item_restore.c
+rtk make -j16 -O check
 rtk make -j16 -O all
 rtk make -j16 -O debug
 ```
@@ -67,19 +74,18 @@ Results:
 
 - `rtk git diff --check`: passed.
 - `test/battle_item_restore.c`: passed, 2 tests.
-- `test/battle/hold_effect/battle_item_restore.c`: passed.
-- `rtk make -j16 -O all`: passed.
-- `rtk make -j16 -O debug`: passed.
-- mGBA Live MCP boot/input smoke check reached title screen, accepted `A`,
-  reached the continue menu, exported `/tmp/mgba-battle-item-restore-smoke-continue.png`,
-  and `mgba_live_stop` reported `stopped: true`.
-- Follow-up focused mGBA Live MCP check ran `pokeemerald-test.elf` filtered to
-  `test/battle/hold_effect/battle_item_restore.c`. Lua memory read of
-  `gTestRunnerState` reported `runner_state = STATE_EXIT`, `exit_code = 0`,
-  `result = TEST_RESULT_PASS`, `argv = test/battle/hold_effect/battle_item_restore.c`.
-  This is the feature-specific MCP evidence for the Oran Berry consume and
-  battle-end restore path. The earlier normal ROM title / continue check should
-  be treated only as an MCP boot/input smoke check.
+- `test/battle/hold_effect/battle_item_restore.c`: passed, 1 test.
+- `rtk make -j16 -O check`: passed; existing `EXPECTED_FAIL` /
+  `KNOWN_FAILING` markers remain expected and the suite exits 0.
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning.
+- mGBA Live MCP boot/input smoke check used session
+  `battle-item-restore-smoke-20260519`, reached the title screen, accepted
+  `START`, advanced to the Game Freak intro, stopped cleanly, and
+  `mgba-live-cli status --all` returned `[]`.
+- Feature-specific behavior is covered by the headless mGBA full battle test
+  `test/battle/hold_effect/battle_item_restore.c`, which consumes an Oran Berry
+  during battle and verifies the party held item is restored after battle end.
 
 GitHub Actions were not waited during the agent handoff because the long jobs
 can take roughly 20-30 minutes. The branch handoff uses local make, focused
@@ -106,10 +112,14 @@ in the confirmed environment.
 ## Merge Handoff Notes
 
 This implementation branch contains source and test changes. Do not merge it
-into `master` as part of the docs-only upstream intake lane. When this feature
-is intentionally adopted, review and merge the feature PR explicitly.
+into `master` as part of the docs-only upstream intake lane. Treat the runtime
+PR as an implementation shelf / adoption candidate unless the branch policy is
+explicitly changed for this feature.
 
-Draft PR: #14 `feature/battle-item-restore-policy` -> `master`.
+Historical closed PR: #14 `feature/battle-item-restore-policy` -> `master`.
+Current branch: `feature/battle-item-restore-current-master-20260519`.
+Current runtime PR: #47
+`feature/battle-item-restore-current-master-20260519` -> `master`.
 
 If updating `master` under the local docs-only policy, do not merge the entire
 branch into `master`. Create a docs-only branch from `master` or cherry-pick
