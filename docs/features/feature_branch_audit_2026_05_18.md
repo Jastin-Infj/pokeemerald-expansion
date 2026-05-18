@@ -5,14 +5,18 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-18 |
-| Baseline | `master` `0cdd416376`; `git describe` = `expansion/1.15.2-71-g0cdd416376` |
+| Baseline | `master` `187df44eb6`; `git describe` = `expansion/1.15.2-73-g187df44eb6` |
 | Code status | Docs-only audit / no source changes |
-| Provenance | `git branch -a --sort=-committerdate`, `git log --all`, `gh pr list --state all`, feature docs, branch diffs, 2026-05-18 source audit of Team Viewer / partygen shelves |
+| Provenance | `git branch -a --sort=-committerdate`, `git log --all`, `gh pr list --state all`, feature docs, branch diffs, 2026-05-18 source audit of Team Viewer / partygen shelves, 2026-05-18 comprehensive inventory |
 
 This audit looks at work by feature branch / implementation shelf, not by what
 is currently present on `master`. `master` is still docs-only plus workflow
 overlay, so runtime feature completion must be judged from preserved feature
 branches and their validation evidence.
+
+For the broader branch inventory, including older baseline branches that contain
+real implementation work but should only be used as references, read
+[Comprehensive Feature Inventory 2026-05-18](comprehensive_feature_inventory_2026_05_18.md).
 
 ## Executive Summary
 
