@@ -48,6 +48,30 @@ Re-check if this area changes again:
 
 ## Validation Log
 
+2026-05-19 (`feature/battle-item-restore-current-master-20260519`, baseline
+`master` `25731e81a0`):
+
+- `rtk git diff --check`: passed.
+- `rtk make -j16 -O check TESTS=test/battle_item_restore.c`: passed, 2 tests.
+- `rtk make -j16 -O check TESTS=test/battle/hold_effect/battle_item_restore.c`:
+  passed, 1 test.
+- `rtk make -j16 -O check`: passed. Existing `EXPECTED_FAIL` /
+  `KNOWN_FAILING` markers were observed and the suite exited 0.
+- `rtk make -j16 -O all`: passed. Existing linker warning about a LOAD segment
+  with RWX permissions was observed.
+- `rtk make -j16 -O debug`: passed. Existing linker warning about a LOAD
+  segment with RWX permissions was observed.
+- mGBA Live MCP boot/input smoke:
+  - `mgba_live_start` launched `pokeemerald.gba` with session
+    `battle-item-restore-smoke-20260519`.
+  - `mgba_live_get_view` captured the Pokemon Emerald title screen.
+  - `mgba-live-cli input-tap --key START` was accepted.
+  - A follow-up `mgba_live_get_view` captured the Game Freak intro screen.
+  - `mgba_live_stop` returned `stopped: true`.
+  - `mgba-live-cli status --all` returned `[]`.
+- GitHub Actions were not waited for this handoff. Local make and MCP evidence
+  above are the current validation basis.
+
 2026-05-09 (`feature/battle-item-restore-policy`, baseline `master`
 `f5a3b7b6c2`):
 
