@@ -6,7 +6,7 @@
 |---|---|
 | Last reviewed | 2026-05-10 |
 | Baseline | `feature/prebattle-team-viewer-phase2` |
-| Code status | Implemented on Phase 2 branch; W / double debug route validated, pool validation remains follow-up |
+| Code status | Implemented on Phase 2 branch; W / double debug route validated; pool cache path source-audited 2026-05-18 |
 | Provenance | User feedback and local implementation handoff notes |
 
 ## Purpose
@@ -158,9 +158,11 @@ Completed Phase 2 evidence:
 Additional manual cases:
 
 - Double battle path selects 4 through `Party -> Team Viewer W`.
-- Trainer Party Pool path shows the same generated opponent team in preview and
-  battle.
-- Override trainer path uses the effective trainer party.
+- Trainer Party Pool path source audit confirms preview generation and battle
+  load use the same cached generated opponent team; add a concrete runtime
+  assertion if this shelf is selected for adoption.
+- Override trainer path uses the effective trainer party; add a concrete
+  runtime assertion if this shelf is selected for adoption.
 - Player with only the required number of valid Pokemon still follows the
   intended skip / selection policy.
 - Whiteout / loss restores party order and clears viewer state.

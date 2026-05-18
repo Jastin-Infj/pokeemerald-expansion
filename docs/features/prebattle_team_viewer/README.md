@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `7c19f56901`; `git describe` = `expansion/1.15.2-38-g7c19f56901` |
+| Last reviewed | 2026-05-18 |
+| Baseline | `master` `0cdd416376`; `git describe` = `expansion/1.15.2-71-g0cdd416376` |
 | Code status | Phase 2 integrated selection implemented; build/check and focused mGBA routes passed |
-| Provenance | Local project feature docs |
+| Provenance | Local project feature docs; 2026-05-18 source audit |
 
 Status: Phase 2 implemented. Focused mGBA routes validated single 3-of-6,
 double 4-of-6, player Summary entry, in-battle viewer, and action-menu return.
@@ -15,6 +15,13 @@ Code status: preserved as completed shelf #20 (`feature/prebattle-team-viewer`),
 closed 2026-05-17 after CI success; docs-only master handoff should use docs-only branch / PR. Older references to
 `feature/prebattle-team-viewer-phase2` below are historical implementation notes
 from the branch that supplied the current PR contents.
+
+2026-05-18 correction: pool/randomizer cache behavior is implemented on the
+source shelf. Preview generation calls the same trainer party generation path
+that applies `DoTrainerPartyPool()`, and battle init consumes the cached preview
+party through `PreBattleTeamViewer_LoadCachedOpponentParty()`. A focused
+regression can still be added before adoption, but this is not missing runtime
+work.
 
 ## Goal
 
@@ -267,7 +274,7 @@ action menu 中だけ `R_BUTTON`。default config では `L_BUTTON` は move des
 
 ## Open Questions
 
-- `B_POOL_SETTING_CONSISTENT_RNG == FALSE` の trainer pool を、preview 時点で固定する仕様にするか。現在の実装契約では encounter start 前後で cached party を固定して battle に渡す。
+- `B_POOL_SETTING_CONSISTENT_RNG == FALSE` の trainer pool は preview 時点で固定する実装になっている。この timing を adoption policy として受け入れるか、no-viewer build との RNG stream 比較時にどう説明するか。
 - 相手側に type icons / gender / item badges を出すための graphics / palette budget をどこまで確保するか。
 - opponent party cache を今後も `struct Pokemon` で持つか、species / level / gender / type などの lightweight view model へ分けるか。
 - in-battle viewer の default button を `R_BUTTON` のままにするか、後で option 化するか。

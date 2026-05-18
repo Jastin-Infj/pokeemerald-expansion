@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-10 |
+| Last reviewed | 2026-05-18 |
 | Baseline | `feature/prebattle-team-viewer-phase2` from current `master` lineage |
 | Code status | Phase 2 implemented; build/check and focused mGBA routes passed |
-| Provenance | Local project implementation notes |
+| Provenance | Local project implementation notes; 2026-05-18 source audit from `feature/prebattle-team-viewer` |
 
 ## Summary
 
@@ -214,6 +214,29 @@ Flow:
 11. Closing the in-battle viewer calls `ReshowBattleScreenAfterMenu()` and returns to action
    selection without emitting a battle command or accepting held-key input.
 
+### Pool / Randomizer Cache Audit (2026-05-18)
+
+The pool/randomizer consistency mechanism is implemented on
+`feature/prebattle-team-viewer`; the earlier docs overstated this as a missing
+runtime task.
+
+- `PreBattleTeamViewer_Begin()` calls `PrepareOpponentCache()` before showing the
+  viewer.
+- `PrepareOpponentCache()` calls `CreateNPCTrainerPartyForPreview()` with the
+  current trainer id and battle type flags.
+- `CreateNPCTrainerPartyForPreview()` uses the same internal trainer party
+  generation path as battle init, and that path calls `DoTrainerPartyPool()` for
+  Trainer Party Pool / randomized party selection.
+- `PreBattleTeamViewer_LoadCachedOpponentParty()` validates trainer id and double
+  flag, copies the cached preview party into `gEnemyParty`, and restores the
+  cached Tera / Dynamax eligibility masks.
+
+This means preview and battle use the same generated opponent party. The accepted
+behavioral tradeoff is that trainer pool RNG is consumed at encounter start
+before the viewer, not later during battle init. A future adoption branch can
+still add an automated assertion or focused mGBA/Lua route for a concrete pool
+trainer, but that is evidence hardening rather than first implementation.
+
 ## UI Notes
 
 Pre-battle:
@@ -274,8 +297,9 @@ species, type, and level, then explicitly hide private details.
 
 - Type chips / gender / item badges are still deferred; the current visible team read is
   species icon plus slot number before battle, and icon-only in the in-battle viewer.
-- Focused mGBA validation covered the single debug route and W / double debug route.
-  Trainer Party Pool / randomized party identity checks are still manual follow-ups.
+- Focused mGBA validation covered the single debug route and W / double debug route. A
+  concrete Trainer Party Pool / randomized-party assertion is still useful before adoption,
+  but source audit confirms the cache mechanism is already present.
 - The opponent party cache intentionally moves trainer pool RNG to encounter start before
   the viewer. Battle uses the same cached result, but this should be called out if comparing
   RNG streams against a no-viewer build.
