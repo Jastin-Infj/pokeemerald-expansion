@@ -5,14 +5,16 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-18 |
-| Baseline | `master` `0cdd416376`; `git describe` = `expansion/1.15.2-71-g0cdd416376` |
+| Baseline | `master` `187df44eb6`; `git describe` = `expansion/1.15.2-73-g187df44eb6` |
 | Code status | Docs-only registry / PR queue snapshot |
-| Provenance | Local project overlay, `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup, 2026-05-18 Team Viewer / partygen source audit |
+| Provenance | Local project overlay, `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup, 2026-05-18 Team Viewer / partygen source audit, 2026-05-18 comprehensive inventory |
 
 この docs 配下で管理する独自機能候補の一覧。
 
 Latest cross-branch audit:
 [Implementation Shelf Audit 2026-05-17](implementation_shelf_audit_2026_05_17.md).
+Comprehensive feature inventory:
+[Comprehensive Feature Inventory 2026-05-18](comprehensive_feature_inventory_2026_05_18.md).
 Feature-by-feature branch audit:
 [Feature Branch Audit 2026-05-18](feature_branch_audit_2026_05_18.md).
 Latest next-work triage:
@@ -83,7 +85,7 @@ Item catalog assignment**.
 | Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace Trainer Party Pool data diff、mGBA ROM-memory evidence がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。Closed #5/#7 は未実装ではなく実装棚。 |
 | Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
 | Field Move Modernization / HM Removal | `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item` hold runtime slices. Docs say both the HM-free MVP and Field Kit itemization were locally validated and user-confirmed. | Do not describe this as unimplemented / no-code. Runtime source still stays off `master` until a selected implementation PR / integration branch is created. |
-| Legacy item / randomizer / map prototypes | Older remote branches such as `origin/item_clock`, `origin/item_heal_patry`, `origin/item_keyfly`, `origin/TM_v12_0`, `origin/feature/ex-rz-upstream1`, `origin/feature/EX/ex-rz-upstream1`, and `origin/feature/new-map` contain real implementations on older baselines. | Use as behavior references only. Do not merge older-baseline branches into current `master`; re-implement selected behavior on a fresh v15 branch. |
+| Legacy item / randomizer / map / UI prototypes | Older remote branches such as `origin/item_clock`, `origin/item_heal_patry`, `origin/item_keyfly`, `origin/TM_v12_0`, `origin/feature/ex-rz-upstream1`, `origin/feature/EX/ex-rz-upstream1`, `origin/feature/releaseSystem`, `origin/feature/move_relearner`, `origin/feature/main_menu`, `origin/feature/qol_field_moves`, `origin/feature/party-select-ui`, `origin/feature/birch_case`, and `origin/feature/new-map` contain real implementations on older baselines. | Use as behavior references only. Do not merge older-baseline branches into current `master`; re-implement selected behavior on a fresh v15 branch. Full inventory: [Comprehensive Feature Inventory 2026-05-18](comprehensive_feature_inventory_2026_05_18.md). |
 
 ### New Feature Candidate Snapshot (2026-05-17)
 
