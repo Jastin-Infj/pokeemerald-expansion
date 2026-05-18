@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-10 |
+| Last reviewed | 2026-05-18 |
 | Baseline | `feature/prebattle-team-viewer-phase2` |
 | Code status | Phase 2 implemented; docs record for handoff |
-| Provenance | Local source inspection and mGBA validation notes |
+| Provenance | Local source inspection, mGBA validation notes, 2026-05-18 source audit |
 
 ## Runtime Owner Map
 
@@ -72,8 +72,8 @@ Excluded or deferred routes:
 | Feature | Interaction | Current status |
 |---|---|---|
 | Trainer battle selection | Direct dependency. Viewer owns integrated selection UI, but selection module owns compression / restore. | Implemented and validated through single and double debug routes. |
-| Trainer Party Pools / randomizer | Viewer freezes the effective opponent party before battle. Pool RNG timing becomes "encounter start before viewer." | Remaining validation: pool / randomized party preview must be compared against battle party. |
-| Partygen | Partygen can change trainer party levels / species before runtime. Viewer should display the materialized party used by battle, not raw trainer.party intent. | No source change in this branch beyond cached battle party consumption. |
+| Trainer Party Pools / randomizer | Viewer freezes the effective opponent party before battle. Pool RNG timing becomes "encounter start before viewer." Source audit confirms preview generation uses `CreateNPCTrainerPartyForPreview()` and the same `DoTrainerPartyPool()` path as battle generation. | Implemented. Optional automated / mGBA regression can assert one concrete pool trainer before adoption. |
+| Partygen | Partygen can change trainer party levels / species before runtime. Viewer displays the generated/materialized party that battle will use because battle init consumes the preview cache. | Implemented on the viewer side. Partygen CLI / catalog itself lives on `feature/trainer-partygen-catalog-expansion`. |
 | Battle item restore / aftercare | These run after battle. Team viewer must clear state and leave player party restoration to battle selection before aftercare assumptions run. | No direct conflict found. |
 | Pokemon Summary / Move Relearner | Player Summary can expose Summary move behavior. Default route locks move reorder; setting `TEAM_VIEWER_SUMMARY_ALLOW_MOVE_REORDER = 1` intentionally permits normal Summary behavior. | Default locked; docs record the toggle. |
 | Options UI | Runtime option menu is out of scope. Current toggles are build-time config only. | Future runtime option work should design save/default migration separately. |
@@ -92,9 +92,10 @@ but validate through the normal trainer route or the focused Team Viewer debug r
 
 ## Remaining Dependency Checks
 
-- Trainer Party Pool / randomized party identity: confirm cached preview species/order
-  matches battle species/order for a pool trainer.
-- Override trainer path: confirm effective trainer data is previewed, not the base trainer
-  definition.
+- Trainer Party Pool / randomized party identity: optional regression evidence should assert
+  cached preview species/order matches battle species/order for a concrete pool trainer.
+  The source mechanism is already implemented.
+- Override trainer path: optional regression evidence should assert effective trainer data is
+  previewed, not the base trainer definition.
 - Future runtime optionization: if enabled, inspect save layout, option menu pages, and
   build-time fallback behavior before implementation.

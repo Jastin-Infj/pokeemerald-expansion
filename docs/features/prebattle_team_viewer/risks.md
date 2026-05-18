@@ -47,7 +47,9 @@
 
 ## Accepted Risks For MVP
 
-- Trainer Party Pool / randomized party identity remains a follow-up dependency check.
+- Trainer Party Pool / randomized party identity is implemented through the preview cache
+  and battle cache load path. A concrete pool-trainer regression remains useful evidence
+  before adoption, but this is no longer tracked as missing runtime work.
 - UI may be visually simpler than the reference image because GBA screen / palette constraints are real.
 - Type icons may be deferred if the icon / window budget is tight; species icons are required.
 - Viewer cancel remains conservative for trainerbattle script safety.
@@ -58,7 +60,7 @@
 
 ## Open Questions
 
-- Whether moving trainer pool roll timing to "encounter start before viewer" is acceptable for all pool trainers.
+- Whether moving trainer pool roll timing to "encounter start before viewer" is acceptable for all pool trainers remains the main policy tradeoff.
 - Whether exact opponent levels should be shown.
 - Whether shiny / form / gender visuals need special handling in the first UI slice.
 - Whether `R_BUTTON` remains the best default if future trainer battles add usable quick actions on R.

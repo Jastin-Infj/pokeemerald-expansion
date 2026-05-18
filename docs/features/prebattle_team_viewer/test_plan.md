@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-10 |
+| Last reviewed | 2026-05-18 |
 | Baseline | `feature/prebattle-team-viewer-phase2` |
 | Code status | Phase 2 integrated selection implemented; build/check and focused mGBA route passed |
-| Provenance | Local project feature docs |
+| Provenance | Local project feature docs; 2026-05-18 source audit |
 
 ## Current Validation
 
@@ -39,6 +39,7 @@
 | In-battle viewer layout follow-up | Pass | In-battle grid labels are hidden and use the same thin white window style as pre-battle. |
 | Selection back path | Pass | Team-viewer-owned choose-half selection now uses `B` to return to the cached team viewer. |
 | Debug validation route | Pass | Added debug-only `Party -> Team Viewer Battle` and `Party -> Team Viewer W`, which give the player six mons with moves and start repeatable single / double trainer routes that exercise viewer -> selection -> battle. |
+| Trainer Party Pool / randomizer cache source audit | Pass | `PreBattleTeamViewer_Begin()` creates the opponent cache through `CreateNPCTrainerPartyForPreview()`, the trainer party generation path calls `DoTrainerPartyPool()`, and `PreBattleTeamViewer_LoadCachedOpponentParty()` copies the cached result into `gEnemyParty` at battle init. A focused runtime assertion remains useful but the runtime mechanism is implemented. |
 | `rtk git diff --check` | Pass | No whitespace errors after W debug route and MoveInfo-aligned double hint positioning. |
 | `rtk make -j16 -O all` | Pass | Normal ROM built after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning only. |
 | `rtk make -j16 -O debug` | Pass | Debug ROM built after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning only. |

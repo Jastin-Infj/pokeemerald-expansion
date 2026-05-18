@@ -1845,7 +1845,14 @@ MVP の順序:
 - そのため、field script 上で battle 前選出 UI を開く時点では、pool / randomize / override 反映済みの `gEnemyParty` がまだ存在しない可能性が高い。
 - 相手 party preview を正確に表示するには、battle init より前に同じ生成結果を得る仕組みが必要になる。
 
-候補はあるが未実装:
+2026-05-18 update: this section was written for the earlier battle-selection
+MVP. The later Pre-Battle / In-Battle Team Viewer shelf implements the Plan B
+cache approach on `feature/prebattle-team-viewer`: preview generation calls the
+trainer party generation helper, applies `DoTrainerPartyPool()`, and battle init
+loads the same cached party. Keep the table below as historical design context
+for features that do not take the Team Viewer shelf.
+
+Original candidates before the Team Viewer implementation:
 
 | Candidate | Pros | Risks |
 |---|---|---|
@@ -1854,7 +1861,9 @@ MVP の順序:
 | Battle init 後に選出 UI を出す | `gEnemyParty` が確定後に表示できる | battle intro / controller / callback flow へ深く入るため高リスク。 |
 | 最初は trainer data の static party を表示する | 実装が軽い | pool / random order / override を正確に反映できない。 |
 
-現時点の判断: MVP では相手 party preview は除外し、party selection の安全な保存/復元を優先するのが安全。
+Original battle-selection MVP 判断: MVP では相手 party preview は除外し、party
+selection の安全な保存/復元を優先するのが安全。相手 preview は後続の
+Pre-Battle / In-Battle Team Viewer shelf で実装済み。
 
 preview / team display を同時にやるなら、Plan B として別 phase にする。Generator-only の Plan A では、randomizer 表示や手持ち表示は変えない。Plan B では、source file の rename / `TRAINERS_PARTY_SOURCE` 切替よりも「UI が raw data と post-pool result のどちらを表示するか」が主要要件になる。
 

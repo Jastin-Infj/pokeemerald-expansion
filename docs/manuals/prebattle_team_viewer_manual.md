@@ -183,8 +183,8 @@ Stop mGBA sessions after validation and record screenshots in
 
 | Topic | Status |
 |---|---|
-| Trainer Party Pools / randomized party identity | Remaining. Preview cache must be compared against actual battle party. |
-| Override trainer effective party | Remaining. Confirm preview uses effective trainer data. |
+| Trainer Party Pools / randomized party identity | Implemented by source mechanism: preview cache is generated through the trainer pool path and battle init consumes the same cache. Optional regression should assert one concrete pool trainer. |
+| Override trainer effective party | Source path uses the effective preview generator. Optional regression should assert one concrete override-trainer route. |
 | Runtime option menu | Out of scope. Requires save/default migration design. |
 | Full Champions detail UI | Out of scope. Opponent private data remains hidden. |
 

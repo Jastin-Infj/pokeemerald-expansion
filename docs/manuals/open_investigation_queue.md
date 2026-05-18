@@ -26,9 +26,15 @@ selected cherry-pick.
 | battle item restore adoption defaults | `docs/features/battle_item_restore_policy/` | Closed PR #14 and older branch evidence use `B_RESTORE_HELD_BATTLE_BERRIES TRUE`, while conservative branch policy may prefer default off. | Decide default TRUE/FALSE before source re-apply; keep the decision in `adoption_investigation_2026_05_09.md` and `mvp_plan.md`. |
 | nonconsumable held item catalog policy | `docs/features/nonconsumable_held_items/` | User wants a Champions-style held item policy where battle items do not disappear and one item can be assigned without physical quantity friction. Battle-end restore and catalog assignment touch different code paths. | Implement battle-end restore first if selected. Before catalog runtime, decide global/debug/facility scope and audit Party / Bag / Storage Take/Give/Switch/Toss behavior. |
 | trainer aftercare focused test gate | `docs/features/trainer_battle_aftercare/` | The source hook is small but touches `CB2_EndTrainerBattle`, a central callback for win/loss/facility return. | Add focused config-off, normal-win, and exclusion-path tests before adopting the aftercare slice. |
-| prebattle team viewer pool validation | `docs/features/prebattle_team_viewer/` | Completed shelf #20 has implemented viewer / selection routes and mGBA evidence. Remaining risk is not initial implementation, but whether cached preview matches trainer pools / randomized party behavior. | W route を regression に使いつつ、cached opponent party と pool / randomized battle 実体の一致を確認する。 |
 | unified move relearner adoption policy | `docs/features/unified_move_relearner/` | Completed shelf #28 implements the candidate builder and long-list handling. Policy decisions still affect runtime semantics. | Resolve conflicts after TM Shop Migration, then decide virtual TM unlock default, special-source labels, and manual teach/overwrite validation coverage. |
 | pokemon state editor adoption polish | `docs/features/pokemon_state_editor/` | Completed shelf #23 implements the party Summary MVP. Remaining questions are box support, redraw artifacts, legality locks, and whether this shelf is still the desired next adoption point. | Confirm box-summary policy and remaining UI/data polish before re-applying or replacing the shelf. |
+
+### Resolved (2026-05-18)
+
+| Topic | Resolution |
+|---|---|
+| ~~prebattle team viewer pool validation~~ | Source audit of `feature/prebattle-team-viewer` confirms the mechanism is implemented: `PreBattleTeamViewer_Begin()` builds the preview cache through `CreateNPCTrainerPartyForPreview()`, the party generation path calls `DoTrainerPartyPool()`, and battle init copies the same cache through `PreBattleTeamViewer_LoadCachedOpponentParty()`. Keep optional automated / mGBA regression evidence for adoption, but do not track this as missing implementation. |
+| ~~partygen / pool randomizer implemented state~~ | Closed PRs #5 and #7 are implementation shelves, not abandoned plans. #7 supersedes #5 and carries Rust CLI, catalog, Trainer Party Pool output for Elite Four / Wallace, lint data, local checks, and mGBA ROM-memory evidence. |
 
 ### Resolved (2026-05-05)
 

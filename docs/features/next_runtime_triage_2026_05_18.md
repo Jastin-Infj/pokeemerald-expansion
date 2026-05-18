@@ -149,7 +149,7 @@ feature/field-kit-current-master-20260518
 | 4 | Unified Move Relearner #28 | Refresh after #31 | Big quality-of-life feature, already implemented. | Depends on TM/HM policy and still needs teach/overwrite pass. |
 | 5 | Summary Tera Type Icon #26 | Fresh adoption branch | Small visible UI improvement. | Imported graphics credit / asset policy. |
 | 6 | Pokemon State Editor #23 | Fresh adoption branch or polish pass | Useful debug/training UI already implemented. | Summary UI ownership, box Summary, legality locks. |
-| 7 | Pre-Battle / In-Battle Team Viewer #20 | Fresh adoption branch or validation pass | High gameplay value, extensive mGBA evidence. | Trainer pool / randomized party preview consistency. |
+| 7 | Pre-Battle / In-Battle Team Viewer #20 | Fresh adoption branch or optional cache regression | High gameplay value, extensive mGBA evidence, and source-audited pool/randomizer cache path. | Adoption conflict handling; optional automated preview-cache assertion. |
 | 8 | Battle Item Restore #14 | Fresh adoption branch | Good policy foundation for Champions-style held items. | Default TRUE/FALSE decision still needed. |
 | 9 | Battle BGM Selector #39 | Hold unless audio is selected | Implemented and validated, but very large. | Audio asset permission and 487-file diff. |
 | 10 | Champions Partygen #7 | Hold for later integration | Tool/data work exists. | Large generated data and runtime facility policy not ready. |

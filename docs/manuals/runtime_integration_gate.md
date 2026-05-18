@@ -59,7 +59,7 @@ local branch diff を source of truth にする。
 | #28 Unified Move Relearner | generated candidate data + Summary / party / NPC entry points | special labels、virtual TM unlock policy、actual overwrite-learning gap を確認する。 |
 | #26 Summary Tera Type Icon | small Summary display UI + imported graphics | graphics / CREDITS / asset provenance を docs-only master に混ぜない。 |
 | #23 Pokemon State Editor | Summary overlay UI and Pokemon field edits | box summary、redraw artifacts、legality locks、config defaults を確認する。 |
-| #20 Pre-Battle / In-Battle Team Viewer | battle UI + Summary return + mGBA-heavy validation | trainer pool / randomized party preview consistency は未確認。 |
+| #20 Pre-Battle / In-Battle Team Viewer | battle UI + Summary return + mGBA-heavy validation | trainer pool / randomized party cache mechanism is implemented on the source shelf; add optional focused regression before adoption. |
 
 ## Old PR Close Policy
 

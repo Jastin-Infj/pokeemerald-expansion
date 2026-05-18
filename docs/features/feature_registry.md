@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-18 |
-| Baseline | `master` `abbbf47554`; `git describe` = `expansion/1.15.2-67-gabbbf47554` |
+| Baseline | `master` `0cdd416376`; `git describe` = `expansion/1.15.2-71-g0cdd416376` |
 | Code status | Docs-only registry / PR queue snapshot |
-| Provenance | Local project overlay, `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup |
+| Provenance | Local project overlay, `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup, 2026-05-18 Team Viewer / partygen source audit |
 
 この docs 配下で管理する独自機能候補の一覧。
 
@@ -50,10 +50,18 @@ High-impact alternative:
 Migration should land first. This is also an implemented shelf adoption, not
 initial feature work.
 
+2026-05-18 correction:
+**Pre-Battle / In-Battle Team Viewer pool/randomizer consistency is implemented
+on the feature shelf**. Source audit found preview generation flowing through
+`CreateNPCTrainerPartyForPreview()` and `DoTrainerPartyPool()`, with battle init
+loading the same cached result through `PreBattleTeamViewer_LoadCachedOpponentParty()`.
+If this shelf is selected, the remaining work is regression evidence / adoption
+conflict handling, not the initial implementation.
+
 If the goal is to continue cleaning up already-built feature requirements
-instead of adopting shelves, the recommended next work is
-**Pre-Battle / In-Battle Team Viewer pool/randomizer consistency**. That is the
-clearest remaining requirement gap on an otherwise implemented feature.
+instead of adopting shelves, the recommended next work is **Pokemon State Editor
+polish**. If the goal is a fresh runtime feature, choose **Nonconsumable Held
+Item catalog assignment**.
 
 ### Master Baseline Snapshot (2026-05-17)
 
@@ -69,10 +77,10 @@ clearest remaining requirement gap on an otherwise implemented feature.
 | Unified Move Relearner | Completed implementation shelf #28 on `feature/unified-move-relearner`; closed 2026-05-17 after CI success. Docs-only handoff was merged through PR #29. | Rebase / conflict-check after TM Shop Migration before any implementation merge. |
 | Summary Tera Type Icon | Completed implementation shelf #26 on `feature/summary-tera-type-badge`; closed 2026-05-17 after CI success. | Keep runtime source / imported graphics off `master` unless a fresh integration branch is explicitly selected. |
 | Pokemon State Editor | Completed implementation shelf #23 on `feature/pokemon-state-editor-expansion`; closed 2026-05-17 after CI success. | Treat as an implementation shelf; resolve adoption order and UI/data policy before touching `master`. |
-| Pre-Battle / In-Battle Team Viewer | Completed implementation shelf #20 on `feature/prebattle-team-viewer`; closed 2026-05-17 after CI success. | Keep as a validated implementation shelf; verify pool/randomizer preview consistency before integration. |
+| Pre-Battle / In-Battle Team Viewer | Completed implementation shelf #20 on `feature/prebattle-team-viewer`; closed 2026-05-17 after CI success. Source audit confirms pool/randomizer cache behavior is implemented on the shelf. | Keep as a validated implementation shelf; add optional automated/focused cache regression when selecting it for integration. |
 | Trainer Battle Aftercare / Battle Item Restore | `feature/battle-item-restore-policy` に berry-inclusive held item restore と focused tests がある。`feature/trainer-battle-aftercare-heal` には aftercare heal-only hook も含む旧 evidence がある。`master` には `B_TRAINER_BATTLE_AFTERCARE` / `B_RESTORE_HELD_BATTLE_BERRIES` が無い。 | Docs に evidence を残す。item restore と aftercare は `master` ではなく fresh branch で分割して取り込む。 |
 | Nonconsumable Held Items | `docs/features/nonconsumable_held_items/` に docs-only investigation を追加。Battle-end restore、Bag/party catalog assignment、item clause を分離して整理済み。 | Source は未実装。最初の runtime 候補は battle-end restore refresh。1 個の held item を複数匹へ割り当てる catalog mode は別 branch で Party / Bag / Storage UI を所有する。 |
-| Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace data diff がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。 |
+| Champions Partygen | `feature/trainer-partygen-catalog-expansion` に Rust CLI、catalog、Elite Four / Wallace Trainer Party Pool data diff、mGBA ROM-memory evidence がある。`master` には `tools/champions_partygen/README.md` だけがある。 | tool / data / generated workflow の review 後、大型 feature / integration branch として扱う。Closed #5/#7 は未実装ではなく実装棚。 |
 | Bag Expansion | `docs/features/bag_expansion/` に docs-only kickoff を追加。通常 bag は SaveBlock1 の `struct Bag` で、1 slot 約 4 B。`test/save.c` 上の SaveBlock1 余りは 304 B。 | 実装前に pocket target と save compatibility / migration 方針を決める。SaveBlock3 の空きは通常 bag には使わない。 |
 | Field Move Modernization / HM Removal | `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item` hold runtime slices. Docs say both the HM-free MVP and Field Kit itemization were locally validated and user-confirmed. | Do not describe this as unimplemented / no-code. Runtime source still stays off `master` until a selected implementation PR / integration branch is created. |
 | Legacy item / randomizer / map prototypes | Older remote branches such as `origin/item_clock`, `origin/item_heal_patry`, `origin/item_keyfly`, `origin/TM_v12_0`, `origin/feature/ex-rz-upstream1`, `origin/feature/EX/ex-rz-upstream1`, and `origin/feature/new-map` contain real implementations on older baselines. | Use as behavior references only. Do not merge older-baseline branches into current `master`; re-implement selected behavior on a fresh v15 branch. |
@@ -116,7 +124,7 @@ close する。
 | #28 `[codex] Implement unified move relearner` | `feature/unified-move-relearner` | Closed 2026-05-17 after CI success; branch preserved. | Completed implementation shelf for the unified relearner. Rebase/conflict resolution needed after TM Shop Migration. |
 | #26 `[codex] Add summary Tera type badge` | `feature/summary-tera-type-badge` | Closed 2026-05-17 after CI success; branch preserved. | Completed display-only Summary Tera icon shelf. Verify asset credit before adoption. |
 | #23 `[codex] Add Pokemon state editor` | `feature/pokemon-state-editor-expansion` | Closed 2026-05-17 after CI success; branch preserved. | Completed Pokemon State Editor MVP shelf. Confirm adoption order and remaining UI/data risks before integration. |
-| #20 `[codex] Implement prebattle team viewer` | `feature/prebattle-team-viewer` | Closed 2026-05-17 after CI success; branch preserved. | Completed Pre-battle / in-battle team viewer shelf. Verify trainer-pool preview consistency before integration. |
+| #20 `[codex] Implement prebattle team viewer` | `feature/prebattle-team-viewer` | Closed 2026-05-17 after CI success; branch preserved. | Completed Pre-battle / in-battle team viewer shelf. Source audit confirms trainer-pool preview cache implementation; add a focused assertion/evidence pass only if selected for integration. |
 | #14 `[codex] Add battle item restore policy` | `feature/battle-item-restore-policy` | Closed 2026-05-09, unmerged. | Implemented and validated closed shelf: berry-inclusive held item restore with focused tests and mGBA test-runner evidence. Reopen / recreate only if this slice becomes active again. |
 | #10 `Add trainer battle aftercare heal hook` | `feature/trainer-battle-aftercare-heal` | Closed 2026-05-10, unmerged. | Implemented closed shelf: default-off trainer win heal hook. Needs focused exclusion tests before adoption. |
 | #7 `Add Elite Four partygen pools and battlefield lint` | `feature/trainer-partygen-catalog-expansion` | Closed 2026-05-10, unmerged. | Implemented closed shelf: Rust CLI, catalog, Elite Four / Wallace data diff, lint data, and validation evidence. Preserve for a later partygen / Champions integration branch. |
@@ -135,11 +143,11 @@ close する。
 | 4 | `docs/features/field_move_modernization/` | Validated branch evidence → Fresh PR / integration branch | HM-free field move MVP and Field Kit itemization are implemented and user-confirmed, but there is no current open runtime PR. | TM Shop Migration retired old HM receive flags; capability flags must stay owned by field move feature. |
 | 5 | `docs/features/summary_tera_type_icon/` / completed shelf #26 | Validated branch → Conflict / asset check if selected | Small display-only UI slice with imported icon assets and local validation. | Pokemon Icon UI flow; imported graphics credit policy. |
 | 6 | `docs/features/pokemon_state_editor/` / completed shelf #23 | Implemented MVP → Adoption review if selected | Summary-launched editor is implemented; remaining risk is UI polish / box-summary / value legality, not initial investigation. | Summary UI ownership and future move editor separation. |
-| 7 | `docs/features/prebattle_team_viewer/` / completed shelf #20 | Implemented MVP → Conflict / pool validation if selected | Team preview / selection and in-battle viewer have focused mGBA evidence; remaining work is pool/randomized preview validation. | Battle selection restore flow and trainer pool behavior. |
+| 7 | `docs/features/prebattle_team_viewer/` / completed shelf #20 | Implemented MVP → Conflict / optional cache regression if selected | Team preview / selection, in-battle viewer, Summary return, and pool/randomizer cache path are implemented with focused mGBA evidence. | Battle selection restore flow and trainer pool behavior. |
 | 8 | `docs/features/battle_item_restore_policy/` | Closed PR evidence → Fresh branch if resumed | #14 は閉じたため open queue ではない。item restore 自体は focused tests と mGBA evidence を持つ integration candidate として docs に残す。 | aftercare と同一旧 branch 由来だが独立して取り込む |
 | 9 | `docs/features/nonconsumable_held_items/` | Planned → Fresh runtime PR | User-requested Champions-style held item policy. The first slice can reuse battle-end restore evidence, but catalog / one-copy assignment must be a separate UI ownership branch. | battle_item_restore_policy; Party / Bag / Storage held-item paths; optional Champions Challenge runtime. |
 | 10 | `docs/features/trainer_battle_aftercare/` | Closed PR evidence → Fresh branch if resumed | #10 は閉じたため open queue ではない。default off の heal-only hook を再開するなら focused test gate を先に置く。 | battle item restore の取り込み後に競合を避ける |
-| 11 | `docs/features/champions_challenge/` partygen CLI + catalog | Closed implemented shelf → Review / Testing | #7 は closed だが実装済み。Rust CLI、catalog、`src/data/trainers.party` の大型差分と validation evidence がある。 | no_random / battle-end policy とは独立。Champions runtime とは分ける。 |
+| 11 | `docs/features/champions_challenge/` partygen CLI + catalog | Closed implemented shelf → Review / Testing | #7 は closed だが実装済み。Rust CLI、catalog、`src/data/trainers.party` の大型差分、lint、mGBA ROM-memory validation evidence がある。 | no_random / battle-end policy とは独立。Champions runtime とは分ける。 |
 | 12 | `docs/features/bag_expansion/` | Investigating → Planned | Field Kit の Key Items 圧迫、250 TM の TM/HM pocket 不足、Champions bag snapshot が同じ `struct Bag` / SaveBlock1 decision に集まる。 | save_data flow |
 | 13 | runtime rule options | Investigating → Planned | no_random や aftercare を runtime option に束ねる前に、保存先と UI owner を確定する。 | save_data flow + concrete feature behavior |
 | 14 | `docs/features/champions_challenge/` runtime | Planned → Implementing | challenge party / bag / EXP / loss policy / reward state が重い。partygen output と battle selection / aftercare 知見を使ってから入る。 | save_data flow + bag_expansion + partygen CLI + battle_selection / team_viewer / aftercare ordering |
