@@ -43,7 +43,7 @@ implementation shelves equivalent to the docs.
 
 | Feature | Current state | Priority impact |
 |---|---|---|
-| Nonconsumable Held Item catalog assignment | Docs-only. Battle-end restore exists separately, but one-copy Party/Bag/Storage assignment is not implemented. | Best fresh gameplay implementation candidate if not adopting an existing shelf. |
+| Nonconsumable Held Item catalog assignment | Implemented on `feature/held-item-catalog-current-master-20260519`; not on `master`. Battle-end restore exists separately in PR #47. | Adoption / integration candidate; no longer a missing fresh-runtime item. |
 | Bag Expansion | Docs-only investigation. | Needs save compatibility decision before source work. |
 | Champions Challenge runtime facility | Docs-only runtime design. Partygen exists, facility loop does not. | Too broad until bag, item restore, battle selection, and partygen adoption decisions are settled. |
 | Jukebox / Sound Archive | Docs-only candidate. Battle BGM selector exists separately. | Best low-risk new feature if the goal is visible new runtime work. |
@@ -86,12 +86,12 @@ shelf exists. The next runtime decision should first choose between two modes:
 |---|---|---|
 | Adopt an implemented shelf | TM Shop Migration, Field Kit, Unified Relearner, Team Viewer, Pokemon State Editor, Summary Tera, Battle Item Restore, or Battle BGM depending on desired lane. | Most gameplay-visible features already exist on branches. Work is re-apply/conflict/validation, not first implementation. |
 | Finish a shelf's remaining hardening | Pokemon State Editor polish, Team Viewer cache regression, Battle Item Restore default decision, Trainer Aftercare exclusion tests. | Smallest way to turn a shelf into a cleaner adoption candidate. |
-| Build genuinely new runtime | Nonconsumable Held Item catalog assignment or Jukebox. | These are still not implemented on current v15 shelves. |
+| Build genuinely new runtime | Jukebox or another docs-only candidate. | Nonconsumable Held Item catalog assignment is now implemented on a current feature branch. |
 | Mine old references | Release system, old key items, old randomizer, old main menu, old Birch case. | Only after deciding the behavior is still wanted; re-implement on current master. |
 
 My current recommendation after this broader audit:
 
 1. If we are adopting implemented work: **TM Shop Migration** remains the cleanest first adoption branch.
 2. If we are hardening before adoption: **Pokemon State Editor polish** is the narrowest useful cleanup.
-3. If we are writing new runtime: **Nonconsumable Held Item catalog assignment** is the clearest not-yet-implemented gameplay policy; **Jukebox** is the lower-risk visible feature.
+3. If we are writing new runtime after 2026-05-19: **Jukebox** is the lower-risk visible feature; Nonconsumable Held Item catalog assignment is now an adoption / integration candidate.
 4. Do not spend priority on implementing Team Viewer, partygen, Field Kit, no-random step-only, Summary Tera, or Unified Move Relearner from scratch; those are already implemented shelves.

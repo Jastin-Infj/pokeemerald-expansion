@@ -90,6 +90,7 @@ as behavior references, not merged into current `master`.
 5. Then pick among Summary Tera Icon, Pokemon State Editor, and Pre-Battle Team
    Viewer based on desired UI surface and conflict tolerance.
 6. Treat Battle Item Restore / Aftercare / Nonconsumable Held Items as a grouped
-   policy lane. Battle-end restore is implemented; catalog assignment is not.
+   policy lane. Battle-end restore is implemented in PR #47, and catalog
+   assignment is implemented on `feature/held-item-catalog-current-master-20260519`.
 7. Treat Champions Partygen as implemented tool/data work, but defer Champions
    runtime until the battle / bag / aftercare policy stack is settled.
