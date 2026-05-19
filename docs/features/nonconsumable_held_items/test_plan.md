@@ -15,7 +15,7 @@
 `master` `25731e81a0`):
 
 - `rtk git diff --check`: passed.
-- `rtk make -j16 -O check TESTS=test/bag.c`: passed, 7 tests. Existing linker
+- `rtk make -j16 -O check TESTS=test/bag.c`: passed, 10 tests. Existing linker
   warning about a LOAD segment with RWX permissions was observed.
 - `rtk make -j16 -O check`: passed. Existing `EXPECTED_FAIL` /
   `KNOWN_FAILING` markers were observed and the suite exited 0.
@@ -28,10 +28,11 @@
   search index.
 - mGBA Live MCP boot/input smoke:
   - `mgba_live_start` launched `pokeemerald.gba` with session
-    `held-item-catalog-smoke-20260519`.
+    `held-item-catalog-token-smoke-20260519`.
   - `mgba_live_get_view` captured the Pokemon Emerald title screen.
   - `mgba-live-cli input-tap --key START` was accepted.
-  - A follow-up `mgba_live_get_view` captured the continue menu.
+  - Follow-up `mgba_live_get_view` calls captured the intro path and continue
+    menu.
   - `mgba_live_stop` returned `stopped: true`.
   - `mgba-live-cli status --all` returned `[]`.
 - Feature-specific quantity behavior is covered by the headless mGBA
@@ -65,10 +66,15 @@ For any runtime branch:
 | Test | Expected result |
 |---|---|
 | Assign one Bag-held Leftovers to two party Pokemon | Both Pokemon can hold Leftovers; Bag quantity does not decrease. Helper coverage exists; mGBA UI route remains. |
+| Add duplicate catalog item copies | Bag stores one token only; existing duplicate token stacks normalize back to one when touched by catalog add / give / return helpers. |
+| Add ordinary consumables like Potion | Physical quantity behavior remains unchanged because items without a hold effect are outside the catalog token policy. |
 | Take catalog-assigned item | Pokemon held item clears; Bag quantity does not increase when the Bag already owns the item. |
 | Take first-time held item | Pokemon held item clears and one Bag copy is added if the Bag did not already own the item. |
 | Switch catalog-held item to another item | Pokemon held item changes; Bag quantities do not drift. |
-| Toss catalog-held item | Existing clear-only behavior remains. |
+| Bag Toss catalog token | Blocked; the catalog token is not physically removed. |
+| Party Toss held item | Existing clear-only behavior remains for the Pokemon held slot. |
+| Sell / Deposit catalog token | Blocked; the catalog token remains in Bag. |
+| Buy already-owned catalog token | Shop displays / treats it as sold out. |
 | Mail selected | Routed through normal Mail flow; no catalog clone. Helper coverage confirms Mail remains physical. |
 | Storage item mode | Catalog-aware for give / take / close / release return paths; mGBA UI route remains. |
 | Frontier item clause challenge | Duplicate held items are still rejected if that facility rule is active. |
@@ -92,6 +98,8 @@ For any runtime branch:
 - Confirm Bag quantity does not decrease.
 - Take the item from one Pokemon and confirm Bag quantity does not increase.
 - Switch the held item and confirm no Bag quantity drift.
+- Try Bag Toss, Sell, Deposit, and duplicate shop Buy for the same catalog
+  token; confirm all routes preserve the one-token Bag entry.
 - Try Storage item mode and confirm the documented MVP behavior.
 
 ## Manual Checks To Record

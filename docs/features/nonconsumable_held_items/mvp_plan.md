@@ -60,21 +60,28 @@ menu / catalog behavior.
 
 ### MVP
 
-Treat Bag ownership as permission to assign a held item, not as the exact number
-of Pokemon that can hold it.
+Treat Bag ownership as a unique token that permits held item assignment, not as
+the exact number of Pokemon that can hold it.
 
 Implemented first contract:
 
 - Exclude Mail.
 - Do not alter SaveBlock in the first slice.
-- If the Bag contains at least one copy of an allowed held item, the item can be
-  assigned to any party Pokemon.
+- If the Bag contains a catalog token, the item can be assigned to any party
+  Pokemon.
+- Catalog tokens are limited to non-mail, non-Key Items with an actual hold
+  effect. Normal consumables and utility items with no hold effect remain
+  physical quantities.
+- Adding a catalog item stores at most one Bag token; existing duplicate token
+  stacks are normalized to one when touched.
 - Assigning the item does not remove it from Bag.
 - Taking the item from a Pokemon clears the Pokemon held item. If the Bag
   already has that item, no quantity is added; if the Bag does not have it, one
   copy is added so first-time held item acquisition is preserved.
 - Switching held items does not add or remove Bag quantities.
-- Toss keeps the existing clear-only behavior.
+- Bag Toss / shop Sell / PC Deposit are blocked for catalog tokens. Party Toss
+  keeps the existing clear-only behavior for the Pokemon held slot.
+- Shops treat already-owned catalog tokens as sold out.
 - PC Storage item mode is updated with the same no-quantity-transfer policy for
   give, take, close-while-holding-item, and release return paths.
 
@@ -83,20 +90,26 @@ Implemented first contract:
 | Step | Files | Notes |
 |---|---|---|
 | 1 | `include/config/item.h` | Added `I_HELD_ITEM_CATALOG_ASSIGNMENT`, default `TRUE` on the feature branch. |
-| 2 | `src/item.c`, `include/item.h` | Added helper functions for catalog-aware held item assignment and return. |
+| 2 | `src/item.c`, `include/item.h` | Added helper functions for catalog-aware held item assignment and return; catalog add normalizes to one Bag token. |
 | 3 | `src/party_menu.c` | Updated Party / Bag Give, Take, and Switch item paths. |
 | 4 | `src/pokemon_storage_system.c` | Updated Storage item mode give / take / close / release return paths. |
-| 5 | `src/data/party_menu.h`, `src/strings.c` | Not changed in MVP; existing messages are accepted for now. |
-| 6 | `test/bag.c` / mGBA | Focused helper tests added; mGBA UI check remains required. |
+| 5 | `src/item_menu.c`, `src/shop.c` | Blocked catalog token Toss / Sell / Deposit and sold out already-owned catalog shop entries. |
+| 6 | `src/data/party_menu.h`, `src/strings.c` | Not changed in MVP; existing party messages are accepted for now. |
+| 7 | `test/bag.c` / mGBA | Focused helper tests added; mGBA UI check remains useful. |
 
 ### Catalog Decision Table
 
 | Case | MVP policy |
 |---|---|
-| Non-mail held item assigned from Bag | Set Pokemon held item; do not remove Bag item. |
+| Catalog token assigned from Bag | Set Pokemon held item; do not remove Bag item. |
+| Catalog token acquired again | Keep / normalize Bag quantity to one. |
+| Normal no-hold-effect item acquired or assigned | Physical quantity behavior remains. |
 | Pokemon item taken | Clear Pokemon held item; do not add Bag item if already owned; add one copy if not owned yet. |
 | Pokemon item switched | Replace Pokemon held item; do not add/remove Bag items. |
+| Toss from Bag | Block catalog tokens. |
 | Toss from Pokemon | Existing clear-only behavior remains. |
+| Sell / Deposit | Block catalog tokens. |
+| Shop duplicate purchase | Treat already-owned catalog tokens as sold out. |
 | Mail | Excluded. Existing Mail text storage is physical ownership and should not be catalog-cloned. |
 | PC Storage item mode | Catalog-aware for item give / take / close / release return paths. |
 | Battle Pyramid bag | Excluded; physical quantity behavior remains. |

@@ -13,7 +13,7 @@
 
 Status: Integration candidate
 
-This feature now has runtime PR #48 for the catalog / one-copy held item
+This feature now has runtime PR #48 for the catalog / unique-token held item
 assignment slice. Runtime source is still not changed on `master`.
 
 ## Goal
@@ -35,7 +35,7 @@ different policies:
 |---|---|---|
 | Battle-time consumption | Items are still removed during battle so `Recycle`, `Pickup`, `Harvest`, `Cud Chew`, `Unburden`, and related mechanics work. | Do not make items unconsumable during battle. Restore at battle end instead. |
 | Battle-end restore | `B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9` restores non-berry held items, but berries are excluded in `TryRestoreHeldItems()`. | First runtime slice should restore original player held items after battle, berries included, using the existing battle-start `originalItem` snapshot. |
-| Bag / party ownership | Party and Bag UI currently move one physical item: Bag count decreases on Give and increases on Take. | A Champions-style catalog / infinite assignment mode needs separate UI and ownership rules. It must guard Take / Toss / Storage paths to avoid item duplication. |
+| Bag / party ownership | Party and Bag UI currently move one physical item: Bag count decreases on Give and increases on Take. | A Champions-style catalog / infinite assignment mode needs separate UI and ownership rules. Runtime PR #48 now treats held-effect catalog items as one Bag token, blocks Bag Toss / Sell / Deposit, and leaves ordinary no-hold-effect items physical. |
 | Duplicate held items | Frontier / selection / party pool code can enforce item clause, while normal gameplay does not globally ban duplicates. | Duplicate allowance and item clause should be mode-specific. The requested Champions-like policy should allow duplicate assignment unless a challenge explicitly enables item clause. |
 
 Implementation order:

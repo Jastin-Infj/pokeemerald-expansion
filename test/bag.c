@@ -177,6 +177,41 @@ TEST("Held item catalog assignment keeps one non-mail Bag copy when giving")
     EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
 }
 
+TEST("Held item catalog ownership stores only one non-mail Bag token")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+
+    EXPECT(AddBagItem(ITEM_LEFTOVERS, 1));
+    EXPECT(AddBagItem(ITEM_LEFTOVERS, 99));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog ownership normalizes existing duplicate Bag tokens")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+    BagPocket_SetSlotItemIdAndCount(&gBagPockets[POCKET_ITEMS], 0, ITEM_LEFTOVERS, 5);
+
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_LEFTOVERS));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog ownership leaves ordinary consumables physical")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+    ASSUME(GetItemHoldEffect(ITEM_POTION) == HOLD_EFFECT_NONE);
+
+    ClearBag();
+
+    EXPECT(AddBagItem(ITEM_POTION, 3));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), 3);
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_POTION));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), 2);
+}
+
 TEST("Held item catalog assignment does not create another Bag copy when taking")
 {
     ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
