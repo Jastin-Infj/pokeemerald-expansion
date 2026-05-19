@@ -2,6 +2,10 @@
 
 調査日: 2026-05-04。現時点では実装・改造は行わず、後続実装のための調査メモだけを追加する。
 
+2026-05-19 update: Scout Selection は専用 feature docs へ切り出した。
+実装前の current plan / dependency map / validation plan は
+[`docs/features/scout_selection/`](../features/scout_selection/README.md) を参照する。
+
 ## Purpose
 
 Battle Factory / Pokemon Champions 風に、NPC から複数候補 Pokemon をランダム提示し、専用スカウト画面で 1 匹だけ選んで獲得する flow を作る場合の入口を整理する。
