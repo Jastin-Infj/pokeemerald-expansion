@@ -74,6 +74,8 @@ Implemented first contract:
   physical quantities.
 - Adding a catalog item stores at most one Bag token; existing duplicate token
   stacks are normalized to one when touched.
+- Bag item list displays catalog tokens with a non-numeric token marker instead
+  of `x1`.
 - Assigning the item does not remove it from Bag.
 - Taking the item from a Pokemon clears the Pokemon held item. If the Bag
   already has that item, no quantity is added; if the Bag does not have it, one
@@ -93,7 +95,7 @@ Implemented first contract:
 | 2 | `src/item.c`, `include/item.h` | Added helper functions for catalog-aware held item assignment and return; catalog add normalizes to one Bag token. |
 | 3 | `src/party_menu.c` | Updated Party / Bag Give, Take, and Switch item paths. |
 | 4 | `src/pokemon_storage_system.c` | Updated Storage item mode give / take / close / release return paths. |
-| 5 | `src/item_menu.c`, `src/shop.c` | Blocked catalog token Toss / Sell / Deposit and sold out already-owned catalog shop entries. |
+| 5 | `src/item_menu.c`, `src/shop.c` | Added Bag token display marker, blocked catalog token Toss / Sell / Deposit, and sold out already-owned catalog shop entries. |
 | 6 | `src/data/party_menu.h`, `src/strings.c` | Not changed in MVP; existing party messages are accepted for now. |
 | 7 | `test/bag.c` / mGBA | Focused helper tests added; mGBA UI check remains useful. |
 
@@ -102,6 +104,7 @@ Implemented first contract:
 | Case | MVP policy |
 |---|---|
 | Catalog token assigned from Bag | Set Pokemon held item; do not remove Bag item. |
+| Catalog token shown in Bag list | Show token marker instead of numeric `x1`. |
 | Catalog token acquired again | Keep / normalize Bag quantity to one. |
 | Normal no-hold-effect item acquired or assigned | Physical quantity behavior remains. |
 | Pokemon item taken | Clear Pokemon held item; do not add Bag item if already owned; add one copy if not owned yet. |

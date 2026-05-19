@@ -223,6 +223,7 @@ static const u8 sText_NoRoomForItems[] = _("There's no room to\nstore items.");
 static const u8 sText_CantStoreImportantItems[] = _("Important items\ncan't be stored in\nthe PC!");
 static const u8 sText_CatalogItemsCantBeStored[] = _("Catalog items\ncan't be stored in\nthe PC!");
 static const u8 sText_CatalogItemsCantBeTossed[] = _("Catalog items\ncan't be thrown away!");
+static const u8 sText_CatalogQuantityToken[] = _("×{CIRCLE_HOLLOW}{CIRCLE_HOLLOW}");
 
 static void Task_LoadBagSortOptions(u8 taskId);
 static void ItemMenu_SortByName(u8 taskId);
@@ -1009,9 +1010,15 @@ static void BagMenu_ItemPrintCallback(u8 windowId, u32 itemIndex, u8 y)
 
         if (gBagPosition.pocket != POCKET_KEY_ITEMS && GetItemImportance(itemSlot.itemId) == FALSE)
         {
-            // Print item quantity
-            ConvertIntToDecimalStringN(gStringVar1, itemSlot.quantity, STR_CONV_MODE_RIGHT_ALIGN, MAX_ITEM_DIGITS);
-            StringExpandPlaceholders(gStringVar4, gText_xVar1);
+            if (IsHeldItemCatalogActiveForItem(itemSlot.itemId))
+            {
+                StringCopy(gStringVar4, sText_CatalogQuantityToken);
+            }
+            else
+            {
+                ConvertIntToDecimalStringN(gStringVar1, itemSlot.quantity, STR_CONV_MODE_RIGHT_ALIGN, MAX_ITEM_DIGITS);
+                StringExpandPlaceholders(gStringVar4, gText_xVar1);
+            }
             offset = GetStringRightAlignXOffset(FONT_NARROW, gStringVar4, 119);
             BagMenu_Print(windowId, FONT_NARROW, gStringVar4, offset, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
         }

@@ -35,6 +35,18 @@
     menu.
   - `mgba_live_stop` returned `stopped: true`.
   - `mgba-live-cli status --all` returned `[]`.
+- mGBA Live Bag token marker check:
+  - `mgba-live-cli start` launched `pokeemerald.gba` with session
+    `held-item-catalog-token-marker-20260519`.
+  - Continued the existing save to the overworld.
+  - Used Lua memory setup to write `ITEM_LEFTOVERS` into the Bag for this
+    validation route.
+  - Opened the Start menu and Bag.
+  - The Bag list showed Leftovers with the catalog token marker instead of
+    numeric `x1`.
+  - Screenshot exported to `/tmp/held-item-catalog-token-marker-20260519.png`.
+  - `mgba-live-cli stop` returned `stopped: true`.
+  - `mgba-live-cli status --all` returned `[]`.
 - Feature-specific quantity behavior is covered by the headless mGBA
   `test/bag.c` route. Manual Bag / Party / Storage UI validation remains useful
   for text polish and visible icon checks.
@@ -68,6 +80,7 @@ For any runtime branch:
 | Assign one Bag-held Leftovers to two party Pokemon | Both Pokemon can hold Leftovers; Bag quantity does not decrease. Helper coverage exists; mGBA UI route remains. |
 | Add duplicate catalog item copies | Bag stores one token only; existing duplicate token stacks normalize back to one when touched by catalog add / give / return helpers. |
 | Add ordinary consumables like Potion | Physical quantity behavior remains unchanged because items without a hold effect are outside the catalog token policy. |
+| Bag list catalog token display | Catalog items show the token marker instead of `x1`; ordinary physical items still show numeric quantity. |
 | Take catalog-assigned item | Pokemon held item clears; Bag quantity does not increase when the Bag already owns the item. |
 | Take first-time held item | Pokemon held item clears and one Bag copy is added if the Bag did not already own the item. |
 | Switch catalog-held item to another item | Pokemon held item changes; Bag quantities do not drift. |
@@ -95,7 +108,8 @@ For any runtime branch:
 
 - Open Bag / Party Give flow.
 - Assign the same held item to at least two party Pokemon from one Bag copy.
-- Confirm Bag quantity does not decrease.
+- Confirm the Bag list shows the catalog token marker, not `x1`, and quantity
+  does not decrease.
 - Take the item from one Pokemon and confirm Bag quantity does not increase.
 - Switch the held item and confirm no Bag quantity drift.
 - Try Bag Toss, Sell, Deposit, and duplicate shop Buy for the same catalog

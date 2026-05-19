@@ -33,6 +33,9 @@ When the catalog policy applies:
   quantities.
 - `AddBagItem` stores only one catalog token. Existing duplicate catalog stacks
   are normalized to one token when touched by catalog add / give / return paths.
+- Bag list quantity display uses a catalog token marker (`x` plus two hollow
+  circles) instead of `x1` for catalog items, because the on-save count is an
+  ownership token rather than the assignable quantity.
 - Giving a held item from Bag / Party / PC Storage does not decrement Bag
   quantity.
 - Taking or switching a held item does not create another Bag copy if the Bag
@@ -54,7 +57,7 @@ When the catalog policy applies:
 |---|---|
 | `include/config/item.h` | Added `I_HELD_ITEM_CATALOG_ASSIGNMENT`, default `TRUE` on this feature branch. |
 | `include/item.h`, `src/item.c` | Added catalog-aware helper functions for held item assignment / return, plus unique-token add and duplicate normalization. |
-| `src/item_menu.c` | Blocks Bag Toss, shop Sell, and PC Deposit for catalog tokens. |
+| `src/item_menu.c` | Shows a catalog token marker in the Bag list and blocks Bag Toss, shop Sell, and PC Deposit for catalog tokens. |
 | `src/shop.c` | Treats already-owned catalog tokens as sold out and buys unowned tokens as a single item. |
 | `src/party_menu.c` | Routed Party / Bag Give, Take, and Switch item paths through catalog-aware helpers. |
 | `src/pokemon_storage_system.c` | Routed PC Storage item give / take / close / release paths through catalog-aware helpers. |
@@ -88,6 +91,12 @@ Results:
   `held-item-catalog-token-smoke-20260519`, reached the title screen, accepted
   `START`, reached the intro / continue path, stopped cleanly, and
   `mgba-live-cli status --all` returned `[]`.
+- mGBA Live UI marker route used session
+  `held-item-catalog-token-marker-20260519`. A Lua setup script wrote
+  `ITEM_LEFTOVERS` into the existing save Bag, the Bag screen showed Leftovers
+  with the catalog token marker instead of `x1`, screenshot
+  `/tmp/held-item-catalog-token-marker-20260519.png` was exported, and cleanup
+  returned `mgba-live-cli status --all` to `[]`.
 
 Feature-specific quantity behavior is covered by the headless mGBA
 `test/bag.c` route. A manual Bag / Party / Storage UI route remains useful for
