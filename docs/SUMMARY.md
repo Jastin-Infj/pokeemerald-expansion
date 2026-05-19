@@ -162,6 +162,7 @@
     - [Nonconsumable Held Items](features/nonconsumable_held_items/README.md)
       - [Investigation](features/nonconsumable_held_items/investigation.md)
       - [MVP Plan](features/nonconsumable_held_items/mvp_plan.md)
+      - [Implementation](features/nonconsumable_held_items/implementation.md)
       - [Risks](features/nonconsumable_held_items/risks.md)
       - [Test Plan](features/nonconsumable_held_items/test_plan.md)
       - [Future Runtime Handoff](features/nonconsumable_held_items/future_runtime_handoff.md)
