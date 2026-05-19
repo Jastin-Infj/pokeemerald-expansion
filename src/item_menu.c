@@ -221,6 +221,9 @@ static const u8 sText_DepositHowManyVar1[] = _("Deposit how many\n{STR_VAR_1}?")
 static const u8 sText_DepositedVar2Var1s[] = _("Deposited {STR_VAR_2}\n{STR_VAR_1}.");
 static const u8 sText_NoRoomForItems[] = _("There's no room to\nstore items.");
 static const u8 sText_CantStoreImportantItems[] = _("Important items\ncan't be stored in\nthe PC!");
+static const u8 sText_CatalogItemsCantBeStored[] = _("Catalog items\ncan't be stored in\nthe PC!");
+static const u8 sText_CatalogItemsCantBeTossed[] = _("Catalog items\ncan't be thrown away!");
+static const u8 sText_CatalogQuantityToken[] = _("×{CIRCLE_HOLLOW}{CIRCLE_HOLLOW}");
 
 static void Task_LoadBagSortOptions(u8 taskId);
 static void ItemMenu_SortByName(u8 taskId);
@@ -1007,9 +1010,15 @@ static void BagMenu_ItemPrintCallback(u8 windowId, u32 itemIndex, u8 y)
 
         if (gBagPosition.pocket != POCKET_KEY_ITEMS && GetItemImportance(itemSlot.itemId) == FALSE)
         {
-            // Print item quantity
-            ConvertIntToDecimalStringN(gStringVar1, itemSlot.quantity, STR_CONV_MODE_RIGHT_ALIGN, MAX_ITEM_DIGITS);
-            StringExpandPlaceholders(gStringVar4, gText_xVar1);
+            if (IsHeldItemCatalogActiveForItem(itemSlot.itemId))
+            {
+                StringCopy(gStringVar4, sText_CatalogQuantityToken);
+            }
+            else
+            {
+                ConvertIntToDecimalStringN(gStringVar1, itemSlot.quantity, STR_CONV_MODE_RIGHT_ALIGN, MAX_ITEM_DIGITS);
+                StringExpandPlaceholders(gStringVar4, gText_xVar1);
+            }
             offset = GetStringRightAlignXOffset(FONT_NARROW, gStringVar4, 119);
             BagMenu_Print(windowId, FONT_NARROW, gStringVar4, offset, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
         }
@@ -1888,6 +1897,12 @@ static void ItemMenu_Toss(u8 taskId)
     s16 *data = gTasks[taskId].data;
 
     RemoveContextWindow();
+    if (IsHeldItemCatalogActiveForItem(gSpecialVar_ItemId))
+    {
+        DisplayItemMessage(taskId, FONT_NORMAL, sText_CatalogItemsCantBeTossed, HandleErrorMessage);
+        return;
+    }
+
     tItemCount = 1;
     if (tQuantity == 1)
     {
@@ -2180,7 +2195,7 @@ static void Task_ItemContext_Sell(u8 taskId)
 {
     s16 *data = gTasks[taskId].data;
 
-    if (GetItemPrice(gSpecialVar_ItemId) == 0 || GetItemImportance(gSpecialVar_ItemId))
+    if (GetItemPrice(gSpecialVar_ItemId) == 0 || GetItemImportance(gSpecialVar_ItemId) || IsHeldItemCatalogActiveForItem(gSpecialVar_ItemId))
     {
         CopyItemName(gSpecialVar_ItemId, gStringVar2);
         StringExpandPlaceholders(gStringVar4, gText_CantBuyKeyItem);
@@ -2360,6 +2375,11 @@ static void TryDepositItem(u8 taskId)
     {
         // Can't deposit important items
         BagMenu_Print(WIN_DESCRIPTION, FONT_NORMAL, sText_CantStoreImportantItems, 3, 1, 0, 0, 0, COLORID_NORMAL);
+        gTasks[taskId].func = WaitDepositErrorMessage;
+    }
+    else if (IsHeldItemCatalogActiveForItem(gSpecialVar_ItemId))
+    {
+        BagMenu_Print(WIN_DESCRIPTION, FONT_NORMAL, sText_CatalogItemsCantBeStored, 3, 1, 0, 0, 0, COLORID_NORMAL);
         gTasks[taskId].func = WaitDepositErrorMessage;
     }
     else if (AddPCItem(gSpecialVar_ItemId, tItemCount) == TRUE)

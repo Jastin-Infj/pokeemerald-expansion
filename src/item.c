@@ -12,6 +12,7 @@
 #include "strings.h"
 #include "load_save.h"
 #include "item_use.h"
+#include "mail.h"
 #include "battle_pyramid.h"
 #include "battle_pyramid_bag.h"
 #include "graphics.h"
@@ -32,6 +33,7 @@ static bool32 CheckPyramidBagHasItem(enum Item itemId, u16 count);
 static bool32 CheckPyramidBagHasSpace(enum Item itemId, u16 count);
 static const u8 *GetItemPluralName(enum Item);
 static bool32 DoesItemHavePluralName(enum Item);
+static void NormalizeHeldItemCatalogBagQuantity(enum Item itemId);
 static void NONNULL BagPocket_CompactItems(struct BagPocket *pocket);
 
 EWRAM_DATA struct BagPocket gBagPockets[POCKETS_COUNT] = {0};
@@ -352,6 +354,18 @@ bool32 AddBagItem(enum Item itemId, u16 count)
     if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || FlagGet(FLAG_STORING_ITEMS_IN_PYRAMID_BAG) == TRUE)
         return AddPyramidBagItem(itemId, count);
 
+    if (IsHeldItemCatalogActiveForItem(itemId))
+    {
+        if (count == 0)
+            return TRUE;
+        if (CheckBagHasItem(itemId, 1))
+        {
+            NormalizeHeldItemCatalogBagQuantity(itemId);
+            return TRUE;
+        }
+        count = 1;
+    }
+
     return BagPocket_AddItem(&gBagPockets[GetItemPocket(itemId)], itemId, count);
 }
 
@@ -409,6 +423,52 @@ bool32 RemoveBagItem(enum Item itemId, u16 count)
         return RemovePyramidBagItem(itemId, count);
 
     return BagPocket_RemoveItem(&gBagPockets[GetItemPocket(itemId)], itemId, count);
+}
+
+bool32 IsHeldItemCatalogActiveForItem(enum Item itemId)
+{
+    if (I_HELD_ITEM_CATALOG_ASSIGNMENT != TRUE)
+        return FALSE;
+    if (itemId == ITEM_NONE || ItemIsMail(itemId))
+        return FALSE;
+    if (GetItemPocket(itemId) >= POCKETS_COUNT || GetItemPocket(itemId) == POCKET_KEY_ITEMS)
+        return FALSE;
+    if (GetItemHoldEffect(itemId) == HOLD_EFFECT_NONE)
+        return FALSE;
+    if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || FlagGet(FLAG_STORING_ITEMS_IN_PYRAMID_BAG) == TRUE)
+        return FALSE;
+    return TRUE;
+}
+
+static void NormalizeHeldItemCatalogBagQuantity(enum Item itemId)
+{
+    u16 quantity = CountTotalItemQuantityInBag(itemId);
+
+    if (quantity > 1)
+        RemoveBagItem(itemId, quantity - 1);
+}
+
+bool32 RemoveBagItemForHeldItemAssignment(enum Item itemId)
+{
+    if (IsHeldItemCatalogActiveForItem(itemId))
+    {
+        NormalizeHeldItemCatalogBagQuantity(itemId);
+        return CheckBagHasItem(itemId, 1);
+    }
+    return RemoveBagItem(itemId, 1);
+}
+
+bool32 ReturnHeldItemToBag(enum Item itemId)
+{
+    if (IsHeldItemCatalogActiveForItem(itemId))
+    {
+        if (CheckBagHasItem(itemId, 1))
+        {
+            NormalizeHeldItemCatalogBagQuantity(itemId);
+            return TRUE;
+        }
+    }
+    return AddBagItem(itemId, 1);
 }
 
 // Unsafe function: Only use with functions that already check the slot and count are valid

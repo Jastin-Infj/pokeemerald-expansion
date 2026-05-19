@@ -45,7 +45,7 @@ preserved.
 
 | Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
-| Nonconsumable Held Items | [test_plan](../features/nonconsumable_held_items/test_plan.md) | Required for this docs-only branch. | Not required until runtime adoption. | Not implemented. Future tests must cover battle-end restore and Bag quantity drift separately. | Not required until runtime adoption. | Battle-end restore is separable from catalog assignment. Party / Bag / Storage UI ownership, Mail exclusion, and stolen / swapped item ownership remain open. |
+| Nonconsumable Held Items | #48 / `feature/held-item-catalog-current-master-20260519` | [test_plan](../features/nonconsumable_held_items/test_plan.md) | 2026-05-19 `all`, `debug`, full `check`, and focused `test/bag.c` passed. | Bag quantity drift helper tests passed for catalog Give / Take / first-copy preservation / Mail exclusion / duplicate normalization / ordinary consumable exclusion. | mGBA Live boot/input smoke passed and cleaned up; feature-specific behavior is covered by headless `test/bag.c`. | Battle-end restore remains separate in PR #47; stolen / swapped item ownership remains open. |
 
 ## Docs-only Baseline Check
 

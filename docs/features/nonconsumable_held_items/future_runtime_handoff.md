@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
-| Code status | Docs-only handoff prompt |
+| Last reviewed | 2026-05-19 |
+| Baseline | `master` `25731e81a0`; implementation branch `feature/held-item-catalog-current-master-20260519` |
+| Code status | Historical restore handoff plus catalog implementation note |
 | Provenance | Local source read and feature planning |
 
 ## Future Use Only
@@ -84,8 +84,9 @@ mGBA:
 - skipped link / facility cases は test_plan.md に残す。
 ```
 
-## Future Catalog Handoff
+## Catalog Runtime Note
 
-The catalog / unlimited-assignment runtime prompt should be written only after
-the restore MVP is adopted or explicitly skipped. It must own Party / Bag /
-Storage UI and item quantity drift tests as a separate branch.
+Catalog / unlimited-assignment runtime is now implemented on
+`feature/held-item-catalog-current-master-20260519`. It owns Party / Bag /
+Storage quantity-drift helpers as a separate branch from battle-end restore.
+Use `implementation.md` and `test_plan.md` for the current handoff.
