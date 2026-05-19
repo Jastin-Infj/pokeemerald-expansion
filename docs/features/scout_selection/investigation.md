@@ -7,7 +7,7 @@
 | Last reviewed | 2026-05-19 |
 | Baseline | `master` `8bb44a15f4`; `git describe` = `expansion/1.15.2-77-g8bb44a15f4` |
 | Code status | Docs-only investigation |
-| Provenance | Local source inspection, current feature docs, public web / GitHub search |
+| Provenance | Local source inspection, current feature docs, RHH contributor / PR pivots, public web / GitHub search |
 
 ## Summary
 
@@ -28,8 +28,9 @@ Team Viewer shelf が supersede している。
 |---|---|
 | Pokemon Champions official Japanese site: <https://www.pokemonchampions.jp/ja/pokemon/> | Champions は「スカウト」「セレクト」「22 時間に 1 回無料紹介」「trial / regular scout」を持つ。MVP は economy ではなく候補提示 / 選択 UI だけを持ち込む。 |
 | Pokemon Champions official international page: <https://champions.pokemon.com/es-es/pokemon/> | Recruit/fichaje はランダム選択から Pokemon を招く system と説明されている。 |
+| RHH contributor / PR pivot: [external reference workflow](../../manuals/external_reference_credit_workflow.md#upstream-developer-roster) | generic Emerald search より先に、`pokeemerald-expansion` の credits、contributors、recent merged PR から該当領域の実装者を辿る。Scout Selection では Summary / icon UI / object-event / gift flow に触るため、Team Viewer branch と RHH の `pokemon_summary_screen.c`, `pokemon_icon.c`, `data/maps/`, `script_pokemon_util.c` 周辺 PR を優先して見る。 |
 | pret Battle Factory select screen: <https://github.com/pret/pokeemerald/blob/master/src/battle_factory_screen.c> | 6 候補、Summary、3 picks、rental copy の先例。Frontier state 前提なので直接流用は避ける。 |
-| LOuroboros starter wiki: <https://github-wiki-see.page/m/LOuroboros/pokeemerald/wiki/Change-Starter-Pok%C3%A9mon> | 一般的な starter change は `sStarterMon` の 3 種差し替えで、UI 構造は増やしていない。 |
+| LOuroboros starter wiki: <https://github-wiki-see.page/m/LOuroboros/pokeemerald/wiki/Change-Starter-Pok%C3%A9mon> | starter baseline の低コスト確認には使えるが、一般的な starter change は `sStarterMon` の 3 種差し替えで、UI 構造は増やしていない。Scout の主参考にはしない。 |
 
 ## Existing Files
 
