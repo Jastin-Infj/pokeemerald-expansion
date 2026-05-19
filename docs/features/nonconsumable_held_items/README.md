@@ -13,9 +13,8 @@
 
 Status: Integration candidate
 
-This feature now has a runtime implementation branch for the catalog /
-one-copy held item assignment slice. Runtime source is still not changed on
-`master`.
+This feature now has runtime PR #48 for the catalog / one-copy held item
+assignment slice. Runtime source is still not changed on `master`.
 
 ## Goal
 

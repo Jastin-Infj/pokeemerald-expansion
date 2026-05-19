@@ -12,7 +12,7 @@
 ## Status
 
 Status: Implemented on `feature/held-item-catalog-current-master-20260519`;
-not present in `master` source.
+not present in `master` source. Current runtime PR: #48.
 
 This branch implements the catalog / one-copy assignment slice. It does not
 merge runtime source into `master`, and it does not include the battle-end berry
@@ -89,6 +89,9 @@ quantity policy.
 This branch contains runtime source changes. Do not merge it into `master` under
 the docs-only master policy. Use a runtime PR as a staging shelf, then create a
 docs-only handoff separately if the feature is user-confirmed.
+
+Current runtime PR: #48
+`feature/held-item-catalog-current-master-20260519` -> `master`.
 
 Before any docs-only master merge, confirm:
 

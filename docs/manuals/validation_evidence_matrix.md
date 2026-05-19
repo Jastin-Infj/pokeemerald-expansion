@@ -45,7 +45,7 @@ preserved.
 
 | Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
-| Nonconsumable Held Items | `feature/held-item-catalog-current-master-20260519` | [test_plan](../features/nonconsumable_held_items/test_plan.md) | 2026-05-19 `all`, `debug`, full `check`, and focused `test/bag.c` passed. | Bag quantity drift helper tests passed for catalog Give / Take / first-copy preservation / Mail exclusion. | mGBA Live boot/input smoke passed and cleaned up; feature-specific behavior is covered by headless `test/bag.c`. | Battle-end restore remains separate in PR #47; stolen / swapped item ownership remains open. |
+| Nonconsumable Held Items | #48 / `feature/held-item-catalog-current-master-20260519` | [test_plan](../features/nonconsumable_held_items/test_plan.md) | 2026-05-19 `all`, `debug`, full `check`, and focused `test/bag.c` passed. | Bag quantity drift helper tests passed for catalog Give / Take / first-copy preservation / Mail exclusion. | mGBA Live boot/input smoke passed and cleaned up; feature-specific behavior is covered by headless `test/bag.c`. | Battle-end restore remains separate in PR #47; stolen / swapped item ownership remains open. |
 
 ## Docs-only Baseline Check
 
