@@ -4,16 +4,41 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
-| Code status | Docs-only test plan |
+| Last reviewed | 2026-05-19 |
+| Baseline | `master` `25731e81a0`; implementation branch `feature/held-item-catalog-current-master-20260519` |
+| Code status | Catalog assignment implemented on feature branch |
 | Provenance | Local source read and feature planning |
 
-## Docs-Only Validation
+## Validation Log
 
-- `rtk mdbook build docs`
+2026-05-19 (`feature/held-item-catalog-current-master-20260519`, baseline
+`master` `25731e81a0`):
 
-## Future Build Validation
+- `rtk git diff --check`: passed.
+- `rtk make -j16 -O check TESTS=test/bag.c`: passed, 7 tests. Existing linker
+  warning about a LOAD segment with RWX permissions was observed.
+- `rtk make -j16 -O check`: passed. Existing `EXPECTED_FAIL` /
+  `KNOWN_FAILING` markers were observed and the suite exited 0.
+- `rtk make -j16 -O all`: passed. Existing linker warning about a LOAD segment
+  with RWX permissions was observed.
+- `rtk make -j16 -O debug`: passed. Existing linker warning about a LOAD
+  segment with RWX permissions was observed.
+- `rtk mdbook build docs`: passed with existing warnings: missing root
+  `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, and large
+  search index.
+- mGBA Live MCP boot/input smoke:
+  - `mgba_live_start` launched `pokeemerald.gba` with session
+    `held-item-catalog-smoke-20260519`.
+  - `mgba_live_get_view` captured the Pokemon Emerald title screen.
+  - `mgba-live-cli input-tap --key START` was accepted.
+  - A follow-up `mgba_live_get_view` captured the continue menu.
+  - `mgba_live_stop` returned `stopped: true`.
+  - `mgba-live-cli status --all` returned `[]`.
+- Feature-specific quantity behavior is covered by the headless mGBA
+  `test/bag.c` route. Manual Bag / Party / Storage UI validation remains useful
+  for text polish and visible icon checks.
+
+## Build Validation
 
 For any runtime branch:
 
@@ -35,16 +60,17 @@ For any runtime branch:
 | Air Balloon / Corrosive Gas | Exceptions are either preserved or intentionally restored with explicit tests. |
 | Caught wild Pokemon with held berry | Behavior is documented; restore-or-not is not accidental. |
 
-## Future Focused Tests: Catalog Assignment
+## Focused Tests: Catalog Assignment
 
 | Test | Expected result |
 |---|---|
-| Assign one Bag-held Leftovers to two party Pokemon | Both Pokemon can hold Leftovers; Bag quantity does not decrease. |
-| Take catalog-assigned item | Pokemon held item clears; Bag quantity does not increase. |
+| Assign one Bag-held Leftovers to two party Pokemon | Both Pokemon can hold Leftovers; Bag quantity does not decrease. Helper coverage exists; mGBA UI route remains. |
+| Take catalog-assigned item | Pokemon held item clears; Bag quantity does not increase when the Bag already owns the item. |
+| Take first-time held item | Pokemon held item clears and one Bag copy is added if the Bag did not already own the item. |
 | Switch catalog-held item to another item | Pokemon held item changes; Bag quantities do not drift. |
-| Toss catalog-held item | Disabled, or clears only the Pokemon held item as documented. |
-| Mail selected | Rejected or routed through normal Mail flow; no catalog clone. |
-| Storage item mode | Disabled or catalog-aware; no copy creation through PC Storage. |
+| Toss catalog-held item | Existing clear-only behavior remains. |
+| Mail selected | Routed through normal Mail flow; no catalog clone. Helper coverage confirms Mail remains physical. |
+| Storage item mode | Catalog-aware for give / take / close / release return paths; mGBA UI route remains. |
 | Frontier item clause challenge | Duplicate held items are still rejected if that facility rule is active. |
 | Normal gameplay with catalog enabled | Duplicate held items are allowed unless a separate item clause is active. |
 
@@ -76,10 +102,10 @@ For any runtime branch:
 - Whether duplicate held items are rejected in item-clause facilities, if tested.
 - Whether link / recorded battles were skipped.
 
-## Known Gaps For This Docs-Only Branch
+## Known Gaps
 
-- No runtime implementation.
-- No source builds required.
-- No mGBA validation required.
-- No decision yet on global vs facility-only catalog mode.
+- Manual Bag / Party / Storage UI validation remains useful for visible text and
+  icon polish.
+- GitHub Actions should not be waited during agent handoff unless explicitly requested.
+- Global vs facility-only catalog mode is currently a branch config decision.
 - No final ownership decision for stolen / swapped / bestowed battle items.

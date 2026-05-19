@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
-| Code status | Docs-only plan |
+| Last reviewed | 2026-05-19 |
+| Baseline | `master` `25731e81a0`; implementation branch `feature/held-item-catalog-current-master-20260519` |
+| Code status | Catalog assignment implemented on feature branch |
 | Provenance | Local source read and feature planning |
 
 ## Recommended MVP Split
@@ -17,8 +17,8 @@ menu / catalog behavior.
 
 | Slice | Purpose | Recommended status |
 |---|---|---|
-| A. Battle-End Held Item Restore | Items consumed in battle return after battle. Includes berries if enabled. | First runtime candidate. |
-| B. Held Item Catalog Assignment | One owned / unlocked held item can be assigned to multiple Pokemon without Bag count friction. | Future runtime candidate after Slice A. |
+| A. Battle-End Held Item Restore | Items consumed in battle return after battle. Includes berries if enabled. | Staged separately in PR #47. |
+| B. Held Item Catalog Assignment | One owned / unlocked held item can be assigned to multiple Pokemon without Bag count friction. | Implemented on `feature/held-item-catalog-current-master-20260519`. |
 | C. Item Clause Mode | Optional rule that forbids duplicate held items for a specific facility / challenge. | Keep separate; requested Champions-style default should not assume this is on. |
 
 ## Slice A: Battle-End Held Item Restore MVP
@@ -63,42 +63,43 @@ menu / catalog behavior.
 Treat Bag ownership as permission to assign a held item, not as the exact number
 of Pokemon that can hold it.
 
-Recommended first contract:
+Implemented first contract:
 
 - Exclude Mail.
 - Do not alter SaveBlock in the first slice.
 - If the Bag contains at least one copy of an allowed held item, the item can be
   assigned to any party Pokemon.
 - Assigning the item does not remove it from Bag.
-- Taking the item from a Pokemon only clears the Pokemon held item; it does not
-  add another copy to Bag.
+- Taking the item from a Pokemon clears the Pokemon held item. If the Bag
+  already has that item, no quantity is added; if the Bag does not have it, one
+  copy is added so first-time held item acquisition is preserved.
 - Switching held items does not add or remove Bag quantities.
-- Toss is disabled or treated as "clear held item" in catalog contexts.
-- PC Storage item mode is either disabled in catalog mode or explicitly updated
-  with the same no-quantity-transfer policy.
+- Toss keeps the existing clear-only behavior.
+- PC Storage item mode is updated with the same no-quantity-transfer policy for
+  give, take, close-while-holding-item, and release return paths.
 
 ### Candidate Runtime Files
 
 | Step | Files | Notes |
 |---|---|---|
-| 1 | `include/config/item.h` or local battle / challenge config | Add a future catalog enable switch only on a runtime branch. |
-| 2 | `src/party_menu.c` | Own `CB2_GiveHoldItem()`, `Task_GiveHoldItem()`, `TryGiveItemOrMailToSelectedMon()`, switch paths, `TryTakeMonItem()`, and Toss behavior. |
-| 3 | `src/item_menu.c` | Confirm Bag `GIVE` can enter the same catalog-aware party flow. |
-| 4 | `src/pokemon_storage_system.c` | Disable or adapt item mode so Storage cannot duplicate / erase catalog-held items. |
-| 5 | `src/data/party_menu.h`, `src/strings.c` | Add clear messages if needed. |
-| 6 | Tests / mGBA | Verify no Bag quantity drift and no duplicate copy creation through Take / Switch / Storage. |
+| 1 | `include/config/item.h` | Added `I_HELD_ITEM_CATALOG_ASSIGNMENT`, default `TRUE` on the feature branch. |
+| 2 | `src/item.c`, `include/item.h` | Added helper functions for catalog-aware held item assignment and return. |
+| 3 | `src/party_menu.c` | Updated Party / Bag Give, Take, and Switch item paths. |
+| 4 | `src/pokemon_storage_system.c` | Updated Storage item mode give / take / close / release return paths. |
+| 5 | `src/data/party_menu.h`, `src/strings.c` | Not changed in MVP; existing messages are accepted for now. |
+| 6 | `test/bag.c` / mGBA | Focused helper tests added; mGBA UI check remains required. |
 
 ### Catalog Decision Table
 
 | Case | MVP policy |
 |---|---|
 | Non-mail held item assigned from Bag | Set Pokemon held item; do not remove Bag item. |
-| Pokemon item taken | Clear Pokemon held item; do not add Bag item. |
+| Pokemon item taken | Clear Pokemon held item; do not add Bag item if already owned; add one copy if not owned yet. |
 | Pokemon item switched | Replace Pokemon held item; do not add/remove Bag items. |
-| Toss from Pokemon | Prefer disabled in MVP; if allowed, only clear held item. |
+| Toss from Pokemon | Existing clear-only behavior remains. |
 | Mail | Excluded. Existing Mail text storage is physical ownership and should not be catalog-cloned. |
-| PC Storage item mode | Disable during MVP unless fully audited. |
-| Battle Pyramid bag | Exclude until facility-specific rules are reviewed. |
+| PC Storage item mode | Catalog-aware for item give / take / close / release return paths. |
+| Battle Pyramid bag | Excluded; physical quantity behavior remains. |
 
 ## Slice C: Item Clause Mode
 
@@ -129,9 +130,10 @@ allowed unless a challenge explicitly enables item clause.
 
 ## Open Questions
 
-- Should catalog ownership use existing Bag quantity, a fixed allowed item list,
-  or future unlock flags?
-- Should catalog mode live in normal Bag UI, or only a dedicated team builder?
+- Should future unlock flags replace existing Bag quantity as the ownership
+  source?
+- Should a dedicated team builder offer a clearer catalog UI than normal Bag
+  Give?
 - Should battle-end restore be enabled globally before catalog mode exists?
 - Should Storage item mode be disabled only while a challenge is active, or any
   time catalog mode is enabled?

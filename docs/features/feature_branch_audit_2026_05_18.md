@@ -37,11 +37,12 @@ branch generates the opponent preview through
 automated/focused regression before adoption, but it is no longer the clearest
 "missing implementation" task.
 
-If I were choosing the next thing to build/fix now, I would pick
-**Pokemon State Editor polish** if the goal is to clean up an existing shelf, or
-**Nonconsumable Held Item catalog assignment** if the goal is a fresh runtime
-feature. TM Shop Migration remains the cleanest adoption candidate if the next
-step is "re-apply an implemented shelf" rather than write new runtime behavior.
+2026-05-19 update: Nonconsumable Held Item catalog assignment is now implemented
+on `feature/held-item-catalog-current-master-20260519`. If choosing the next
+thing after that branch, pick **Pokemon State Editor polish** for an existing
+shelf cleanup, or a different fresh runtime feature. TM Shop Migration remains
+the cleanest adoption candidate if the next step is "re-apply an implemented
+shelf" rather than write new runtime behavior.
 
 Recommended branch:
 
@@ -70,7 +71,7 @@ feature/pokemon-state-editor-polish-20260518
 
 | Feature | Docs | Current status | Next real work |
 |---|---|---|---|
-| Nonconsumable Held Items catalog assignment | `docs/features/nonconsumable_held_items/` | Docs-only policy. Battle-end restore exists separately, but one-copy catalog assignment is not implemented. | Design Party / Bag / Storage ownership, then implement catalog assignment on a fresh branch. |
+| Nonconsumable Held Items catalog assignment | `docs/features/nonconsumable_held_items/` | Implemented on `feature/held-item-catalog-current-master-20260519`; not on `master`. | Adoption / integration only; battle-end restore remains separate in PR #47. |
 | Bag Expansion | `docs/features/bag_expansion/` | Docs-only investigation. | Decide pocket target and save migration policy before any source work. |
 | Champions Challenge runtime | `docs/features/champions_challenge/` | Runtime facility not implemented. Partygen tool/data shelf exists. | Wait until battle selection, item restore, aftercare, bag, and partygen adoption are settled. |
 | Jukebox / Sound Archive | `docs/features/jukebox_sound_archive/` | Docs-only new feature candidate. | Good low-risk new runtime feature if we intentionally want new work instead of cleanup. |

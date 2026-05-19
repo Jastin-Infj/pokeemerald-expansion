@@ -4,17 +4,18 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
-| Code status | Docs only / No code changes |
+| Last reviewed | 2026-05-19 |
+| Baseline | `master` `25731e81a0`; implementation branch `feature/held-item-catalog-current-master-20260519` |
+| Code status | Catalog assignment implemented on feature branch; not present in `master` source |
 | Provenance | Local source read and feature planning |
 
 ## Status
 
-Status: Planned / Docs only
+Status: Integration candidate
 
-This feature is a planning document for a Champions-style held item policy. No
-runtime source is changed on `master`.
+This feature now has a runtime implementation branch for the catalog /
+one-copy held item assignment slice. Runtime source is still not changed on
+`master`.
 
 ## Goal
 
@@ -38,14 +39,12 @@ different policies:
 | Bag / party ownership | Party and Bag UI currently move one physical item: Bag count decreases on Give and increases on Take. | A Champions-style catalog / infinite assignment mode needs separate UI and ownership rules. It must guard Take / Toss / Storage paths to avoid item duplication. |
 | Duplicate held items | Frontier / selection / party pool code can enforce item clause, while normal gameplay does not globally ban duplicates. | Duplicate allowance and item clause should be mode-specific. The requested Champions-like policy should allow duplicate assignment unless a challenge explicitly enables item clause. |
 
-Recommended implementation order:
+Implementation order:
 
-1. Adopt / refresh battle-end held item restore first. This solves "items do not
-   disappear after battle" and can reuse the existing battle item restore
-   investigation.
-2. Add a separate Held Item Catalog assignment mode later. This solves "one
-   owned held item can be assigned repeatedly" and touches Party / Bag / Storage
-   UI.
+1. Battle-end held item restore is staged separately in Battle Item Restore
+   Policy PR #47.
+2. Held Item Catalog assignment mode is implemented on
+   `feature/held-item-catalog-current-master-20260519`.
 3. Keep item clause as a challenge rule, not a default ownership restriction.
 
 ## Scope
@@ -56,13 +55,12 @@ Recommended implementation order:
 - Document party / bag / storage item ownership paths.
 - Separate battle-end restoration from inventory quantity / duplicate item
   assignment.
-- Define a future MVP for a Champions-style held item catalog.
+- Implement and document a Champions-style held item catalog MVP.
 - Cross-link the existing Battle Item Restore Policy as the first likely runtime
   slice.
 
 ### Out of Scope
 
-- Runtime source changes in this docs-only branch.
 - SaveBlock changes.
 - New held item IDs or held item effects.
 - Battle hook rewrites.
@@ -74,6 +72,7 @@ Recommended implementation order:
 
 - [Investigation](investigation.md)
 - [MVP Plan](mvp_plan.md)
+- [Implementation](implementation.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)
 - [Future Runtime Handoff](future_runtime_handoff.md)
