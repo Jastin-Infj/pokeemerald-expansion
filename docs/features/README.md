@@ -84,6 +84,7 @@ on `master`. They often depend on existing implementation shelves but should be
 adopted through fresh runtime branches.
 
 - [Nonconsumable Held Items](nonconsumable_held_items/README.md)
+- [Scout Selection](scout_selection/README.md)
 
 ## Current Runtime Shelves
 
