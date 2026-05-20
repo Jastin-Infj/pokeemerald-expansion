@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-19 |
-| Baseline | `master` `8bb44a15f4`; `git describe` = `expansion/1.15.2-77-g8bb44a15f4` |
-| Code status | Planned runtime implementation; docs-only branch |
+| Last reviewed | 2026-05-20 |
+| Baseline | `master` `e927b612b3`; `feature/scout-selection-runtime-20260520` |
+| Code status | Runtime MVP implemented on feature branch |
 | Provenance | Local source inspection and feature branch handoff docs |
 
 ## MVP
@@ -29,7 +29,7 @@ ScoutNpc_EventScript::
     msgbox ScoutNpc_Text_Offer, MSGBOX_YESNO
     goto_if_eq VAR_RESULT, NO, ScoutNpc_EventScript_End
     setvar VAR_0x8004, SCOUT_POOL_STARTER_TEST
-    setvar VAR_0x8005, 6      @ sample count / visible candidate target
+    setvar VAR_0x8005, 12     @ candidate count
     setvar VAR_0x8006, 1      @ pick count
     special InitScoutSelection
     goto_if_eq VAR_RESULT, FALSE, ScoutNpc_EventScript_End
@@ -57,13 +57,12 @@ struct ScoutMonSpec
 {
     u16 species;
     u8 level;
-    u16 item;
-    u8 ball;
+    enum Item item;
+    enum PokeBall ball;
     u8 nature;
     u8 abilityNum;
     u8 gender;
-    u16 moves[MAX_MON_MOVES];
-    u8 teraType;
+    enum Move moves[MAX_MON_MOVES];
 };
 ```
 
@@ -77,7 +76,6 @@ MVP can allow default values by sentinel constants:
 | `abilityNum` | default by personality |
 | `gender` | random |
 | `moves` | `MOVE_DEFAULT` |
-| `teraType` | personality-derived default |
 
 Use a pool table rather than many script vars for full candidate data. Script vars should
 select the pool and counts; the table should own species / moves / items.
@@ -90,7 +88,7 @@ Recommended first UI:
 |---|---|
 | Layout | Single vertical list or 2-column compact list. Prefer vertical if scroll is needed. |
 | Visible count | Up to 6 visible candidates. |
-| Pool count | Start with 12 max unless implementation proves a lower OAM / memory limit. This covers the user-mentioned 11-candidate reference. |
+| Pool count | Implemented MVP supports 12 candidates. This covers the user-mentioned 11-candidate reference and requested 12-candidate scroll case. |
 | Sprite | Pokemon icon via `CreateMonIconIsEgg`. |
 | Summary | `SELECT` opens standard Summary in `SUMMARY_MODE_LOCK_MOVES`; return preserves cursor and selected order. |
 | Selection | `A` toggles. `START` confirms only when selected count equals pick count. |
@@ -101,14 +99,14 @@ Recommended first UI:
 
 | Step | Files | Notes |
 |---|---|---|
-| 1 | `include/scout_selection.h`, `src/scout_selection.c` | New module, EWRAM state, candidate buffer, public specials. |
+| 1 | `include/scout_selection.h`, `src/scout_selection.c` | New module, static EWRAM state, candidate buffer, public specials. |
 | 2 | `data/specials.inc` | Register `InitScoutSelection`, `OpenScoutSelection`, `GiveSelectedScoutMons`. |
-| 3 | `src/data/scout_selection.h` or `data/scout_selection/*.inc` | Seed one debug/test pool with 6 candidates. |
+| 3 | `src/scout_selection.c` | Seed one debug/test pool with 12 candidates. |
 | 4 | `src/scout_selection.c` | Build candidate `struct Pokemon` array from specs. |
 | 5 | `src/scout_selection.c` | Implement CB2 init, windows, icon sprites, cursor, scroll, selected marker. |
-| 6 | `include/pokemon_summary_screen.h`, `src/pokemon_summary_screen.c` | Reapply `ShowPokemonSummaryScreenAtPage()` from Team Viewer branch if starting Summary on skills page. |
+| 6 | `src/scout_selection.c` | Use standard `ShowPokemonSummaryScreen()` for MVP; direct skills-page entry remains future work. |
 | 7 | `src/scout_selection.c` | Summary open/return path, icon/window cleanup, selection state persistence. |
-| 8 | `src/script_pokemon_util.c` or new helper | Give selected built mons through `GiveScriptedMonToPlayer` semantics. Prefer a wrapper over duplicated generation logic. |
+| 8 | `src/scout_selection.c` | Give selected built mons through `GiveScriptedMonToPlayer` semantics. |
 | 9 | `data/scripts/debug.inc` or a safe test map | Add debug-only scout route. Avoid story maps for first validation. |
 | 10 | docs | Update this folder with implementation summary, validation evidence, and remaining risks. |
 
@@ -144,6 +142,5 @@ separate docs-only branch and cherry-pick / re-apply only Markdown changes.
 ## Open Questions
 
 - Should selected Pokemon be generated at screen open or only at confirm?
-- Should Summary show exact generated personality/IV/nature, or only species-level preview?
 - If party and PC are full, should `GiveSelectedScoutMons` fail atomically for all picks?
-- For N picks, should the give order be selection order or visible order?
+- Should later pools expose exact IV / EV / Tera policy fields, or keep MVP fields only?

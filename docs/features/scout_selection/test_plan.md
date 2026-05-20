@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-19 |
-| Baseline | `master` `8bb44a15f4`; `git describe` = `expansion/1.15.2-77-g8bb44a15f4` |
-| Code status | Planned runtime validation |
+| Last reviewed | 2026-05-20 |
+| Baseline | `master` `e927b612b3`; `feature/scout-selection-runtime-20260520` |
+| Code status | Runtime MVP implemented; focused mGBA validation passed |
 | Provenance | Project runtime validation policy and related feature test plans |
 
 ## Build / Lint
@@ -58,18 +58,25 @@ gap here before handoff.
 | Date | Command / check | Result | Notes |
 |---|---|---|---|
 | 2026-05-19 | Docs-only investigation | Not run | No runtime source exists on this docs branch. |
+| 2026-05-20 | `rtk make -j16 -O debug` | Pass | Debug ROM builds with existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning. Earlier parallel build collision hit unrelated `link_rfu_2.o`; clean rerun passed. |
+| 2026-05-20 | `rtk make -j16 -O check` | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | mGBA Live `scout-selection-runtime-20260520d` | Pass | Booted `/tmp/mgba-scout-selection-20260520/scout.gba`, continued saved game, opened debug route, verified visible icons and 12-candidate scroll. |
+| 2026-05-20 | Summary runtime | Pass | Pressed `SELECT` on Chikorita, Summary opened, `B` returned to Scout UI with cursor and scroll preserved. Screenshot: `/tmp/mgba-scout-selection-20260520/scout-summary.png`. |
+| 2026-05-20 | Confirm / gift runtime | Pass | Selected Chikorita, `START` returned to field, message `Scout Pokemon received.` displayed, and party menu showed Chikorita Lv.15 in slot 2. Screenshots: `scout-confirm.png`, `scout-party.png`. |
+| 2026-05-20 | mGBA cleanup | Pass | `mgba_live_stop` stopped session `scout-selection-runtime-20260520d`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | GitHub Actions for PR #51 | Pending / not waited | `rtk gh pr checks 51` showed build/docs/test/release jobs pending. Per branch runtime policy, local make + mGBA evidence are recorded and long Actions were not re-waited. |
 
 ## Feature Complete Gate
 
 - Runtime branch builds normal and debug ROMs.
 - Full `check` or justified focused checks pass.
-- mGBA Live covers open -> Summary -> return -> confirm.
+- mGBA Live covers open -> scroll -> Summary -> return -> confirm.
 - `test_plan.md` records exact commands, screenshots / session names, and any skipped
   long GitHub Actions waits.
 - `implementation.md` is added after source work lands.
 
 ## Open Questions
 
-- Which debug map/NPC should own the first route?
-- Which candidate pool should be used for first manual validation?
+- Which debug map/NPC should own the first non-debug-menu route?
 - Should we add a Lua helper for deterministic candidate/party setup?
