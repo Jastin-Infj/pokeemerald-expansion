@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-19 |
-| Baseline | `master` `8bb44a15f4`; `git describe` = `expansion/1.15.2-77-g8bb44a15f4` |
-| Code status | Docs-only risk review |
+| Last reviewed | 2026-05-20 |
+| Baseline | `master` `e927b612b3`; `feature/scout-selection-runtime-20260520` |
+| Code status | Runtime MVP implemented on feature branch |
 | Provenance | Local source inspection and previous UI branch evidence |
 
 ## Risks
@@ -14,6 +14,7 @@
 | Risk | Severity | Impact | Mitigation |
 |---|---|---|---|
 | Summary return corrupts custom UI state | High | Cursor / selected slots can reset or BGs can render incorrectly after Summary. | Reuse Team Viewer cleanup/reinit pattern; keep candidate/selection state in EWRAM; validate Summary -> back -> Summary again. |
+| Field return resets heap before script gift | High | Confirmed selections can point at freed / overwritten heap data before `GiveSelectedScoutMons` runs. | Keep the generated candidate array and selected order in static EWRAM until the gift special clears it. |
 | Direct Summary skills-page layout regression | Medium | Starting Summary on `PSS_PAGE_SKILLS` can corrupt page scroll / info page. | Reapply `ShowPokemonSummaryScreenAtPage()` and `SetInitialSkillsPageTilemaps()` behavior from Team Viewer only if using skills page as first page. |
 | Candidate preview differs from received Pokemon | High | Player chooses based on Summary but receives a different nature/moves/item. | Generate `struct Pokemon` candidates before display and give the exact selected structs, or document if Summary is species-only. |
 | Partial give for N picks | High | First Pokemon may be given, later one fails due full party/PC, leaving script state inconsistent. | Preflight space for pick count or make `GiveSelectedScoutMons` transactional with clear failure rules. |
@@ -41,9 +42,12 @@
 - The first runtime slice can use icons instead of front battle sprites.
 - The first runtime slice can support one debug/test pool before general map adoption.
 - The first runtime slice can be branch-only and not available on `master`.
+- Summary opens the standard first page in this slice; direct skills-page entry remains later work.
+- Pick count 2 / 3 support is implemented by the state model but still needs a focused
+  mGBA evidence pass before it is used in a player-facing multi-pick facility.
 
 ## Open Questions
 
-- Whether received Pokemon should support exact EV / IV / move spec in MVP or only species / level / item.
+- Whether received Pokemon should support exact EV / IV spec in MVP or only species / level / item / move defaults.
 - Whether cancel should be disabled for mandatory starter use.
 - Whether scout pools should be deterministic across save/reload before claim.

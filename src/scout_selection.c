@@ -1,0 +1,727 @@
+#include "global.h"
+#include "scout_selection.h"
+#include "bg.h"
+#include "data.h"
+#include "event_data.h"
+#include "gpu_regs.h"
+#include "main.h"
+#include "menu.h"
+#include "menu_helpers.h"
+#include "overworld.h"
+#include "palette.h"
+#include "pokemon.h"
+#include "pokemon_icon.h"
+#include "pokemon_storage_system.h"
+#include "pokemon_summary_screen.h"
+#include "sound.h"
+#include "sprite.h"
+#include "string_util.h"
+#include "task.h"
+#include "text.h"
+#include "window.h"
+#include "constants/abilities.h"
+#include "constants/characters.h"
+#include "constants/form_change_types.h"
+#include "constants/items.h"
+#include "constants/moves.h"
+#include "constants/pokeball.h"
+#include "constants/pokemon.h"
+#include "constants/rgb.h"
+#include "constants/scout_selection.h"
+#include "constants/songs.h"
+#include "constants/species.h"
+
+#define SCOUT_MAX_CANDIDATES 12
+#define SCOUT_VISIBLE_COUNT  6
+#define SCOUT_COLUMNS        2
+#define SCOUT_ROWS           3
+#define SCOUT_MAX_PICK_COUNT PARTY_SIZE
+
+#define SCOUT_WIN_LIST 0
+#define SCOUT_WIN_HELP 1
+
+#define SCOUT_CELL_WIDTH  120
+#define SCOUT_CELL_HEIGHT 40
+#define SCOUT_CELL_TOP    18
+
+struct ScoutMonSpec
+{
+    u16 species;
+    u8 level;
+    enum Item item;
+    enum PokeBall ball;
+    u8 nature;
+    u8 abilityNum;
+    u8 gender;
+    enum Move moves[MAX_MON_MOVES];
+};
+
+struct ScoutPool
+{
+    const struct ScoutMonSpec *mons;
+    u8 count;
+};
+
+struct ScoutSelection
+{
+    u8 poolId;
+    u8 candidateCount;
+    u8 pickCount;
+    u8 cursor;
+    u8 scrollOffset;
+    u8 selectedCount;
+    bool8 fromSummary;
+    u8 selectedOrder[SCOUT_MAX_CANDIDATES];
+    u8 iconSpriteIds[SCOUT_VISIBLE_COUNT];
+    struct Pokemon mons[SCOUT_MAX_CANDIDATES];
+};
+
+static EWRAM_DATA struct ScoutSelection sScoutSelectionState = {0};
+static EWRAM_DATA struct ScoutSelection *sScoutSelection = NULL;
+
+static void CB2_InitScoutSelectionScreen(void);
+static void CB2_ScoutSelectionScreen(void);
+static void VBlankCB_ScoutSelectionScreen(void);
+static void Task_ScoutSelectionInput(u8 taskId);
+static void Task_ScoutSelectionOpenSummary(u8 taskId);
+static void Task_ScoutSelectionExit(u8 taskId);
+static void ScoutSelection_Draw(void);
+static void ScoutSelection_DrawHelpText(void);
+static void ScoutSelection_CreateIcons(void);
+static void ScoutSelection_DestroyIcons(void);
+static void ScoutSelection_DestroyUi(void);
+static void ScoutSelection_FreeState(void);
+static void ScoutSelection_InitIconIds(void);
+static void ScoutSelection_BuildCandidates(const struct ScoutPool *pool, u8 count);
+static void ScoutSelection_CreateMon(struct Pokemon *mon, const struct ScoutMonSpec *spec);
+static void ScoutSelection_EnsureCursorVisible(void);
+static u8 ScoutSelection_GetMaxScrollOffset(void);
+static void ScoutSelection_MoveCursor(s8 dx, s8 dy);
+static void ScoutSelection_ToggleSelected(void);
+static bool8 ScoutSelection_CanConfirm(void);
+static u16 ScoutSelection_CountAvailableStorageSlots(void);
+static const struct ScoutPool *ScoutSelection_GetPool(u16 poolId);
+
+static const struct BgTemplate sBgTemplates[] =
+{
+    {
+        .bg = 0,
+        .charBaseIndex = 0,
+        .mapBaseIndex = 31,
+        .screenSize = 0,
+        .paletteMode = 0,
+        .priority = 2,
+        .baseTile = 0,
+    },
+};
+
+static const struct WindowTemplate sWindowTemplates[] =
+{
+    [SCOUT_WIN_LIST] =
+    {
+        .bg = 0,
+        .tilemapLeft = 0,
+        .tilemapTop = 0,
+        .width = 30,
+        .height = 18,
+        .paletteNum = 15,
+        .baseBlock = 1,
+    },
+    [SCOUT_WIN_HELP] =
+    {
+        .bg = 0,
+        .tilemapLeft = 0,
+        .tilemapTop = 18,
+        .width = 30,
+        .height = 2,
+        .paletteNum = 15,
+        .baseBlock = 541,
+    },
+    DUMMY_WIN_TEMPLATE,
+};
+
+static const u8 sTextColors[] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY};
+static const u8 sTextColorsSelected[] = {TEXT_COLOR_LIGHT_GRAY, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE};
+static const u8 sText_ScoutTitle[] = _("SCOUT SELECTION");
+static const u8 sText_Help[] = _("A Pick  SELECT Summary  START Done");
+static const u8 sText_NotEnough[] = _("Pick the requested number first.");
+static const u8 sText_Level[] = _("Lv");
+static const u8 sText_Pick[] = _("Pick ");
+static const u8 sText_Selector[] = _(">");
+static const u8 sText_ScrollUp[] = _("UP");
+static const u8 sText_ScrollDown[] = _("DN");
+static const u8 sText_Slash[] = _("/");
+
+static const struct ScoutMonSpec sStarterTestMons[] =
+{
+    { SPECIES_TREECKO,    15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_TORCHIC,   15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_MUDKIP,    15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_BULBASAUR, 15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_CHARMANDER,15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_SQUIRTLE,  15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_CHIKORITA, 15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_CYNDAQUIL, 15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_TOTODILE,  15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_PIKACHU,   15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_EEVEE,     15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    { SPECIES_RIOLU,     15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+};
+
+static const struct ScoutPool sScoutPools[] =
+{
+    [SCOUT_POOL_STARTER_TEST] = { sStarterTestMons, ARRAY_COUNT(sStarterTestMons) },
+};
+
+void InitScoutSelection(void)
+{
+    const struct ScoutPool *pool;
+    u16 poolId = VarGet(VAR_0x8004);
+    u16 candidateCount = VarGet(VAR_0x8005);
+    u16 pickCount = VarGet(VAR_0x8006);
+
+    ScoutSelection_FreeState();
+
+    pool = ScoutSelection_GetPool(poolId);
+    if (pool == NULL || pool->count == 0)
+    {
+        gSpecialVar_Result = FALSE;
+        return;
+    }
+
+    if (candidateCount == 0 || candidateCount > pool->count)
+        candidateCount = pool->count;
+    if (candidateCount > SCOUT_MAX_CANDIDATES)
+        candidateCount = SCOUT_MAX_CANDIDATES;
+
+    if (pickCount == 0)
+        pickCount = 1;
+    if (pickCount > candidateCount || pickCount > SCOUT_MAX_PICK_COUNT)
+    {
+        gSpecialVar_Result = FALSE;
+        return;
+    }
+
+    sScoutSelection = &sScoutSelectionState;
+    memset(sScoutSelection, 0, sizeof(*sScoutSelection));
+
+    sScoutSelection->poolId = poolId;
+    sScoutSelection->candidateCount = candidateCount;
+    sScoutSelection->pickCount = pickCount;
+    ScoutSelection_InitIconIds();
+    ScoutSelection_BuildCandidates(pool, candidateCount);
+
+    gSpecialVar_Result = TRUE;
+}
+
+void OpenScoutSelection(void)
+{
+    if (sScoutSelection == NULL || sScoutSelection->candidateCount == 0)
+    {
+        gSpecialVar_Result = SCOUT_RESULT_CANCEL;
+        return;
+    }
+
+    SetMainCallback2(CB2_InitScoutSelectionScreen);
+}
+
+void GiveSelectedScoutMons(void)
+{
+    u8 order;
+    u8 i;
+    u32 giveResult = MON_GIVEN_TO_PARTY;
+
+    if (sScoutSelection == NULL || !ScoutSelection_CanConfirm())
+    {
+        gSpecialVar_Result = MON_CANT_GIVE;
+        ScoutSelection_FreeState();
+        return;
+    }
+
+    if (ScoutSelection_CountAvailableStorageSlots() < sScoutSelection->selectedCount)
+    {
+        gSpecialVar_Result = MON_CANT_GIVE;
+        ScoutSelection_FreeState();
+        return;
+    }
+
+    for (order = 1; order <= sScoutSelection->selectedCount; order++)
+    {
+        for (i = 0; i < sScoutSelection->candidateCount; i++)
+        {
+            if (sScoutSelection->selectedOrder[i] == order)
+            {
+                u32 result = GiveScriptedMonToPlayer(&sScoutSelection->mons[i], PARTY_SIZE);
+                if (result == MON_CANT_GIVE)
+                {
+                    gSpecialVar_Result = MON_CANT_GIVE;
+                    ScoutSelection_FreeState();
+                    return;
+                }
+                if (result == MON_GIVEN_TO_PC)
+                    giveResult = MON_GIVEN_TO_PC;
+                break;
+            }
+        }
+    }
+
+    gSpecialVar_Result = giveResult;
+    ScoutSelection_FreeState();
+}
+
+static const struct ScoutPool *ScoutSelection_GetPool(u16 poolId)
+{
+    if (poolId >= ARRAY_COUNT(sScoutPools))
+        return NULL;
+    return &sScoutPools[poolId];
+}
+
+static void ScoutSelection_BuildCandidates(const struct ScoutPool *pool, u8 count)
+{
+    u8 i;
+
+    for (i = 0; i < count; i++)
+        ScoutSelection_CreateMon(&sScoutSelection->mons[i], &pool->mons[i]);
+}
+
+static void ScoutSelection_CreateMon(struct Pokemon *mon, const struct ScoutMonSpec *spec)
+{
+    u8 i;
+    bool32 defaultMoves = TRUE;
+    u32 personality = GetMonPersonality(spec->species, spec->gender, spec->nature, RANDOM_UNOWN_LETTER);
+
+    CreateMonWithIVs(mon, spec->species, spec->level, personality, OTID_STRUCT_PLAYER_ID, USE_RANDOM_IVS);
+
+    for (i = 0; i < MAX_MON_MOVES; i++)
+    {
+        if (spec->moves[i] != MOVE_DEFAULT)
+        {
+            defaultMoves = FALSE;
+            break;
+        }
+    }
+
+    if (defaultMoves)
+    {
+        GiveMonInitialMoveset(mon);
+    }
+    else
+    {
+        for (i = 0; i < MAX_MON_MOVES; i++)
+        {
+            if (spec->moves[i] == MOVE_NONE)
+                break;
+            if (spec->moves[i] == MOVE_DEFAULT)
+                GiveMonDefaultMove(mon, i);
+            else
+                SetMonMoveSlot(mon, spec->moves[i], i);
+        }
+    }
+
+    if (spec->abilityNum != NUM_ABILITY_PERSONALITY && GetAbilityBySpecies(spec->species, spec->abilityNum) != ABILITY_NONE)
+        SetMonData(mon, MON_DATA_ABILITY_NUM, &spec->abilityNum);
+
+    SetMonData(mon, MON_DATA_POKEBALL, &spec->ball);
+    SetMonData(mon, MON_DATA_HELD_ITEM, &spec->item);
+    TryFormChange(mon, FORM_CHANGE_ITEM_HOLD);
+    CalculateMonStats(mon);
+}
+
+static void CB2_InitScoutSelectionScreen(void)
+{
+    switch (gMain.state)
+    {
+    case 0:
+        SetVBlankCallback(NULL);
+        ResetVramOamAndBgCntRegs();
+        ResetBgsAndClearDma3BusyFlags(0);
+        InitBgsFromTemplates(0, sBgTemplates, ARRAY_COUNT(sBgTemplates));
+        InitWindows(sWindowTemplates);
+        DeactivateAllTextPrinters();
+        ResetPaletteFade();
+        ResetSpriteData();
+        ResetTasks();
+        FreeAllSpritePalettes();
+        SetGpuReg(REG_OFFSET_DISPCNT, 0);
+        SetGpuReg(REG_OFFSET_BLDCNT, 0);
+        SetGpuReg(REG_OFFSET_BLDALPHA, 0);
+        gMain.state++;
+        break;
+    case 1:
+        Menu_LoadStdPalAt(BG_PLTT_ID(15));
+        LoadMonIconPalettes();
+        if (sScoutSelection->fromSummary)
+        {
+            sScoutSelection->cursor = gLastViewedMonIndex;
+            sScoutSelection->fromSummary = FALSE;
+            ScoutSelection_EnsureCursorVisible();
+        }
+        ScoutSelection_Draw();
+        ShowBg(0);
+        SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_BG0_ON | DISPCNT_OBJ_ON | DISPCNT_OBJ_1D_MAP);
+        SetVBlankCallback(VBlankCB_ScoutSelectionScreen);
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 16, 0, RGB_BLACK);
+        CreateTask(Task_ScoutSelectionInput, 0);
+        SetMainCallback2(CB2_ScoutSelectionScreen);
+        break;
+    }
+}
+
+static void CB2_ScoutSelectionScreen(void)
+{
+    RunTasks();
+    AnimateSprites();
+    BuildOamBuffer();
+    UpdatePaletteFade();
+}
+
+static void VBlankCB_ScoutSelectionScreen(void)
+{
+    LoadOam();
+    ProcessSpriteCopyRequests();
+    TransferPlttBuffer();
+}
+
+static void Task_ScoutSelectionInput(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    if (JOY_NEW(DPAD_LEFT))
+        ScoutSelection_MoveCursor(-1, 0);
+    else if (JOY_NEW(DPAD_RIGHT))
+        ScoutSelection_MoveCursor(1, 0);
+    else if (JOY_NEW(DPAD_UP))
+        ScoutSelection_MoveCursor(0, -1);
+    else if (JOY_NEW(DPAD_DOWN))
+        ScoutSelection_MoveCursor(0, 1);
+    else if (JOY_NEW(A_BUTTON))
+    {
+        ScoutSelection_ToggleSelected();
+        ScoutSelection_Draw();
+    }
+    else if (JOY_NEW(SELECT_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+        gTasks[taskId].func = Task_ScoutSelectionOpenSummary;
+    }
+    else if (JOY_NEW(START_BUTTON))
+    {
+        if (ScoutSelection_CanConfirm())
+        {
+            PlaySE(SE_SELECT);
+            gTasks[taskId].data[0] = SCOUT_RESULT_SELECTED;
+            BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+            gTasks[taskId].func = Task_ScoutSelectionExit;
+        }
+        else
+        {
+            PlaySE(SE_BOO);
+            FillWindowPixelBuffer(SCOUT_WIN_HELP, PIXEL_FILL(1));
+            AddTextPrinterParameterized3(SCOUT_WIN_HELP, FONT_NORMAL, 4, 1, sTextColors, TEXT_SKIP_DRAW, sText_NotEnough);
+            CopyWindowToVram(SCOUT_WIN_HELP, COPYWIN_GFX);
+        }
+    }
+    else if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_EXIT);
+        gTasks[taskId].data[0] = SCOUT_RESULT_CANCEL;
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+        gTasks[taskId].func = Task_ScoutSelectionExit;
+    }
+}
+
+static void Task_ScoutSelectionOpenSummary(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    DestroyTask(taskId);
+    ScoutSelection_DestroyUi();
+    sScoutSelection->fromSummary = TRUE;
+    ShowPokemonSummaryScreen(SUMMARY_MODE_LOCK_MOVES, sScoutSelection->mons, sScoutSelection->cursor, sScoutSelection->candidateCount - 1, CB2_InitScoutSelectionScreen);
+}
+
+static void Task_ScoutSelectionExit(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    gSpecialVar_Result = gTasks[taskId].data[0];
+    DestroyTask(taskId);
+    ScoutSelection_DestroyUi();
+    if (gSpecialVar_Result == SCOUT_RESULT_CANCEL)
+        ScoutSelection_FreeState();
+    SetMainCallback2(CB2_ReturnToFieldContinueScript);
+}
+
+static void ScoutSelection_Draw(void)
+{
+    u8 i;
+    u8 start;
+    u8 end;
+    u8 *txtPtr;
+
+    FillWindowPixelBuffer(SCOUT_WIN_LIST, PIXEL_FILL(1));
+    PutWindowTilemap(SCOUT_WIN_LIST);
+
+    AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 4, 1, sTextColors, TEXT_SKIP_DRAW, sText_ScoutTitle);
+
+    start = sScoutSelection->scrollOffset + 1;
+    end = sScoutSelection->scrollOffset + SCOUT_VISIBLE_COUNT;
+    if (end > sScoutSelection->candidateCount)
+        end = sScoutSelection->candidateCount;
+    txtPtr = ConvertIntToDecimalStringN(gStringVar4, start, STR_CONV_MODE_LEFT_ALIGN, 2);
+    txtPtr = StringAppend(txtPtr, sText_Slash);
+    ConvertIntToDecimalStringN(txtPtr, end, STR_CONV_MODE_LEFT_ALIGN, 2);
+    AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 188, 1, sTextColors, TEXT_SKIP_DRAW, gStringVar4);
+
+    txtPtr = ConvertIntToDecimalStringN(gStringVar4, sScoutSelection->selectedCount, STR_CONV_MODE_LEFT_ALIGN, 1);
+    txtPtr = StringAppend(txtPtr, sText_Slash);
+    ConvertIntToDecimalStringN(txtPtr, sScoutSelection->pickCount, STR_CONV_MODE_LEFT_ALIGN, 1);
+    AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 220, 1, sTextColors, TEXT_SKIP_DRAW, gStringVar4);
+
+    if (sScoutSelection->scrollOffset > 0)
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 228, 16, sTextColors, TEXT_SKIP_DRAW, sText_ScrollUp);
+    if (sScoutSelection->scrollOffset < ScoutSelection_GetMaxScrollOffset())
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 228, 130, sTextColors, TEXT_SKIP_DRAW, sText_ScrollDown);
+
+    for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
+    {
+        u8 index = sScoutSelection->scrollOffset + i;
+        u8 row = i / SCOUT_COLUMNS;
+        u8 col = i % SCOUT_COLUMNS;
+        u8 x = col * SCOUT_CELL_WIDTH;
+        u8 y = SCOUT_CELL_TOP + row * SCOUT_CELL_HEIGHT;
+        const u8 *colors = sTextColors;
+
+        if (index >= sScoutSelection->candidateCount)
+            continue;
+
+        if (sScoutSelection->selectedOrder[index] != 0)
+        {
+            FillWindowPixelRect(SCOUT_WIN_LIST, PIXEL_FILL(TEXT_COLOR_LIGHT_GRAY), x + 2, y, SCOUT_CELL_WIDTH - 6, SCOUT_CELL_HEIGHT - 2);
+            colors = sTextColorsSelected;
+        }
+
+        if (index == sScoutSelection->cursor)
+            AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, x + 4, y + 9, colors, TEXT_SKIP_DRAW, sText_Selector);
+
+        StringCopyN(gStringVar4, GetSpeciesName(GetMonData(&sScoutSelection->mons[index], MON_DATA_SPECIES)), 10);
+        gStringVar4[10] = EOS;
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NARROW, x + 42, y + 3, colors, TEXT_SKIP_DRAW, gStringVar4);
+
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 42, y + 18, colors, TEXT_SKIP_DRAW, sText_Level);
+        ConvertIntToDecimalStringN(gStringVar4, GetMonData(&sScoutSelection->mons[index], MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 58, y + 18, colors, TEXT_SKIP_DRAW, gStringVar4);
+
+        if (sScoutSelection->selectedOrder[index] != 0)
+        {
+            txtPtr = StringCopy(gStringVar4, sText_Pick);
+            ConvertIntToDecimalStringN(txtPtr, sScoutSelection->selectedOrder[index], STR_CONV_MODE_LEFT_ALIGN, 1);
+            AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 84, y + 18, colors, TEXT_SKIP_DRAW, gStringVar4);
+        }
+    }
+
+    CopyWindowToVram(SCOUT_WIN_LIST, COPYWIN_FULL);
+    ScoutSelection_DrawHelpText();
+    ScoutSelection_CreateIcons();
+}
+
+static void ScoutSelection_DrawHelpText(void)
+{
+    FillWindowPixelBuffer(SCOUT_WIN_HELP, PIXEL_FILL(1));
+    PutWindowTilemap(SCOUT_WIN_HELP);
+    AddTextPrinterParameterized3(SCOUT_WIN_HELP, FONT_SMALL, 4, 2, sTextColors, TEXT_SKIP_DRAW, sText_Help);
+    CopyWindowToVram(SCOUT_WIN_HELP, COPYWIN_FULL);
+}
+
+static void ScoutSelection_CreateIcons(void)
+{
+    u8 i;
+
+    ScoutSelection_DestroyIcons();
+    for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
+    {
+        u8 index = sScoutSelection->scrollOffset + i;
+        u8 row = i / SCOUT_COLUMNS;
+        u8 col = i % SCOUT_COLUMNS;
+        s16 x = col * SCOUT_CELL_WIDTH + 27;
+        s16 y = SCOUT_CELL_TOP + row * SCOUT_CELL_HEIGHT + 18;
+
+        if (index >= sScoutSelection->candidateCount)
+            continue;
+
+        sScoutSelection->iconSpriteIds[i] = CreateMonIcon(
+            GetMonData(&sScoutSelection->mons[index], MON_DATA_SPECIES_OR_EGG),
+            SpriteCallbackDummy,
+            x,
+            y,
+            0,
+            GetMonData(&sScoutSelection->mons[index], MON_DATA_PERSONALITY));
+    }
+}
+
+static void ScoutSelection_DestroyIcons(void)
+{
+    u8 i;
+
+    if (sScoutSelection == NULL)
+        return;
+
+    for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
+    {
+        if (sScoutSelection->iconSpriteIds[i] != SPRITE_NONE)
+        {
+            FreeAndDestroyMonIconSprite(&gSprites[sScoutSelection->iconSpriteIds[i]]);
+            sScoutSelection->iconSpriteIds[i] = SPRITE_NONE;
+        }
+    }
+}
+
+static void ScoutSelection_DestroyUi(void)
+{
+    ScoutSelection_DestroyIcons();
+    FreeMonIconPalettes();
+    FreeAllWindowBuffers();
+    SetVBlankCallback(NULL);
+}
+
+static void ScoutSelection_FreeState(void)
+{
+    if (sScoutSelection != NULL)
+    {
+        memset(sScoutSelection, 0, sizeof(*sScoutSelection));
+        sScoutSelection = NULL;
+    }
+}
+
+static void ScoutSelection_InitIconIds(void)
+{
+    u8 i;
+
+    for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
+        sScoutSelection->iconSpriteIds[i] = SPRITE_NONE;
+}
+
+static void ScoutSelection_MoveCursor(s8 dx, s8 dy)
+{
+    u8 oldCursor = sScoutSelection->cursor;
+    s16 cursor = sScoutSelection->cursor;
+
+    if (dx < 0)
+    {
+        if ((cursor % SCOUT_COLUMNS) != 0)
+            cursor--;
+    }
+    else if (dx > 0)
+    {
+        if ((cursor % SCOUT_COLUMNS) != SCOUT_COLUMNS - 1 && cursor + 1 < sScoutSelection->candidateCount)
+            cursor++;
+    }
+    else if (dy < 0)
+    {
+        if (cursor >= SCOUT_COLUMNS)
+            cursor -= SCOUT_COLUMNS;
+    }
+    else if (dy > 0)
+    {
+        if (cursor + SCOUT_COLUMNS < sScoutSelection->candidateCount)
+            cursor += SCOUT_COLUMNS;
+    }
+
+    if (cursor != oldCursor)
+    {
+        sScoutSelection->cursor = cursor;
+        ScoutSelection_EnsureCursorVisible();
+        PlaySE(SE_SELECT);
+        ScoutSelection_Draw();
+    }
+}
+
+static void ScoutSelection_EnsureCursorVisible(void)
+{
+    u8 maxOffset = ScoutSelection_GetMaxScrollOffset();
+
+    if (sScoutSelection->cursor < sScoutSelection->scrollOffset)
+    {
+        sScoutSelection->scrollOffset = (sScoutSelection->cursor / SCOUT_COLUMNS) * SCOUT_COLUMNS;
+    }
+    else if (sScoutSelection->cursor >= sScoutSelection->scrollOffset + SCOUT_VISIBLE_COUNT)
+    {
+        sScoutSelection->scrollOffset = ((sScoutSelection->cursor / SCOUT_COLUMNS) - (SCOUT_ROWS - 1)) * SCOUT_COLUMNS;
+    }
+
+    if (sScoutSelection->scrollOffset > maxOffset)
+        sScoutSelection->scrollOffset = maxOffset;
+}
+
+static u8 ScoutSelection_GetMaxScrollOffset(void)
+{
+    u8 rows;
+
+    if (sScoutSelection->candidateCount <= SCOUT_VISIBLE_COUNT)
+        return 0;
+
+    rows = (sScoutSelection->candidateCount + SCOUT_COLUMNS - 1) / SCOUT_COLUMNS;
+    return (rows - SCOUT_ROWS) * SCOUT_COLUMNS;
+}
+
+static void ScoutSelection_ToggleSelected(void)
+{
+    u8 i;
+    u8 cursor = sScoutSelection->cursor;
+    u8 selectedOrder = sScoutSelection->selectedOrder[cursor];
+
+    if (selectedOrder != 0)
+    {
+        sScoutSelection->selectedOrder[cursor] = 0;
+        sScoutSelection->selectedCount--;
+        for (i = 0; i < sScoutSelection->candidateCount; i++)
+        {
+            if (sScoutSelection->selectedOrder[i] > selectedOrder)
+                sScoutSelection->selectedOrder[i]--;
+        }
+        PlaySE(SE_SELECT);
+    }
+    else if (sScoutSelection->selectedCount < sScoutSelection->pickCount)
+    {
+        sScoutSelection->selectedCount++;
+        sScoutSelection->selectedOrder[cursor] = sScoutSelection->selectedCount;
+        PlaySE(SE_SELECT);
+    }
+    else
+    {
+        PlaySE(SE_BOO);
+    }
+}
+
+static bool8 ScoutSelection_CanConfirm(void)
+{
+    return sScoutSelection != NULL && sScoutSelection->selectedCount == sScoutSelection->pickCount;
+}
+
+static u16 ScoutSelection_CountAvailableStorageSlots(void)
+{
+    u8 i;
+    u8 j;
+    u16 count = 0;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) == SPECIES_NONE)
+            count++;
+    }
+
+    for (i = 0; i < TOTAL_BOXES_COUNT; i++)
+    {
+        for (j = 0; j < IN_BOX_COUNT; j++)
+        {
+            if (GetBoxMonDataAt(i, j, MON_DATA_SPECIES) == SPECIES_NONE)
+                count++;
+        }
+    }
+
+    return count;
+}

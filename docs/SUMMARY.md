@@ -107,6 +107,7 @@
     - [Scout Selection and Battlefield Status Design v15](overview/scout_selection_and_battlefield_status_v15.md)
     - [Scout Selection](features/scout_selection/README.md)
       - [Investigation](features/scout_selection/investigation.md)
+      - [Implementation](features/scout_selection/implementation.md)
       - [MVP Plan](features/scout_selection/mvp_plan.md)
       - [Risks](features/scout_selection/risks.md)
       - [Test Plan](features/scout_selection/test_plan.md)

@@ -55,6 +55,7 @@
 #include "constants/pokemon.h"
 #include "constants/rtc.h"
 #include "constants/roulette.h"
+#include "constants/scout_selection.h"
 #include "constants/script_menu.h"
 #include "constants/seagallop.h"
 #include "constants/secret_bases.h"

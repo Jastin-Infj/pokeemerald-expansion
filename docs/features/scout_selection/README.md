@@ -4,21 +4,37 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-19 |
-| Baseline | `master` `8bb44a15f4`; `git describe` = `expansion/1.15.2-77-g8bb44a15f4` |
-| Code status | Docs-only feature kickoff; runtime branch not created yet |
+| Last reviewed | 2026-05-20 |
+| Baseline | `master` `e927b612b3`; `feature/scout-selection-runtime-20260520` |
+| Code status | Runtime MVP implemented on feature branch |
 | Provenance | Local source inspection, existing feature branch docs, public GitHub / official Pokemon Champions reference check |
 
-Status: Planned
-Code status: no source changes on this branch
+Status: Runtime MVP implemented on feature branch
+Code status: source changes are intentionally not on `master`
 
 ## Goal
 
 Pokemon Champions 風に、NPC / object event から候補 Pokemon を提示し、Summary
 を確認してから 1 匹または N 匹を選んで受け取れる reusable runtime を作る。
 
-MVP は「script で pool と pick count を指定し、最大 6 件表示、候補数が多い時は
-縦スクロール、選択済み候補を明示、Summary から戻って選択状態を維持する」こと。
+MVP は「script で pool と pick count を指定し、最大 12 候補から 6 件表示、
+候補数が多い時は縦スクロール、選択済み候補を明示、Summary から戻って
+選択状態を維持する」こと。
+
+## Implemented MVP
+
+`feature/scout-selection-runtime-20260520` adds a reusable runtime:
+
+| Area | Implementation |
+|---|---|
+| Script contract | `InitScoutSelection`, `OpenScoutSelection`, `GiveSelectedScoutMons` specials use `VAR_0x8004` pool id, `VAR_0x8005` candidate count, and `VAR_0x8006` pick count. |
+| Candidate count | MVP supports up to 12 candidates. The debug pool has 12 Pokemon. |
+| Visible layout | 2 columns x 3 rows, 6 visible candidates, vertical scroll by row. |
+| Controls | D-pad cursor, `A` select/deselect, `SELECT` Summary, `START` confirm at exact pick count, `B` cancel. |
+| Summary | Standard Summary opens for the highlighted candidate and returns to the scout screen with cursor, scroll, and selected order preserved. |
+| Gift result | Confirmed candidates are given through `GiveScriptedMonToPlayer`; scripts receive `MON_GIVEN_TO_PARTY`, `MON_GIVEN_TO_PC`, or `MON_CANT_GIVE`. |
+| Debug route | Debug menu `Scripts... > Scout Selection` opens the 12-candidate pool with pick count 1. |
+| Validation | mGBA Live confirmed open, scroll, Summary return, confirm, and party gift on `feature/scout-selection-runtime-20260520`. |
 
 ## Current Decision
 
@@ -52,6 +68,8 @@ return の実装 shelf として最も近い。
 - 最大 6 visible candidates。pool は 6 を超えても縦 scroll で扱う。
 - 選択 Pokemon を gift path で party / PC へ渡し、`MON_GIVEN_TO_PARTY` /
   `MON_GIVEN_TO_PC` / `MON_CANT_GIVE` を script 側で扱えるようにする。
+- 選択状態は static EWRAM に保持する。field return は heap を reset するため、
+  `waitstate` 後の gift special まで heap pointer を残さない。
 
 ### Out of Scope
 
@@ -65,6 +83,7 @@ return の実装 shelf として最も近い。
 ## Related Docs
 
 - [Investigation](investigation.md)
+- [Implementation](implementation.md)
 - [MVP Plan](mvp_plan.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)
@@ -75,9 +94,10 @@ return の実装 shelf として最も近い。
 
 ## Open Questions
 
-- MVP pool max は 11 固定でよいか、12 / 16 まで許容するか。
-- Summary start page は Team Viewer と同じ `PSS_PAGE_SKILLS` でよいか。
-- Candidate result は C 側 helper で直接 give するか、script vars に species / level
-  などを返して `givemon` に任せるか。
+- General pool authoring format is still table-driven C in this slice; map-specific
+  `.inc` wrappers can be added after the first runtime validation.
+- Summary starts from the standard page for MVP. Direct skills-page entry remains future work.
+- Pick count 2 / 3 is supported by state model but still needs focused mGBA evidence
+  before a multi-pick facility uses it.
 - Starter replacement として使う時、Route 101 first battle flow も置き換えるか、
   lab / debug / facility NPC だけを先に実装するか。
