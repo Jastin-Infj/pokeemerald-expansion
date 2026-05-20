@@ -51,9 +51,11 @@ struct ScoutMonSpec
     enum Item item;
     enum PokeBall ball;
     u8 nature;
-    u8 abilityNum;
+    enum Ability ability;
     u8 gender;
     enum Move moves[MAX_MON_MOVES];
+    u8 ivs[NUM_STATS];
+    u8 evs[NUM_STATS];
 };
 
 struct ScoutPool
@@ -94,6 +96,7 @@ static void ScoutSelection_FreeState(void);
 static void ScoutSelection_InitIconIds(void);
 static void ScoutSelection_BuildCandidates(const struct ScoutPool *pool, u8 count);
 static void ScoutSelection_CreateMon(struct Pokemon *mon, const struct ScoutMonSpec *spec);
+static void ScoutSelection_SetAbilityFromId(struct Pokemon *mon, u16 species, enum Ability ability);
 static void ScoutSelection_EnsureCursorVisible(void);
 static u8 ScoutSelection_GetMaxScrollOffset(void);
 static void ScoutSelection_MoveCursor(s8 dx, s8 dy);
@@ -152,26 +155,27 @@ static const u8 sText_ScrollUp[] = _("UP");
 static const u8 sText_ScrollDown[] = _("DN");
 static const u8 sText_Slash[] = _("/");
 
-static const struct ScoutMonSpec sStarterTestMons[] =
+static const u8 sScoutIvMonDataIds[NUM_STATS] =
 {
-    { SPECIES_TREECKO,    15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_TORCHIC,   15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_MUDKIP,    15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_BULBASAUR, 15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_CHARMANDER,15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_SQUIRTLE,  15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_CHIKORITA, 15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_CYNDAQUIL, 15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_TOTODILE,  15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_PIKACHU,   15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_EEVEE,     15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
-    { SPECIES_RIOLU,     15, ITEM_NONE, BALL_POKE, NATURE_RANDOM, NUM_ABILITY_PERSONALITY, MON_GENDER_RANDOM, { MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT, MOVE_DEFAULT } },
+    MON_DATA_HP_IV,
+    MON_DATA_ATK_IV,
+    MON_DATA_DEF_IV,
+    MON_DATA_SPEED_IV,
+    MON_DATA_SPATK_IV,
+    MON_DATA_SPDEF_IV,
 };
 
-static const struct ScoutPool sScoutPools[] =
+static const u8 sScoutEvMonDataIds[NUM_STATS] =
 {
-    [SCOUT_POOL_STARTER_TEST] = { sStarterTestMons, ARRAY_COUNT(sStarterTestMons) },
+    MON_DATA_HP_EV,
+    MON_DATA_ATK_EV,
+    MON_DATA_DEF_EV,
+    MON_DATA_SPEED_EV,
+    MON_DATA_SPATK_EV,
+    MON_DATA_SPDEF_EV,
 };
+
+#include "data/scout_selection_pools.h"
 
 void InitScoutSelection(void)
 {
@@ -318,13 +322,35 @@ static void ScoutSelection_CreateMon(struct Pokemon *mon, const struct ScoutMonS
         }
     }
 
-    if (spec->abilityNum != NUM_ABILITY_PERSONALITY && GetAbilityBySpecies(spec->species, spec->abilityNum) != ABILITY_NONE)
-        SetMonData(mon, MON_DATA_ABILITY_NUM, &spec->abilityNum);
+    ScoutSelection_SetAbilityFromId(mon, spec->species, spec->ability);
+
+    for (i = 0; i < NUM_STATS; i++)
+    {
+        SetMonData(mon, sScoutIvMonDataIds[i], &spec->ivs[i]);
+        SetMonData(mon, sScoutEvMonDataIds[i], &spec->evs[i]);
+    }
 
     SetMonData(mon, MON_DATA_POKEBALL, &spec->ball);
     SetMonData(mon, MON_DATA_HELD_ITEM, &spec->item);
     TryFormChange(mon, FORM_CHANGE_ITEM_HOLD);
     CalculateMonStats(mon);
+}
+
+static void ScoutSelection_SetAbilityFromId(struct Pokemon *mon, u16 species, enum Ability ability)
+{
+    u8 i;
+
+    if (ability == ABILITY_NONE)
+        return;
+
+    for (i = 0; i < NUM_ABILITY_SLOTS; i++)
+    {
+        if (GetSpeciesAbility(species, i) == ability)
+        {
+            SetMonData(mon, MON_DATA_ABILITY_NUM, &i);
+            return;
+        }
+    }
 }
 
 static void CB2_InitScoutSelectionScreen(void)

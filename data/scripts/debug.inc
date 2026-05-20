@@ -236,7 +236,7 @@ Debug_EventScript_Script_8::
 
 Debug_EventScript_ScoutSelection::
 	lockall
-	setvar VAR_0x8004, SCOUT_POOL_STARTER_TEST
+	setvar VAR_0x8004, SCOUT_POOL_PARTYGEN_DEMO
 	setvar VAR_0x8005, 12
 	setvar VAR_0x8006, 1
 	special InitScoutSelection
