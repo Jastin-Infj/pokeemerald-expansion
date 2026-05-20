@@ -48,6 +48,9 @@
 #define SCOUT_CELL_INNER_WIDTH 109
 #define SCOUT_CELL_INNER_HEIGHT 34
 
+#define SCOUT_KEY_REPEAT_START_DELAY    10
+#define SCOUT_KEY_REPEAT_CONTINUE_DELAY 3
+
 #define SCOUT_COLOR_BG       TEXT_COLOR_LIGHT_GRAY
 #define SCOUT_COLOR_PANEL    TEXT_COLOR_WHITE
 #define SCOUT_COLOR_BORDER   TEXT_COLOR_LIGHT_BLUE
@@ -85,6 +88,10 @@ struct ScoutSelection
     u8 scrollOffset;
     u8 selectedCount;
     bool8 fromSummary;
+    bool8 helpTextNeedsRefresh;
+    bool8 keyRepeatSaved;
+    u16 savedKeyRepeatStartDelay;
+    u16 savedKeyRepeatContinueDelay;
     u8 selectedOrder[SCOUT_MAX_CANDIDATES];
     u8 iconSpriteIds[SCOUT_VISIBLE_COUNT];
     struct Pokemon mons[SCOUT_MAX_CANDIDATES];
@@ -100,13 +107,20 @@ static void Task_ScoutSelectionInput(u8 taskId);
 static void Task_ScoutSelectionOpenSummary(u8 taskId);
 static void Task_ScoutSelectionExit(u8 taskId);
 static void ScoutSelection_Draw(bool8 refreshIcons);
+static void ScoutSelection_DrawHeader(void);
+static void ScoutSelection_DrawCandidate(u8 index);
 static void ScoutSelection_DrawCard(u8 index, u8 x, u8 y);
 static void ScoutSelection_DrawHelpText(void);
+static void ScoutSelection_RedrawCursor(u8 oldCursor);
+static void ScoutSelection_CopyCardRowToVram(u8 index);
+static void ScoutSelection_RestoreHelpTextIfNeeded(void);
 static void ScoutSelection_CreateIcons(void);
 static void ScoutSelection_DestroyIcons(void);
 static void ScoutSelection_DestroyUi(void);
 static void ScoutSelection_FreeState(void);
 static void ScoutSelection_InitIconIds(void);
+static void ScoutSelection_ApplyKeyRepeat(void);
+static void ScoutSelection_RestoreKeyRepeat(void);
 static void ScoutSelection_BuildCandidates(const struct ScoutPool *pool, u8 count);
 static void ScoutSelection_CreateMon(struct Pokemon *mon, const struct ScoutMonSpec *spec);
 static void ScoutSelection_SetAbilityFromId(struct Pokemon *mon, u16 species, enum Ability ability);
@@ -397,6 +411,7 @@ static void CB2_InitScoutSelectionScreen(void)
             sScoutSelection->fromSummary = FALSE;
             ScoutSelection_EnsureCursorVisible();
         }
+        ScoutSelection_ApplyKeyRepeat();
         ScoutSelection_Draw(TRUE);
         ShowBg(0);
         SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_BG0_ON | DISPCNT_OBJ_ON | DISPCNT_OBJ_1D_MAP);
@@ -428,13 +443,13 @@ static void Task_ScoutSelectionInput(u8 taskId)
     if (gPaletteFade.active)
         return;
 
-    if (JOY_NEW(DPAD_LEFT))
+    if (JOY_REPEAT(DPAD_LEFT))
         ScoutSelection_MoveCursor(-1, 0);
-    else if (JOY_NEW(DPAD_RIGHT))
+    else if (JOY_REPEAT(DPAD_RIGHT))
         ScoutSelection_MoveCursor(1, 0);
-    else if (JOY_NEW(DPAD_UP))
+    else if (JOY_REPEAT(DPAD_UP))
         ScoutSelection_MoveCursor(0, -1);
-    else if (JOY_NEW(DPAD_DOWN))
+    else if (JOY_REPEAT(DPAD_DOWN))
         ScoutSelection_MoveCursor(0, 1);
     else if (JOY_NEW(A_BUTTON))
     {
@@ -462,6 +477,7 @@ static void Task_ScoutSelectionInput(u8 taskId)
             FillWindowPixelBuffer(SCOUT_WIN_HELP, PIXEL_FILL(SCOUT_COLOR_BAR));
             AddTextPrinterParameterized3(SCOUT_WIN_HELP, FONT_NORMAL, 6, 1, sTextColorsOnBar, TEXT_SKIP_DRAW, sText_NotEnough);
             CopyWindowToVram(SCOUT_WIN_HELP, COPYWIN_GFX);
+            sScoutSelection->helpTextNeedsRefresh = TRUE;
         }
     }
     else if (JOY_NEW(B_BUTTON))
@@ -500,15 +516,37 @@ static void Task_ScoutSelectionExit(u8 taskId)
 static void ScoutSelection_Draw(bool8 refreshIcons)
 {
     u8 i;
+
+    FillWindowPixelBuffer(SCOUT_WIN_LIST, PIXEL_FILL(SCOUT_COLOR_BG));
+    PutWindowTilemap(SCOUT_WIN_LIST);
+    ScoutSelection_DrawHeader();
+
+    if (sScoutSelection->scrollOffset > 0)
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, 226, 22, sTextColors, TEXT_SKIP_DRAW, sText_ScrollUp);
+    if (sScoutSelection->scrollOffset < ScoutSelection_GetMaxScrollOffset())
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, 226, 126, sTextColors, TEXT_SKIP_DRAW, sText_ScrollDown);
+
+    for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
+    {
+        u8 index = sScoutSelection->scrollOffset + i;
+        ScoutSelection_DrawCandidate(index);
+    }
+
+    CopyWindowToVram(SCOUT_WIN_LIST, COPYWIN_FULL);
+    ScoutSelection_DrawHelpText();
+    sScoutSelection->helpTextNeedsRefresh = FALSE;
+    if (refreshIcons)
+        ScoutSelection_CreateIcons();
+}
+
+static void ScoutSelection_DrawHeader(void)
+{
     u8 start;
     u8 end;
     u8 *txtPtr;
 
-    FillWindowPixelBuffer(SCOUT_WIN_LIST, PIXEL_FILL(SCOUT_COLOR_BG));
     FillWindowPixelRect(SCOUT_WIN_LIST, PIXEL_FILL(SCOUT_COLOR_BAR), 0, 0, 240, 16);
     FillWindowPixelRect(SCOUT_WIN_LIST, PIXEL_FILL(SCOUT_COLOR_BORDER), 0, 16, 240, 2);
-    PutWindowTilemap(SCOUT_WIN_LIST);
-
     AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 6, 1, sTextColorsOnBar, TEXT_SKIP_DRAW, sText_ScoutTitle);
 
     start = sScoutSelection->scrollOffset + 1;
@@ -524,52 +562,51 @@ static void ScoutSelection_Draw(bool8 refreshIcons)
     txtPtr = StringAppend(txtPtr, sText_Slash);
     ConvertIntToDecimalStringN(txtPtr, sScoutSelection->pickCount, STR_CONV_MODE_LEFT_ALIGN, 1);
     AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, 220, 1, sTextColorsOnBar, TEXT_SKIP_DRAW, gStringVar4);
+}
 
-    if (sScoutSelection->scrollOffset > 0)
-        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, 226, 22, sTextColors, TEXT_SKIP_DRAW, sText_ScrollUp);
-    if (sScoutSelection->scrollOffset < ScoutSelection_GetMaxScrollOffset())
-        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, 226, 126, sTextColors, TEXT_SKIP_DRAW, sText_ScrollDown);
+static void ScoutSelection_DrawCandidate(u8 index)
+{
+    u8 visibleIndex;
+    u8 row;
+    u8 col;
+    u8 x;
+    u8 y;
+    u8 *txtPtr;
+    const u8 *colors = sTextColors;
 
-    for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
+    if (index >= sScoutSelection->candidateCount)
+        return;
+    if (index < sScoutSelection->scrollOffset || index >= sScoutSelection->scrollOffset + SCOUT_VISIBLE_COUNT)
+        return;
+
+    visibleIndex = index - sScoutSelection->scrollOffset;
+    row = visibleIndex / SCOUT_COLUMNS;
+    col = visibleIndex % SCOUT_COLUMNS;
+    x = col * SCOUT_CELL_WIDTH;
+    y = SCOUT_CELL_TOP + row * SCOUT_CELL_HEIGHT;
+
+    ScoutSelection_DrawCard(index, x, y);
+
+    if (sScoutSelection->selectedOrder[index] != 0)
+        colors = sTextColorsSelected;
+
+    if (index == sScoutSelection->cursor)
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, x + 7, y + 9, sTextColorsCursor, TEXT_SKIP_DRAW, sText_Selector);
+
+    StringCopyN(gStringVar4, GetSpeciesName(GetMonData(&sScoutSelection->mons[index], MON_DATA_SPECIES)), 10);
+    gStringVar4[10] = EOS;
+    AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NARROW, x + 44, y + 4, colors, TEXT_SKIP_DRAW, gStringVar4);
+
+    AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 44, y + 19, colors, TEXT_SKIP_DRAW, sText_Level);
+    ConvertIntToDecimalStringN(gStringVar4, GetMonData(&sScoutSelection->mons[index], MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
+    AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 60, y + 19, colors, TEXT_SKIP_DRAW, gStringVar4);
+
+    if (sScoutSelection->selectedOrder[index] != 0)
     {
-        u8 index = sScoutSelection->scrollOffset + i;
-        u8 row = i / SCOUT_COLUMNS;
-        u8 col = i % SCOUT_COLUMNS;
-        u8 x = col * SCOUT_CELL_WIDTH;
-        u8 y = SCOUT_CELL_TOP + row * SCOUT_CELL_HEIGHT;
-        const u8 *colors = sTextColors;
-
-        if (index >= sScoutSelection->candidateCount)
-            continue;
-
-        ScoutSelection_DrawCard(index, x, y);
-
-        if (sScoutSelection->selectedOrder[index] != 0)
-            colors = sTextColorsSelected;
-
-        if (index == sScoutSelection->cursor)
-            AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NORMAL, x + 7, y + 9, sTextColorsCursor, TEXT_SKIP_DRAW, sText_Selector);
-
-        StringCopyN(gStringVar4, GetSpeciesName(GetMonData(&sScoutSelection->mons[index], MON_DATA_SPECIES)), 10);
-        gStringVar4[10] = EOS;
-        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_NARROW, x + 44, y + 4, colors, TEXT_SKIP_DRAW, gStringVar4);
-
-        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 44, y + 19, colors, TEXT_SKIP_DRAW, sText_Level);
-        ConvertIntToDecimalStringN(gStringVar4, GetMonData(&sScoutSelection->mons[index], MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
-        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 60, y + 19, colors, TEXT_SKIP_DRAW, gStringVar4);
-
-        if (sScoutSelection->selectedOrder[index] != 0)
-        {
-            txtPtr = StringCopy(gStringVar4, sText_Pick);
-            ConvertIntToDecimalStringN(txtPtr, sScoutSelection->selectedOrder[index], STR_CONV_MODE_LEFT_ALIGN, 1);
-            AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 84, y + 19, colors, TEXT_SKIP_DRAW, gStringVar4);
-        }
+        txtPtr = StringCopy(gStringVar4, sText_Pick);
+        ConvertIntToDecimalStringN(txtPtr, sScoutSelection->selectedOrder[index], STR_CONV_MODE_LEFT_ALIGN, 1);
+        AddTextPrinterParameterized3(SCOUT_WIN_LIST, FONT_SMALL, x + 84, y + 19, colors, TEXT_SKIP_DRAW, gStringVar4);
     }
-
-    CopyWindowToVram(SCOUT_WIN_LIST, COPYWIN_FULL);
-    ScoutSelection_DrawHelpText();
-    if (refreshIcons)
-        ScoutSelection_CreateIcons();
 }
 
 static void ScoutSelection_DrawCard(u8 index, u8 x, u8 y)
@@ -604,6 +641,40 @@ static void ScoutSelection_DrawHelpText(void)
     PutWindowTilemap(SCOUT_WIN_HELP);
     AddTextPrinterParameterized3(SCOUT_WIN_HELP, FONT_SMALL, 6, 2, sTextColorsOnBar, TEXT_SKIP_DRAW, sText_Help);
     CopyWindowToVram(SCOUT_WIN_HELP, COPYWIN_FULL);
+}
+
+static void ScoutSelection_RedrawCursor(u8 oldCursor)
+{
+    ScoutSelection_DrawCandidate(oldCursor);
+    ScoutSelection_DrawCandidate(sScoutSelection->cursor);
+    ScoutSelection_CopyCardRowToVram(oldCursor);
+    if ((oldCursor - sScoutSelection->scrollOffset) / SCOUT_COLUMNS != (sScoutSelection->cursor - sScoutSelection->scrollOffset) / SCOUT_COLUMNS)
+        ScoutSelection_CopyCardRowToVram(sScoutSelection->cursor);
+    ScoutSelection_RestoreHelpTextIfNeeded();
+}
+
+static void ScoutSelection_CopyCardRowToVram(u8 index)
+{
+    u8 visibleIndex;
+    u8 row;
+    u8 y;
+
+    if (index < sScoutSelection->scrollOffset || index >= sScoutSelection->scrollOffset + SCOUT_VISIBLE_COUNT)
+        return;
+
+    visibleIndex = index - sScoutSelection->scrollOffset;
+    row = visibleIndex / SCOUT_COLUMNS;
+    y = (SCOUT_CELL_TOP + row * SCOUT_CELL_HEIGHT) / 8;
+    CopyWindowRectToVram(SCOUT_WIN_LIST, COPYWIN_GFX, 0, y, 30, 6);
+}
+
+static void ScoutSelection_RestoreHelpTextIfNeeded(void)
+{
+    if (sScoutSelection->helpTextNeedsRefresh)
+    {
+        ScoutSelection_DrawHelpText();
+        sScoutSelection->helpTextNeedsRefresh = FALSE;
+    }
 }
 
 static void ScoutSelection_CreateIcons(void)
@@ -654,6 +725,7 @@ static void ScoutSelection_DestroyUi(void)
     ScoutSelection_DestroyIcons();
     FreeMonIconPalettes();
     FreeAllWindowBuffers();
+    ScoutSelection_RestoreKeyRepeat();
     SetVBlankCallback(NULL);
 }
 
@@ -672,6 +744,30 @@ static void ScoutSelection_InitIconIds(void)
 
     for (i = 0; i < SCOUT_VISIBLE_COUNT; i++)
         sScoutSelection->iconSpriteIds[i] = SPRITE_NONE;
+}
+
+static void ScoutSelection_ApplyKeyRepeat(void)
+{
+    if (!sScoutSelection->keyRepeatSaved)
+    {
+        sScoutSelection->savedKeyRepeatStartDelay = gKeyRepeatStartDelay;
+        sScoutSelection->savedKeyRepeatContinueDelay = gKeyRepeatContinueDelay;
+        sScoutSelection->keyRepeatSaved = TRUE;
+    }
+
+    gKeyRepeatStartDelay = SCOUT_KEY_REPEAT_START_DELAY;
+    gKeyRepeatContinueDelay = SCOUT_KEY_REPEAT_CONTINUE_DELAY;
+    gMain.keyRepeatCounter = SCOUT_KEY_REPEAT_START_DELAY;
+}
+
+static void ScoutSelection_RestoreKeyRepeat(void)
+{
+    if (sScoutSelection != NULL && sScoutSelection->keyRepeatSaved)
+    {
+        gKeyRepeatStartDelay = sScoutSelection->savedKeyRepeatStartDelay;
+        gKeyRepeatContinueDelay = sScoutSelection->savedKeyRepeatContinueDelay;
+        gMain.keyRepeatCounter = gKeyRepeatStartDelay;
+    }
 }
 
 static void ScoutSelection_MoveCursor(s8 dx, s8 dy)
@@ -706,7 +802,10 @@ static void ScoutSelection_MoveCursor(s8 dx, s8 dy)
         sScoutSelection->cursor = cursor;
         ScoutSelection_EnsureCursorVisible();
         PlaySE(SE_SELECT);
-        ScoutSelection_Draw(sScoutSelection->scrollOffset != oldScrollOffset);
+        if (sScoutSelection->scrollOffset != oldScrollOffset)
+            ScoutSelection_Draw(TRUE);
+        else
+            ScoutSelection_RedrawCursor(oldCursor);
     }
 }
 

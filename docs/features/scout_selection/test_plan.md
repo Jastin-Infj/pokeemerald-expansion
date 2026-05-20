@@ -97,6 +97,13 @@ gap here before handoff.
 | 2026-05-20 | `rtk make -j16 -O all` after cursor redraw optimization | Pass | Existing RWX linker warning. |
 | 2026-05-20 | `rtk make -j16 -O check` after cursor redraw optimization | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
 | 2026-05-20 | `rtk mdbook build docs` after cursor redraw optimization | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Cursor responsiveness pass | Pass | Replaced Scout D-pad movement with `JOY_REPEAT`, applied Scout-local 10-frame initial / 3-frame continued repeat, and changed same-scroll cursor movement to redraw only previous/current card rows. mGBA Live `scout-selection-responsive-20260520b` ran at 60 fps target, opened `Scripts... > Scout Selection`, held DOWN for repeat movement and scroll, selected Metang, opened/returned from Summary, and stopped cleanly. Screenshots: `scout-responsive-hold-scroll.png`, `scout-responsive-return.png`. |
+| 2026-05-20 | mGBA fixed-binary retry note | Pass | First attempt `scout-selection-responsive-20260520` exited before boot with Qt xcb / DISPLAY unset when the script-capable binary was passed directly. Retried through the project wrapper as `scout-selection-responsive-20260520b`; validation passed and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-20 | `rtk git diff --check` after cursor responsiveness pass | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after cursor responsiveness pass | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after cursor responsiveness pass | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after cursor responsiveness pass | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after cursor responsiveness pass | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 
 ## Feature Complete Gate
 
