@@ -104,6 +104,12 @@ gap here before handoff.
 | 2026-05-20 | `rtk make -j16 -O all` after cursor responsiveness pass | Pass | Existing RWX linker warning. |
 | 2026-05-20 | `rtk make -j16 -O check` after cursor responsiveness pass | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
 | 2026-05-20 | `rtk mdbook build docs` after cursor responsiveness pass | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Cursor repeat tuning | Pass | Scout-local repeat changed from 10-frame initial / 3-frame continued to 16-frame initial / 5-frame continued to reduce accidental two-step movement while preserving hold-to-scroll. mGBA Live `scout-selection-repeat-tune-20260520` ran at 60 fps target, verified a 12-frame DOWN tap moved one row, a 12-frame UP tap moved one row, a 45-frame hold still repeated through scroll, and stopped cleanly with empty CLI `status --all`. Screenshots: `scout-repeat-tune-single-step.png`, `scout-repeat-tune-hold-scroll.png`. |
+| 2026-05-20 | `rtk git diff --check` after cursor repeat tuning | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after cursor repeat tuning | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after cursor repeat tuning | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after cursor repeat tuning | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after cursor repeat tuning | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 
 ## Feature Complete Gate
 
