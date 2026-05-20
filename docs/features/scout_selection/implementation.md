@@ -57,7 +57,7 @@ same party / PC result values used by scripted gift Pokemon.
 | `include/constants/scout_selection.h` | Script/C constants for pool id and scout UI result values. `SCOUT_POOL_STARTER_TEST` remains an alias for compatibility. |
 | `data/specials.inc` | Registers `InitScoutSelection`, `OpenScoutSelection`, `GiveSelectedScoutMons`. |
 | `data/event_scripts.s` | Includes scout constants for event scripts. |
-| `data/scripts/debug.inc` | Adds a debug script route for the 12-candidate pool. |
+| `data/scripts/debug.inc` | Adds debug script routes for the 12-candidate pool: `Scout Selection` pick 1 and `Script 2` pick 6. |
 | `src/debug.c` | Adds `Scripts... > Scout Selection` to the debug menu. |
 | `Makefile` | Generates the Scout pool header from partygen catalog set JSON before ROM build. |
 | `.gitignore` | Ignores `src/data/scout_selection_pools.h`, matching other generated runtime headers. |
@@ -117,6 +117,8 @@ same party / PC result values used by scripted gift Pokemon.
 | 2026-05-20 | mGBA cleanup | Pass | `mgba_live_stop` stopped session `scout-selection-partygen-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
 | 2026-05-20 | UI polish runtime validation | Pass | Reworked Scout screen with blue header/footer bars, white candidate cards, blue cursor border/stripe, card shadow, and green selected card fill. mGBA Live `scout-selection-ui-polish-20260520` verified open, selected state, scroll, Summary return, confirm, and clean stop. Screenshots: `scout-ui-polish-open.png`, `scout-ui-polish-selected.png`, `scout-ui-polish-scroll.png`, `scout-ui-polish-confirm.png`. |
 | 2026-05-20 | UI polish local checks | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed. Build warnings remain the existing RWX linker warning and mdBook's existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index warnings. |
+| 2026-05-20 | mGBA Live `scout-selection-pick6-20260520` | Pass | `Scripts... > Script 2` opened the same 12-candidate pool with pick count 6, blocked START at 5/6, confirmed at 6/6, filled the party with selected Pokemon until full, and used the existing gift path fallback for the remaining selected Pokemon. |
+| 2026-05-20 | 6-pick route local checks | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed with only existing warnings. |
 
 ## Remaining Work
 

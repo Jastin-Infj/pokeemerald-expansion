@@ -33,7 +33,7 @@ MVP は「script で pool と pick count を指定し、最大 12 候補から 6
 | Controls | D-pad cursor, `A` select/deselect, `SELECT` Summary, `START` confirm at exact pick count, `B` cancel. |
 | Summary | Standard Summary opens for the highlighted candidate and returns to the scout screen with cursor, scroll, and selected order preserved. |
 | Gift result | Confirmed candidates are given through `GiveScriptedMonToPlayer`; scripts receive `MON_GIVEN_TO_PARTY`, `MON_GIVEN_TO_PC`, or `MON_CANT_GIVE`. |
-| Debug route | Debug menu `Scripts... > Scout Selection` opens the 12-candidate pool with pick count 1. |
+| Debug route | Debug menu `Scripts... > Scout Selection` opens the 12-candidate pool with pick count 1. `Scripts... > Script 2` opens the same pool with pick count 6 for multi-pick testing. |
 | Validation | mGBA Live confirmed open, partygen-derived candidates, scroll, Summary return, confirm, and party gift on `feature/scout-selection-runtime-20260520`. |
 
 ## Current Decision

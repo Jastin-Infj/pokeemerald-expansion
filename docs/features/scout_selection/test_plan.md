@@ -83,6 +83,14 @@ gap here before handoff.
 | 2026-05-20 | `rtk make -j16 -O all` after UI polish | Pass | Existing RWX linker warning. |
 | 2026-05-20 | `rtk make -j16 -O check` after UI polish | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
 | 2026-05-20 | `rtk mdbook build docs` after UI polish | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Debug route configured for 6-pick test | Pass | `Scripts... > Script 2` sets `SCOUT_POOL_PARTYGEN_DEMO`, candidate count 12, and pick count 6. |
+| 2026-05-20 | mGBA Live `scout-selection-pick6-20260520` | Pass | Opened `Script 2`, verified `0/6`, selected five candidates and confirmed START was blocked with `Pick the requested number first.`, selected the sixth candidate, confirmed, saw `Scout Pokemon received.`, and verified the party filled with the first five selected Pokemon after Mew. The sixth selected Pokemon used the existing gift path PC fallback after party filled. Screenshots: `scout-pick6-open.png`, `scout-pick6-five-selected.png`, `scout-pick6-start-blocked.png`, `scout-pick6-six-selected.png`, `scout-pick6-confirm.png`, `scout-pick6-party.png`. |
+| 2026-05-20 | mGBA cleanup after 6-pick test | Pass | `mgba_live_stop` stopped session `scout-selection-pick6-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | `rtk git diff --check` after 6-pick route | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after 6-pick route | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after 6-pick route | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after 6-pick route | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after 6-pick route | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 
 ## Feature Complete Gate
 

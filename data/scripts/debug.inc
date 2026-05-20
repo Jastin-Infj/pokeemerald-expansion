@@ -207,7 +207,19 @@ Debug_EventScript_Script_1::
 	end
 
 Debug_EventScript_Script_2::
-	release
+	lockall
+	setvar VAR_0x8004, SCOUT_POOL_PARTYGEN_DEMO
+	setvar VAR_0x8005, 12
+	setvar VAR_0x8006, 6
+	special InitScoutSelection
+	goto_if_eq VAR_RESULT, FALSE, Debug_EventScript_ScoutSelection_InitFailed
+	special OpenScoutSelection
+	waitstate
+	goto_if_eq VAR_RESULT, SCOUT_RESULT_CANCEL, Debug_EventScript_ScoutSelection_Canceled
+	special GiveSelectedScoutMons
+	goto_if_eq VAR_RESULT, MON_CANT_GIVE, Debug_EventScript_ScoutSelection_Full
+	msgbox Debug_EventScript_ScoutSelection_Received, MSGBOX_DEFAULT
+	releaseall
 	end
 
 Debug_EventScript_Script_3::
