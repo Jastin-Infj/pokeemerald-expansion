@@ -116,6 +116,29 @@ flowchart TD
 
 今回の選出は battle 前に行う想定のため、battle 中 party menu の flow とは別扱いが安全。
 
+## Layout Owner Notes
+
+2026-05-20 の Party / Status UI Overhaul 調査で、field party menu を現行の
+`1 + 5` 配置から `2 columns x 3 rows` (`2 / 2 / 2`) 配置へ変える候補を
+登録した。
+
+現行 layout の注意点:
+
+- `PARTY_LAYOUT_SINGLE` は slot 1 だけ `10 x 7` の main window、slot 2-6 は
+  右側の `18 x 3` wide window。
+- `PARTY_LAYOUT_DOUBLE` / `PARTY_LAYOUT_MULTI` は左側に大きめ slot 2 個、右側
+  に小 slot 4 個。
+- slot 描画は `sPartyMenuSpriteCoords`、window template、`sPartyBoxInfoRects`、
+  `slot_main` / `slot_wide` tilemap の組み合わせに依存する。
+- cursor movement は `UpdatePartySelectionSingleLayout` と
+  `UpdatePartySelectionDoubleLayout` に hardcode されている。
+
+そのため、`2 / 2 / 2` は単なる座標変更ではなく、新しい layout constant、
+window template、slot tilemap / info rect、cursor traversal helper、そして
+party background / slot frame 画像 assets のセットで扱う。
+
+詳細は `docs/features/party_status_ui_overhaul/README.md`。
+
 ## Choose Half Related Behavior
 
 `PARTY_MENU_TYPE_CHOOSE_HALF` のとき:

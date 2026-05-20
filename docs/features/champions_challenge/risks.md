@@ -18,6 +18,7 @@
 | no-whiteout と通常 whiteout が衝突 | High | `CB2_EndTrainerBattle`, `B_FLAG_NO_WHITEOUT` | challenge aftercare が自分で立てた flag だけ clear する。 |
 | held item restore と release が衝突 | Medium | held item restore, challenge bag | loss 時は「復元してから削除」か「削除優先」かを固定する。 |
 | soft reset / power cut で 0 匹状態から戻れない | High | save / continue warp / challenge status | 通常 party / bag の snapshot 完了後にだけ active status を立てる。 |
+| PC box rollback を約束しすぎる | High | Pokemon Storage sectors, save layout, active-run checkpoint | `struct PokemonStorage` の full copy は既存 save area に収まらない。MVP は active run 中の通常 PC を閉じ、必要なら run-only stash / safe-room checkpoint を別 phase にする。 |
 | external 構築 data と ROM 定義がずれる | High | party generator, custom species / moves / abilities / items | 外部 source は trend / role weight のみにし、legality / stats / moves / abilities / items は repo-local data で再検証する。 |
 | 強い構築がそのまま楽しい challenge にならない | Medium | generator scoring, intensity, rewards | intensity / variance / cooldown を持たせ、同じ counter や過剰最適化が続かないようにする。 |
 | 構築 source の信頼度が混ざる | Medium | Victory Road, PokeDB, articles, videos, wiki notes | Singles / Doubles で source priority を分け、source kind を metadata として保持する。 |
@@ -99,6 +100,27 @@ bag snapshot を SaveBlock1 に常駐させると 1.5 KB 級の常時 cost。代
 | SaveBlock3 | SaveBlock1 を増やさない | SaveBlock3 は 1624 B 上限。bag (~700B) + party (~600B) で 1300 B、ほぼ使い切る。DexNav search level (~1500 B) と排他 |
 
 MVP は **常駐案 + Mystery Gift / Mystery Event を FREE 化** が安全。ただし fork で Mystery Gift を使う想定があれば再検討。
+
+### PC Box Rollback Scope
+
+Battle Frontier の `SAVE_LINK` path は PC storage sectors を書かないため、
+Champions の checkpoint save にとって重要な参考になる。ただし、これは
+「PC を巻き戻せる」ことを意味しない。
+
+通常 PC boxes は `struct PokemonStorage` として save sectors 5-13 に分かれて
+保存される。申込時点の PC を丸ごと復元するには、同規模の 2 個目の snapshot
+または変更 journal が必要になる。現在の SaveBlock1 / SaveBlock3 の候補容量は
+通常 party + bag snapshot だけでも逼迫するため、full PC snapshot は MVP の
+前提にしない。
+
+MVP policy:
+
+- active Champions run 中は通常 PC access を禁止する。
+- run で増えた Pokemon は live run party か小さな run-only stash に置く。
+- safe-room PC を後で作る場合は「最後に明示 checkpoint した PC 状態へ戻る」
+  仕様に限定し、任意タイミングの box rollback とは区別する。
+
+詳細は `docs/features/champions_challenge/run_session_restore.md`。
 
 ### Bag Freeze
 

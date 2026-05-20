@@ -16,8 +16,11 @@
 | Win aftercare | Win first battle | Streak increments; rule-selected HP / PP / item restoration occurs; next battle menu appears. |
 | Loss aftercare | Lose battle | Challenge party is cleared; normal party / bag is restored; run status clears. |
 | Power cut recovery | Save after challenge start, reload | Game restores or resumes according to challenge status, never strands player with 0 normal party. |
+| Temporary report resume | Use an active-run report / suspend point, close and reload | Continue resumes at the Champions checkpoint or returns through the documented recovery warp; run party / run bag match the checkpoint. |
+| Pre-checkpoint power cut | Mutate run party / bag after the last checkpoint, then reload from the saved file | Game resumes from the previous checkpoint or forfeits according to the selected policy; partial volatile changes do not overwrite normal party / bag. |
 | Bag restore | Use / gain challenge bag items, then lose | Normal bag is exactly pre-run state unless reward policy explicitly says otherwise. |
 | PC disabled | Try to open PC during challenge | PC is unavailable or only challenge-approved mode opens. |
+| PC checkpoint policy | If safe-room PC is enabled later, access PC and retire | Restore target is the last explicit safe-room checkpoint, not an implicit arbitrary box rollback. |
 | No leakage | Leave challenge, start normal trainer battle | Normal battle uses normal party, normal bag, normal EXP behavior. |
 
 ## Automated Test Candidates
@@ -27,6 +30,9 @@
 | Challenge state init/clear | New challenge state helper |
 | Party snapshot/restore | Dedicated party helper around `gPlayerParty` |
 | Bag snapshot/restore | Dedicated bag helper around `gSaveBlock1Ptr->bag` and `gLoadedSaveData.bag` |
+| Run session state machine | Dedicated Champions run helper covering entry, preparing, battling, paused, won, lost, retired, recovering |
+| Checkpoint save guard | Champions save helper never writes live challenge party into `SaveBlock1.playerParty[]` |
+| PC access guard | `ChampionsRun_CanUseNormalPc` or equivalent blocks normal storage during MVP active runs |
 | Eligibility egg-only | New `Challenge_IsMonEligible` helper |
 | Eligibility frontier-ban | `isFrontierBanned` rule path |
 | Required party count | `Challenge_CanStartBattle` |
@@ -43,6 +49,7 @@
 |---|---|
 | Battle Frontier lobby | Existing ineligible messages and entry rules unchanged. |
 | Battle Pyramid | Pyramid bag and held item storage still work. |
+| Frontier partial save | Existing `SaveGameFrontier` / Pyramid pause behavior still saves and resumes as before. |
 | Cable Club / Union Room | `SavePlayerBag` / `LoadPlayerBag` behavior unchanged. |
 | Trainer battle aftercare | Normal trainer battles still whiteout / return as before. |
 | Bag menu | Normal bag contents and sort order survive challenge start/end. |

@@ -70,6 +70,25 @@ badge and placement defines.
 | Unified Move Relearner | Move page `START`, `L/R` source prompt, return callback. | If unified mode removes source category cycling, update prompt copy and input gating together. |
 | Pokemon Icon UI | Shared icon/sprite lifetime rules for custom viewers and future Summary overlays. | Use `CreateMonIcon*` helpers for Pokemon icons and destroy/free palettes on close; do not mix with Summary type icon slots. |
 | Pre-Battle Team Viewer | Opens standard Summary from viewer and returns to viewer. | Summary mode must lock move reordering unless explicitly enabled, and return with viewer selection state intact. |
+| Party / Status UI Overhaul | Possible BW-style Summary replacement or alternate screen. | Do not import a full alternate Summary until party grid layout is stable. Preserve all `ShowPokemonSummaryScreen` modes, return callbacks, prompt ownership, and existing feature overlays. |
+
+## BW Summary Reference Note
+
+`docs/features/party_status_ui_overhaul/external_references.md` records
+RavePossum's Emerald Extra BW Summary implementation as an external reference.
+It exposes a separate `ShowPokemonSummaryScreen_BW` style surface and includes
+its own graphics, config flags, IV/EV modes, type icons, friendship / shiny /
+status icons, move selector, and callback handling.
+
+Adoption rule:
+
+- Treat it as a reference first, not a drop-in replacement.
+- A full replacement needs image assets and tilemaps. Do not treat the source
+  file alone as enough to implement the screen.
+- If copied, reconcile with current `src/pokemon_summary_screen.c` changes,
+  Summary Tera icon, State Editor, Unified Move Relearner, Team Viewer, and
+  Scout Selection Summary return path.
+- Record credits before importing any code or graphics.
 
 ## Integration Checklist
 
@@ -86,4 +105,3 @@ badge and placement defines.
 - Should unified relearner remove the L/R category prompt entirely when unified mode is on?
 - Should future Summary overlays reserve a common palette range instead of each feature picking a palette independently?
 - Should box Summary remain disabled for state editing until storage return-path tests exist?
-
