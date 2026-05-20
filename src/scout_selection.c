@@ -99,7 +99,7 @@ static void VBlankCB_ScoutSelectionScreen(void);
 static void Task_ScoutSelectionInput(u8 taskId);
 static void Task_ScoutSelectionOpenSummary(u8 taskId);
 static void Task_ScoutSelectionExit(u8 taskId);
-static void ScoutSelection_Draw(void);
+static void ScoutSelection_Draw(bool8 refreshIcons);
 static void ScoutSelection_DrawCard(u8 index, u8 x, u8 y);
 static void ScoutSelection_DrawHelpText(void);
 static void ScoutSelection_CreateIcons(void);
@@ -397,7 +397,7 @@ static void CB2_InitScoutSelectionScreen(void)
             sScoutSelection->fromSummary = FALSE;
             ScoutSelection_EnsureCursorVisible();
         }
-        ScoutSelection_Draw();
+        ScoutSelection_Draw(TRUE);
         ShowBg(0);
         SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_BG0_ON | DISPCNT_OBJ_ON | DISPCNT_OBJ_1D_MAP);
         SetVBlankCallback(VBlankCB_ScoutSelectionScreen);
@@ -439,7 +439,7 @@ static void Task_ScoutSelectionInput(u8 taskId)
     else if (JOY_NEW(A_BUTTON))
     {
         ScoutSelection_ToggleSelected();
-        ScoutSelection_Draw();
+        ScoutSelection_Draw(FALSE);
     }
     else if (JOY_NEW(SELECT_BUTTON))
     {
@@ -497,7 +497,7 @@ static void Task_ScoutSelectionExit(u8 taskId)
     SetMainCallback2(CB2_ReturnToFieldContinueScript);
 }
 
-static void ScoutSelection_Draw(void)
+static void ScoutSelection_Draw(bool8 refreshIcons)
 {
     u8 i;
     u8 start;
@@ -568,7 +568,8 @@ static void ScoutSelection_Draw(void)
 
     CopyWindowToVram(SCOUT_WIN_LIST, COPYWIN_FULL);
     ScoutSelection_DrawHelpText();
-    ScoutSelection_CreateIcons();
+    if (refreshIcons)
+        ScoutSelection_CreateIcons();
 }
 
 static void ScoutSelection_DrawCard(u8 index, u8 x, u8 y)
@@ -676,6 +677,7 @@ static void ScoutSelection_InitIconIds(void)
 static void ScoutSelection_MoveCursor(s8 dx, s8 dy)
 {
     u8 oldCursor = sScoutSelection->cursor;
+    u8 oldScrollOffset = sScoutSelection->scrollOffset;
     s16 cursor = sScoutSelection->cursor;
 
     if (dx < 0)
@@ -704,7 +706,7 @@ static void ScoutSelection_MoveCursor(s8 dx, s8 dy)
         sScoutSelection->cursor = cursor;
         ScoutSelection_EnsureCursorVisible();
         PlaySE(SE_SELECT);
-        ScoutSelection_Draw();
+        ScoutSelection_Draw(sScoutSelection->scrollOffset != oldScrollOffset);
     }
 }
 

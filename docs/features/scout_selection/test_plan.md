@@ -91,6 +91,12 @@ gap here before handoff.
 | 2026-05-20 | `rtk make -j16 -O all` after 6-pick route | Pass | Existing RWX linker warning. |
 | 2026-05-20 | `rtk make -j16 -O check` after 6-pick route | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
 | 2026-05-20 | `rtk mdbook build docs` after 6-pick route | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Cursor redraw optimization | Pass | Cursor movement and A selection no longer recreate icons unless scrolling changes the visible candidate set. mGBA Live `scout-selection-redraw-opt-20260520` ran at 60 fps target and verified cursor movement, selected markers, scroll-boundary icon refresh, Summary open/return, and clean stop. Screenshots: `scout-redraw-opt-open.png`, `scout-redraw-opt-scroll.png`, `scout-redraw-opt-summary-return.png`. |
+| 2026-05-20 | `rtk git diff --check` after cursor redraw optimization | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after cursor redraw optimization | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after cursor redraw optimization | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after cursor redraw optimization | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after cursor redraw optimization | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 
 ## Feature Complete Gate
 

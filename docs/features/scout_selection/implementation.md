@@ -119,6 +119,8 @@ same party / PC result values used by scripted gift Pokemon.
 | 2026-05-20 | UI polish local checks | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed. Build warnings remain the existing RWX linker warning and mdBook's existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index warnings. |
 | 2026-05-20 | mGBA Live `scout-selection-pick6-20260520` | Pass | `Scripts... > Script 2` opened the same 12-candidate pool with pick count 6, blocked START at 5/6, confirmed at 6/6, filled the party with selected Pokemon until full, and used the existing gift path fallback for the remaining selected Pokemon. |
 | 2026-05-20 | 6-pick route local checks | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed with only existing warnings. |
+| 2026-05-20 | Cursor redraw optimization | Pass | Cursor movement and selection toggles now redraw the window text/cards without destroying and recreating Pokemon icon sprites. Icons refresh only when the scroll offset changes or the screen is initialized/returned from Summary. mGBA Live `scout-selection-redraw-opt-20260520` ran at 60 fps target and verified cursor movement, selection marker redraw, scroll-boundary icon refresh, Summary return, and clean stop. |
+| 2026-05-20 | Cursor redraw local checks | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed with only existing warnings. |
 
 ## Remaining Work
 
