@@ -207,7 +207,19 @@ Debug_EventScript_Script_1::
 	end
 
 Debug_EventScript_Script_2::
-	release
+	lockall
+	setvar VAR_0x8004, SCOUT_POOL_PARTYGEN_DEMO
+	setvar VAR_0x8005, 12
+	setvar VAR_0x8006, 6
+	special InitScoutSelection
+	goto_if_eq VAR_RESULT, FALSE, Debug_EventScript_ScoutSelection_InitFailed
+	special OpenScoutSelection
+	waitstate
+	goto_if_eq VAR_RESULT, SCOUT_RESULT_CANCEL, Debug_EventScript_ScoutSelection_Canceled
+	special GiveSelectedScoutMons
+	goto_if_eq VAR_RESULT, MON_CANT_GIVE, Debug_EventScript_ScoutSelection_Full
+	msgbox Debug_EventScript_ScoutSelection_Received, MSGBOX_DEFAULT
+	releaseall
 	end
 
 Debug_EventScript_Script_3::
@@ -233,6 +245,49 @@ Debug_EventScript_Script_7::
 Debug_EventScript_Script_8::
 	release
 	end
+
+Debug_EventScript_ScoutSelection::
+	lockall
+	setvar VAR_0x8004, SCOUT_POOL_PARTYGEN_DEMO
+	setvar VAR_0x8005, 12
+	setvar VAR_0x8006, 1
+	special InitScoutSelection
+	goto_if_eq VAR_RESULT, FALSE, Debug_EventScript_ScoutSelection_InitFailed
+	special OpenScoutSelection
+	waitstate
+	goto_if_eq VAR_RESULT, SCOUT_RESULT_CANCEL, Debug_EventScript_ScoutSelection_Canceled
+	special GiveSelectedScoutMons
+	goto_if_eq VAR_RESULT, MON_CANT_GIVE, Debug_EventScript_ScoutSelection_Full
+	msgbox Debug_EventScript_ScoutSelection_Received, MSGBOX_DEFAULT
+	releaseall
+	end
+
+Debug_EventScript_ScoutSelection_InitFailed::
+	msgbox Debug_EventScript_ScoutSelection_InitFailed_Text, MSGBOX_DEFAULT
+	releaseall
+	end
+
+Debug_EventScript_ScoutSelection_Canceled::
+	msgbox Debug_EventScript_ScoutSelection_Canceled_Text, MSGBOX_DEFAULT
+	releaseall
+	end
+
+Debug_EventScript_ScoutSelection_Full::
+	msgbox Debug_EventScript_ScoutSelection_Full_Text, MSGBOX_DEFAULT
+	releaseall
+	end
+
+Debug_EventScript_ScoutSelection_Received:
+	.string "Scout Pokemon received.$"
+
+Debug_EventScript_ScoutSelection_InitFailed_Text:
+	.string "Scout Selection init failed.$"
+
+Debug_EventScript_ScoutSelection_Canceled_Text:
+	.string "Scout Selection canceled.$"
+
+Debug_EventScript_ScoutSelection_Full_Text:
+	.string "Party and PC are full.$"
 
 Debug_CheckSaveBlock::
 	callnative CheckSaveBlock1Size
