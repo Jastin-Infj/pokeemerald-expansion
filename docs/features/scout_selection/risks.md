@@ -20,6 +20,9 @@
 | Partial give for N picks | High | First Pokemon may be given, later one fails due full party/PC, leaving script state inconsistent. | Preflight space for pick count or make `GiveSelectedScoutMons` transactional with clear failure rules. |
 | Icon palette / sprite lifetime leak | Medium | Returning from Summary or closing UI can leak sprites/palettes or render invisible icons. | Use `LoadMonIconPalettes`, `CreateMonIconIsEgg`, `FreeAndDestroyMonIconSprite`, `FreeMonIconPalettes`; validate repeated open/close. |
 | Scroll + selection marker mismatch | Medium | Selected marker may appear on wrong candidate after scroll. | Store selected candidate indices independent of visible row; redraw visible rows from state. |
+| Generated Scout pool drifts from partygen JSON | Medium | Candidate list can change unexpectedly when catalog set order or schema changes. | Treat `tools/champions_partygen/catalog/sets/*.json` as the source of truth; generator fails on unsupported schema, invalid stat ranges, too few unique species, and more than four moves. Record source JSON order in implementation docs. |
+| Duplicate species in partygen catalog | Low | The same Pokemon can appear multiple times in Scout choices if set-level de-duplication is missed. | Generator de-duplicates by exact `species` symbol. First set wins; later duplicate species are skipped. |
+| Ability label does not match species slot | Medium | Summary / received Pokemon may fall back to personality ability rather than requested partygen ability. | Runtime maps ability IDs through `GetSpeciesAbility()`. Catalog validation should continue catching unknown constants; add species-slot validation if partygen catalog adoption expands. |
 | Button conflicts | Low | `SELECT` may conflict with existing detail/help expectations. | Keep MVP screen-specific controls only; document button map in test plan. |
 | Script var collision | Medium | `VAR_0x8004`-style inputs are shared scratch vars. | Use vars only during immediate script call, or wrap with macros / dedicated helper contract. |
 | Starter story flow conflicts | High | Replacing Route 101 starter flow touches first battle, lab handoff, rival state, and `VAR_STARTER_MON`. | Do not replace starter story in MVP; add a debug/test NPC first. |
@@ -33,7 +36,7 @@
 | Pre-Battle / In-Battle Team Viewer | Provides the best Summary return and selected marker reference. | Reuse design, not branch merge. |
 | Trainer Battle Party Selection | Similar N-of-M selection and `gSelectedOrderFromParty` idea. | Conceptual reference only; scout receives/gives Pokemon rather than compressing an existing party for battle. |
 | Champions Challenge Facility | Scout can become the party acquisition screen for a 0 Pokemon start. | Keep scout standalone first; facility integration later. |
-| Trainer Partygen catalog | Future source for candidate pools. | Do not require partygen for MVP. |
+| Trainer Partygen catalog | Current demo source for candidate pools. | Use only curated set JSON plus a Scout-specific generator in this slice; do not require the full partygen CLI or generated trainer output for normal ROM build. |
 | Held Item Catalog / Battle Item Restore | Scout candidates may hold items. | Giving a Pokemon with held item should follow normal Pokemon item ownership semantics; do not mix with Bag token logic in MVP. |
 | Pokemon State Editor / Unified Relearner | Summary can expose move/edit affordances depending branch config. | Use `SUMMARY_MODE_LOCK_MOVES` first; do not enable editor/relearner flows from scout without explicit policy. |
 
@@ -48,6 +51,7 @@
 
 ## Open Questions
 
-- Whether received Pokemon should support exact EV / IV spec in MVP or only species / level / item / move defaults.
+- Whether generated Scout should validate ability/species legality at build time
+  instead of relying on runtime fallback.
 - Whether cancel should be disabled for mandatory starter use.
 - Whether scout pools should be deterministic across save/reload before claim.
