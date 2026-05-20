@@ -14,6 +14,7 @@
 | Test | Command | Expected |
 |---|---|---|
 | Whitespace / patch sanity | `rtk git diff --check` | No errors. |
+| Scout generated pool | `rtk make generated` | `src/data/scout_selection_pools.h` regenerates from partygen JSON, de-duplicates species, and remains ignored. |
 | Normal ROM | `rtk make -j16 -O all` | Build passes. Existing RWX linker warning is acceptable if unchanged. |
 | Debug ROM | `rtk make -j16 -O debug` | Build passes. Required for debug scout route validation. |
 | Full checks | `rtk make -j16 -O check` | Suite exits 0; existing expected / known failing markers are recorded if present. |
@@ -26,6 +27,7 @@
 |---|---|---|
 | Open UI | Trigger debug/test NPC or object. | Scout screen opens from field, shows candidates, and does not softlock. |
 | Icon display | Inspect all visible candidates. | Each visible Pokemon has an icon and label; no blank OBJ / palette corruption. |
+| Generated species source | Inspect the first visible candidates. | The screen shows partygen-derived candidates such as Metang / Skarmory, not the old starter dummy pool. |
 | Cursor movement | Move through all visible rows and across scroll boundary. | Cursor updates without shifting layout or losing selected markers. |
 | Select 1 | Pick one candidate and confirm. | Candidate is given to party / PC and script receives non-cancel result. |
 | Select N | Configure pick count 2 or 3. | `START` fails before required count, succeeds at exact count, gives in selected order. |
@@ -66,6 +68,48 @@ gap here before handoff.
 | 2026-05-20 | Confirm / gift runtime | Pass | Selected Chikorita, `START` returned to field, message `Scout Pokemon received.` displayed, and party menu showed Chikorita Lv.15 in slot 2. Screenshots: `scout-confirm.png`, `scout-party.png`. |
 | 2026-05-20 | mGBA cleanup | Pass | `mgba_live_stop` stopped session `scout-selection-runtime-20260520d`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
 | 2026-05-20 | GitHub Actions for PR #51 | Pending / not waited | `rtk gh pr checks 51` showed build/docs/test/release jobs pending. Per branch runtime policy, local make + mGBA evidence are recorded and long Actions were not re-waited. |
+| 2026-05-20 | `rtk make generated` after partygen pool update | Pass | Regenerated ignored `src/data/scout_selection_pools.h` from `hoenn_demo.json` and `elite_four.json`; first 12 unique species are Metang, Skarmory, Aggron, Mightyena, Wobbuffet, Geodude, Zigzagoon, Shiftry, Cacturne, Crawdaunt, Absol, and Sharpedo. |
+| 2026-05-20 | `rtk git diff --check` | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after partygen pool update | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after partygen pool update | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after partygen pool update | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | mGBA Live `scout-selection-partygen-20260520` | Pass | Opened debug route, verified partygen-derived Metang / Skarmory screen, scrolled to Zigzagoon / Shiftry, opened Zigzagoon Summary, returned, selected Zigzagoon, confirmed, saw `Scout Pokemon received.`, and verified Zigzagoon Lv.50 in party. Screenshots are under `/tmp/mgba-scout-selection-20260520/`. |
+| 2026-05-20 | mGBA cleanup after partygen pool update | Pass | `mgba_live_stop` stopped session `scout-selection-partygen-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | `rtk make -j16 -O debug` after UI polish | Pass | Existing RWX linker warning. |
+| 2026-05-20 | mGBA Live `scout-selection-ui-polish-20260520` | Pass | Opened debug route, verified blue header/footer bars, white card layout, cursor stripe, selected green card, scroll, Summary return, and confirm message. Screenshots: `scout-ui-polish-open.png`, `scout-ui-polish-selected.png`, `scout-ui-polish-scroll.png`, `scout-ui-polish-confirm.png`. |
+| 2026-05-20 | mGBA cleanup after UI polish | Pass | `mgba_live_stop` stopped session `scout-selection-ui-polish-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | `rtk git diff --check` after UI polish docs | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O all` after UI polish | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after UI polish | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after UI polish | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Debug route configured for 6-pick test | Pass | `Scripts... > Script 2` sets `SCOUT_POOL_PARTYGEN_DEMO`, candidate count 12, and pick count 6. |
+| 2026-05-20 | mGBA Live `scout-selection-pick6-20260520` | Pass | Opened `Script 2`, verified `0/6`, selected five candidates and confirmed START was blocked with `Pick the requested number first.`, selected the sixth candidate, confirmed, saw `Scout Pokemon received.`, and verified the party filled with the first five selected Pokemon after Mew. The sixth selected Pokemon used the existing gift path PC fallback after party filled. Screenshots: `scout-pick6-open.png`, `scout-pick6-five-selected.png`, `scout-pick6-start-blocked.png`, `scout-pick6-six-selected.png`, `scout-pick6-confirm.png`, `scout-pick6-party.png`. |
+| 2026-05-20 | mGBA cleanup after 6-pick test | Pass | `mgba_live_stop` stopped session `scout-selection-pick6-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | `rtk git diff --check` after 6-pick route | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after 6-pick route | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after 6-pick route | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after 6-pick route | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after 6-pick route | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Cursor redraw optimization | Pass | Cursor movement and A selection no longer recreate icons unless scrolling changes the visible candidate set. mGBA Live `scout-selection-redraw-opt-20260520` ran at 60 fps target and verified cursor movement, selected markers, scroll-boundary icon refresh, Summary open/return, and clean stop. Screenshots: `scout-redraw-opt-open.png`, `scout-redraw-opt-scroll.png`, `scout-redraw-opt-summary-return.png`. |
+| 2026-05-20 | `rtk git diff --check` after cursor redraw optimization | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after cursor redraw optimization | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after cursor redraw optimization | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after cursor redraw optimization | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after cursor redraw optimization | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Cursor responsiveness pass | Pass | Replaced Scout D-pad movement with `JOY_REPEAT`, applied Scout-local 10-frame initial / 3-frame continued repeat, and changed same-scroll cursor movement to redraw only previous/current card rows. mGBA Live `scout-selection-responsive-20260520b` ran at 60 fps target, opened `Scripts... > Scout Selection`, held DOWN for repeat movement and scroll, selected Metang, opened/returned from Summary, and stopped cleanly. Screenshots: `scout-responsive-hold-scroll.png`, `scout-responsive-return.png`. |
+| 2026-05-20 | mGBA fixed-binary retry note | Pass | First attempt `scout-selection-responsive-20260520` exited before boot with Qt xcb / DISPLAY unset when the script-capable binary was passed directly. Retried through the project wrapper as `scout-selection-responsive-20260520b`; validation passed and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-20 | `rtk git diff --check` after cursor responsiveness pass | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after cursor responsiveness pass | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after cursor responsiveness pass | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after cursor responsiveness pass | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after cursor responsiveness pass | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| 2026-05-20 | Cursor repeat tuning | Pass | Scout-local repeat changed from 10-frame initial / 3-frame continued to 16-frame initial / 5-frame continued to reduce accidental two-step movement while preserving hold-to-scroll. mGBA Live `scout-selection-repeat-tune-20260520` ran at 60 fps target, verified a 12-frame DOWN tap moved one row, a 12-frame UP tap moved one row, a 45-frame hold still repeated through scroll, and stopped cleanly with empty CLI `status --all`. Screenshots: `scout-repeat-tune-single-step.png`, `scout-repeat-tune-hold-scroll.png`. |
+| 2026-05-20 | `rtk git diff --check` after cursor repeat tuning | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O debug` after cursor repeat tuning | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O all` after cursor repeat tuning | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after cursor repeat tuning | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after cursor repeat tuning | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 
 ## Feature Complete Gate
 

@@ -28,13 +28,13 @@ MVP は「script で pool と pick count を指定し、最大 12 候補から 6
 | Area | Implementation |
 |---|---|
 | Script contract | `InitScoutSelection`, `OpenScoutSelection`, `GiveSelectedScoutMons` specials use `VAR_0x8004` pool id, `VAR_0x8005` candidate count, and `VAR_0x8006` pick count. |
-| Candidate count | MVP supports up to 12 candidates. The debug pool has 12 Pokemon. |
+| Candidate count | MVP supports up to 12 candidates. The debug pool now uses 12 unique species generated from partygen set JSON. |
 | Visible layout | 2 columns x 3 rows, 6 visible candidates, vertical scroll by row. |
 | Controls | D-pad cursor, `A` select/deselect, `SELECT` Summary, `START` confirm at exact pick count, `B` cancel. |
 | Summary | Standard Summary opens for the highlighted candidate and returns to the scout screen with cursor, scroll, and selected order preserved. |
 | Gift result | Confirmed candidates are given through `GiveScriptedMonToPlayer`; scripts receive `MON_GIVEN_TO_PARTY`, `MON_GIVEN_TO_PC`, or `MON_CANT_GIVE`. |
-| Debug route | Debug menu `Scripts... > Scout Selection` opens the 12-candidate pool with pick count 1. |
-| Validation | mGBA Live confirmed open, scroll, Summary return, confirm, and party gift on `feature/scout-selection-runtime-20260520`. |
+| Debug route | Debug menu `Scripts... > Scout Selection` opens the 12-candidate pool with pick count 1. `Scripts... > Script 2` opens the same pool with pick count 6 for multi-pick testing. |
+| Validation | mGBA Live confirmed open, partygen-derived candidates, scroll, Summary return, confirm, and party gift on `feature/scout-selection-runtime-20260520`. |
 
 ## Current Decision
 
@@ -78,7 +78,8 @@ return の実装 shelf として最も近い。
 - Battle Factory rental state / Frontier save state の再利用。
 - Battle front sprite 版 UI の初回実装。
 - SaveBlock layout 追加。MVP は claim flag / existing vars / script state で扱う。
-- Trainer Party Pool / partygen の直接統合。候補 pool 生成の後続 input としては使える。
+- Full Trainer Party Pool / partygen CLI integration. This slice only consumes
+  curated partygen set JSON through a small Scout-specific build-time generator.
 
 ## Related Docs
 
@@ -94,8 +95,9 @@ return の実装 shelf として最も近い。
 
 ## Open Questions
 
-- General pool authoring format is still table-driven C in this slice; map-specific
-  `.inc` wrappers can be added after the first runtime validation.
+- General pool authoring is now generated C from `tools/champions_partygen/catalog/sets/*.json`
+  for the demo pool. Map-specific `.inc` wrappers can still be added after the
+  first runtime validation.
 - Summary starts from the standard page for MVP. Direct skills-page entry remains future work.
 - Pick count 2 / 3 is supported by state model but still needs focused mGBA evidence
   before a multi-pick facility uses it.

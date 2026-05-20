@@ -28,7 +28,7 @@ ScoutNpc_EventScript::
     faceplayer
     msgbox ScoutNpc_Text_Offer, MSGBOX_YESNO
     goto_if_eq VAR_RESULT, NO, ScoutNpc_EventScript_End
-    setvar VAR_0x8004, SCOUT_POOL_STARTER_TEST
+    setvar VAR_0x8004, SCOUT_POOL_PARTYGEN_DEMO
     setvar VAR_0x8005, 12     @ candidate count
     setvar VAR_0x8006, 1      @ pick count
     special InitScoutSelection
@@ -60,25 +60,34 @@ struct ScoutMonSpec
     enum Item item;
     enum PokeBall ball;
     u8 nature;
-    u8 abilityNum;
+    enum Ability ability;
     u8 gender;
     enum Move moves[MAX_MON_MOVES];
+    u8 ivs[NUM_STATS];
+    u8 evs[NUM_STATS];
 };
 ```
 
-MVP can allow default values by sentinel constants:
+The implemented pool specs are generated from partygen set JSON by
+`tools/scout_selection/make_scout_pools.py`. Defaults are allowed for missing
+JSON fields:
 
 | Field | Default |
 |---|---|
 | `item` | `ITEM_NONE` |
 | `ball` | `BALL_POKE` |
 | `nature` | `NATURE_RANDOM` or gift-compatible policy decided in implementation |
-| `abilityNum` | default by personality |
+| `ability` | default by personality when `ABILITY_NONE` or no matching slot |
 | `gender` | random |
-| `moves` | `MOVE_DEFAULT` |
+| `moves` | `MOVE_DEFAULT` if no JSON moves; shorter explicit move lists are padded with `MOVE_NONE` |
+| `ivs` | `31/31/31/31/31/31` in partygen order |
+| `evs` | `0/0/0/0/0/0` in partygen order |
 
 Use a pool table rather than many script vars for full candidate data. Script vars should
 select the pool and counts; the table should own species / moves / items.
+For generated pools, partygen stat order is HP / Atk / Def / SpA / SpD / Spe and
+runtime MON_DATA order is HP / Atk / Def / Spe / SpA / SpD; the generator owns
+that conversion.
 
 ## UI Shape
 
@@ -101,7 +110,7 @@ Recommended first UI:
 |---|---|---|
 | 1 | `include/scout_selection.h`, `src/scout_selection.c` | New module, static EWRAM state, candidate buffer, public specials. |
 | 2 | `data/specials.inc` | Register `InitScoutSelection`, `OpenScoutSelection`, `GiveSelectedScoutMons`. |
-| 3 | `src/scout_selection.c` | Seed one debug/test pool with 12 candidates. |
+| 3 | `tools/champions_partygen/catalog/sets/*.json`, `tools/scout_selection/make_scout_pools.py`, `src/data/scout_selection_pools.h` | Generate one debug/test pool with 12 unique partygen-derived candidates; generated header is ignored. |
 | 4 | `src/scout_selection.c` | Build candidate `struct Pokemon` array from specs. |
 | 5 | `src/scout_selection.c` | Implement CB2 init, windows, icon sprites, cursor, scroll, selected marker. |
 | 6 | `src/scout_selection.c` | Use standard `ShowPokemonSummaryScreen()` for MVP; direct skills-page entry remains future work. |
@@ -136,7 +145,8 @@ separate docs-only branch and cherry-pick / re-apply only Markdown changes.
 - Champions Challenge integration: use scout selection as the 0-to-6 party builder.
 - Trial scout / temporary ownership: mark received Pokemon for later cleanup.
 - Daily / timed refresh: RTC / save-state design.
-- Partygen-derived scout pools and generated validation.
+- Additional partygen-derived scout pools and generated validation beyond the
+  current demo pool.
 - Full front-sprite presentation for selected candidate only, if VRAM/OAM budget allows.
 
 ## Open Questions
