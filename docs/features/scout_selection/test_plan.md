@@ -76,6 +76,13 @@ gap here before handoff.
 | 2026-05-20 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 | 2026-05-20 | mGBA Live `scout-selection-partygen-20260520` | Pass | Opened debug route, verified partygen-derived Metang / Skarmory screen, scrolled to Zigzagoon / Shiftry, opened Zigzagoon Summary, returned, selected Zigzagoon, confirmed, saw `Scout Pokemon received.`, and verified Zigzagoon Lv.50 in party. Screenshots are under `/tmp/mgba-scout-selection-20260520/`. |
 | 2026-05-20 | mGBA cleanup after partygen pool update | Pass | `mgba_live_stop` stopped session `scout-selection-partygen-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | `rtk make -j16 -O debug` after UI polish | Pass | Existing RWX linker warning. |
+| 2026-05-20 | mGBA Live `scout-selection-ui-polish-20260520` | Pass | Opened debug route, verified blue header/footer bars, white card layout, cursor stripe, selected green card, scroll, Summary return, and confirm message. Screenshots: `scout-ui-polish-open.png`, `scout-ui-polish-selected.png`, `scout-ui-polish-scroll.png`, `scout-ui-polish-confirm.png`. |
+| 2026-05-20 | mGBA cleanup after UI polish | Pass | `mgba_live_stop` stopped session `scout-selection-ui-polish-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | `rtk git diff --check` after UI polish docs | Pass | No whitespace errors. |
+| 2026-05-20 | `rtk make -j16 -O all` after UI polish | Pass | Existing RWX linker warning. |
+| 2026-05-20 | `rtk make -j16 -O check` after UI polish | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers. |
+| 2026-05-20 | `rtk mdbook build docs` after UI polish | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 
 ## Feature Complete Gate
 

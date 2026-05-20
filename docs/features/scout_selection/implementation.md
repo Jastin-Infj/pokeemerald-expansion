@@ -115,6 +115,8 @@ same party / PC result values used by scripted gift Pokemon.
 | 2026-05-20 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
 | 2026-05-20 | mGBA Live `scout-selection-partygen-20260520` | Pass | Booted `/tmp/mgba-scout-selection-20260520/scout-partygen.gba`, opened debug route, verified partygen-derived Metang / Skarmory screen, scrolled to Zigzagoon / Shiftry, opened Zigzagoon Summary, returned, selected Zigzagoon, confirmed gift, and verified Zigzagoon Lv.50 in party. Screenshots: `scout-partygen-open.png`, `scout-partygen-scroll.png`, `scout-partygen-summary.png`, `scout-partygen-confirm.png`, `scout-partygen-party.png`. |
 | 2026-05-20 | mGBA cleanup | Pass | `mgba_live_stop` stopped session `scout-selection-partygen-20260520`; `rtk pgrep -af mgba` showed no remaining `mgba-qt` process. |
+| 2026-05-20 | UI polish runtime validation | Pass | Reworked Scout screen with blue header/footer bars, white candidate cards, blue cursor border/stripe, card shadow, and green selected card fill. mGBA Live `scout-selection-ui-polish-20260520` verified open, selected state, scroll, Summary return, confirm, and clean stop. Screenshots: `scout-ui-polish-open.png`, `scout-ui-polish-selected.png`, `scout-ui-polish-scroll.png`, `scout-ui-polish-confirm.png`. |
+| 2026-05-20 | UI polish local checks | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed. Build warnings remain the existing RWX linker warning and mdBook's existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index warnings. |
 
 ## Remaining Work
 
