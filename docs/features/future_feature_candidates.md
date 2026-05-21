@@ -33,7 +33,7 @@ extensions of the current runtime implementation shelf.
 | 5 | Route Mastery Passport | Exploration / completion | Medium | Medium | Needs flag / map ownership care. |
 | 6 | Trainer Titles / Achievement Badges | Player identity / achievements | Medium | Medium | Avoid Trainer Card in MVP. |
 | 7 | Art Gallery / Museum Archive | Visual archive | Medium-High | Medium | Asset policy needed. |
-| 8 | Party / Status UI Overhaul | Core UI refresh | Medium-High | Medium-High | Candidate registered separately; party layout target is `2 x 3` (`2 / 2 / 2`) and BW Summary / DS-style party screens are external references only. |
+| 8 | Party / Status UI Overhaul | Core UI refresh | Medium-High | Medium-High | First runtime slice on `feature/party-status-ui-overhaul-20260521`; party layout target is `2 x 3` (`2 / 2 / 2`). BW Summary / DS-style party screens remain separate external references. |
 | 9 | Battle Replay Log Lite | Battle log / analytics | High | High | Avoid until battle hooks are stable. |
 
 ## Recommended First Runtime Candidate

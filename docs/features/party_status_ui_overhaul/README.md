@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-20 |
-| Baseline | `master` `4125f7c4d5`; docs-only investigation branch `docs/champions-run-session-restore-20260520` |
-| Code status | Docs-only investigation; runtime not implemented |
+| Last reviewed | 2026-05-21 |
+| Baseline | `master` `b2d64f1577`; runtime branch `feature/party-status-ui-overhaul-20260521` |
+| Code status | Runtime first slice implemented on feature branch |
 | Provenance | User layout requirement, local source inspection, GitHub reference search |
 
 ## Goal
@@ -22,8 +22,9 @@ Confirmed layout intent for the party screen:
 - read order should be `2 / 2 / 2`: row 1 slots 1-2, row 2 slots 3-4, row 3
   slots 5-6, unless battle-order mode explicitly requires a different mapping.
 
-This doc records dependencies and external references only. It does not import
-graphics or code.
+The first runtime slice implements the party screen grid in source without
+importing external graphics. See `implementation.md` and `test_plan.md` for the
+current branch status.
 
 ## Asset Requirement
 
@@ -81,16 +82,22 @@ Policy:
 
 ## Implementation Shape
 
-Recommended first runtime slice:
+First runtime slice:
 
-1. Add a new party layout constant for `2 x 3`.
-2. Add or import the party-grid background and equal slot frame assets.
-3. Add a new six-slot window template and sprite coordinate table.
-4. Add a grid cursor traversal helper instead of patching the current single /
-   double movement logic.
-5. Keep the existing Summary screen in place.
-6. Validate field party menu, item-use party menu, choose-half, in-battle party
-   menu, and return-from-Summary paths.
+1. Add a new party layout constant for `2 x 3`. Done on
+   `feature/party-status-ui-overhaul-20260521`.
+2. Add a six-slot window template and sprite coordinate table. Done.
+3. Add a grid cursor traversal helper instead of patching the current single /
+   double movement logic. Done.
+4. Keep the existing Summary screen in place. Done.
+5. Validate field party menu, item-use party menu, choose-half, in-battle party
+   menu, and return-from-Summary paths. In progress in `test_plan.md`.
+
+This slice deliberately avoids importing PNG / BIN assets. It adopts the
+Emerald Extra equal-column party slot tile-number pattern as a code reference
+and builds a `14 x 5` framed slot from existing party menu background tiles.
+New imported graphics remain future polish work, not a dependency of this
+initial layout implementation.
 
 Only after the party grid is stable should a BW-style Summary replacement be
 considered.

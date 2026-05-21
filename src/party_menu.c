@@ -142,6 +142,7 @@ enum {
 enum {
     PARTY_BOX_LEFT_COLUMN,
     PARTY_BOX_RIGHT_COLUMN,
+    PARTY_BOX_GRID,
 };
 
 enum {
@@ -325,9 +326,12 @@ static void PartyMenuDisplayYesNoMenu(void);
 static void Task_HandleCancelChooseMonYesNoInput(u8);
 static void Task_ReturnToChooseMonAfterText(u8);
 static void UpdateCurrentPartySelection(s8 *, s8);
-static void UpdatePartySelectionSingleLayout(s8 *, s8);
 static void UpdatePartySelectionDoubleLayout(s8 *, s8);
+static void UpdatePartySelectionGridLayout(s8 *, s8);
 static s8 GetNewSlotDoubleLayout(s8, s8);
+static s8 GetNewSlotGridLayout(s8, s8);
+static u8 ResolvePartyMenuLayout(u8);
+static bool8 IsPartyGridLayout(u8);
 static void PrintMessage(const u8 *);
 static void Task_PrintAndWaitForText(u8);
 static bool16 IsMonAllowedInPokemonJump(struct Pokemon *);
@@ -459,6 +463,7 @@ static void Task_BattlePyramidChooseMonHeldItems(u8);
 static void ShiftMoveSlot(struct BoxPokemon *, u8, u8);
 static void BlitBitmapToPartyWindow_LeftColumn(u8, u8, u8, u8, u8, bool8);
 static void BlitBitmapToPartyWindow_RightColumn(u8, u8, u8, u8, u8, bool8);
+static void BlitBitmapToPartyWindow_Grid(u8, u8, u8, u8, u8, bool8);
 static void CursorCb_Summary(u8);
 static void CursorCb_Switch(u8);
 static void CursorCb_Cancel1(u8);
@@ -547,7 +552,7 @@ static void InitPartyMenu(u8 menuType, u8 layout, u8 partyAction, bool8 keepCurs
             sPartyMenuInternal->chooseHalf = FALSE;
 
         if (layout != KEEP_PARTY_LAYOUT)
-            gPartyMenu.layout = layout;
+            gPartyMenu.layout = ResolvePartyMenuLayout(layout);
 
         for (i = 0; i < ARRAY_COUNT(sPartyMenuInternal->data); i++)
             sPartyMenuInternal->data[i] = 0;
@@ -578,6 +583,18 @@ static void RefreshPartyMenu(void) //Refreshes the party menu without restarting
     gTextFlags.autoScroll = 0;
     CalculatePlayerPartyCount();
     SetMainCallback2(CB2_ReloadPartyMenu);
+}
+
+static u8 ResolvePartyMenuLayout(u8 layout)
+{
+    if (layout == PARTY_LAYOUT_SINGLE)
+        return PARTY_LAYOUT_GRID_2X3;
+    return layout;
+}
+
+static bool8 IsPartyGridLayout(u8 layout)
+{
+    return layout == PARTY_LAYOUT_SINGLE || layout == PARTY_LAYOUT_GRID_2X3;
 }
 
 static void CB2_UpdatePartyMenu(void)
@@ -963,7 +980,10 @@ static void LoadPartyMenuBoxes(u8 layout)
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        sPartyMenuBoxes[i].infoRects = &sPartyBoxInfoRects[PARTY_BOX_RIGHT_COLUMN];
+        if (IsPartyGridLayout(layout))
+            sPartyMenuBoxes[i].infoRects = &sPartyBoxInfoRects[PARTY_BOX_GRID];
+        else
+            sPartyMenuBoxes[i].infoRects = &sPartyBoxInfoRects[PARTY_BOX_RIGHT_COLUMN];
         sPartyMenuBoxes[i].spriteCoords = sPartyMenuSpriteCoords[layout][i];
         sPartyMenuBoxes[i].windowId = i;
         sPartyMenuBoxes[i].monSpriteId = SPRITE_NONE;
@@ -971,6 +991,9 @@ static void LoadPartyMenuBoxes(u8 layout)
         sPartyMenuBoxes[i].pokeballSpriteId = SPRITE_NONE;
         sPartyMenuBoxes[i].statusSpriteId = SPRITE_NONE;
     }
+    if (IsPartyGridLayout(layout))
+        return;
+
     // The first party mon goes in the left column
     sPartyMenuBoxes[0].infoRects = &sPartyBoxInfoRects[PARTY_BOX_LEFT_COLUMN];
 
@@ -1728,8 +1751,8 @@ static void UpdateCurrentPartySelection(s8 *slotPtr, s8 movementDir)
     s8 newSlotId = *slotPtr;
     u8 layout = gPartyMenu.layout;
 
-    if (layout == PARTY_LAYOUT_SINGLE)
-        UpdatePartySelectionSingleLayout(slotPtr, movementDir);
+    if (IsPartyGridLayout(layout))
+        UpdatePartySelectionGridLayout(slotPtr, movementDir);
     else
         UpdatePartySelectionDoubleLayout(slotPtr, movementDir);
 
@@ -1738,71 +1761,6 @@ static void UpdateCurrentPartySelection(s8 *slotPtr, s8 movementDir)
         PlaySE(SE_SELECT);
         AnimatePartySlot(newSlotId, 0);
         AnimatePartySlot(*slotPtr, 1);
-    }
-}
-
-static void UpdatePartySelectionSingleLayout(s8 *slotPtr, s8 movementDir)
-{
-    // PARTY_SIZE + 1 is Cancel, PARTY_SIZE is Confirm
-    switch (movementDir)
-    {
-    case MENU_DIR_UP:
-        if (*slotPtr == 0)
-        {
-            *slotPtr = PARTY_SIZE + 1;
-        }
-        else if (*slotPtr == PARTY_SIZE)
-        {
-            *slotPtr = gPlayerPartyCount - 1;
-        }
-        else if (*slotPtr == PARTY_SIZE + 1)
-        {
-            if (sPartyMenuInternal->chooseHalf)
-                *slotPtr = PARTY_SIZE;
-            else
-                *slotPtr = gPlayerPartyCount - 1;
-        }
-        else
-        {
-            (*slotPtr)--;
-        }
-        break;
-    case MENU_DIR_DOWN:
-        if (*slotPtr == PARTY_SIZE + 1)
-        {
-            *slotPtr = 0;
-        }
-        else
-        {
-            if (*slotPtr == gPlayerPartyCount - 1)
-            {
-                if (sPartyMenuInternal->chooseHalf)
-                    *slotPtr = PARTY_SIZE;
-                else
-                    *slotPtr = PARTY_SIZE + 1;
-            }
-            else
-            {
-                (*slotPtr)++;
-            }
-        }
-        break;
-    case MENU_DIR_RIGHT:
-        if (gPlayerPartyCount != 1 && *slotPtr == 0)
-        {
-            if (sPartyMenuInternal->lastSelectedSlot == 0)
-                *slotPtr = 1;
-            else
-                *slotPtr = sPartyMenuInternal->lastSelectedSlot;
-        }
-        break;
-    case MENU_DIR_LEFT:
-        if (*slotPtr != 0 && *slotPtr != PARTY_SIZE && *slotPtr != PARTY_SIZE + 1)
-        {
-            sPartyMenuInternal->lastSelectedSlot = *slotPtr;
-            *slotPtr = 0;
-        }
-        break;
     }
 }
 
@@ -1904,6 +1862,59 @@ static void UpdatePartySelectionDoubleLayout(s8 *slotPtr, s8 movementDir)
     }
 }
 
+static bool8 IsSelectableGridPartySlot(s8 slotId)
+{
+    if (slotId < 0 || slotId >= PARTY_SIZE)
+        return FALSE;
+    return GetMonData(&gPlayerParty[slotId], MON_DATA_SPECIES) != SPECIES_NONE;
+}
+
+static s8 GetFirstSelectableGridPartySlot(void)
+{
+    s8 i;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        if (IsSelectableGridPartySlot(i))
+            return i;
+    }
+    return -1;
+}
+
+static s8 GetLastSelectableGridPartySlot(void)
+{
+    s8 i;
+
+    for (i = PARTY_SIZE - 1; i >= 0; i--)
+    {
+        if (IsSelectableGridPartySlot(i))
+            return i;
+    }
+    return -1;
+}
+
+static s8 GetSelectableGridPartySlotInRow(s8 row, s8 preferredColumn)
+{
+    s8 slotId = row * 2 + preferredColumn;
+
+    if (IsSelectableGridPartySlot(slotId))
+        return slotId;
+
+    slotId = row * 2 + (preferredColumn ^ 1);
+    if (IsSelectableGridPartySlot(slotId))
+        return slotId;
+
+    return -1;
+}
+
+static void UpdatePartySelectionGridLayout(s8 *slotPtr, s8 movementDir)
+{
+    s8 newSlot = GetNewSlotGridLayout(*slotPtr, movementDir);
+
+    if (newSlot != -1)
+        *slotPtr = newSlot;
+}
+
 static s8 GetNewSlotDoubleLayout(s8 slotId, s8 movementDir)
 {
     while (TRUE)
@@ -1914,6 +1925,73 @@ static s8 GetNewSlotDoubleLayout(s8 slotId, s8 movementDir)
         if (GetMonData(&gPlayerParty[slotId], MON_DATA_SPECIES) != SPECIES_NONE)
             return slotId;
     }
+}
+
+static s8 GetNewSlotGridLayout(s8 slotId, s8 movementDir)
+{
+    s8 row;
+    s8 column;
+    s8 newSlot;
+
+    // PARTY_SIZE + 1 is Cancel, PARTY_SIZE is Confirm
+    if (slotId == PARTY_SIZE)
+    {
+        if (movementDir == MENU_DIR_DOWN)
+            return PARTY_SIZE + 1;
+        if (movementDir == MENU_DIR_UP)
+            return GetLastSelectableGridPartySlot();
+        return -1;
+    }
+
+    if (slotId == PARTY_SIZE + 1)
+    {
+        if (movementDir == MENU_DIR_DOWN)
+            return GetFirstSelectableGridPartySlot();
+        if (movementDir == MENU_DIR_UP)
+        {
+            if (sPartyMenuInternal->chooseHalf)
+                return PARTY_SIZE;
+            return GetLastSelectableGridPartySlot();
+        }
+        return -1;
+    }
+
+    row = slotId / 2;
+    column = slotId % 2;
+
+    switch (movementDir)
+    {
+    case MENU_DIR_UP:
+        if (row == 0)
+            return PARTY_SIZE + 1;
+        for (row--; row >= 0; row--)
+        {
+            newSlot = GetSelectableGridPartySlotInRow(row, column);
+            if (newSlot != -1)
+                return newSlot;
+        }
+        return PARTY_SIZE + 1;
+    case MENU_DIR_DOWN:
+        for (row++; row < PARTY_SIZE / 2; row++)
+        {
+            newSlot = GetSelectableGridPartySlotInRow(row, column);
+            if (newSlot != -1)
+                return newSlot;
+        }
+        if (sPartyMenuInternal->chooseHalf)
+            return PARTY_SIZE;
+        return PARTY_SIZE + 1;
+    case MENU_DIR_RIGHT:
+        if (column == 0 && IsSelectableGridPartySlot(slotId + 1))
+            return slotId + 1;
+        return -1;
+    case MENU_DIR_LEFT:
+        if (column == 1 && IsSelectableGridPartySlot(slotId - 1))
+            return slotId - 1;
+        return -1;
+    }
+
+    return -1;
 }
 
 u8 *GetMonNickname(struct Pokemon *mon, u8 *dest)
@@ -2275,7 +2353,7 @@ static void InitPartyMenuWindows(u8 layout)
     switch (layout)
     {
     case PARTY_LAYOUT_SINGLE:
-        InitWindows(sSinglePartyMenuWindowTemplate);
+        InitWindows(sGrid2x3PartyMenuWindowTemplate);
         break;
     case PARTY_LAYOUT_DOUBLE:
         InitWindows(sDoublePartyMenuWindowTemplate);
@@ -2283,8 +2361,11 @@ static void InitPartyMenuWindows(u8 layout)
     case PARTY_LAYOUT_MULTI:
         InitWindows(sMultiPartyMenuWindowTemplate);
         break;
-    default: // PARTY_LAYOUT_MULTI_SHOWCASE
+    case PARTY_LAYOUT_MULTI_SHOWCASE:
         InitWindows(sShowcaseMultiPartyMenuWindowTemplate);
+        break;
+    default: // PARTY_LAYOUT_GRID_2X3
+        InitWindows(sGrid2x3PartyMenuWindowTemplate);
         break;
     }
     LoadPartyMenuWindows();
@@ -2393,9 +2474,25 @@ static void BlitBitmapToPartyWindow_RightColumn(u8 windowId, u8 x, u8 y, u8 widt
         BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideNoHP, 18, x, y, width, height);
 }
 
+static void BlitBitmapToPartyWindow_Grid(u8 windowId, u8 x, u8 y, u8 width, u8 height, bool8 hideHP)
+{
+    if (width == 0 && height == 0)
+    {
+        width = 14;
+        height = 5;
+    }
+    if (hideHP == FALSE)
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_Grid, 14, x, y, width, height);
+    else
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_GridNoHP, 14, x, y, width, height);
+}
+
 static void DrawEmptySlot(u8 windowId)
 {
-    BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideEmpty, 18, 0, 0, 18, 3);
+    if (IsPartyGridLayout(gPartyMenu.layout))
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_GridEmpty, 14, 0, 0, 14, 5);
+    else
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideEmpty, 18, 0, 0, 18, 3);
 }
 
 #define LOAD_PARTY_BOX_PAL(paletteIds, paletteOffsets)                                                    \

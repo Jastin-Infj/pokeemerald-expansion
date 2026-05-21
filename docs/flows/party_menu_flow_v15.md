@@ -137,7 +137,15 @@ flowchart TD
 window template、slot tilemap / info rect、cursor traversal helper、そして
 party background / slot frame 画像 assets のセットで扱う。
 
-詳細は `docs/features/party_status_ui_overhaul/README.md`。
+2026-05-21 の first runtime slice では `PARTY_LAYOUT_GRID_2X3` を追加し、
+既存 `PARTY_LAYOUT_SINGLE` request を `InitPartyMenu` 内で grid layout へ解決する。
+`PARTY_LAYOUT_DOUBLE` / `PARTY_LAYOUT_MULTI` / `PARTY_LAYOUT_MULTI_SHOWCASE` は
+既存の形を維持する。専用の新規画像 assets はまだ入れず、Emerald Extra の
+equal-column party menu reference を元にした source-level tile-number table で
+`14 x 5` framed slot を描画する。
+
+詳細は `docs/features/party_status_ui_overhaul/README.md` と
+`docs/features/party_status_ui_overhaul/implementation.md`。
 
 ## Choose Half Related Behavior
 
