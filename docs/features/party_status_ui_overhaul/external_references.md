@@ -20,6 +20,11 @@
 | <https://github.com/ravepossum/emeraldextra/tree/main/graphics/party_menu> | RavePossum, README credits Xaman for DS-style party screen | Party menu graphics in the same project; README credit line points to Xaman for DS-style party screen. | Visual reference for party screen direction. | Treat Xaman credit as relevant if any DS-style party art / code lineage is copied. | Confirmed file listing and README credit on 2026-05-20. |
 | <https://github.com/search?q=bw_summary_screen+in%3Apath+language%3AC&type=code> | Multiple public forks | Public adoption evidence for `bw_summary_screen.c` / `.h` style files. | Discovery only. | Public search matches do not prove permission. Use direct repo / README for source of record. | GitHub code search returned multiple public matches on 2026-05-20, including RavePossum, Erkey830, RubyRaven6, PCG06, and others. |
 
+2026-05-21 runtime note: the `feature/party-status-ui-overhaul-20260521`
+branch uses the Emerald Extra equal-column party menu reference for source-level
+slot geometry and tile-number tables. It does not import external PNG / BIN
+assets in this slice.
+
 ## Notes For Adoption
 
 - The current project already carries RavePossum / Zatsu credit for the Summary
