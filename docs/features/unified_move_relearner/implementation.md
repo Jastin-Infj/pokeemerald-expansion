@@ -19,7 +19,7 @@ the unified config is disabled.
 | Special pool | `tools/learnset_helpers/special_relearner_moves.json` adds project-owned runtime data for special event, distribution-only, XD purification, Ranger-transfer, and form-specific move candidates. |
 | Supplemental form species | `make_relearner_learnsets.py` now emits species/form slots that are present in porymoves or special JSON but missing from `all_teaching_types.json`, as long as the `SPECIES_*` constant resolves to a unique numeric slot. |
 | Summary entry | Summary move page START opens unified mode; old L/R source cycling is suppressed while unified mode is active. |
-| Party entry | Field party action menu gets a direct `RELEARN` action when unified candidates exist. |
+| Party entry | Field party action menu gets a direct `RELEARN` action when unified candidates exist on this shelf. After the 2x3 party grid shelf, Summary entry is preferred as the canonical UX; direct party entry should be optional/debug or kept on a vertical/fallback menu if retained. |
 | NPC/script entry | Common, Fallarbor, and Two Island relearner scripts set unified state when enabled. Script-mode return is forced through `RELEARN_MODE_SCRIPT` after PC/party selection. |
 | Long list UX | The existing list is retained, but D-pad left/right page-scroll is enabled for unified long lists. |
 
@@ -74,6 +74,12 @@ still making normal builds reproducible.
   source-ref metadata for later gating / audit work.
 - Story/rank/clear-flag virtual TM unlock gating is still future work. Current
   unified TM/tutor source toggles are build-time config gates.
+- PR #54 adds a 2x3 party grid and a bottom command bar for short party
+  action/item/mail menus. That bar should remain an operational shortcut surface
+  and should not become the primary unified Relearner launcher. The safer merge
+  shape is Summary moves page -> `START` -> unified list, with party direct
+  `RELEARN` either disabled for the first integrated build or forced through the
+  vertical/fallback action menu.
 
 ## Validation
 
@@ -93,6 +99,7 @@ still making normal builds reproducible.
 | mGBA LGPE partner labels | Pass | Debug-created Pikachu Starter showed `Zippy Zap`, `Splishy Splash`, `Floaty Fall`, and `Pika Papow` as `Sp`; debug-created Eevee Starter showed LGPE partner moves through `Veevee Volley` as `Sp`. |
 | mGBA NPC/script cancel | Pass | Debug menu `Party -> Move Relearner`, cancel from list, confirmed give-up, then returned to a YES/NO `Anything else` prompt instead of the old category multichoice. |
 | mGBA cleanup | Pass | `mgba_live_stop` succeeded and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-22 dependency review | Pass | Read PR #54 and #28 branch code/docs without checkout. Confirmed #54 command bar uses grid + 1-4 fitting actions and excludes field moves; #28 Summary START route and party direct `RELEARN` route are separate entry points. No runtime source changed in this docs-only update. |
 
 Screenshots:
 
@@ -145,3 +152,7 @@ build/check and mGBA evidence above before push.
 - The next UX dependency is source tabs or faster filtering for future 600+
   candidate targets. The current page-scrollable list is adequate for the
   current stress tests, but not a final large-scale UX.
+- When adopting alongside Party / Status UI Overhaul, keep the Summary route as
+  the default player path. If direct party `RELEARN` is preserved, validate it
+  separately from the bottom command bar and document whether it is player,
+  debug, or fallback-only.

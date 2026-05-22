@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `459703c0aa`; `git describe` = `expansion/1.15.2-48-g459703c0aa` |
+| Last reviewed | 2026-05-22 |
+| Baseline | `master` `b2d64f1577`; `git describe` = `expansion/1.15.2-84-gb2d64f1577` |
 | Code status | Implemented completed shelf #28 on `feature/unified-move-relearner`; not on `master` |
-| Provenance | User request and local code/docs review |
+| Provenance | User request, local code/docs review, PR #28 / PR #54 dependency check |
 
 ## Status
 
@@ -19,12 +19,19 @@ unlock gating and per-entry special labels remain future work. PR #28 was closed
 on 2026-05-17 as a completed implementation shelf after CI success; re-check
 with `gh pr view 28` and local branch diffs before source integration.
 
+2026-05-22 dependency update: after reviewing the party grid shelf (#54), the
+recommended player-facing integration route is Summary-first. The Summary move
+page `START` flow should be treated as canonical; the direct party `RELEARN`
+action from #28 is useful shelf evidence and may remain as an optional/debug
+route, but it should not be the primary party grid command-bar UX.
+
 ## Goal
 
 Move Relearner を「レベル技 / egg move / TM / tutor」を別メニューで選ばせる
 形式から、対象 Pokemon が覚えられる全候補を 1 つの list で見られる形式へ寄せる。
-入口は summary の move page、party menu の行動、NPC / event script の 3 つを
-維持し、どこから入っても同じ候補生成を使えるようにする。
+候補生成は summary の move page、party menu の任意行動、NPC / event script の
+3 系統で共有できるようにする。ただし Party / Status UI overhaul と統合する
+場合、通常プレイヤー向けの正規入口は summary の move page に寄せる。
 
 要求の中心は次の通り。
 
@@ -68,6 +75,10 @@ only a design branch. The remaining work is mostly policy and polish:
 - Decide whether `Sp` stays as one compact label, or whether JSON `display`
   metadata becomes visible as per-entry badges such as `EV`, `XD`, `FC`, or
   `LP`.
+- When integrating with the 2x3 party grid, keep Summary move page `START` as
+  the canonical route. Do not make the bottom party command bar the primary
+  Relearner launcher; keep direct party `RELEARN` optional, debug-only, or on a
+  vertical/fallback menu if it is retained.
 - Run one manual pass that actually teaches / overwrites a move from each major
   entry route. Current mGBA evidence covers rendering, page navigation, cancel,
   and selected special candidates.
@@ -143,7 +154,7 @@ MVP は新しい unified mode を追加し、既存 state は互換用に残す�
 | `include/config/summary_screen.h` | unified mode、all-level、all-TM、source inclusion の build-time config が必要。 |
 | `data/scripts/move_relearner.inc` | dynmulti の category choice を出すか、unified 入口へ直行するか決める。 |
 | `src/pokemon_summary_screen.c` | START prompt と L/R state cycling が category 前提なので、unified mode の copy / state 表示が必要。 |
-| `src/party_menu.c` | `P_PARTY_MOVE_RELEARNER` は既存だが、現在は source submenu 型。unified 行動を追加するか置換する必要がある。 |
+| `src/party_menu.c` | `P_PARTY_MOVE_RELEARNER` は既存だが、現在は source submenu 型。#28 は unified 直行動を追加する。2x3 party grid 統合時は Summary-first を優先し、party 直行動は optional/debug または vertical fallback に寄せる。 |
 | `src/menu_specialized.c` | source badge や long list 表示を足す場合に影響。 |
 | `src/data/pokemon/level_up_learnsets/` | source data。level 制限を外すだけなら変更不要。 |
 | `src/data/pokemon/egg_moves.h` | egg candidates。species / form / pre-evo policy の確認が必要。 |

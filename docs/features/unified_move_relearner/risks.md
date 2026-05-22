@@ -14,7 +14,7 @@
 | Reward copy mismatch | Low | If story text says the player received a TM item, the runtime model is misleading. | Write event copy as "TM-family moves are now available to relearn" or similar unlock language. |
 | Cancel / return regression | High | Existing flow reuses `gSpecialVar_0x8004` for both selected slot and success flag in script flows. | Test cancel from every menu path and preserve success-only item removal. |
 | Summary state cycling | Medium | Current L/R behavior assumes separate source states. | In unified mode, disable cycling or make it cycle source tabs intentionally. |
-| Party menu UX drift | Medium | Existing party path creates a `MOVES` submenu. A direct action may conflict with field moves / summary action order. | Keep direct action guarded and test normal field party menu. |
+| Party menu UX drift | Medium | Existing party path creates a `MOVES` submenu. A direct action may conflict with field moves, Summary-first learning, and the 2x3 party command bar. | Treat Summary move page `START` as canonical. Keep direct party action optional/debug or force it to a vertical/fallback menu, then test normal field party menu. |
 | Source-duplicate storage | High | Existing candidate storage is move-only, so preserving TM + tower duplicates needs more metadata than `u16 move`. | Store candidate entries with move and source, and use candidate index as the menu id if needed. |
 | Historical move availability | Medium | Some historical moves may not exist as enabled move constants or may be signature-only. | Generated source should skip unavailable moves or fail clearly. |
 | Special data audit drift | Medium | Distribution-only data can differ by region, language, and event family; seed rows may be incomplete. | Keep source refs and audit notes in `special_relearner_moves.json`; expand through small reviewed data commits. |
@@ -43,6 +43,7 @@
 | `src/data/pokemon/unified_relearner_learnsets.h` | Ignored generated runtime header. | Build reproducibility depends on the committed generator and JSON inputs; do not hand-edit this file. |
 | `include/config/summary_screen.h` | Owns unified relearner and source toggles. | Future story/rank unlocks likely need additional runtime flags or save-backed state outside this config-only layer. |
 | `src/move_relearner.c` / Summary / Party / scripts | Runtime UI and entry-route integration. | Candidate rendering is validated; broader successful learn/overwrite checks still need a final manual pass. |
+| Party / Status UI Overhaul #54 | Owns 2x3 party grid, action/item/mail command-bar behavior, icon redraw stability, and Summary return from party menu. | Relearner should not overload the bottom command bar. Summary-first keeps move learning in the detailed moveset context and reduces party menu action-surface risk. |
 
 ## Accepted Risks
 
@@ -58,6 +59,9 @@
   keeps richer labels for a later UI/gating pass.
 - The first implementation treats broad historical TM / tutor pools as a virtual
   relearner source, not as physical TM item expansion.
+- After the party grid shelf, direct party `RELEARN` is not required to be the
+  player-facing default. Summary-first is the accepted integration policy unless
+  a later branch deliberately revalidates party direct entry.
 
 ## Open Questions
 

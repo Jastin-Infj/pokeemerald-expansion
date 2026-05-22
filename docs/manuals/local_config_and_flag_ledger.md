@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
-| Baseline | `master` `ff4e825258`; `git describe` = `expansion/1.15.2-59-gff4e825258` |
+| Last reviewed | 2026-05-22 |
+| Baseline | `master` `b2d64f1577`; `git describe` = `expansion/1.15.2-84-gb2d64f1577` |
 | Code status | Docs-only ledger |
 | Provenance | Local source read and feature docs |
 
@@ -19,11 +19,11 @@ capability flag、save state の索引。`master` の値と branch-only の値�
 | `OW_FLAG_NO_ENCOUNTER` | Event flag id config | `docs/features/no_random_encounters/` | `include/config/overworld.h` で `0`。未割り当て。 | bool ではない。`TRUE` / `1` ではなく明示 flag id を割り当てる。step-only adoption candidate は `FLAG_UNUSED_0x8E5` を `FLAG_NO_ENCOUNTER` (`SYSTEM_FLAGS + 0x85`) に rename して使う。 |
 | `I_REUSABLE_TMS` | Item config | `docs/features/tm_shop_migration/` | `include/config/item.h` で `FALSE`。 | PR #31 branch では `TRUE`。既存 50 TM を持っている場合だけ reusable になる。 |
 | `P_SHOW_TERA_TYPE` | Pokemon / Summary config | `docs/features/summary_tera_type_icon/` | `include/config/pokemon.h` で `GEN_8`。Summary Tera表示は既定で無効。 | PR #26 branch では Summary Tera badge 用に有効化する前提。 |
-| `P_SUMMARY_SCREEN_MOVE_RELEARNER` | Summary config | `docs/features/unified_move_relearner/` | `TRUE`。Move page の `START RELEARN` 表示に使う。 | Unified mode では prompt copy / L-R category cycling の扱いを確認する。 |
+| `P_SUMMARY_SCREEN_MOVE_RELEARNER` | Summary config | `docs/features/unified_move_relearner/` | `TRUE`。Move page の `START RELEARN` 表示に使う。 | Unified mode では prompt copy / L-R category cycling の扱いを確認する。2x3 party grid 統合時は Summary route を正規入口にする。 |
 | `P_ENABLE_MOVE_RELEARNERS` | Relearner config | `docs/features/unified_move_relearner/` | `FALSE`。egg / TM / tutor category をまとめて有効化しない。 | PR #28 branch は unified source toggles を追加。採用前に default を確認する。 |
 | `P_TM_MOVES_RELEARNER` / `P_ENABLE_ALL_TM_MOVES` | Relearner config | `docs/features/unified_move_relearner/` | `FALSE` / `FALSE`。 | Virtual TM pool と physical TM item ownership を分ける。 |
 | `P_FLAG_EGG_MOVES` / `P_FLAG_TUTOR_MOVES` | Event flag id config | `docs/features/unified_move_relearner/` | `0` / `0`。未割り当て。 | Runtime unlock に使うなら flag id を割り当て、save/flag ledger に追記する。 |
-| `P_PARTY_MOVE_RELEARNER` | Party menu config | `docs/features/unified_move_relearner/` | `FALSE`。 | PR #28 branch は party entry を使う。field move / party action order と一緒に確認する。 |
+| `P_PARTY_MOVE_RELEARNER` | Party menu config | `docs/features/unified_move_relearner/` | `FALSE`。 | PR #28 branch は party entry を使うが、2x3 party grid 統合時は primary UX にしない。必要なら debug/optional または vertical fallback として扱う。 |
 | `P_UNIFIED_MOVE_RELEARNER` | Branch-only Summary config | `docs/features/unified_move_relearner/` | Not present on `master`。 | PR #28 implementation docs に記録あり。採用時に exact default と per-source toggles を確認する。 |
 | `P_SUMMARY_STATE_EDITOR_*` | Branch-only Summary config | `docs/features/pokemon_state_editor/` | Not present on `master`。 | PR #23 branch owns editor enable, layout, palette, slide, level cap/edit defines. |
 | `B_TRAINER_BATTLE_SELECTION` | Branch-only battle config | `docs/features/battle_selection/`, `docs/features/prebattle_team_viewer/` | Not present on `master`。 | Battle selection branch uses `TRUE` for validation. Integration default must be chosen with team viewer. |

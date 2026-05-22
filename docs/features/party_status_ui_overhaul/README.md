@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-20 |
-| Baseline | `master` `4125f7c4d5`; docs-only investigation branch `docs/champions-run-session-restore-20260520` |
-| Code status | Docs-only investigation; runtime not implemented |
-| Provenance | User layout requirement, local source inspection, GitHub reference search |
+| Last reviewed | 2026-05-22 |
+| Baseline | `master` `b2d64f1577`; `git describe` = `expansion/1.15.2-84-gb2d64f1577` |
+| Code status | Runtime implementation shelf #54 on `feature/party-status-ui-overhaul-20260521`; not on `master` |
+| Provenance | User layout requirement, local source inspection, GitHub reference search, PR #54 / PR #28 dependency check |
 
 ## Goal
 
@@ -22,8 +22,8 @@ Confirmed layout intent for the party screen:
 - read order should be `2 / 2 / 2`: row 1 slots 1-2, row 2 slots 3-4, row 3
   slots 5-6, unless battle-order mode explicitly requires a different mapping.
 
-This doc records dependencies and external references only. It does not import
-graphics or code.
+This doc records dependencies, external references, and integration notes only.
+It does not import graphics or code into `master`.
 
 ## Asset Requirement
 
@@ -62,6 +62,22 @@ Policy:
 | Party icons | `src/pokemon_icon.c`, `src/party_menu.c` `CreatePartyMonIconSprite*` | Reusable, but all per-slot icon / item / status / Pokeball coordinates must be regenerated. |
 | Summary screen | `src/pokemon_summary_screen.c`, `include/pokemon_summary_screen.h`, `include/config/summary_screen.h` | A BW-style summary screen can be an alternate implementation or a refactor of the current owner. It must preserve all existing entry modes and return callbacks. |
 | Summary shared features | Summary Tera icon, Pokemon State Editor, Unified Move Relearner, Pre-Battle Team Viewer, Scout Selection Summary preview | These features already depend on Summary input, prompt, sprite, and return behavior. A full UI replacement must test them together. |
+
+## Unified Move Relearner Dependency
+
+The party grid shelf (#54) and Unified Move Relearner shelf (#28) touch the same
+party action surface but should not be treated as one UX.
+
+| Dependency | Confirmed branch behavior | Integration policy |
+|---|---|---|
+| Party grid command bar | PR #54 uses the bottom command bar only for grid layouts, action/item/mail menus, 1-4 actions, and labels that fit the reserved width. Field moves are forced back to the vertical menu. | Keep the bar for short operational commands such as `SUMMARY / SWITCH / ITEM / CANCEL` and `GIVE / TAKE / MOVE / CANCEL`. |
+| Unified Summary route | PR #28 opens unified mode from the Summary move page with `START` when `ShouldShowMoveRelearner()` allows it. | Treat Summary as the canonical player-facing Relearner route after the party grid is adopted. |
+| Unified party route | PR #28 also adds a direct party action `RELEARN` when unified candidates exist. | This route is valid shelf evidence, but should be optional for integration. If retained, keep it out of the bottom command bar or ensure it falls back to the fixed vertical menu. |
+| Source submenu route | Non-unified `LEARN MOVES` can fan out into `LEVEL MOVES`, `EGG MOVES`, `TM MOVES`, and `TUTOR MOVES`. | Do not flatten these long/source-specific actions into the bottom command bar. They need the vertical/fallback path or a future source-tab UX. |
+
+This keeps the new party menu focused on selecting a Pokemon and operating on
+held items / switching, while detailed move learning stays inside Summary where
+the player can inspect the current moveset first.
 
 ## SaveBlock Position
 
