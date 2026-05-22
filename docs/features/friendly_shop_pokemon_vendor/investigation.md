@@ -20,6 +20,9 @@
 | `src/script_pokemon_util.c` | `ScriptGiveEgg`, `ScriptGiveMon`, `ScriptGiveMonParameterized` | Existing gift flow can create Pokemon with configurable species, level, item, ball, nature, ability, EVs, IVs, moves, shiny, Gmax, Tera, and Dmax through the parameterized path. |
 | `include/daycare.h` / `src/daycare.c` | `CreateEgg` | Egg creation uses `EGG_HATCH_LEVEL`, sets `MON_DATA_IS_EGG`, stores species egg cycles in `MON_DATA_FRIENDSHIP`, and sets special egg met data. |
 | `src/egg_hatch.c` | `AddHatchedMonToParty` | Hatch finalization clears egg state, sets nickname / dex flags / met data, restores PP, and recalculates stats. |
+| `include/pokemon.h` | `struct PokemonSubstruct3`, `unused_0B`, `modernFatefulEncounter` | `unused_0B` is a one-bit candidate for a persistent vendor Egg-origin marker. `modernFatefulEncounter` already has event / obedience semantics and should not be reused casually. |
+| `src/egg_hatch.c` | `CreateHatchedMon` | Hatch creation copies `MON_DATA_MARKINGS`, `MON_DATA_MODERN_FATEFUL_ENCOUNTER`, Pokerus, ball, IVs, moves, and other data from the Egg into the hatched Pokemon. A new vendor-origin bit must be copied here too. |
+| `src/pokemon_summary_screen.c` | `PrintMonTrainerMemo`, `PrintEggMemo`, summary cached met data | Summary already has separate memo paths for Eggs and hatched Pokemon. Vendor Egg-origin display should hook here or in a nearby badge/text renderer. |
 | `src/battle_setup.c` | `CB2_EndTrainerBattle` | Trainer-win progress could hook here, but this function is shared by many battle variants and already coordinates Pyramid / Trainer Hill / follower / no-whiteout flows. |
 | `src/field_specials.c` | `GiveFrontierBattlePoints`, `GetFrontierBattlePoints`, `TakeFrontierBattlePoints` | Existing BP is stored at `gSaveBlock2Ptr->frontier.battlePoints`. It is available, but not required by this feature. |
 | `docs/flows/save_data_flow_v15.md` | SaveBlock / flag / var policy | Saved vars are scarce; new persistent product state should prefer a compact dedicated struct if it grows past a few flags. |
@@ -82,6 +85,21 @@ Pokemon is still an Egg.
 | Hatch / unlock reward | Existing egg hatching handles steps | Battle-win / clear-based unlock needs new state and hook. |
 | Move editing in selected areas | Existing relearner / editor branches can be reused later | Needs an entitlement check that distinguishes normal vendor Pokemon from Egg-origin Pokemon. |
 | Egg-origin always-editable policy | No direct persistent origin flag confirmed | Needs a per-mon origin strategy, product registry, or challenge-local entitlement. |
+| Summary-visible Egg origin | Summary can print met / memo text and existing icons | Needs a new label / badge and a safe persistent marker to avoid confusing ordinary daycare Eggs with vendor Eggs. |
+
+## Vendor Egg-Origin Marker Options
+
+| Option | Fit | Notes |
+|---|---|---|
+| Promote `PokemonSubstruct3.unused_0B` to a named vendor-origin bit | Best candidate | Does not grow Pokemon or SaveBlock data. Must add `MON_DATA_VENDOR_EGG_ORIGIN`, set it on purchased vendor Eggs, preserve it in `CreateHatchedMon`, and clear it for normal Pokemon creation. |
+| `MON_DATA_MODERN_FATEFUL_ENCOUNTER` | Poor fit | Hatch code already preserves it, but it has event / obedience / trade semantics and is not vendor-specific. |
+| `MON_DATA_MARKINGS` | Poor fit | Visible, but player-editable and already used for marking Pokemon. It would be easy to spoof or accidentally clear. |
+| Met location / met level | Poor fit | Hatch path sets met level to 0 and overwrites met location with the current map section. Ordinary Eggs also use hatch memo behavior. |
+| Ribbon bit | Poor fit | Consumes a visible achievement/event field and can collide with actual ribbon behavior. |
+| SaveBlock side table | Possible but fragile | Can store product progress, but tying identity to a Pokemon across party/box/trade/release is harder than a per-mon bit. |
+
+Current recommendation: use a per-mon bit for entitlement identity and a small
+separate runtime/save table only for product progress or unlock counters.
 
 ## Reward Currency Decision
 
@@ -105,7 +123,7 @@ couple this feature to Battle Frontier economy and UI. The safer design is:
 | Script command / special | Needs `pokemartmon` / `pokemonvendor` macro or a `special` wrapper that receives product table pointer. |
 | Callback / task | Needs shop-like task flow for list input, confirmation, purchase finalization, and script resume. |
 | Save / runtime state | One-time flags can use event flags. Egg progress and per-mon entitlement likely need dedicated state if not purely script-local. |
-| UI / window / sprite / text | Can reuse shop windows first. Product description should show species, level, product type, repeat/one-time state, and price. |
+| UI / window / sprite / text | Can reuse shop windows first. Product description should show species, level, product type, repeat/one-time state, and price. Summary also needs a vendor Egg-origin label / badge for marked Pokemon. |
 | Battle / AI | Egg progress on battle wins touches battle-end flow. Avoid a global hook until the product policy is finalized. |
 | Build tools / generated files | Not required for MVP unless product pools are generated from partygen JSON later. |
 | Tests | Needs shop purchase tests, party-full tests, one-time flag tests, and focused egg progress tests. |
@@ -120,3 +138,5 @@ couple this feature to Battle Frontier economy and UI. The safer design is:
 - What is the exact Lv.50 policy for Eggs in non-Champions areas?
 - What is the smallest persistent marker that can reliably tag an Egg-origin
   Pokemon after hatch?
+- Should the Summary marker appear only after hatch, or also while the purchased
+  Egg is still being carried?

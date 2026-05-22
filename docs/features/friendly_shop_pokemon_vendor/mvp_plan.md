@@ -38,6 +38,7 @@ fields:
 | Ball | Optional. Default Poke Ball is acceptable. |
 | Move payload | Optional. MVP may use default moves, but product data should not block future custom moves. |
 | Edit policy | Normal area-gated, Egg-origin always-editable, or none. |
+| Origin marker policy | Whether an Egg product sets the vendor Egg-origin marker. |
 | Progress policy | None, trainer wins while carried, challenge clears while carried, steps, or script-driven. |
 
 ## Recommended Implementation Shape
@@ -49,8 +50,10 @@ fields:
 | 3 | New product data file | Define fixed debug products first: repeat normal Pokemon, one-time normal Pokemon, repeat Egg, one-time Egg. |
 | 4 | `src/script_pokemon_util.c` or a new helper | Reuse `ScriptGiveMonParameterized`-style creation for normal Pokemon and `CreateEgg` for Eggs. |
 | 5 | Event flags / local ledger | Reserve one-time purchase flags only in the feature branch, then document them in the local config / flag ledger. |
-| 6 | Egg progress helper | Add no-op state hooks first, then gate the first battle-win / script-driven progress source behind a feature config. |
-| 7 | Editor entitlement helper | Add a read-only policy function before wiring Summary / relearner / held-item UI. |
+| 6 | `include/pokemon.h`, `src/pokemon.c`, `src/egg_hatch.c` | Add a persistent vendor Egg-origin mon-data bit, set it on vendor Eggs, and preserve it when the Egg hatches. |
+| 7 | `src/pokemon_summary_screen.c` | Show a compact Summary label / badge for vendor Egg-origin Pokemon so the edit entitlement is visible to the player. |
+| 8 | Egg progress helper | Add no-op state hooks first, then gate the first battle-win / script-driven progress source behind a feature config. |
+| 9 | Editor entitlement helper | Add a read-only policy function before wiring Summary / relearner / held-item UI. |
 
 ## Egg Progress Policy
 
@@ -77,10 +80,21 @@ Normal purchased Pokemon:
 
 Egg-origin Pokemon:
 
-- Should unlock broader editing after hatch.
-- The entitlement must survive Summary transitions and ordinary party menu use.
-- Persistent per-mon tagging is the hard part and must be solved before this is
-  treated as feature complete.
+- Should unlock Status Editor access anywhere after hatch.
+- Should be identifiable from Summary through a small label / badge.
+- The entitlement must survive Summary transitions, party switching, box
+  storage, save/load, and ordinary party menu use.
+- Eggs themselves should still reject Status Editor entry until they hatch.
+- Persistent per-mon tagging is required for feature complete.
+
+Recommended helper contract:
+
+- `IsVendorEggOriginMon(mon)` returns true for a non-Egg Pokemon hatched from a
+  vendor Egg.
+- `ShouldShowVendorEggOriginSummaryMark(mon)` returns true for marked vendor
+  Eggs and/or their hatched Pokemon, depending on the final UI choice.
+- `CanUseStateEditorAnywhere(mon)` returns true only for non-Egg Pokemon with
+  the vendor Egg-origin marker.
 
 ## Non-Goals
 
@@ -99,6 +113,10 @@ Egg-origin Pokemon:
 - Repeatability: controlled per product.
 - One-time state: set only after successful delivery.
 - Egg risk: party slot pressure, not a hidden stat penalty.
+- Egg-origin identity: stored on the Pokemon, not inferred from species or
+  ordinary hatch memo text.
+- Status Editor access: always available only for non-Egg Pokemon with the
+  vendor Egg-origin marker; ordinary purchased Pokemon remain area-gated.
 - Reward currency: abstract until the implementation branch selects a concrete
   source.
 

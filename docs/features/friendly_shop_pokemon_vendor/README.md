@@ -27,6 +27,8 @@ and each product may be repeatable or one-time only.
   edit-entitlement policy.
 - Keep normal purchased Pokemon and Egg-origin Pokemon distinct for move and
   held-item editing rules.
+- Make vendor Egg-origin Pokemon visibly identifiable from Summary.
+- Allow only Pokemon hatched from vendor Eggs to use the Status Editor anywhere.
 
 ## Current Decision
 
@@ -43,6 +45,13 @@ and each product may be repeatable or one-time only.
   directly with the existing Egg-cycle hatch logic.
 - The Egg risk is primarily the occupied party slot. While carried, the player
   effectively has one fewer battle-capable Pokemon because Eggs cannot battle.
+- Vendor Eggs need a persistent origin marker that survives hatching. The
+  preferred implementation candidate is to promote the currently unused
+  `PokemonSubstruct3.unused_0B` bit into a named `MON_DATA_VENDOR_EGG_ORIGIN`
+  field, if the implementation branch confirms it is unused in this fork.
+- Summary should show a small "Egg-Origin" / "Vendor Egg" style label or badge
+  for marked Pokemon. This is player-facing proof of why the Pokemon receives
+  always-available Status Editor access.
 
 ## Scope
 
@@ -54,6 +63,7 @@ and each product may be repeatable or one-time only.
 - Normal Pokemon purchase path based on existing scripted gift Pokemon helpers.
 - Egg purchase path based on existing `CreateEgg()` / `ScriptGiveEgg()` flow.
 - A policy hook for move and held-item editing entitlement.
+- A Summary-visible vendor Egg-origin marker.
 - Egg progress policy that can be driven by carried-party state.
 
 ### Out of Scope
@@ -87,3 +97,5 @@ and each product may be repeatable or one-time only.
   require an empty party slot for all purchases?
 - Should Egg progress be tied to trainer wins only, any battle win, challenge
   room clear, or a product-specific script event?
+- What exact Summary wording / badge should represent vendor Egg origin without
+  being confused with ordinary daycare Eggs?

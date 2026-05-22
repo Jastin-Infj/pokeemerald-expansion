@@ -5,7 +5,9 @@
 | Risk | Severity | Impact | Mitigation |
 |---|---|---|---|
 | Fake item ids for Pokemon products | High | Normal shop purchase calls `AddBagItem()`, so fake Pokemon items can leak into Bag, item description, item icon, and importance logic. | Use a dedicated Pokemon product table and delivery finalizer. |
-| Per-mon origin tracking | High | Egg-origin always-editable policy needs to know that a hatched Pokemon came from a vendor Egg. The current docs did not confirm a safe persistent spare field. | Add a dedicated entitlement design before wiring editors. If needed, scope MVP to challenge-local or product-global permissions. |
+| Per-mon origin tracking | High | Egg-origin always-editable policy needs to know that a hatched Pokemon came from a vendor Egg. | Prefer a named mon-data bit backed by `PokemonSubstruct3.unused_0B` after confirming it is truly unused in this fork. Preserve it on hatch. |
+| Summary marker confusion | Medium | Ordinary daycare Eggs also show hatch-related memo text, so players may not understand why only some hatched Pokemon can edit anywhere. | Add a dedicated vendor Egg-origin Summary label / badge. Do not infer from normal hatch memo text. |
+| Misusing event flags as per-mon identity | High | A global product flag proves the shop product was bought, not that a specific Pokemon came from that Egg. It can misgrant editor access to the wrong Pokemon. | Store identity on the Pokemon when possible; use SaveBlock side tables only for product progress / counters. |
 | SaveBlock pressure | High | Egg progress, entitlement state, and product history can grow past saved vars / flags. | Use event flags only for one-time products; use compact dedicated state for repeatable progress. Check `docs/flows/save_data_flow_v15.md` before source work. |
 | Battle-end hook side effects | High | Trainer battle end has Pyramid, Trainer Hill, follower, no-whiteout, forfeit, and trainer flag branches. A global Egg-progress hook can run in the wrong mode. | Prefer script-driven or challenge-clear progress first. If using trainer wins, add a narrow helper with explicit battle-type guards. |
 | Egg cycle collision | High | Existing Eggs store hatch cycles in `MON_DATA_FRIENDSHIP`. Reusing that value for unlock progress can break hatching. | Store unlock progress separately from hatch cycles. |
@@ -26,6 +28,9 @@
 - Move and held-item edit entitlement affects Summary, party menu, relearner,
   and held-item catalog features. The first branch should expose a policy helper
   rather than directly scattering checks.
+- Summary marker work should stay text/badge based in the first slice. New
+  graphic assets are implementation artifacts and should not enter docs-only
+  `master` work.
 
 ## Accepted Risks For First Slice
 
@@ -33,8 +38,8 @@
 - BP-specific reward UI is deferred.
 - Lv.50 normalization may be deferred if the first slice only proves purchase
   and delivery.
-- Always-editable Egg-origin policy may be documented and stubbed until a safe
-  per-mon origin marker is chosen.
+- Always-editable Egg-origin policy may be documented and stubbed until the
+  vendor-origin mon-data bit is implemented and validated through hatch.
 
 ## Open Questions
 
@@ -43,3 +48,5 @@
 - Are Eggs allowed to be sent to PC, or must they always occupy a party slot?
 - Should bought normal Pokemon use default learnset moves or a product-specific
   move payload from the start?
+- Should vendor Egg-origin be tradeable/transferable as a persistent marker, or
+  should editor entitlement apply only while the Pokemon belongs to this save?

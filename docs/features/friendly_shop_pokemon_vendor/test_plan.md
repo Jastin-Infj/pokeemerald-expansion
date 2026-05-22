@@ -22,8 +22,10 @@
 | Money failure | Try to buy any product without enough money. | Purchase is rejected and no delivery occurs. |
 | PC delivery policy | Buy normal Pokemon with a full party if PC delivery is enabled. | Pokemon goes to PC and money is subtracted only after successful delivery. |
 | Hatch path | Hatch or force-resolve the vendor Egg. | Resulting Pokemon has expected species, nickname behavior, met data policy, and level policy. |
+| Vendor origin bit preservation | Buy vendor Egg, confirm marker while Egg exists, hatch it, then save/load. | Marker remains on the hatched Pokemon and does not appear on ordinary Eggs or ordinary gift Pokemon. |
+| Summary marker | Open Summary for ordinary Egg, vendor Egg, ordinary hatched Pokemon, and vendor Egg-origin Pokemon. | Only vendor-origin cases show the dedicated label / badge according to final UI policy. |
 | Egg progress | Carry Egg through selected progress source. | Progress advances only while the Egg is in party and only from allowed events. |
-| Edit entitlement | Open move / item editor for normal purchased Pokemon and Egg-origin Pokemon. | Normal Pokemon follows area restriction; Egg-origin Pokemon follows always-editable policy if implemented. |
+| Edit entitlement | Open Status Editor for normal purchased Pokemon, ordinary hatched Pokemon, vendor Egg, and vendor Egg-origin Pokemon. | Only non-Egg vendor Egg-origin Pokemon can edit anywhere; normal Pokemon and ordinary hatch Pokemon follow area restriction; Eggs reject editor entry. |
 
 ## mGBA Live Checks
 
@@ -33,6 +35,7 @@
 | Purchase success | Buy debug normal Pokemon and debug Egg. | UI messages, money box, party state, and script resume are correct. |
 | Failure paths | Test no money, full party, and one-time already bought. | No softlock, no incorrect money subtraction, no bad party data. |
 | Battle slot risk | Enter a battle while carrying Egg. | Egg cannot be selected as a normal battler and usable party count is reduced. |
+| Summary origin UX | Open Summary before and after vendor Egg hatch. | Vendor Egg-origin status is visible and not confused with ordinary hatch memo text. |
 
 ## Results
 
@@ -47,8 +50,10 @@
 - One-time state cannot charge the player twice.
 - Egg risk is visible and does not require hidden battle penalties.
 - Egg progress source is documented and tested.
+- Vendor Egg-origin Summary marker is visible and tested.
 - Edit entitlement behavior is documented and either implemented or explicitly
-  deferred.
+  deferred; always-available Status Editor access is limited to non-Egg
+  vendor Egg-origin Pokemon.
 - `test_plan.md` records local make results, mGBA Live evidence, skipped long
   GitHub Actions waits, and accepted remaining risk.
 
