@@ -12,8 +12,11 @@
 | Battle-end hook side effects | High | Trainer battle end has Pyramid, Trainer Hill, follower, no-whiteout, forfeit, and trainer flag branches. A global sealed-progress hook can run in the wrong mode. | Prefer script-driven or challenge-clear progress first. If using trainer wins, add a narrow helper with explicit battle-type guards. |
 | Egg cycle collision | High | Existing Eggs store hatch cycles in `MON_DATA_FRIENDSHIP`. Reusing that value for sealed unlock progress can break hatching. | Store unlock progress separately from hatch cycles. If using custom sealed recruits, avoid Egg-cycle fields entirely. |
 | Normal EXP collision | High | Using `MON_DATA_EXP` for lock release can alter level, evolution, level caps, and challenge Lv.50 expectations. | Use feature-owned bond / seal EXP by default. If normal EXP-equivalent gain is desired, convert it into bond EXP rather than writing directly to `MON_DATA_EXP`. |
+| Usage-rate threshold bias | Medium | If usage rate is the main input, Pokemon absent from current pools have bad or missing data and can become unfairly expensive or too cheap. | MVP uses explicit product thresholds. Future auto-generation uses species tier as base, smoothed usage only as a modifier, and neutral fallback for missing data. |
 | Shadow bit collision | Medium | `PokemonSubstruct3.isShadow` exists and fits the flavor, but may later imply real Shadow Pokemon mechanics, purification, ribbons, or battle behavior. | Treat Shadow Pokemon as inspiration only. Use dedicated sealed helpers and marker bits unless intentionally adopting a full Shadow ruleset. |
 | Species legality confusion | Medium | Final evolutions and legendaries are intentionally allowed even though the feature may use Egg-like language. | Treat eligibility as product-table allowlist data, not breeding compatibility. Use lock/seal UI text instead of daycare Egg text. |
+| Accidental evolution | High | If a sealed-origin Pokemon can evolve through normal level-up, item, trade, friendship, or special conditions, the fixed product identity and threshold balance break. | Block all evolution triggers for sealed-origin Pokemon. Sell alternate stages/forms as separate products. |
+| Evolution item UX | Medium | A player may try to use an evolution stone on a fixed-form sealed-origin Pokemon such as Clefairy. A generic failure message can feel like a bug. | Add or reuse a clear "This Pokemon's form is fixed" style rejection path for sealed-origin item evolution. |
 | Lv.50 sealed policy ambiguity | Medium | Existing `CreateEgg()` uses `EGG_HATCH_LEVEL`; the desired challenge behavior may need Lv.50 after unlock or battle-only scaling. | Record the product level policy explicitly before implementation. |
 | Party full behavior | Medium | `GiveCapturedMonToPlayer()` may send Pokemon to PC, but the intended sealed risk depends on carrying it in party. | MVP should require an empty party slot for sealed products. Normal products may allow PC delivery if desired. |
 | One-time flag allocation | Medium | New one-time products can consume many event flags. | Start with a small product count and document flag ownership in the local ledger. |
@@ -58,3 +61,5 @@
   as `????` until unlocked?
 - Is bond EXP purely party-carried progress, or should it also persist while the
   sealed recruit is stored in PC?
+- Should high-usage Pokemon always have higher thresholds, or should manual
+  product overrides keep event / story rewards fast when needed?

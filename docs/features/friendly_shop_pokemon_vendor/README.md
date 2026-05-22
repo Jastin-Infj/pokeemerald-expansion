@@ -53,6 +53,13 @@ one-time only.
 - A sealed product is not limited to breedable species. Product data may point
   at a final evolution, restricted species, or legendary; the lock is a
   gameplay contract, not biological breeding compatibility.
+- Sealed recruits do not evolve. The product species is the final playable form
+  for that recruit; if a different evolution stage should be available, it
+  should be listed as a separate product.
+- The catalog is expected to lean toward final-stage Pokemon. Exceptions such
+  as Clefairy-style middle / stone-evolution species are still fixed-form
+  products; even if the player has the required evolution stone, the sealed-origin
+  Pokemon does not evolve.
 - Vendor sealed products need a persistent origin marker that survives unlock /
   hatch resolution. The
   preferred implementation candidate is to promote the currently unused
@@ -69,6 +76,10 @@ one-time only.
 - The UI may call the meter "EXP" if that reads best in-game, but the first
   implementation should keep it separate from normal `MON_DATA_EXP` unless a
   later balancing pass intentionally wants level EXP side effects.
+- Bond / seal EXP threshold should not be based on usage rate alone. Usage can
+  raise the lock value for proven high-use Pokemon, but missing usage data must
+  fall back to a neutral species tier instead of making absent Pokemon
+  impossible or accidentally free.
 
 ## Scope
 

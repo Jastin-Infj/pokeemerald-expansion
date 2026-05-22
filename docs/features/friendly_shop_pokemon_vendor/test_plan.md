@@ -27,6 +27,9 @@
 | Summary marker | Open Summary for ordinary Egg, locked sealed recruit, ordinary unlocked Pokemon, and sealed-origin Pokemon. | Locked recruit shows locked-state UI; unlocked sealed-origin Pokemon shows the dedicated origin label / badge. |
 | Bond EXP progress | Carry sealed recruit through selected progress source. | Bond / seal EXP advances only while the recruit is in party and only from allowed events. Normal `MON_DATA_EXP` does not change unless explicitly designed. |
 | Release threshold | Fill bond EXP to the configured threshold. | Recruit enters ready / release state, then unlocks through the selected automatic or confirmation flow. |
+| Missing usage fallback | Add a sealed product for a Pokemon with no usage data. | Product uses explicit threshold or neutral species-tier fallback; it is not blocked by missing usage stats. |
+| Evolution block | Try level-up, item, trade/link, friendship, and any configured special evolution on sealed-origin Pokemon. | Pokemon never evolves; separate product species are required for alternate stages/forms. |
+| Stone evolution block | Use Moon Stone on a sealed-origin Clefairy-style product. | Evolution is rejected with a clear fixed-form / sealed-origin message. |
 | Edit entitlement | Open Status Editor for normal purchased Pokemon, ordinary hatched Pokemon, locked sealed recruit, and sealed-origin Pokemon. | Only non-locked sealed-origin Pokemon can edit anywhere; normal Pokemon and ordinary hatch Pokemon follow area restriction; locked recruits reject editor entry. |
 
 ## mGBA Live Checks
@@ -54,6 +57,9 @@
 - Sealed risk is visible and does not require hidden battle penalties.
 - Bond / sealed progress source is documented and tested.
 - Normal level EXP is not mutated by bond progress unless explicitly enabled.
+- Thresholds are explicit or generated from species tier with usage as a
+  modifier only; missing usage has a neutral fallback.
+- Sealed-origin Pokemon cannot evolve through any normal evolution trigger.
 - Locked row UI and vendor sealed-origin Summary marker are visible and tested.
 - Edit entitlement behavior is documented and either implemented or explicitly
   deferred; always-available Status Editor access is limited to non-locked

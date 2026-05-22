@@ -47,6 +47,7 @@ fields:
 | Bond EXP threshold | Feature-owned progress required to release the locked recruit. |
 | Bond EXP yield | Amount awarded per trainer win, challenge clear, script event, or EXP-equivalent event. |
 | Reveal policy | Whether locked rows show the target species or display `????`. |
+| Evolution policy | Sealed recruit species is fixed; no evolution before or after release. |
 
 ## Recommended Implementation Shape
 
@@ -60,7 +61,8 @@ fields:
 | 6 | `include/pokemon.h`, `src/pokemon.c`, `src/egg_hatch.c` or custom unlock file | Add a persistent vendor sealed-origin mon-data bit, set it on sealed products, and preserve it when the recruit unlocks. |
 | 7 | `src/pokemon_summary_screen.c` | Show `LOCKED` while sealed and a compact sealed-origin label / badge after unlock so the edit entitlement is visible to the player. |
 | 8 | Sealed progress helper | Add feature-owned bond / seal EXP state, then gate the first battle-win / script-driven progress source behind a feature config. |
-| 9 | Editor entitlement helper | Add a read-only policy function before wiring Summary / relearner / held-item UI. |
+| 9 | Evolution-block helper | Block all evolution triggers for sealed-origin Pokemon. |
+| 10 | Editor entitlement helper | Add a read-only policy function before wiring Summary / relearner / held-item UI. |
 
 ## Sealed Progress Policy
 
@@ -84,14 +86,67 @@ Do not hardcode BP in the first slice. Use a feature-local concept:
 
 Unlock threshold:
 
-- Each product should define a bond EXP threshold.
+- Each product should define a bond EXP threshold in the MVP.
 - When progress reaches threshold, Summary / party UI should show a ready state.
 - Actual release can happen immediately or through an explicit confirm message.
   Explicit confirm is safer for UX because it gives the player feedback that the
   bond has deepened and the lock is gone.
+- Later automatic thresholds may use usage rate, but usage must be a modifier
+  rather than the base. Missing usage data should use a neutral species-tier
+  prior so Pokemon absent from current pools are not unfairly punished.
 
 This allows the reward to later become BP, a separate point counter, an unlock
 flag, a product-specific release permission, or another challenge reward.
+
+## Bond EXP Threshold Policy
+
+First implementation:
+
+- Product table owns `bondExpThreshold`.
+- Product table owns `bondExpYieldPolicy`.
+- No runtime usage-rate calculation is required.
+- A product with no explicit threshold should fail validation or use a small
+  debug-only default.
+
+Future generator / balancing pass:
+
+- Start with a species tier base value.
+- Apply a usage multiplier only when usage data is reliable.
+- Clamp thresholds into product-friendly bands.
+- Allow product overrides to replace any generated value.
+
+Example bands for tuning, not final numbers:
+
+| Band | Product examples | Threshold feel |
+|---|---|---|
+| Low | weak or intentionally underused Pokemon | 1-2 small clears. |
+| Standard | ordinary final forms | several battles / one short route. |
+| High | strong final forms, strong role compression | one meaningful challenge segment. |
+| Restricted | legendary / mythical / special prize | explicit hand-tuned threshold. |
+
+This avoids the "Pokemon with no usage data is impossible to release" problem.
+
+## Fixed Species Policy
+
+Sealed recruits do not evolve. The product species is the intended final form
+for that recruit, even if it is normally an unevolved species, final evolution,
+legendary, mythical, or special form.
+
+Contract:
+
+- `CanVendorSealedOriginEvolve(mon)` returns false for sealed-origin Pokemon.
+- Level-up evolution is blocked.
+- Item evolution is blocked.
+- Stone evolution is blocked even when the required stone is available, e.g.
+  Clefairy remains Clefairy under sealed-origin policy.
+- Trade / link evolution is blocked.
+- Friendship / move / map / time / form-condition evolution is blocked.
+- Status Editor changes must not accidentally clear the sealed-origin marker or
+  re-enable evolution.
+
+Design implication: threshold balancing should treat the product as a fixed
+species, not as part of a family path. A rare base form can still have a high
+threshold if the product intends it as a special fixed-form reward.
 
 ## Locked / Release UX
 
@@ -162,6 +217,8 @@ Recommended helper contract:
   is carried; not the same as normal level EXP by default.
 - Status Editor access: always available only for non-locked Pokemon with the
   vendor sealed-origin marker; ordinary purchased Pokemon remain area-gated.
+- Evolution: sealed-origin Pokemon remain fixed species forever; sell separate
+  products for separate forms / stages.
 - Reward currency: abstract until the implementation branch selects a concrete
   source.
 
@@ -187,3 +244,5 @@ Recommended helper contract:
   species until the row unlocks?
 - Should release happen automatically at full bond EXP, or require a Summary /
   NPC confirmation step?
+- Should automatic threshold generation use partygen catalog usage, trainer
+  pool frequency, manual tier files, or a mix?
