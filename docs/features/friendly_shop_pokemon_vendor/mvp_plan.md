@@ -118,6 +118,8 @@ Future generator / balancing pass:
 - Apply a usage multiplier only when usage data is reliable.
 - Clamp thresholds into product-friendly bands.
 - Allow product overrides to replace any generated value.
+- Prefer additive band deltas over large multiplier stacks. The formula should
+  produce a reviewable draft value, not the final truth.
 
 Example bands for tuning, not final numbers:
 
@@ -132,6 +134,24 @@ This avoids the "Pokemon with no usage data is impossible to release" problem.
 It also avoids the "600,000 EXP to unlock" problem: bond EXP thresholds should
 live in a compact feature-owned scale that can be cleared through meaningful
 challenge progress, not long-form level grinding.
+
+Suggested formula shape:
+
+```text
+threshold = override
+         or clamp(roundTo25(tierBase + usageDelta + curveDelta + productDelta),
+                  minThreshold,
+                  maxThreshold)
+```
+
+Rules:
+
+- `override` is the preferred path for known exceptions.
+- `tierBase` is the main value.
+- `usageDelta` is small and becomes `0` when data is missing.
+- `curveDelta` is tiny and only used if EXP table reference is enabled.
+- `productDelta` is a human-authored adjustment for local context.
+- Generated thresholds must be easy to inspect and hand-edit.
 
 ## Fixed Species Policy
 

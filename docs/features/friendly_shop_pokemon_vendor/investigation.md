@@ -192,6 +192,48 @@ threshold = clamp(baseTierThreshold
 The reference level should be a small design constant such as Lv.30 or Lv.50.
 The result is still bond EXP, not normal Pokemon EXP.
 
+Because sealed recruits will have many exceptions, the formula must be advisory.
+Every product needs an absolute override path. A safer practical formula is
+additive and banded, not a pure multiplier stack:
+
+```text
+if product.bondExpThresholdOverride exists:
+    threshold = product.bondExpThresholdOverride
+else:
+    threshold = clamp(roundToStep(
+        tierBase
+      + usageDelta
+      + curveDelta
+      + productDelta,
+      step = 25),
+      minThreshold,
+      maxThreshold)
+```
+
+Recommended default deltas:
+
+| Input | Value | Notes |
+|---|---|---|
+| Missing usage | `0` | Missing data should not move the threshold. |
+| Low confirmed usage | `-25` | Slightly easier, not free. |
+| High usage | `+25` | Noticeably longer, still bounded. |
+| Top usage | `+50` | Only with strong evidence. |
+| EXP curve last resort | `-10` to `+10` | Tiny adjustment only. |
+| Product exception | Any explicit value | Used for story rewards, special prizes, favorites, or known outliers. |
+
+Recommended tier bases:
+
+| Tier | Base |
+|---|---|
+| Low | `75` |
+| Standard | `125` |
+| Strong | `175` |
+| Restricted | `250` |
+
+These numbers are placeholders for playtesting, but the shape is intentional:
+manual tier is the main input, usage can nudge, EXP curve barely moves the
+result, and product override is always allowed.
+
 The usage multiplier should be smoothed, not raw:
 
 ```text
