@@ -111,6 +111,10 @@ First implementation:
 Future generator / balancing pass:
 
 - Start with a species tier base value.
+- Use manual species tier / product overrides before any EXP table reference.
+- If using species EXP tables as a last resort, convert the table to a small
+  clamped multiplier; never use raw cumulative EXP values as bond EXP
+  thresholds.
 - Apply a usage multiplier only when usage data is reliable.
 - Clamp thresholds into product-friendly bands.
 - Allow product overrides to replace any generated value.
@@ -125,6 +129,9 @@ Example bands for tuning, not final numbers:
 | Restricted | legendary / mythical / special prize | explicit hand-tuned threshold. |
 
 This avoids the "Pokemon with no usage data is impossible to release" problem.
+It also avoids the "600,000 EXP to unlock" problem: bond EXP thresholds should
+live in a compact feature-owned scale that can be cleared through meaningful
+challenge progress, not long-form level grinding.
 
 ## Fixed Species Policy
 

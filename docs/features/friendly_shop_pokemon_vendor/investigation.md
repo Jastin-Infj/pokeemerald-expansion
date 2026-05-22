@@ -153,9 +153,10 @@ Recommended priority:
 | Priority | Source | Use |
 |---|---|---|
 | 1 | Product override | Explicit `bondExpThreshold` wins for hand-tuned shop products. |
-| 2 | Species tier | Base value from species strength / rarity / evolution stage / restricted or legendary status. |
+| 2 | Manual species tier | Base value from species strength / rarity / fixed form / restricted or legendary status. |
 | 3 | Usage modifier | Optional multiplier from observed usage, only when data is available and reliable. |
 | 4 | Missing usage fallback | Neutral multiplier from species tier or family prior; never a penalty by itself. |
+| 5 | EXP table curve | Last resort only, as a small clamped multiplier when no better balancing signal exists. |
 
 Suggested automatic shape:
 
@@ -164,6 +165,32 @@ threshold = clamp(baseTierThreshold * usageMultiplier * productMultiplier,
                   minThreshold,
                   maxThreshold)
 ```
+
+If species EXP tables are referenced, treat them as the last resort and use them
+only for a small curve multiplier. Do not use cumulative EXP values directly.
+Raw values in the hundreds of thousands, such as 600,000, are unfair as lock
+thresholds and will make the feature feel like grinding rather than a
+risk/reward recruit system.
+
+Safer EXP-table reference:
+
+```text
+growthCurveMultiplier =
+    clamp(expToReferenceLevel(species.growthRate)
+          / expToReferenceLevel(MEDIUM_FAST),
+          0.85,
+          1.15)
+
+threshold = clamp(baseTierThreshold
+                  * growthCurveMultiplier
+                  * usageMultiplier
+                  * productMultiplier,
+                  minThreshold,
+                  maxThreshold)
+```
+
+The reference level should be a small design constant such as Lv.30 or Lv.50.
+The result is still bond EXP, not normal Pokemon EXP.
 
 The usage multiplier should be smoothed, not raw:
 

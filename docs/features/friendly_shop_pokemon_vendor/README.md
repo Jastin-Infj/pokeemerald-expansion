@@ -80,6 +80,10 @@ one-time only.
   raise the lock value for proven high-use Pokemon, but missing usage data must
   fall back to a neutral species tier instead of making absent Pokemon
   impossible or accidentally free.
+- Experience tables are a last-resort reference only. Prefer product overrides
+  and manual species tiers. If EXP tables are used, use only a small curve
+  multiplier; do not copy raw cumulative EXP totals into bond thresholds.
+  Values such as 600,000 are far outside the intended unlock scale.
 
 ## Scope
 
