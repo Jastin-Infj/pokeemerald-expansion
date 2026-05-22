@@ -14,21 +14,25 @@
 Status: Planned.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
-Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon or Eggs,
-and each product may be repeatable or one-time only.
+Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon, literal
+Eggs, or Egg-like sealed recruits, and each product may be repeatable or
+one-time only.
 
 ## Goal
 
 - Let map scripts offer Pokemon through a familiar shop flow instead of a
   one-off `givemon` NPC.
 - Support both repeat purchases and one-time purchases.
-- Support Egg products as a high-risk / high-reward option.
+- Support Egg-like sealed products as a high-risk / high-reward option,
+  including final evolutions and legendary Pokemon when the product table
+  explicitly allows them.
 - Allow product data to configure species, level, price, held item, and future
   edit-entitlement policy.
-- Keep normal purchased Pokemon and Egg-origin Pokemon distinct for move and
+- Keep normal purchased Pokemon and sealed-origin Pokemon distinct for move and
   held-item editing rules.
-- Make vendor Egg-origin Pokemon visibly identifiable from Summary.
-- Allow only Pokemon hatched from vendor Eggs to use the Status Editor anywhere.
+- Make vendor sealed-origin Pokemon visibly identifiable from Summary.
+- Allow only Pokemon unlocked from vendor sealed products to use the Status
+  Editor anywhere.
 
 ## Current Decision
 
@@ -38,33 +42,50 @@ and each product may be repeatable or one-time only.
   money checks, list-menu behavior, and script blocking, but has its own
   product table and purchase finalizer.
 - Treat BP as optional flavor only. The core design should use an abstract
-  Egg progress / unlock counter; whether that maps to Battle Frontier BP,
+  sealed progress / unlock counter; whether that maps to Battle Frontier BP,
   challenge-only points, or another reward value is a later balancing choice.
-- For the first runtime slice, prefer battle-win based Egg progress while the
-  Egg is in the party. Step-based progress is possible, but it collides more
-  directly with the existing Egg-cycle hatch logic.
-- The Egg risk is primarily the occupied party slot. While carried, the player
-  effectively has one fewer battle-capable Pokemon because Eggs cannot battle.
-- Vendor Eggs need a persistent origin marker that survives hatching. The
+- For the first runtime slice, prefer battle-win or challenge-clear based
+  sealed progress while the locked recruit is in the party. Step-based progress
+  is possible for literal Eggs, but it collides more directly with the existing
+  Egg-cycle hatch logic.
+- The sealed-product risk is primarily the occupied party slot. While carried
+  in locked state, the player effectively has one fewer battle-capable Pokemon.
+- A sealed product is not limited to breedable species. Product data may point
+  at a final evolution, restricted species, or legendary; the lock is a
+  gameplay contract, not biological breeding compatibility.
+- Vendor sealed products need a persistent origin marker that survives unlock /
+  hatch resolution. The
   preferred implementation candidate is to promote the currently unused
-  `PokemonSubstruct3.unused_0B` bit into a named `MON_DATA_VENDOR_EGG_ORIGIN`
+  `PokemonSubstruct3.unused_0B` bit into a named
+  `MON_DATA_VENDOR_SEALED_ORIGIN`
   field, if the implementation branch confirms it is unused in this fork.
-- Summary should show a small "Egg-Origin" / "Vendor Egg" style label or badge
-  for marked Pokemon. This is player-facing proof of why the Pokemon receives
+- Summary should show a small "LOCKED" label while the recruit is still sealed,
+  then a compact "Sealed Origin" / "Vendor Origin" style label or badge after
+  unlock. This is player-facing proof of why the Pokemon receives
   always-available Status Editor access.
+- The tone should be close to a Shadow Pokemon purification / bond-deepening
+  flow: the Pokemon is present but not yet usable, then becomes available when
+  enough bond / seal EXP has accumulated.
+- The UI may call the meter "EXP" if that reads best in-game, but the first
+  implementation should keep it separate from normal `MON_DATA_EXP` unless a
+  later balancing pass intentionally wants level EXP side effects.
 
 ## Scope
 
 ### In Scope
 
-- A new script-facing vendor for Pokemon / Egg products.
+- A new script-facing vendor for Pokemon / sealed recruit products.
 - Product data for repeatable vs one-time purchase.
 - Money check, party / PC destination behavior, and no-charge-on-failure rules.
 - Normal Pokemon purchase path based on existing scripted gift Pokemon helpers.
-- Egg purchase path based on existing `CreateEgg()` / `ScriptGiveEgg()` flow.
+- Sealed recruit purchase path based on either existing `CreateEgg()` /
+  `ScriptGiveEgg()` mechanics or a custom locked-mon creator, depending on the
+  chosen UI language.
 - A policy hook for move and held-item editing entitlement.
-- A Summary-visible vendor Egg-origin marker.
-- Egg progress policy that can be driven by carried-party state.
+- A lock-state UI for unavailable shop rows, e.g. "LOCKED" / "Still locked".
+- Bond / seal EXP progress while a sealed recruit is carried.
+- A Summary-visible vendor sealed-origin marker.
+- Sealed progress policy that can be driven by carried-party state.
 
 ### Out of Scope
 
@@ -90,12 +111,14 @@ and each product may be repeatable or one-time only.
 
 - How should a purchased Pokemon's origin / edit entitlement be stored
   persistently without exhausting Pokemon struct spare bits?
-- Should Egg products hatch at the normal hatch level first and then be scaled
-  to Lv.50 for a challenge, or should the product create a Lv.50 Pokemon when
-  the Egg resolves?
+- Should sealed products resolve through vanilla Egg hatch flow, or through a
+  custom unlock animation / message that better fits final evolutions and
+  legendary Pokemon?
 - Should repeat products be allowed to send Pokemon to PC, or should the vendor
   require an empty party slot for all purchases?
-- Should Egg progress be tied to trainer wins only, any battle win, challenge
+- Should sealed progress be tied to trainer wins only, any battle win, challenge
   room clear, or a product-specific script event?
-- What exact Summary wording / badge should represent vendor Egg origin without
-  being confused with ordinary daycare Eggs?
+- Should bond / seal EXP use a visible numeric meter, a small segmented gauge,
+  or only text such as "The bond is deepening"?
+- What exact Summary wording / badge should represent vendor sealed origin
+  without being confused with ordinary daycare Eggs?

@@ -16,26 +16,29 @@
 |---|---|---|
 | Repeat normal Pokemon purchase | Buy the same repeatable Pokemon twice. | Both purchases deliver Pokemon and subtract money only after success. |
 | One-time normal Pokemon purchase | Buy one-time product, reopen vendor. | Product is hidden, sold out, or disabled according to selected policy. |
-| Repeat Egg purchase | Buy repeatable Egg with an empty party slot. | Egg is delivered, money is subtracted, and the party has one fewer usable battle Pokemon. |
-| One-time Egg purchase | Buy one-time Egg and reopen vendor. | One-time state is set only after successful delivery. |
-| Party full Egg purchase | Fill party and try to buy an Egg if MVP requires party slot. | Purchase is rejected and money is not subtracted. |
+| Repeat sealed purchase | Buy repeatable sealed recruit with an empty party slot. | Locked recruit is delivered, money is subtracted, and the party has one fewer usable battle Pokemon. |
+| One-time sealed purchase | Buy one-time sealed recruit and reopen vendor. | One-time state is set only after successful delivery. |
+| Locked shop row | Open vendor before the row's unlock condition is met. | Row shows `LOCKED` / still-locked text and cannot be purchased. |
+| Party full sealed purchase | Fill party and try to buy a sealed recruit if MVP requires party slot. | Purchase is rejected and money is not subtracted. |
 | Money failure | Try to buy any product without enough money. | Purchase is rejected and no delivery occurs. |
 | PC delivery policy | Buy normal Pokemon with a full party if PC delivery is enabled. | Pokemon goes to PC and money is subtracted only after successful delivery. |
-| Hatch path | Hatch or force-resolve the vendor Egg. | Resulting Pokemon has expected species, nickname behavior, met data policy, and level policy. |
-| Vendor origin bit preservation | Buy vendor Egg, confirm marker while Egg exists, hatch it, then save/load. | Marker remains on the hatched Pokemon and does not appear on ordinary Eggs or ordinary gift Pokemon. |
-| Summary marker | Open Summary for ordinary Egg, vendor Egg, ordinary hatched Pokemon, and vendor Egg-origin Pokemon. | Only vendor-origin cases show the dedicated label / badge according to final UI policy. |
-| Egg progress | Carry Egg through selected progress source. | Progress advances only while the Egg is in party and only from allowed events. |
-| Edit entitlement | Open Status Editor for normal purchased Pokemon, ordinary hatched Pokemon, vendor Egg, and vendor Egg-origin Pokemon. | Only non-Egg vendor Egg-origin Pokemon can edit anywhere; normal Pokemon and ordinary hatch Pokemon follow area restriction; Eggs reject editor entry. |
+| Unlock path | Unlock / hatch or force-resolve the vendor sealed recruit. | Resulting Pokemon has expected species, nickname behavior, met data policy, and level policy, including final evolution / legendary products if configured. |
+| Vendor origin bit preservation | Buy vendor sealed recruit, confirm marker while locked, unlock it, then save/load. | Marker remains on the unlocked Pokemon and does not appear on ordinary Eggs or ordinary gift Pokemon. |
+| Summary marker | Open Summary for ordinary Egg, locked sealed recruit, ordinary unlocked Pokemon, and sealed-origin Pokemon. | Locked recruit shows locked-state UI; unlocked sealed-origin Pokemon shows the dedicated origin label / badge. |
+| Bond EXP progress | Carry sealed recruit through selected progress source. | Bond / seal EXP advances only while the recruit is in party and only from allowed events. Normal `MON_DATA_EXP` does not change unless explicitly designed. |
+| Release threshold | Fill bond EXP to the configured threshold. | Recruit enters ready / release state, then unlocks through the selected automatic or confirmation flow. |
+| Edit entitlement | Open Status Editor for normal purchased Pokemon, ordinary hatched Pokemon, locked sealed recruit, and sealed-origin Pokemon. | Only non-locked sealed-origin Pokemon can edit anywhere; normal Pokemon and ordinary hatch Pokemon follow area restriction; locked recruits reject editor entry. |
 
 ## mGBA Live Checks
 
 | Check | Steps | Expected |
 |---|---|---|
 | Boot and vendor entry | Boot debug ROM, warp to test vendor, interact. | Vendor opens and returns to field cleanly. |
-| Purchase success | Buy debug normal Pokemon and debug Egg. | UI messages, money box, party state, and script resume are correct. |
+| Purchase success | Buy debug normal Pokemon and debug sealed recruit. | UI messages, money box, party state, and script resume are correct. |
 | Failure paths | Test no money, full party, and one-time already bought. | No softlock, no incorrect money subtraction, no bad party data. |
-| Battle slot risk | Enter a battle while carrying Egg. | Egg cannot be selected as a normal battler and usable party count is reduced. |
-| Summary origin UX | Open Summary before and after vendor Egg hatch. | Vendor Egg-origin status is visible and not confused with ordinary hatch memo text. |
+| Battle slot risk | Enter a battle while carrying locked sealed recruit. | Locked recruit cannot be selected as a normal battler and usable party count is reduced. |
+| Summary origin UX | Open Summary before and after vendor sealed unlock. | Locked and sealed-origin status is visible and not confused with ordinary hatch memo text. |
+| Shadow-like tone | Watch progress / release text in Summary or release message. | Text communicates bond deepening / release without reusing real Shadow Pokemon state. |
 
 ## Results
 
@@ -48,17 +51,18 @@
 - Existing item shops still work.
 - Pokemon vendor success and failure paths are locally validated.
 - One-time state cannot charge the player twice.
-- Egg risk is visible and does not require hidden battle penalties.
-- Egg progress source is documented and tested.
-- Vendor Egg-origin Summary marker is visible and tested.
+- Sealed risk is visible and does not require hidden battle penalties.
+- Bond / sealed progress source is documented and tested.
+- Normal level EXP is not mutated by bond progress unless explicitly enabled.
+- Locked row UI and vendor sealed-origin Summary marker are visible and tested.
 - Edit entitlement behavior is documented and either implemented or explicitly
-  deferred; always-available Status Editor access is limited to non-Egg
-  vendor Egg-origin Pokemon.
+  deferred; always-available Status Editor access is limited to non-locked
+  vendor sealed-origin Pokemon.
 - `test_plan.md` records local make results, mGBA Live evidence, skipped long
   GitHub Actions waits, and accepted remaining risk.
 
 ## Open Questions
 
 - Which map / NPC should host the first debug vendor?
-- Which source should be used for the first Egg progress proof: trainer win,
+- Which source should be used for the first sealed progress proof: trainer win,
   challenge clear, or script event?
