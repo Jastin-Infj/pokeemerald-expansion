@@ -30,8 +30,8 @@
 | EXP table normalization | Generate or inspect a product whose growth table has high cumulative EXP. | Raw cumulative EXP is not used; generated threshold is clamped into the feature-owned bond EXP range. |
 | Missing usage fallback | Add a sealed product for a Pokemon with no usage data. | Product uses explicit threshold or neutral species-tier fallback; it is not blocked by missing usage stats. |
 | Formula exception override | Add products with absolute threshold overrides for known outliers. | Override wins over tier, usage, and EXP curve formula. |
-| Evolution block | Try level-up, item, trade/link, friendship, and any configured special evolution on sealed-origin Pokemon. | Pokemon never evolves; separate product species are required for alternate stages/forms. |
-| Stone evolution block | Use Moon Stone on a sealed-origin Clefairy-style product. | Evolution is rejected with a clear fixed-form / sealed-origin message. |
+| Global evolution block | Try level-up, item, trade/link, friendship, script-trigger, overworld-special, battle-end, and any configured special evolution on ordinary Pokemon and sealed-origin Pokemon. | No Pokemon evolves; separate product species are required for alternate stages/forms. |
+| Stone evolution block | Use Moon Stone on a Clefairy-style fixed-species product. | Evolution is rejected or no-ops with a clear fixed-species message. |
 | Edit entitlement | Open Status Editor for normal purchased Pokemon, ordinary hatched Pokemon, locked sealed recruit, and sealed-origin Pokemon. | Only non-locked sealed-origin Pokemon can edit anywhere; normal Pokemon and ordinary hatch Pokemon follow area restriction; locked recruits reject editor entry. |
 
 ## mGBA Live Checks
@@ -62,7 +62,8 @@
 - Raw cumulative EXP table values are never used directly as unlock thresholds.
 - Thresholds are explicit or generated from species tier with usage as a
   modifier only; missing usage has a neutral fallback.
-- Sealed-origin Pokemon cannot evolve through any normal evolution trigger.
+- No Pokemon can evolve through normal or special evolution triggers while the
+  no-evolution runtime rule is enabled.
 - Locked row UI and vendor sealed-origin Summary marker are visible and tested.
 - Edit entitlement behavior is documented and either implemented or explicitly
   deferred; always-available Status Editor access is limited to non-locked

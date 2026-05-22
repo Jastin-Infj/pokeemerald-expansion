@@ -118,8 +118,8 @@ hatching:
   usable;
 - after release, the Pokemon receives the sealed-origin Summary marker and
   always-available Status Editor entitlement.
-- release does not enable evolution. The Pokemon remains the exact product
-  species.
+- release does not enable evolution. In this game, all Pokemon are fixed
+  species products.
 
 Implementation should not use the existing `isShadow` bit as a shortcut in the
 MVP. Shadow state can carry battle, ribbon, purification, move-lock, or future
@@ -131,7 +131,7 @@ Reasons:
 
 - locked recruits cannot battle, so normal EXP gain rules would need special
   casing anyway;
-- normal EXP changes level and evolution expectations;
+- normal EXP changes level and can accidentally reach vanilla evolution paths;
 - challenge Lv.50 policy may want battle-only scaling rather than permanent
   level changes;
 - product-specific thresholds are easier if the progress value is feature-owned.
@@ -263,23 +263,25 @@ Species tier should cover the cases usage cannot:
 MVP recommendation: store explicit thresholds in product data. Add automatic
 threshold generation only after a small product set feels correct in play.
 
-## Evolution Policy
+## Global No-Evolution Policy
 
-Sealed recruits are fixed-form products:
+The current game direction does not need Pokemon evolution. Treat every Pokemon
+as a fixed species:
 
-- no evolution while locked;
+- no evolution while a recruit is locked;
 - no evolution after release;
-- no forced evolution from level-up, item, trade, friendship, move knowledge, or
-  map condition;
-- item evolution must reject sealed-origin Pokemon even when the player owns the
-  correct stone. Clefairy + Moon Stone is the explicit policy example;
+- no ordinary Pokemon evolution outside this vendor feature either;
+- no forced evolution from level-up, Rare Candy, EXP Candy, item, trade,
+  friendship, move knowledge, map condition, script trigger, overworld special,
+  or battle-end special;
+- evolution stones should reject or no-op with a clear fixed-species message;
 - if both a base form and a final form should be obtainable, they are separate
   products with separate prices, thresholds, reveal policy, and edit policy.
 
 Implementation should not rely on "this species has no evolution data" as the
-only guard. The sealed-origin marker should feed an evolution-block helper so
-future product species cannot accidentally evolve when regular EXP / items /
-trade flows are used later.
+guard. A global evolution-disabled runtime rule should short-circuit the
+central evolution resolver so future products cannot accidentally evolve when
+regular EXP / item / trade / script flows are used later.
 
 ## Vendor Sealed-Origin Marker Options
 
@@ -342,10 +344,83 @@ couple this feature to Battle Frontier economy and UI. The safer design is:
 | Save / runtime state | One-time flags can use event flags. Locked row state, bond / seal EXP progress, and per-mon entitlement likely need dedicated state if not purely script-local. |
 | UI / window / sprite / text | Can reuse shop windows first. Product description should show species, level, product type, repeat/one-time/locked state, and price. Summary also needs locked, ready-to-release, bond progress, and sealed-origin labels for marked Pokemon. |
 | Battle / AI | Sealed progress on battle wins touches battle-end flow. Avoid a global hook until the product policy is finalized. |
-| Evolution | Sealed-origin Pokemon must be excluded from all evolution triggers. |
+| Evolution | The runtime can globally disable all evolution triggers. |
 | Build tools / generated files | Not required for MVP unless product pools are generated from partygen JSON later. |
 | Tests | Needs shop purchase tests, party-full tests, one-time flag tests, and focused sealed / bond progress tests. |
 | Upstream migration | Shop internals and script command table are high-conflict areas during upstream refreshes. |
+
+## Current Spec Dependency Audit
+
+This pass assumes the current design:
+
+- Friendly Shop style vendor sells normal Pokemon and sealed recruits.
+- Sealed recruits are not ordinary daycare Eggs in player-facing behavior.
+- Sealed recruits may be final evolutions, legendaries, Clefairy, or any
+  explicit product species.
+- Locked recruits occupy a party slot and cannot battle.
+- Unlock uses feature-owned bond / seal EXP, not raw `MON_DATA_EXP`.
+- Evolution is globally unnecessary for this game; all Pokemon are fixed
+  species products.
+- After release, sealed-origin Pokemon can use the Status Editor anywhere and
+  must be identifiable from Summary.
+
+| Area | Files / symbols | Dependency | Recommended handling |
+|---|---|---|---|
+| Shop entry | `include/shop.h`, `src/shop.c`, `src/scrcmd.c`, `data/script_cmd_table.inc`, `asm/macros/event.inc` | Normal mart data is `const u16 *` item ids and normal purchase ends in `AddBagItem()`. | Add a sibling Pokemon vendor command / menu or a new mart type with product metadata. Do not overload normal `pokemart` item lists. |
+| Product data | New product table, map `.inc` scripts | Needs species, price, repeat / one-time flags, lock state, reveal policy, product kind, level, fixed-species policy, bond threshold, and yield policy. | Keep tables compiled first. Generated partygen / JSON pools can feed these later, but MVP should be readable and hand-tuned. |
+| Normal Pokemon delivery | `src/script_pokemon_util.c` `ScriptGiveMonParameterized` | Existing gift path already supports level, item, ball, nature, ability, EVs, IVs, moves, shiny, Gmax, Tera, and Dmax. | Reuse this payload shape for normal products. Subtract money only after delivery succeeds. |
+| Sealed recruit delivery | `src/script_pokemon_util.c` `ScriptGiveEgg`, `src/daycare.c` `CreateEgg`, `src/egg_hatch.c` `CreateHatchedMon` | Literal Egg path gives non-battle behavior for free, but uses hatch cycles in friendship and daycare Egg UI semantics. | Prefer a custom sealed-recruit creator for the real feature. Literal Egg internals are acceptable only for a proof, with clear migration notes. |
+| Per-mon origin | `include/pokemon.h` `PokemonSubstruct3.unused_0B`, `src/pokemon.c` `GetBoxMonData3` / `SetBoxMonData` | The always-editable entitlement needs to follow the individual Pokemon, not just the product flag. | Promote `unused_0B` to a named `MON_DATA_VENDOR_SEALED_ORIGIN` bit if still unused. Add getter / setter and preserve it through unlock / hatch conversion. |
+| Lock and progress state | `docs/flows/save_data_flow_v15.md`, `include/global.h`, event flags / vars | A one-bit origin marker cannot store bond progress, threshold, product id, or ready state. Saved vars are too scarce for per-mon progress. | Use flags only for one-time products and simple row unlocks. Use a compact feature-owned state table for locked recruit progress if progress must survive save/load. |
+| Party slot risk | `src/party_menu.c`, `src/pokemon_storage_system.c` `CountPartyNonEggMons`, battle choose flows | Existing "usable Pokemon" checks mostly test `MON_DATA_IS_EGG`; a custom lock bit will not be excluded automatically. | Add central helpers such as `IsVendorSealedRecruitLocked()` and use them in party and battle eligibility paths before widening the feature. |
+| Battle exclusion | `src/battle_script_commands.c`, `src/battle_util.c`, `src/battle_ai_util.c`, `src/party_menu.c` | EXP, switch, forced send-out, choose-half, last-alive, and AI checks contain many egg-only conditions. | First runtime slice should validate normal battle, in-battle party menu, choose-half, and last-usable-mon behavior. Avoid scattered one-off checks. |
+| Global evolution lock | `src/pokemon.c` `GetEvolutionTargetSpecies`, `IsMonPastEvolutionLevel`, script-trigger / overworld evolution helpers, `src/party_menu.c` Rare Candy / stone paths, `src/trade.c` trade evolution path | Evolution modes are centralized through `GetEvolutionTargetSpecies()`, but item UI, Rare Candy flow, trade, and script-trigger messages live outside that resolver. | Add an early runtime-rule guard in `GetEvolutionTargetSpecies()` that returns `SPECIES_NONE` for all Pokemon. Add party-menu messaging for stone / item attempts so fixed-species behavior is clear. |
+| Item / form change | `src/party_menu.c` item callbacks, `src/pokemon.c` form helpers | Global no-evolution does not automatically answer whether form-change items are allowed. | Decide separately whether form changes are gameplay customization or evolution-like progression. If not allowed, route them through the same fixed-species rejection message. |
+| Summary UX | `src/pokemon_summary_screen.c` cached summary data, Egg memo / page limit paths | Locked state, ready state, progress, and released origin marker all need Summary display. Literal Eggs would trigger Egg-specific memo limits. | Add sealed fields to Summary state and draw a dedicated `LOCKED` / `READY` / `Sealed Origin` label instead of relying on hatch memo text. |
+| Status Editor entitlement | `docs/features/pokemon_state_editor/`, Summary / party entry points | Runtime editor branch is separate from `master`; entitlement must not be inferred from species or product flags. | Add policy helpers now; wire UI only when the editor branch is selected for integration. Locked recruits should reject editor entry. |
+| Move relearn / item edits | `docs/features/unified_move_relearner/`, `src/party_menu.c` relearner menu entries | Sealed-origin Pokemon should eventually edit anywhere, normal purchased Pokemon remain area-gated. | Keep the vendor helper as the authority: `CanUseStateEditorAnywhere(mon)` / `IsVendorSealedOriginMon(mon)`. |
+| Progress source | `src/battle_setup.c` `CB2_EndTrainerBattle`, `data/battle_scripts_1.s` `BattleScript_GiveExp`, script specials | Trainer-battle end is broad and includes Frontier / Trainer Hill / no-whiteout / forfeit behavior. EXP script is normal level EXP, not bond EXP. | MVP should prefer script-driven or challenge-clear progress. If trainer wins are used, add a narrow helper with battle-type guards and write only bond EXP. |
+| PC / daycare / trade | `src/pokemon_storage_system.c`, `src/daycare.c`, `src/party_menu.c` daycare actions, `src/trade.c` `CanTradeSelectedMon` / `ComputePartyTradeableFlags` | If locked recruits can leave the party, progress identity and party-slot risk become more complex. Eggs are already special-cased in some flows; custom sealed locks are not. | MVP recommendation: block PC storage, daycare deposit, and trade for locked recruits. Allowing storage later requires identity-keyed progress state and cleanup rules. |
+| Save compatibility | `include/global.h`, `src/save.c`, `src/load_save.c`, `docs/flows/save_data_flow_v15.md` | SaveBlock3 is small and may be pressured by DexNav species data; SaveBlock1 changes interact with Champions Challenge / bag work. | Do a capacity check before source work. A tiny party-only state can be smaller, but PC-persistent progress likely belongs in a dedicated SaveBlock1 feature struct. |
+
+## Central Helper Contract
+
+The implementation should introduce one small helper surface before touching
+every menu:
+
+| Helper | Purpose |
+|---|---|
+| `IsVendorSealedOriginMon(mon)` | True for any Pokemon created from a vendor sealed product after the origin marker is set. |
+| `IsVendorSealedRecruitLocked(mon)` | True while the recruit is still locked and should not battle or edit. |
+| `CanVendorSealedRecruitBattle(mon)` | False for locked recruits; true for released or non-vendor Pokemon. |
+| `AreRuntimeEvolutionsDisabled()` / `CanPokemonEvolveInThisRuntime(mon)` | Global rule for the no-evolution game mode; expected to block every Pokemon, not only vendor recruits. |
+| `GetVendorSealedBondProgress(mon, outCurrent, outRequired)` | Summary / party UI progress source. |
+| `CanReleaseVendorSealedRecruit(mon)` | True when bond progress reaches the threshold. |
+| `CanUseStateEditorAnywhere(mon)` | True only for released sealed-origin Pokemon. |
+
+First adopters should be delivery, Summary, party selection, battle selection,
+and `GetEvolutionTargetSpecies()`. Storage / daycare / trade can then block
+locked recruits through the same helper instead of inventing local rules.
+
+## Current Implementation Recommendation
+
+For the next runtime branch, use this dependency order:
+
+1. Add product data and vendor entry without changing normal item shops.
+2. Add sealed-origin mon-data bit and helper header / C file.
+3. Add progress state decision before allowing locked recruits into PC storage.
+4. Deliver sealed recruits into party only, then block battle / editor entry.
+5. Add Summary locked / ready / released labels and bond progress.
+6. Add the global no-evolution guard through `GetEvolutionTargetSpecies()` and
+   add item-use messaging for fixed-species failures.
+7. Add the first progress source, preferably script / challenge-clear based.
+8. Wire Status Editor / relearner entitlement after the editor branch is the
+   active implementation target.
+
+This keeps the first implementation small enough to validate while avoiding the
+biggest dependency trap: a locked custom recruit that behaves like an Egg in
+some menus but like a normal Pokemon in battle or storage paths, while vanilla
+evolution remains reachable elsewhere.
 
 ## Open Questions
 

@@ -47,7 +47,7 @@ fields:
 | Bond EXP threshold | Feature-owned progress required to release the locked recruit. |
 | Bond EXP yield | Amount awarded per trainer win, challenge clear, script event, or EXP-equivalent event. |
 | Reveal policy | Whether locked rows show the target species or display `????`. |
-| Evolution policy | Sealed recruit species is fixed; no evolution before or after release. |
+| Evolution policy | Runtime species are fixed; global evolution lock is allowed and preferred. |
 
 ## Recommended Implementation Shape
 
@@ -61,7 +61,7 @@ fields:
 | 6 | `include/pokemon.h`, `src/pokemon.c`, `src/egg_hatch.c` or custom unlock file | Add a persistent vendor sealed-origin mon-data bit, set it on sealed products, and preserve it when the recruit unlocks. |
 | 7 | `src/pokemon_summary_screen.c` | Show `LOCKED` while sealed and a compact sealed-origin label / badge after unlock so the edit entitlement is visible to the player. |
 | 8 | Sealed progress helper | Add feature-owned bond / seal EXP state, then gate the first battle-win / script-driven progress source behind a feature config. |
-| 9 | Evolution-block helper | Block all evolution triggers for sealed-origin Pokemon. |
+| 9 | Global evolution-block helper | Block all evolution triggers for the runtime, not just sealed-origin Pokemon. |
 | 10 | Editor entitlement helper | Add a read-only policy function before wiring Summary / relearner / held-item UI. |
 
 ## Sealed Progress Policy
@@ -155,21 +155,21 @@ Rules:
 
 ## Fixed Species Policy
 
-Sealed recruits do not evolve. The product species is the intended final form
-for that recruit, even if it is normally an unevolved species, final evolution,
-legendary, mythical, or special form.
+This game does not need Pokemon evolution. Every Pokemon should be treated as
+the intended fixed product species, even if it is normally an unevolved species,
+final evolution, legendary, mythical, or special form.
 
 Contract:
 
-- `CanVendorSealedOriginEvolve(mon)` returns false for sealed-origin Pokemon.
+- `CanPokemonEvolveInThisRuntime(mon)` returns false for every Pokemon while
+  the no-evolution runtime rule is enabled.
 - Level-up evolution is blocked.
 - Item evolution is blocked.
 - Stone evolution is blocked even when the required stone is available, e.g.
-  Clefairy remains Clefairy under sealed-origin policy.
+  Clefairy remains Clefairy under the fixed-species policy.
 - Trade / link evolution is blocked.
 - Friendship / move / map / time / form-condition evolution is blocked.
-- Status Editor changes must not accidentally clear the sealed-origin marker or
-  re-enable evolution.
+- Status Editor changes must not re-enable evolution.
 
 Design implication: threshold balancing should treat the product as a fixed
 species, not as part of a family path. A rare base form can still have a high
@@ -244,7 +244,7 @@ Recommended helper contract:
   is carried; not the same as normal level EXP by default.
 - Status Editor access: always available only for non-locked Pokemon with the
   vendor sealed-origin marker; ordinary purchased Pokemon remain area-gated.
-- Evolution: sealed-origin Pokemon remain fixed species forever; sell separate
+- Evolution: all Pokemon remain fixed species under this runtime; sell separate
   products for separate forms / stages.
 - Reward currency: abstract until the implementation branch selects a concrete
   source.

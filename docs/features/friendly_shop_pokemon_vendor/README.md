@@ -53,13 +53,12 @@ one-time only.
 - A sealed product is not limited to breedable species. Product data may point
   at a final evolution, restricted species, or legendary; the lock is a
   gameplay contract, not biological breeding compatibility.
-- Sealed recruits do not evolve. The product species is the final playable form
-  for that recruit; if a different evolution stage should be available, it
-  should be listed as a separate product.
+- This runtime does not need Pokemon evolution. Treat every species as a fixed
+  playable product. If a different evolution stage or form should be available,
+  it should be listed as a separate product.
 - The catalog is expected to lean toward final-stage Pokemon. Exceptions such
-  as Clefairy-style middle / stone-evolution species are still fixed-form
-  products; even if the player has the required evolution stone, the sealed-origin
-  Pokemon does not evolve.
+  as Clefairy-style middle / stone-evolution species are still fixed products;
+  evolution stones and other evolution triggers should not evolve them.
 - Vendor sealed products need a persistent origin marker that survives unlock /
   hatch resolution. The
   preferred implementation candidate is to promote the currently unused
