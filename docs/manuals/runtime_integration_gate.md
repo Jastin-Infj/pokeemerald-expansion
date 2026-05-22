@@ -56,7 +56,7 @@ local branch diff を source of truth にする。
 |---|---|---|
 | #41 No Random Encounters step-only | minimal flag / config runtime slice | `master` still keeps `OW_FLAG_NO_ENCOUNTER 0`; broad-wild mode is out of MVP scope. |
 | #31 TM Shop Migration | data / script / config retirement slice | Emerald scope は確認済みだが FRLG-specific routes は follow-up。`I_REUSABLE_TMS` は branch-only change。 |
-| #28 Unified Move Relearner | generated candidate data + Summary / party / NPC entry points | special labels、virtual TM unlock policy、actual overwrite-learning gap を確認する。 |
+| #28 Unified Move Relearner | generated candidate data + Summary / party / NPC entry points | special labels、virtual TM unlock policy、actual overwrite-learning gap を確認する。Party grid #54 と同時採用する場合は Summary START を正規入口にし、party 直 `RELEARN` は optional/debug または vertical fallback に寄せる。 |
 | #26 Summary Tera Type Icon | small Summary display UI + imported graphics | graphics / CREDITS / asset provenance を docs-only master に混ぜない。 |
 | #23 Pokemon State Editor | Summary overlay UI and Pokemon field edits | box summary、redraw artifacts、legality locks、config defaults を確認する。 |
 | #20 Pre-Battle / In-Battle Team Viewer | battle UI + Summary return + mGBA-heavy validation | trainer pool / randomized party cache mechanism is implemented on the source shelf; add optional focused regression before adoption. |

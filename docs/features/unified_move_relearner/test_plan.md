@@ -31,8 +31,8 @@
 
 | Check | Steps | Expected |
 |---|---|---|
-| Summary entry | Open Pokemon Summary moves page and press START. | Unified relearner opens and returns to the same Summary context on cancel / learn. |
-| Party menu entry | Open field party menu and select Move Relearner action. | Relearner opens and returns to party menu coherently. |
+| Summary entry | Open Pokemon Summary moves page and press START. | Unified relearner opens and returns to the same Summary context on cancel / learn. This is the canonical player-facing route when integrated with the 2x3 party grid. |
+| Party menu entry | Open field party menu and select Move Relearner action if that route is intentionally enabled. | Relearner opens and returns to party menu coherently. If the party grid command bar is active, verify the direct route is optional/debug or uses a vertical/fallback menu rather than becoming the primary command-bar UX. |
 | NPC script entry | Use a relearner NPC. | Cost / condition is checked by script, and item removal only happens after successful learning. |
 | Source overlap | Use a move present in both virtual TM and tutor / tower pools. | Both source entries appear and teach the same move; labels make the source clear. |
 | Special seed smoke | Use Arceus and page-scroll near the end of the unified list. | `Roar of Time`, `Spacial Rend`, `Shadow Force`, `Blast Burn`, `Hydro Cannon`, and `Earth Power` are reachable as `Sp` entries if not already known. |
@@ -61,6 +61,7 @@
 | 2026-05-16 | mGBA Live LGPE Partner specials | Pass | Debug-created Pikachu Starter showed `Zippy Zap`, `Splishy Splash`, `Floaty Fall`, and `Pika Papow` as `Sp`; debug-created Eevee Starter showed the partner move group through `Veevee Volley` as `Sp`. Screenshots: `/tmp/unified_move_relearner_pikachu_starter_lgpe_partner_moves.png`, `/tmp/unified_move_relearner_eevee_starter_lgpe_partner_moves.png`. |
 | 2026-05-16 | mGBA Live NPC/script cancel | Pass | Debug menu `Party -> Move Relearner`; cancel returned to YES/NO `Anything else`, not the old category multichoice. Screenshot: `/tmp/unified_move_relearner_script_yesno.png`. |
 | 2026-05-16 | mGBA Live cleanup | Pass | `mgba_live_stop` succeeded and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-22 | Party grid dependency review | Pass | Docs-only review of PR #54 and #28 branch code. Confirmed Summary START and party direct `RELEARN` are separate entry points; selected Summary-first as the recommended integrated UX. No source runtime validation was needed for this docs-only update. |
 
 ## Feature Complete Gate
 
@@ -72,7 +73,10 @@
 Before final merge, add one manual overwrite-learning pass if possible:
 
 - Teach one level-up candidate from the Summary entry.
-- Teach one TM or tutor candidate from the party entry.
+- Teach one TM or tutor candidate from the Summary entry.
+- If direct party `RELEARN` is intentionally shipped, teach one candidate from
+  that route and confirm it is not exposed through an overcrowded bottom
+  command bar.
 - Teach one `Sp` candidate from the NPC/script entry.
 - Cancel during overwrite once after selecting a candidate on a full moveset.
 
