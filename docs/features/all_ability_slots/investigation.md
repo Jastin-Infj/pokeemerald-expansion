@@ -92,6 +92,10 @@ The set builder should:
 3. dedupe identical abilities;
 4. preserve slot order for deterministic trigger order.
 
+This dedupe is part of the requested battle contract. A table such as
+`Intimidate / Intimidate / Defiant` should behave as one Intimidate activation
+plus Defiant, not two Intimidate activations.
+
 ## Ability Capsule / Patch Impact
 
 Current behavior:
@@ -126,11 +130,57 @@ Ability impact enters through form-change helpers:
 | `GetFormChangeTargetSpecies_Internal()` | Some form-change methods compare `ctx.ability` with table parameters. |
 | `BS_HandleFormChange()` | Updates species and healthbox display, not a multi-ability cache. |
 
-All-active mode must decide whether an ability-gated form change succeeds when
-any active ability matches the required ability. For species changes, active set
-construction should use the current battle species, so Mega / Primal / Ultra
-forms can have their own active ability set. This is a balance risk for custom
-Mega species that define more than one non-empty ability slot.
+All-active mode should treat Mega Evolution as an overlay, not a replacement:
+
+- before Mega Evolution, the active set is the base species direct slots;
+- after Mega Evolution, the active set is base species direct slots plus Mega
+  target species direct slots;
+- the maximum is six active ability entries before duplicate removal;
+- duplicate abilities across base and Mega species still count once.
+
+This is deliberately stronger than normal form species replacement. It keeps the
+mode's "all specs unlocked" fantasy intact, but it is a major balance risk. For
+Primal Reversion, Ultra Burst, and non-Mega form changes, the runtime branch must
+choose whether to use the same overlay rule or the safer current-species-only
+rule before implementation.
+
+Ability-gated form-change checks still need explicit handling. A form change
+that requires an ability should pass when any effective active ability matches
+the requirement, unless that ability is suppressed for that check.
+
+## Battle-Only MVP Boundary
+
+The requested first implementation is battle-focused. Field lead ability checks
+should keep current single-ability behavior unless a later feature explicitly
+extends all-slot rules outside battle.
+
+Confirmed field callers include:
+
+| File | Example impact |
+|---|---|
+| `src/wild_encounter.c` | Lead ability encounter modifiers. |
+| `src/fishing.c` | Fishing lead ability behavior. |
+| `src/fldeff_cut.c` | Cut user ability handling. |
+| `src/event_object_movement.c` | Overworld poison / special sprite movement checks. |
+| `src/match_call.c` | Match Call Lightning Rod check. |
+
+Keeping these single-ability for MVP avoids surprising overworld behavior and
+keeps the first branch focused on trainer / facility / battle systems.
+
+## Balance Separation
+
+All-active mode will deliberately create a new battle environment, similar in
+scope to an alternate ruleset. Strong combinations such as Neutralizing Gas plus
+additional defensive or offensive abilities can reshape the format. This is
+expected and should not block the mechanical prototype.
+
+Balance work should be a separate feature or revision:
+
+- species-slot table edits;
+- direct buffs to weak abilities such as Leaf Guard-style effects;
+- bans / allowlists for extreme combinations;
+- trainer, gym leader, and facility team retuning;
+- mode-specific item / Ability Capsule / Patch policy.
 
 ## Battle Categories
 
@@ -153,7 +203,7 @@ Mega species that define more than one non-empty ability slot.
 | Script command / special | `jumpifability`, `trycopyability`, `tryentrainment`, `tryoverwriteability`, `trytoclearprimalweather`, and ability popup scripts need review. |
 | Callback / task | Ability Capsule / Patch item tasks and Summary / party UI tasks need behavior changes. |
 | Save / runtime state | Save layout can remain compatible if `abilityNum` stays as representative slot. Runtime temporary override state may need expansion if singular `overwrittenAbility` is not enough. |
-| UI / window / sprite / text | Summary prints one ability; battle popups display one ability; party / PC / team viewer surfaces need compact multi-ability display policy. |
+| UI / window / sprite / text | Summary prints one ability; battle popups display one ability; party / PC / team viewer surfaces need compact multi-ability display policy. Summary is the first required full-list surface. |
 | Battle / AI | Very high impact. AI and battle calc structs cache one ability per battler. |
 | Build tools / generated files | No generated data requirement for the MVP. Future balance audits may use generated species ability reports. |
 | Tests | Needs broad battle tests: predicate abilities, trigger abilities, suppression, copy/swap/overwrite, AI, Mega/form changes, and item UI. |
@@ -179,5 +229,5 @@ Mega species that define more than one non-empty ability slot.
   unsuppressable abilities active?
 - How much ability popup spam is acceptable when a Pokemon has multiple
   switch-in abilities?
-- Should field lead abilities outside battle also use all three slots, or should
-  this rule be battle-only?
+- Should Primal Reversion, Ultra Burst, and non-Mega form changes use the same
+  base-plus-form overlay rule as Mega Evolution, or only the current species set?

@@ -21,7 +21,7 @@ refactor rather than a data-only change.
 ## Goal
 
 - Make Pokemon behave as if all three species ability slots are active
-  simultaneously.
+  simultaneously in battle.
 - Keep the existing save layout compatible by leaving `abilityNum` as a stored
   representative slot, not by widening per-Pokemon save data.
 - Audit the battle engine, Ability Capsule / Ability Patch, Summary and party UI,
@@ -40,14 +40,26 @@ refactor rather than a data-only change.
 - Add an ability-set helper layer first. New callers should ask questions such
   as "does this battler have ability X?" or "iterate active abilities for this
   trigger".
+- Scope the first implementation to battle runtime behavior. Field lead ability
+  behavior should remain the upstream single-ability rule until a later feature
+  explicitly opts into global all-slot behavior.
+- Hidden ability slot 2 is part of the battle active set when the mode is
+  enabled. `abilityNum` remains a representative / primary slot only.
 - Enumerate species slots with `GetSpeciesAbility()`, not repeated
   `GetAbilityBySpecies()`, because `GetAbilityBySpecies()` intentionally falls
   back from empty slots to another valid ability.
+- Dedupe identical abilities before evaluation. For example, if a custom species
+  table is effectively `Intimidate / Intimidate / Defiant`, Intimidate should
+  trigger once and Defiant should still be active.
 - Treat Ability Capsule and Ability Patch as impacted UI / item policy. In an
   all-active world they no longer change battle behavior unless repurposed.
-- Treat Mega / form changes as a major audit point. Form checks currently pass a
-  single ability into `GetBattleFormChangeTargetSpecies()` /
-  `TryBattleFormChange()`, and the active ability cache is singular.
+- Treat Mega Evolution as an overlay in this mode: the base form's active
+  ability set remains active and the Mega target species contributes its own
+  ability slots on top. The theoretical maximum is therefore six active
+  abilities before dedupe.
+- Keep balance tuning separate from the mechanics branch. Ability buffs /
+  nerfs, species-slot table edits, and gym / trainer balance should be tracked
+  by a later balance feature.
 
 ## Scope
 
@@ -63,6 +75,8 @@ refactor rather than a data-only change.
 
 - Runtime source implementation on `master`.
 - Balance tuning of every Pokemon after all slots become active.
+- Field lead ability all-slot behavior such as encounter modifiers, fishing,
+  Cut, overworld poison, or Match Call.
 - Adding more than three species ability slots.
 - Replacing species ability data or importing external ability sets.
 - Reworking Party / Status UI assets; this feature only records the required

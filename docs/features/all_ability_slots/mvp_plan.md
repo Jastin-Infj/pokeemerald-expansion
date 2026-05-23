@@ -15,6 +15,7 @@ The first runtime branch should prove the rule without changing save layout:
 
 - Add a guarded all-active ability mode.
 - Build direct species-slot ability sets for battlers and party Pokemon.
+- Apply the mode only during battle for the first branch.
 - Convert a focused but representative subset of battle checks from singular
   ability equality to set predicates.
 - Convert switch-in / end-turn trigger dispatch to iterate active abilities for
@@ -28,6 +29,7 @@ The first runtime branch should prove the rule without changing save layout:
 - Do not widen `abilityNum` or change the boxed Pokemon save layout.
 - Do not implement more than three ability slots.
 - Do not rebalance species ability tables in the MVP branch.
+- Do not change field lead ability behavior in the MVP branch.
 - Do not fully redesign party / PC / team viewer layouts in the first battle
   proof. Summary can be the first complete UI surface.
 - Do not merge runtime source into `master`; use a fresh `feature/*` branch.
@@ -52,6 +54,7 @@ When all-active mode is enabled:
 
 - a non-Egg Pokemon's natural active ability set is all non-`ABILITY_NONE`
   direct ability slots on its current species;
+- hidden ability slot 2 is included in the battle active set;
 - duplicate abilities count once;
 - slot order is deterministic: slot 0, slot 1, hidden slot;
 - `abilityNum` remains stored and can still provide a primary display /
@@ -60,6 +63,20 @@ When all-active mode is enabled:
   call sites are migrated;
 - a suppressed or bypassed ability should be removed from the effective set for
   that check, not by changing the saved mon.
+
+Mega Evolution contract:
+
+- Mega Evolution overlays the Mega target species ability slots on top of the
+  base species ability slots;
+- the active set can therefore reach six entries before duplicate removal;
+- duplicate abilities across base and Mega species still count once;
+- Mega overlay behavior is part of this mode's identity, not a bug-compatible
+  replacement of the base species active set.
+
+Field contract:
+
+- field lead ability checks stay single-ability in the MVP;
+- later global all-slot behavior must be a separate feature / revision.
 
 Recommended temporary override contract for the first implementation:
 
@@ -95,6 +112,7 @@ Deferred UI:
 ## Future Work
 
 - Balance pass for species with strong ability combinations.
+- Dedicated ability / trainer balance feature for this alternate battle ruleset.
 - Optional species allowlist / denylist for all-active mode.
 - Runtime option or Champions facility-only enablement.
 - Better AI scoring for three-ability combinations.
@@ -103,9 +121,7 @@ Deferred UI:
 
 ## Open Questions
 
-- Should all-active mode affect field lead abilities such as encounter modifiers,
-  fishing, Cut, overworld poison healing, and Match Call checks?
-- Should hidden ability always be active, or should Hidden remain locked until
-  an item / product / facility unlocks it?
-- Should Mega forms use all abilities on the target Mega species immediately, or
-  preserve the base form's active set until switch-out?
+- Should Primal Reversion, Ultra Burst, and non-Mega form changes use the Mega
+  overlay rule or current-species-only ability sets?
+- Should Ability Capsule / Patch become display-slot selectors, hidden-slot
+  progression items for non-battle systems, or simply fail in this mode?

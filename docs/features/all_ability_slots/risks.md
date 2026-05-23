@@ -18,20 +18,20 @@
 | Ability-changing moves are ambiguous | High | Trace, Role Play, Doodle, Skill Swap, Entrainment, Worry Seed, Simple Beam, Receiver, and Power of Alchemy currently copy or overwrite one ability. | Use a conservative one-ability temporary override set for MVP; document any user-facing divergence. |
 | Suppression rules become wrong | High | Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield, and `cantBeSuppressed` can accidentally suppress too much or too little. | Apply suppression and bypass per ability. Add tests with one suppressible plus one unsuppressable ability. |
 | AI underestimates threats | High | AI caches one ability and may ignore immunities, trapping, priority, speed, or damage modifiers from other active slots. | Add AI ability-set helpers and focused tests for trapping, Magic Guard, priority, speed, and immunity decisions. |
-| Mega / form behavior changes | High | Mega or form species may gain multiple active abilities, and ability-gated form changes currently receive one ability argument. | Audit `CanMegaEvolve`, `TryBattleFormChange`, `GetFormChangeTargetSpecies_Internal`, and form-change scripts before implementation. |
+| Mega / form behavior changes | High | Mega overlay can create up to six active ability entries before dedupe, and ability-gated form changes currently receive one ability argument. | Implement explicit base-plus-Mega overlay logic, dedupe, and tests. Decide Primal / Ultra / non-Mega form policy separately. |
 | Ability Capsule / Patch confusion | Medium | Items appear to work but no longer change battle behavior. | Disable cleanly under all-active mode unless a display-slot or hidden-unlock policy is chosen. |
 | Summary / party UI overflow | Medium | Three names and descriptions do not fit the current one-ability Summary layout. | Make Summary the first complete display surface with a compact list and selected description. Defer party cards if needed. |
-| Field ability behavior drift | Medium | Outside-battle lead ability checks can diverge from battle all-active behavior. | Decide battle-only vs global behavior before implementation; document exceptions. |
+| Field ability behavior drift | Medium | Outside-battle lead ability checks will intentionally stay single-ability while battles use all slots. | Document battle-only MVP and leave global field behavior to a separate feature. |
 | Test runner assumptions | Medium | Existing test DSL and forced ability paths assume one ability. | Keep forced ability as a one-ability override in tests, then add explicit all-active test helpers later. |
-| Balance explosion | High | Some species combinations become far stronger than expected. | Treat runtime implementation as mechanics first. Follow with species table / allowlist balance branch. |
+| Balance explosion | High | Some species combinations become far stronger than expected, especially Neutralizing Gas-style suppression plus additional abilities. | Treat runtime implementation as mechanics first. Follow with a dedicated ability / trainer balance branch. |
 | Upstream conflict risk | Medium | Battle utility, script commands, AI, Summary, and party item-use files are high-churn upstream areas. | Keep branch small by phases and update docs before broad conversions. |
 
 ## Blockers Before Runtime Work
 
-- Decide whether hidden abilities are always active or require an unlock.
 - Decide Ability Capsule / Patch behavior under all-active mode.
 - Decide temporary ability-copy / overwrite semantics.
-- Decide whether field lead abilities outside battle are included.
+- Decide whether Primal Reversion, Ultra Burst, and non-Mega form changes use
+  Mega-style overlay or current-species-only ability sets.
 
 ## Accepted First-Branch Risks
 
@@ -49,5 +49,9 @@
 - Abilities that remove weaknesses, block status, or trap opponents become much
   stronger when combined with offensive abilities.
 - Mega forms with multiple filled slots may become the largest balance swing.
+- Neutralizing Gas and similar field-wide suppression abilities may become format
+  defining if the holder also keeps offensive or defensive abilities.
 - Species with duplicate or `ABILITY_NONE` slots will be less affected, which can
   widen the gap between species.
+- Ability and trainer balance should be tracked as a separate feature so the
+  mechanics branch can remain focused.

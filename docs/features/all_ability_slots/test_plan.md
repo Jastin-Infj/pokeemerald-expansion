@@ -36,12 +36,14 @@ Record mGBA Live evidence or the exact failure in this file before push.
 | Area | Required tests |
 |---|---|
 | Ability set builder | Species with three distinct abilities, duplicate abilities, hidden `ABILITY_NONE`, normal slot `ABILITY_NONE`, and form species. |
+| Duplicate slots | A species with duplicate abilities such as `Intimidate / Intimidate / Defiant` triggers Intimidate once and still has Defiant active. |
 | Predicate checks | A battler has Magic Guard plus another ability; Soundproof plus another ability; Sticky Hold plus another ability. Each predicate must work without needing to be the primary slot. |
 | Switch-in triggers | Two or three switch-in abilities trigger in deterministic slot order. Duplicate slots trigger once. |
 | Field presence | Neutralizing Gas, Unnerve, Ruin abilities, and weather / terrain setters work when not in primary slot. |
 | Suppression / bypass | Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield, and `cantBeSuppressed` combinations. |
 | Ability-changing moves | Trace, Role Play, Skill Swap, Entrainment or Worry Seed, and Receiver with the MVP one-ability override policy. |
-| Form changes | Mega Evolution, Primal Reversion, Ultra Burst, Weather forms, Stance Change, Disguise, Ice Face, and any ability-gated form change. |
+| Form changes | Mega Evolution base-plus-Mega overlay, Primal Reversion, Ultra Burst, Weather forms, Stance Change, Disguise, Ice Face, and any ability-gated form change. |
+| Battle-only boundary | Field lead ability behavior remains single-ability while battle behavior uses all active slots. |
 | AI | Damage / switch decisions that depend on immunity, trapping, priority, speed, and Magic Guard-style secondary damage. |
 | Items | Ability Capsule / Patch fail or apply chosen new policy under all-active mode, and retain upstream behavior when disabled. |
 | Summary UI | Summary shows all active ability names and lets the player inspect descriptions without text overflow. |
@@ -55,7 +57,8 @@ Record mGBA Live evidence or the exact failure in this file before push.
 - Try Ability Capsule and Ability Patch in all-active mode and confirm the
   chosen message / behavior is clear.
 - Mega Evolve a Pokemon whose target form has a different ability table and
-  confirm the post-form active set matches the current species policy.
+  confirm the post-form active set includes base slots plus Mega target slots,
+  with duplicates removed.
 - In a double battle, verify ability popup order and that the player is not
   trapped or immune incorrectly due to a missed secondary ability.
 
