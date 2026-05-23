@@ -4,14 +4,20 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-22 |
-| Baseline | `master` `2bb16c85b311`; upstream `expansion/1.15.2-86-g2bb16c85b3` |
-| Code status | Docs-only investigation; no runtime code on `master` |
+| Last reviewed | 2026-05-23 |
+| Baseline | `master` `33932f1c30`; upstream `expansion/1.15.2-86-g2bb16c85b3` |
+| Code status | Runtime implementation active on feature branch; vendor / sealed recruit first slice implemented |
 | Provenance | Local project overlay |
 
 ## Status
 
-Status: Planned.
+Status: First runtime slice implemented on `feature/global-no-evolution-20260523`.
+
+The branch now includes the global no-evolution rule, a new script-facing
+Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
+delivery, one-time / repeat products, gated shop rows, script-driven bond progress,
+trainer victory bond reward messages, purchasable mystery sealed products, and
+Summary / party / PC-visible locked sealed status.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
 Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon, literal
@@ -44,12 +50,27 @@ one-time only.
 - Treat BP as optional flavor only. The core design should use an abstract
   sealed progress / unlock counter; whether that maps to Battle Frontier BP,
   challenge-only points, or another reward value is a later balancing choice.
+- Trainer or challenge scripts should award sealed bond progress explicitly with
+  per-NPC amounts such as 10, 20, 80, or 100. Field / room clear scripts can
+  use `pokemonvendorawardbond amount[, showMessage]`; trainer battle setup
+  scripts can use `pokemonvendorqueuebattlebond amount` so the reward is paid
+  and displayed from the battle victory text flow.
+- Debug `Scripts... -> Script 3` is the current normal-trainer validation
+  route: it queues 20 sealed bond EXP, starts a regular trainer battle, and
+  displays the reward inside the win-message sequence after the money message.
 - For the first runtime slice, prefer battle-win or challenge-clear based
   sealed progress while the locked recruit is in the party. Step-based progress
   is possible for literal Eggs, but it collides more directly with the existing
   Egg-cycle hatch logic.
-- The sealed-product risk is primarily the occupied party slot. While carried
-  in locked state, the player effectively has one fewer battle-capable Pokemon.
+- The sealed-product risk is primarily the occupied party slot after the
+  recruit is carried. If the party is full at purchase time, sealed recruits now
+  follow the normal gift-Pokemon fallback and are sent to PC when storage has
+  room. They do not gain party-carried bond progress until the player moves
+  them into the party.
+- The word "locked" refers to the post-acquisition sealed recruit state. A shop
+  row that is not buyable yet is only a gated offer; it may hide the species or
+  price until its unlock flag is met, but that is not the same as a locked
+  Pokemon in the party.
 - A sealed product is not limited to breedable species. Product data may point
   at a final evolution, restricted species, or legendary; the lock is a
   gameplay contract, not biological breeding compatibility.
@@ -60,15 +81,19 @@ one-time only.
   as Clefairy-style middle / stone-evolution species are still fixed products;
   evolution stones and other evolution triggers should not evolve them.
 - Vendor sealed products need a persistent origin marker that survives unlock /
-  hatch resolution. The
-  preferred implementation candidate is to promote the currently unused
-  `PokemonSubstruct3.unused_0B` bit into a named
-  `MON_DATA_VENDOR_SEALED_ORIGIN`
-  field, if the implementation branch confirms it is unused in this fork.
-- Summary should show a small "LOCKED" label while the recruit is still sealed,
-  then a compact "Sealed Origin" / "Vendor Origin" style label or badge after
-  unlock. This is player-facing proof of why the Pokemon receives
-  always-available Status Editor access.
+  hatch resolution. The implementation promotes the currently unused
+  `PokemonSubstruct3.unused_0B` bit into
+  `MON_DATA_VENDOR_SEALED_ORIGIN`.
+- Mystery sealed products can hide species as `?????` while still being
+  purchasable. Their actual species is selected at purchase time from the
+  product's base species plus optional random-species candidates.
+- Summary and party / PC icon surfaces should show the actual Pokemon identity
+  for named locked products while the recruit is still locked, plus a small
+  `LOCKED` label and bond progress text. Concealed `?????` products remain
+  hidden after purchase until unlock, using generic Egg icon / sprite /
+  nickname treatment plus `LOCKED` status. Ordinary Eggs must keep ordinary Egg
+  visuals.
+  A graphic lock badge can be added in a later UI pass.
 - The tone should be close to a Shadow Pokemon purification / bond-deepening
   flow: the Pokemon is present but not yet usable, then becomes available when
   enough bond / seal EXP has accumulated.
@@ -95,9 +120,15 @@ one-time only.
 - Sealed recruit purchase path based on either existing `CreateEgg()` /
   `ScriptGiveEgg()` mechanics or a custom locked-mon creator, depending on the
   chosen UI language.
+- Sealed recruit full-party fallback to PC when storage has room.
 - A policy hook for move and held-item editing entitlement.
-- A lock-state UI for unavailable shop rows, e.g. "LOCKED" / "Still locked".
+- A gate-state UI for unavailable shop rows, e.g. "GATED" / "Not available".
 - Bond / seal EXP progress while a sealed recruit is carried.
+- Script macros for field / room rewards and queued trainer battle rewards.
+  Field rewards can show or suppress bond EXP and unlock messages per call
+  site; queued trainer rewards display from the battle victory text flow.
+- Mystery sealed products with hidden display and random purchase-time species
+  selection.
 - A Summary-visible vendor sealed-origin marker.
 - Sealed progress policy that can be driven by carried-party state.
 
@@ -109,10 +140,21 @@ one-time only.
 - Forcing use of Battle Frontier BP as the reward currency.
 - A full Champions Challenge save-session implementation.
 - Box-wide rollback or PC snapshot behavior.
+- Trainer item / TM drop tables after battle. This should be a separate reward
+  feature because it affects economy balance.
+- Per-row Pokemon icon rendering inside the vendor list. The current runtime
+  shows the selected product's real icon in the detail pane; row icons remain a
+  later custom-list pass because the standard list row height is too small for
+  32x32 mon icons without a layout rewrite.
+- Gen 7 / Gen 8-style "add to party and choose a party member to send to PC"
+  swap UI. That should be a separate gift / capture / vendor delivery feature
+  because it cuts across more than this Pokemon vendor.
 
 ## Related Docs
 
+- [Pokemon Vendor Manual](../../manuals/pokemon_vendor_manual.md)
 - [Investigation](investigation.md)
+- [Implementation](implementation.md)
 - [MVP Plan](mvp_plan.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)
@@ -123,16 +165,13 @@ one-time only.
 
 ## Open Questions
 
-- How should a purchased Pokemon's origin / edit entitlement be stored
-  persistently without exhausting Pokemon struct spare bits?
-- Should sealed products resolve through vanilla Egg hatch flow, or through a
-  custom unlock animation / message that better fits final evolutions and
-  legendary Pokemon?
-- Should repeat products be allowed to send Pokemon to PC, or should the vendor
-  require an empty party slot for all purchases?
-- Should sealed progress be tied to trainer wins only, any battle win, challenge
-  room clear, or a product-specific script event?
-- Should bond / seal EXP use a visible numeric meter, a small segmented gauge,
-  or only text such as "The bond is deepening"?
-- What exact Summary wording / badge should represent vendor sealed origin
-  without being confused with ordinary daycare Eggs?
+- Should sealed unlock use an explicit confirmation / animation instead of the
+  current immediate unlock when bond reaches threshold?
+- Which non-debug map / NPC should host the first real product list?
+- Should future progress be awarded from trainer wins, challenge clears, or
+  product-specific script events only?
+- Should the Summary origin proof become a visual badge instead of memo text?
+- Should PC-stored sealed recruits ever gain bond progress, or is
+  party-carried progress the intended risk?
+- Which editor / relearner surfaces should call `PokemonVendor_IsEditEntitled()`
+  first?

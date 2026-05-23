@@ -14,7 +14,7 @@ Pokemon and Egg-like sealed recruits without abusing Bag item delivery.
 - Support product kind: normal Pokemon or sealed recruit.
 - Allow sealed recruit products to target any explicitly listed species,
   including final evolutions and legendary Pokemon.
-- Show locked shop rows for products that are not available yet.
+- Show gated shop rows for products that are not available yet.
 - Support purchase mode: repeatable or one-time.
 - Check money before purchase.
 - Check destination capacity before purchase.
@@ -37,7 +37,7 @@ fields:
 | Product kind | Normal Pokemon, literal Egg, or sealed recruit. |
 | Purchase mode | Repeatable or one-time. |
 | One-time flag | Optional event flag set after successful purchase. |
-| Shop unlock flag / rule | Optional condition for locked rows before purchase. |
+| Shop unlock flag / rule | Optional condition for gated rows before purchase. |
 | Held item | Optional normal Pokemon held item. Sealed held item policy should be explicit if supported. |
 | Ball | Optional. Default Poke Ball is acceptable. |
 | Move payload | Optional. MVP may use default moves, but product data should not block future custom moves. |
@@ -46,7 +46,8 @@ fields:
 | Progress policy | None, trainer wins while carried, challenge clears while carried, steps, or script-driven. |
 | Bond EXP threshold | Feature-owned progress required to release the locked recruit. |
 | Bond EXP yield | Amount awarded per trainer win, challenge clear, script event, or EXP-equivalent event. |
-| Reveal policy | Whether locked rows show the target species or display `????`. |
+| Reveal policy | Whether gated rows show the target species, and whether purchasable mystery rows display `????`. |
+| Random species pool | Optional candidate species for mystery products; actual species is selected when purchased. |
 | Evolution policy | Runtime species are fixed; global evolution lock is allowed and preferred. |
 
 ## Recommended Implementation Shape
@@ -55,7 +56,7 @@ fields:
 |---|---|---|
 | 1 | `include/shop.h`, `src/shop.c` or new `src/pokemon_vendor.c` | Add a sibling vendor flow instead of modifying normal `pokemart` purchase finalization in place. |
 | 2 | `src/scrcmd.c`, `data/script_cmd_table.inc`, `asm/macros/event.inc` | Add a script command / macro such as `pokemonvendor products` or `pokemartmon products`. |
-| 3 | New product data file | Define fixed debug products first: repeat normal Pokemon, one-time normal Pokemon, repeat sealed recruit, one-time sealed recruit, and one locked row. |
+| 3 | New product data file | Define fixed debug products first: repeat normal Pokemon, one-time normal Pokemon, repeat sealed recruit, one-time sealed recruit, and one gated row. |
 | 4 | `src/script_pokemon_util.c` or a new helper | Reuse `ScriptGiveMonParameterized`-style creation for normal Pokemon. For sealed recruits, choose either `CreateEgg`-based internal delivery or a custom locked-mon creator. |
 | 5 | Event flags / local ledger | Reserve one-time purchase flags only in the feature branch, then document them in the local config / flag ledger. |
 | 6 | `include/pokemon.h`, `src/pokemon.c`, `src/egg_hatch.c` or custom unlock file | Add a persistent vendor sealed-origin mon-data bit, set it on sealed products, and preserve it when the recruit unlocks. |
@@ -71,6 +72,11 @@ Do not hardcode BP in the first slice. Use a feature-local concept:
 - Sealed recruit must be in the player's party.
 - Sealed recruit occupies a party slot and cannot battle until unlocked.
 - Progress source is configurable per product.
+- Trainer / NPC scripts can call `pokemonvendorawardbond amount` after battle
+  to award per-NPC progress, e.g. 10 or 20 for regular trainers, 80 for Elite
+  Four, and 100 for a Champion-class clear.
+- The reward macro has a `showMessage` parameter so noisy repeat rewards can be
+  hidden while boss clears can show bond EXP and unlock messages.
 - The in-game feel is "bond deepened" / Shadow Pokemon style release.
 - Store progress as feature-owned bond / seal EXP, not normal
   `MON_DATA_EXP`, unless a later branch intentionally wants level EXP side
@@ -238,8 +244,9 @@ Recommended helper contract:
 - Sealed risk: party slot pressure, not a hidden stat penalty.
 - Sealed-origin identity: stored on the Pokemon, not inferred from species or
   ordinary hatch memo text.
-- Locked UI: shop rows can show `LOCKED` / `Still locked` and refuse purchase
-  before the unlock condition is met.
+- Gated UI: shop rows can show `GATED` / unavailable text and refuse purchase
+  before the availability condition is met. This is separate from the locked
+  sealed-recruit state after purchase.
 - Bond EXP: feature-owned release progress accumulated while the sealed recruit
   is carried; not the same as normal level EXP by default.
 - Status Editor access: always available only for non-locked Pokemon with the
@@ -254,6 +261,8 @@ Recommended helper contract:
 - Product pools generated from partygen JSON.
 - Product-specific species de-duplication.
 - Product preview with Pokemon icon or Summary preview.
+- Trainer / challenge item-drop tables, including TM / held-item drops, as a
+  separate economy feature.
 - Custom moves, IVs, EVs, ability, nature, and held item payload parity with
   the script `givemon` macro.
 - Challenge-only Lv.50 normalization.
@@ -267,7 +276,7 @@ Recommended helper contract:
 - Should one-time products hide after purchase, show sold out, or remain visible
   but disabled?
 - Should battle-win progress count only trainer battles, or also wild battles?
-- Should locked rows reveal the target legendary / final evolution, or hide the
+- Should gated rows reveal the target legendary / final evolution, or hide the
   species until the row unlocks?
 - Should release happen automatically at full bond EXP, or require a Summary /
   NPC confirmation step?
