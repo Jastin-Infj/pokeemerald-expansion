@@ -89,6 +89,7 @@ static u16 CalculateBoxMonChecksumReencrypt(struct BoxPokemon *boxMon);
 static union PokemonSubstruct *GetSubstruct(struct BoxPokemon *boxMon, u32 personality, enum SubstructType substructType);
 static void EncryptBoxMon(struct BoxPokemon *boxMon);
 static void DecryptBoxMon(struct BoxPokemon *boxMon);
+static bool32 IsNamedLockedVendorSealedBoxMon(struct BoxPokemon *boxMon);
 static void Task_PlayMapChosenOrBattleBGM(u8 taskId);
 void TrySpecialOverworldEvo();
 
@@ -2496,6 +2497,15 @@ static ALWAYS_INLINE bool32 IsEggOrBadEgg(struct BoxPokemon *boxMon)
     return GetSubstruct3(boxMon)->isEgg || IsBadEgg(boxMon);
 }
 
+static bool32 IsNamedLockedVendorSealedBoxMon(struct BoxPokemon *boxMon)
+{
+    return !IsBadEgg(boxMon)
+        && boxMon->isEgg
+        && GetSubstruct3(boxMon)->isEgg
+        && GetSubstruct3(boxMon)->unused_0B
+        && !boxMon->vendorSealedConcealed;
+}
+
 /* GameFreak called GetBoxMonData with either 2 or 3 arguments, for type
  * safety we have a GetBoxMonData macro (in include/pokemon.h) which
  * dispatches to either GetBoxMonData2 or GetBoxMonData3 based on the
@@ -2523,7 +2533,7 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
 
                 data[retVal] = EOS;
             }
-            else if (boxMon->isEgg)
+            else if (boxMon->isEgg && !IsNamedLockedVendorSealedBoxMon(boxMon))
             {
                 StringCopy(data, gText_EggNickname);
                 retVal = StringLength(data);
@@ -2763,6 +2773,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
             break;
         case MON_DATA_VENDOR_SEALED_ORIGIN:
             retVal = GetSubstruct3(boxMon)->unused_0B;
+            break;
+        case MON_DATA_VENDOR_SEALED_CONCEALED:
+            retVal = boxMon->vendorSealedConcealed;
             break;
         case MON_DATA_SPECIES_OR_EGG:
             retVal = GetSubstruct0(boxMon)->species;
@@ -3282,6 +3295,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             break;
         case MON_DATA_VENDOR_SEALED_ORIGIN:
             SET8(GetSubstruct3(boxMon)->unused_0B);
+            break;
+        case MON_DATA_VENDOR_SEALED_CONCEALED:
+            SET8(boxMon->vendorSealedConcealed);
             break;
         case MON_DATA_IVS:
         {

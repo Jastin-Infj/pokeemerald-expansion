@@ -88,9 +88,12 @@ one-time only.
   purchasable. Their actual species is selected at purchase time from the
   product's base species plus optional random-species candidates.
 - Summary and party / PC icon surfaces should show the actual Pokemon identity
-  while the recruit is still locked, plus a small `LOCKED` label and bond
-  progress text. Ordinary Eggs must keep ordinary Egg visuals. A graphic lock
-  badge can be added in a later UI pass.
+  for named locked products while the recruit is still locked, plus a small
+  `LOCKED` label and bond progress text. Concealed `?????` products remain
+  hidden after purchase until unlock, using generic Egg icon / sprite /
+  nickname treatment plus `LOCKED` status. Ordinary Eggs must keep ordinary Egg
+  visuals.
+  A graphic lock badge can be added in a later UI pass.
 - The tone should be close to a Shadow Pokemon purification / bond-deepening
   flow: the Pokemon is present but not yet usable, then becomes available when
   enough bond / seal EXP has accumulated.

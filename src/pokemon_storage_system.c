@@ -488,6 +488,8 @@ struct PokemonStorageSystemData
     u8 displayMonMarkings;
     u8 displayMonLevel;
     bool8 displayMonIsEgg;
+    bool8 displayMonDisplayAsEgg;
+    bool8 displayMonIsVendorLocked;
     u8 displayMonName[POKEMON_NAME_LENGTH + 1];
     u8 displayMonNameText[36];
     u8 displayMonSpeciesName[36];
@@ -839,6 +841,7 @@ static void ShowYesNoWindow(s8);
 static void UpdateCloseBoxButtonTilemap(bool8);
 static void PrintMessage(u8 id);
 static void LoadDisplayMonGfx(u16 species, u32 pid, bool32 isEgg);
+static u16 GetDisplayMonGfxSpecies(void);
 static void SpriteCB_DisplayMonMosaic(struct Sprite *);
 static void SetPartySlotTilemap(u8, bool8);
 
@@ -3917,7 +3920,7 @@ static void CreateWaveformSprites(void)
 
 static void RefreshDisplayMonData(void)
 {
-    LoadDisplayMonGfx(sStorage->displayMonSpecies, sStorage->displayMonPersonality, sStorage->displayMonIsEgg);
+    LoadDisplayMonGfx(GetDisplayMonGfxSpecies(), sStorage->displayMonPersonality, sStorage->displayMonDisplayAsEgg);
     PrintDisplayMonInfo();
     UpdateWaveformAnimation();
     ScheduleBgCopyTilemapToVram(0);
@@ -4013,13 +4016,20 @@ static void LoadDisplayMonGfx(u16 species, u32 pid, bool32 isEgg)
     }
 }
 
+static u16 GetDisplayMonGfxSpecies(void)
+{
+    if (sStorage->displayMonIsVendorLocked && sStorage->displayMonDisplayAsEgg)
+        return SPECIES_EGG;
+    return sStorage->displayMonSpecies;
+}
+
 static void PrintDisplayMonInfo(void)
 {
     FillWindowPixelBuffer(WIN_DISPLAY_INFO, PIXEL_FILL(1));
     if (sStorage->boxOption != OPTION_MOVE_ITEMS)
     {
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonNameText, FONT_NORMAL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), sStorage->displayMonNameText, 6, 0, TEXT_SKIP_DRAW, NULL);
-        AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonNameText, FONT_SHORT, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 12), sStorage->displayMonSpeciesName, 6, 15, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonSpeciesName, FONT_SHORT, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 12), sStorage->displayMonSpeciesName, 6, 15, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, FONT_SHORT, sStorage->displayMonGenderLvlText, 10, 29, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonItemName, FONT_SMALL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), sStorage->displayMonItemName, 6, 43, TEXT_SKIP_DRAW, NULL);
     }
@@ -6968,20 +6978,27 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
         if (sStorage->displayMonSpecies != SPECIES_NONE)
         {
             sanityIsBadEgg = GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG);
+            sStorage->displayMonIsVendorLocked = PokemonVendor_IsLockedSealedRecruit(mon);
             if (sanityIsBadEgg)
+            {
                 sStorage->displayMonIsEgg = TRUE;
+                sStorage->displayMonDisplayAsEgg = TRUE;
+            }
             else
-                sStorage->displayMonIsEgg = PokemonVendor_ShouldDisplayMonAsEgg(mon);
+            {
+                sStorage->displayMonIsEgg = GetMonData(mon, MON_DATA_IS_EGG);
+                sStorage->displayMonDisplayAsEgg = PokemonVendor_ShouldDisplayMonAsEgg(mon);
+            }
 
             GetMonData(mon, MON_DATA_NICKNAME, sStorage->displayMonName);
             StringGet_Nickname(sStorage->displayMonName);
             sStorage->displayMonLevel = GetMonData(mon, MON_DATA_LEVEL);
             sStorage->displayMonMarkings = GetMonData(mon, MON_DATA_MARKINGS);
             sStorage->displayMonPersonality = GetMonData(mon, MON_DATA_PERSONALITY);
-            sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(sStorage->displayMonSpecies,
+            sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(GetDisplayMonGfxSpecies(),
                                                                                         GetMonData(mon, MON_DATA_IS_SHINY),
                                                                                         sStorage->displayMonPersonality,
-                                                                                        sStorage->displayMonIsEgg);
+                                                                                        sStorage->displayMonDisplayAsEgg);
             gender = GetMonGender(mon);
             sStorage->displayMonItemId = GetMonData(mon, MON_DATA_HELD_ITEM);
         }
@@ -6995,17 +7012,24 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
         {
             bool32 isShiny = GetBoxMonData(boxMon, MON_DATA_IS_SHINY);
             sanityIsBadEgg = GetBoxMonData(boxMon, MON_DATA_SANITY_IS_BAD_EGG);
+            sStorage->displayMonIsVendorLocked = PokemonVendor_IsLockedSealedBoxMon(boxMon);
             if (sanityIsBadEgg)
+            {
                 sStorage->displayMonIsEgg = TRUE;
+                sStorage->displayMonDisplayAsEgg = TRUE;
+            }
             else
-                sStorage->displayMonIsEgg = PokemonVendor_ShouldDisplayBoxMonAsEgg(boxMon);
+            {
+                sStorage->displayMonIsEgg = GetBoxMonData(boxMon, MON_DATA_IS_EGG);
+                sStorage->displayMonDisplayAsEgg = PokemonVendor_ShouldDisplayBoxMonAsEgg(boxMon);
+            }
 
             GetBoxMonData(boxMon, MON_DATA_NICKNAME, sStorage->displayMonName);
             StringGet_Nickname(sStorage->displayMonName);
             sStorage->displayMonLevel = GetLevelFromBoxMonExp(boxMon);
             sStorage->displayMonMarkings = GetBoxMonData(boxMon, MON_DATA_MARKINGS);
             sStorage->displayMonPersonality = GetBoxMonData(boxMon, MON_DATA_PERSONALITY);
-            sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(sStorage->displayMonSpecies, isShiny, sStorage->displayMonPersonality, sStorage->displayMonIsEgg);
+            sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(GetDisplayMonGfxSpecies(), isShiny, sStorage->displayMonPersonality, sStorage->displayMonDisplayAsEgg);
             gender = GetGenderFromSpeciesAndPersonality(sStorage->displayMonSpecies, sStorage->displayMonPersonality);
             sStorage->displayMonItemId = GetBoxMonData(boxMon, MON_DATA_HELD_ITEM);
         }
@@ -7014,6 +7038,9 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
     {
         sStorage->displayMonSpecies = SPECIES_NONE;
         sStorage->displayMonItemId = ITEM_NONE;
+        sStorage->displayMonIsEgg = FALSE;
+        sStorage->displayMonDisplayAsEgg = FALSE;
+        sStorage->displayMonIsVendorLocked = FALSE;
     }
 
     if (sStorage->displayMonSpecies == SPECIES_NONE)
@@ -7024,14 +7051,17 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
         StringFill(sStorage->displayMonGenderLvlText, CHAR_SPACE, 8);
         StringFill(sStorage->displayMonItemName, CHAR_SPACE, 8);
     }
-    else if (sStorage->displayMonIsEgg)
+    else if (sStorage->displayMonDisplayAsEgg)
     {
         if (sanityIsBadEgg)
             StringCopyPadded(sStorage->displayMonNameText, sStorage->displayMonName, CHAR_SPACE, 5);
         else
             StringCopyPadded(sStorage->displayMonNameText, gText_EggNickname, CHAR_SPACE, 8);
 
-        StringFill(sStorage->displayMonSpeciesName, CHAR_SPACE, 8);
+        if (sStorage->displayMonIsVendorLocked)
+            StringCopyPadded(sStorage->displayMonSpeciesName, gText_PokemonVendorLocked, CHAR_SPACE, 8);
+        else
+            StringFill(sStorage->displayMonSpeciesName, CHAR_SPACE, 8);
         StringFill(sStorage->displayMonGenderLvlText, CHAR_SPACE, 8);
         StringFill(sStorage->displayMonItemName, CHAR_SPACE, 8);
     }
@@ -7092,6 +7122,9 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
         else
             StringFill(sStorage->displayMonItemName, CHAR_SPACE, 8);
     }
+
+    if (sStorage->displayMonIsVendorLocked)
+        StringCopyPadded(sStorage->displayMonItemName, gText_PokemonVendorLocked, CHAR_SPACE, 8);
 }
 
 
@@ -10063,17 +10096,20 @@ void UpdateSpeciesSpritePSS(struct BoxPokemon *boxMon)
     u16 species = GetBoxMonData(boxMon, MON_DATA_SPECIES);
     bool8 isShiny = GetBoxMonData(boxMon, MON_DATA_IS_SHINY);
     u32 pid = GetBoxMonData(boxMon, MON_DATA_PERSONALITY);
-    bool32 isEgg = PokemonVendor_ShouldDisplayBoxMonAsEgg(boxMon);
+    bool32 isEgg = GetBoxMonData(boxMon, MON_DATA_IS_EGG);
+    bool32 displayAsEgg = PokemonVendor_ShouldDisplayBoxMonAsEgg(boxMon);
 
     // Update front sprite
     sStorage->displayMonSpecies = species;
-    sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(species, isShiny, pid, isEgg);
     sStorage->displayMonIsEgg = isEgg;
+    sStorage->displayMonDisplayAsEgg = displayAsEgg;
+    sStorage->displayMonIsVendorLocked = PokemonVendor_IsLockedSealedBoxMon(boxMon);
+    sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(GetDisplayMonGfxSpecies(), isShiny, pid, displayAsEgg);
     if (!sJustOpenedBag)
     {
         if (sRefreshDisplayMonGfx)
         {
-            LoadDisplayMonGfx(species, pid, isEgg);
+            LoadDisplayMonGfx(GetDisplayMonGfxSpecies(), pid, displayAsEgg);
             StartDisplayMonMosaicEffect();
             sRefreshDisplayMonGfx = FALSE;
         }

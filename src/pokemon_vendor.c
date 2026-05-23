@@ -758,11 +758,13 @@ static void PokemonVendorMarkSealedRecruit(const struct PokemonVendorProduct *pr
 {
     u8 isEgg = TRUE;
     u8 origin = TRUE;
+    u8 concealed = PokemonVendorProductHidesSpecies(product);
     u8 progress = 0;
     u8 threshold = PokemonVendorClampBondThreshold(product->bondThreshold);
 
     SetMonData(mon, MON_DATA_IS_EGG, &isEgg);
     SetMonData(mon, MON_DATA_VENDOR_SEALED_ORIGIN, &origin);
+    SetMonData(mon, MON_DATA_VENDOR_SEALED_CONCEALED, &concealed);
     SetMonData(mon, MON_DATA_FRIENDSHIP, &progress);
     SetMonData(mon, MON_DATA_SHEEN, &threshold);
 }
@@ -791,14 +793,26 @@ bool32 PokemonVendor_IsLockedSealedBoxMon(struct BoxPokemon *boxMon)
     return GetBoxMonData(boxMon, MON_DATA_VENDOR_SEALED_ORIGIN) && GetBoxMonData(boxMon, MON_DATA_IS_EGG);
 }
 
+bool32 PokemonVendor_IsConcealedSealedRecruit(struct Pokemon *mon)
+{
+    return PokemonVendor_IsLockedSealedRecruit(mon) && GetMonData(mon, MON_DATA_VENDOR_SEALED_CONCEALED);
+}
+
+bool32 PokemonVendor_IsConcealedSealedBoxMon(struct BoxPokemon *boxMon)
+{
+    return PokemonVendor_IsLockedSealedBoxMon(boxMon) && GetBoxMonData(boxMon, MON_DATA_VENDOR_SEALED_CONCEALED);
+}
+
 bool32 PokemonVendor_ShouldDisplayMonAsEgg(struct Pokemon *mon)
 {
-    return GetMonData(mon, MON_DATA_IS_EGG) && !PokemonVendor_IsLockedSealedRecruit(mon);
+    return GetMonData(mon, MON_DATA_IS_EGG)
+        && (!PokemonVendor_IsLockedSealedRecruit(mon) || PokemonVendor_IsConcealedSealedRecruit(mon));
 }
 
 bool32 PokemonVendor_ShouldDisplayBoxMonAsEgg(struct BoxPokemon *boxMon)
 {
-    return GetBoxMonData(boxMon, MON_DATA_IS_EGG) && !PokemonVendor_IsLockedSealedBoxMon(boxMon);
+    return GetBoxMonData(boxMon, MON_DATA_IS_EGG)
+        && (!PokemonVendor_IsLockedSealedBoxMon(boxMon) || PokemonVendor_IsConcealedSealedBoxMon(boxMon));
 }
 
 bool32 PokemonVendor_IsEditEntitled(struct Pokemon *mon)
@@ -850,10 +864,12 @@ bool32 PokemonVendor_AddBondExp(struct Pokemon *mon, u8 amount)
 static void PokemonVendorUnlockSealedRecruit(struct Pokemon *mon)
 {
     u8 isEgg = FALSE;
+    u8 concealed = FALSE;
     u8 sheen = 0;
     u8 friendship = 70;
 
     SetMonData(mon, MON_DATA_IS_EGG, &isEgg);
+    SetMonData(mon, MON_DATA_VENDOR_SEALED_CONCEALED, &concealed);
     SetMonData(mon, MON_DATA_SHEEN, &sheen);
     SetMonData(mon, MON_DATA_FRIENDSHIP, &friendship);
     CalculateMonStats(mon);

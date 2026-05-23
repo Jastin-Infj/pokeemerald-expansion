@@ -35,11 +35,17 @@ Pokemon Vendor.
   the player has one fewer usable battler.
 - Sealed recruits are excluded from vanilla Egg-cycle hatching.
 - Vendor sealed-origin Pokemon keep a per-mon origin marker through unlock.
-- Summary shows the actual Pokemon sprite / type identity, a `LOCKED` label,
-  and sealed bond progress while locked, then a vendor-origin memo after unlock.
-- Party menu and Pokemon Storage icon paths display locked sealed recruits as
-  their real species instead of the ordinary Egg icon. Ordinary Eggs still use
-  ordinary Egg visuals.
+- Named sealed recruits keep their real species nickname / icon / sprite while
+  locked, show a `LOCKED` label, and show sealed bond progress in Summary.
+  They still keep Egg battle restrictions and do not play the species cry while
+  locked.
+- Concealed `?????` sealed recruits keep generic Egg nickname / icon / sprite
+  treatment while locked so the mystery product does not reveal its actual
+  species, including through species-specific Egg art, before unlock.
+- Pokemon Storage now separates locked display identity from the actual Egg
+  restriction bit. Named locked recruits show their real species art, and the
+  left info panel prints `LOCKED`; concealed locked recruits show Egg visuals
+  with `LOCKED`.
 - The vendor UI now owns its bottom message window instead of reusing the field
   dialogue printer, clears any prior field message box before drawing, and
   restores the list / info windows after Yes / No overlays are dismissed.
@@ -193,6 +199,8 @@ prints the unlock message only if one or more recruits unlocked.
 | 2026-05-23 | mGBA Live queued battle-win reward route | Pass | Bought a locked `?????` sealed recruit through debug `Script 1`, ran debug `Script 3`, confirmed the normal trainer battle against `YOUNGSTER CALVIN`, won it, saw `You got ¥80 for winning!`, then saw `Sealed bond EXP increased by 20.` while still in battle before field return. No extra bond message appeared after returning to the field. Screenshots: `/tmp/pokemon-vendor-battlemsg-script3-start-20260523.png`, `/tmp/pokemon-vendor-battlemsg-battle-intro-20260523.png`, `/tmp/pokemon-vendor-battlemsg-money-20260523.png`, `/tmp/pokemon-vendor-battlemsg-bond-inbattle-20260523.png`, `/tmp/pokemon-vendor-battlemsg-field-return-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Full-party sealed PC fallback / locked display build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding sealed PC fallback and actual-species locked display helpers. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
 | 2026-05-23 | mGBA Live full-party sealed PC fallback / locked display route | Pass | Continued the existing save, used Lua only to raise money and set up space/full-party states, then used debug `Scripts... -> Script 1`. With party count 6, buying one-time Dragonite sealed showed `It was sent to a PC BOX.` Screenshot: `/tmp/pokemon-vendor-sealed-pc-delivery-20260523.png`. Then a repeat mystery sealed recruit was bought into party; Party menu showed the actual Pokemon icon plus `LOCKED`, and Summary showed the actual sprite/type plus `LOCKED` and `Locked bond: 0/180`. Screenshots: `/tmp/pokemon-vendor-locked-party-real-icon-20260523.png`, `/tmp/pokemon-vendor-locked-summary-real-sprite-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Named vs concealed locked display build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding the concealed marker, named locked nickname preservation, and Storage `LOCKED` display. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live concealed locked display route | Pass | Bought a `?????` sealed recruit through debug `Scripts... -> Script 1`. Party showed generic Egg icon, `EGG`, and `LOCKED`; Summary showed generic Egg art plus `LOCKED` and bond progress; a Lua-only validation copy to Box 1 slot 1 confirmed Pokemon Storage shows generic Egg art, `EGG`, and `LOCKED` in the left info panel. Screenshots: `/tmp/pokemon-vendor-final-party-concealed-egg-20260523.png`, `/tmp/pokemon-vendor-final-summary-concealed-egg-20260523.png`, `/tmp/pokemon-vendor-final-storage-box-concealed-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.

@@ -32,6 +32,8 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
 bool32 PokemonVendor_IsSealedOriginMon(struct Pokemon *mon);
 bool32 PokemonVendor_IsLockedSealedRecruit(struct Pokemon *mon);
 bool32 PokemonVendor_IsLockedSealedBoxMon(struct BoxPokemon *boxMon);
+bool32 PokemonVendor_IsConcealedSealedRecruit(struct Pokemon *mon);
+bool32 PokemonVendor_IsConcealedSealedBoxMon(struct BoxPokemon *boxMon);
 bool32 PokemonVendor_ShouldDisplayMonAsEgg(struct Pokemon *mon);
 bool32 PokemonVendor_ShouldDisplayBoxMonAsEgg(struct BoxPokemon *boxMon);
 bool32 PokemonVendor_IsEditEntitled(struct Pokemon *mon);
