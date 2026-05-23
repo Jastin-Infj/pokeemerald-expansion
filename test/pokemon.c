@@ -75,6 +75,27 @@ TEST("Terastallization type is reset to the default types when setting Tera Type
         || typeNone == GetSpeciesType(SPECIES_PIDGEY, 1));
 }
 
+TEST("Global no-evolution runtime blocks evolution targets")
+{
+    struct Pokemon mon, tradePartner;
+    bool32 canStopEvo = TRUE;
+
+    ASSUME(AreRuntimeEvolutionsDisabled());
+
+    CreateMon(&mon, SPECIES_BULBASAUR, 16, 0, OTID_STRUCT_PRESET(0));
+    EXPECT(!CanPokemonEvolveInThisRuntime(&mon));
+    EXPECT_EQ(GetEvolutionTargetSpecies(&mon, EVO_MODE_NORMAL, ITEM_NONE, NULL, &canStopEvo, CHECK_EVO), SPECIES_NONE);
+    EXPECT_EQ(IsMonPastEvolutionLevel(&mon), FALSE);
+
+    CreateMon(&mon, SPECIES_CLEFAIRY, 50, 0, OTID_STRUCT_PRESET(0));
+    EXPECT_EQ(GetEvolutionTargetSpecies(&mon, EVO_MODE_ITEM_CHECK, ITEM_MOON_STONE, NULL, NULL, CHECK_EVO), SPECIES_NONE);
+    EXPECT_EQ(GetEvolutionTargetSpecies(&mon, EVO_MODE_ITEM_USE, ITEM_MOON_STONE, NULL, &canStopEvo, CHECK_EVO), SPECIES_NONE);
+
+    CreateMon(&mon, SPECIES_HAUNTER, 50, 0, OTID_STRUCT_PRESET(0));
+    CreateMon(&tradePartner, SPECIES_PIDGEY, 50, 0, OTID_STRUCT_PRESET(0));
+    EXPECT_EQ(GetEvolutionTargetSpecies(&mon, EVO_MODE_TRADE, ITEM_NONE, &tradePartner, NULL, CHECK_EVO), SPECIES_NONE);
+}
+
 TEST("Shininess independent from PID and OTID")
 {
     u32 pid, otId, data;

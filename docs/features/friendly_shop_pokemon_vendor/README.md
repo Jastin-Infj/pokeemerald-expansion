@@ -4,14 +4,19 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-22 |
-| Baseline | `master` `2bb16c85b311`; upstream `expansion/1.15.2-86-g2bb16c85b3` |
-| Code status | Docs-only investigation; no runtime code on `master` |
+| Last reviewed | 2026-05-23 |
+| Baseline | `master` `33932f1c30`; upstream `expansion/1.15.2-86-g2bb16c85b3` |
+| Code status | Runtime implementation started on feature branch; Pokemon vendor menu is not implemented yet |
 | Provenance | Local project overlay |
 
 ## Status
 
-Status: Planned.
+Status: Implementation started.
+
+The first runtime slice is the global no-evolution rule required by the fixed
+species product model. The actual Friendly Shop Pokemon vendor, sealed recruit
+delivery, and bond / seal EXP progress systems remain future work on this
+feature branch.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
 Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon, literal
@@ -113,6 +118,7 @@ one-time only.
 ## Related Docs
 
 - [Investigation](investigation.md)
+- [Implementation](implementation.md)
 - [MVP Plan](mvp_plan.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)

@@ -20,6 +20,7 @@
 #define P_EVOLUTION_LEVEL_1_LEARN   GEN_LATEST  // Since Gen 8, Pokémon evolving while at level 1 do not get the chance to learn their level 1 moves, while before they did.
 
 // Evolution settings
+#define P_EVOLUTIONS_ENABLED       FALSE       // If FALSE, disables ordinary Pokemon evolution targets. Battle form-change gimmicks such as Mega Evolution are separate.
 #define P_FRIENDSHIP_EVO_THRESHOLD   GEN_LATEST  // Since Gen 8, Pokémon that evolve by friendship evolve at or above 160 friendship instead of 220.
 
 // Breeding settings

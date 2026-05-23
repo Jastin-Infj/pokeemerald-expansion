@@ -4944,6 +4944,17 @@ bool32 DoesMonMeetAdditionalConditions(struct Pokemon *mon, const struct Evoluti
     return TRUE;
 }
 
+bool32 AreRuntimeEvolutionsDisabled(void)
+{
+    return P_EVOLUTIONS_ENABLED == FALSE;
+}
+
+bool32 CanPokemonEvolveInThisRuntime(struct Pokemon *mon)
+{
+    (void)mon;
+    return !AreRuntimeEvolutionsDisabled();
+}
+
 u32 GetEvolutionTargetSpecies(struct Pokemon *mon, enum EvolutionMode mode, u16 evolutionItem, struct Pokemon *tradePartner, bool32 *canStopEvo, enum EvoState evoState)
 {
     int i;
@@ -4952,8 +4963,12 @@ u32 GetEvolutionTargetSpecies(struct Pokemon *mon, enum EvolutionMode mode, u16 
     u32 heldItem = GetMonData(mon, MON_DATA_HELD_ITEM, 0);
     u32 level = GetMonData(mon, MON_DATA_LEVEL, 0);
     enum HoldEffect holdEffect;
-    const struct Evolution *evolutions = GetSpeciesEvolutions(species);
+    const struct Evolution *evolutions;
 
+    if (!CanPokemonEvolveInThisRuntime(mon))
+        return SPECIES_NONE;
+
+    evolutions = GetSpeciesEvolutions(species);
     if (evolutions == NULL)
         return SPECIES_NONE;
 
@@ -5145,8 +5160,12 @@ bool8 IsMonPastEvolutionLevel(struct Pokemon *mon)
     int i;
     u16 species = GetMonData(mon, MON_DATA_SPECIES, 0);
     u8 level = GetMonData(mon, MON_DATA_LEVEL, 0);
-    const struct Evolution *evolutions = GetSpeciesEvolutions(species);
+    const struct Evolution *evolutions;
 
+    if (!CanPokemonEvolveInThisRuntime(mon))
+        return FALSE;
+
+    evolutions = GetSpeciesEvolutions(species);
     if (evolutions == NULL)
         return FALSE;
 

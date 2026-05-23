@@ -113,6 +113,7 @@
       - [Test Plan](features/scout_selection/test_plan.md)
     - [Friendly Shop Pokemon Vendor](features/friendly_shop_pokemon_vendor/README.md)
       - [Investigation](features/friendly_shop_pokemon_vendor/investigation.md)
+      - [Implementation](features/friendly_shop_pokemon_vendor/implementation.md)
       - [MVP Plan](features/friendly_shop_pokemon_vendor/mvp_plan.md)
       - [Risks](features/friendly_shop_pokemon_vendor/risks.md)
       - [Test Plan](features/friendly_shop_pokemon_vendor/test_plan.md)

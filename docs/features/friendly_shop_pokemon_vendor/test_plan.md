@@ -50,6 +50,12 @@
 | Date | Command / check | Result | Notes |
 |---|---|---|---|
 | 2026-05-22 | Docs-only investigation | In progress | No runtime source changes in this branch. Runtime build / mGBA checks are not applicable until implementation branch. |
+| 2026-05-23 | `rtk git diff --check` | Pass | No whitespace issues before validation. |
+| 2026-05-23 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning only. |
+| 2026-05-23 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only. |
+| 2026-05-23 | `rtk make -j16 -O check` | Pass | Existing RWX linker warning only; test suite exits 0. |
+| 2026-05-23 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, large search index. |
+| 2026-05-23 | mGBA Live boot | Pass | Direct MCP start failed with unset `DISPLAY`; `DISPLAY=:0` `mgba-live-cli` retry booted and captured the Game Freak screen. Session stopped cleanly. |
 
 ## Feature Complete Gate
 
