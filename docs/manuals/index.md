@@ -39,6 +39,7 @@ manual / tutorial / feature docs の使い分けは [Docs Navigation Manual](doc
 | 通常 trainer battle 前の 3/4 匹選出の設定と flow を確認したい | [Trainer Battle Selection Manual](trainer_battle_selection_manual.md) | `include/config/battle.h`, `src/battle_setup.c`, `src/trainer_battle_selection.c`, `src/party_menu.c` |
 | 通常 trainer battle 前後の Team Viewer、選出 UI、in-battle viewer を確認したい | [Pre-Battle Team Viewer Manual](prebattle_team_viewer_manual.md) | `src/prebattle_team_viewer.c`, `src/battle_setup.c`, `src/battle_controller_player.c`, `src/debug.c` |
 | trainer.party と賞金計算、BGM、NPC trainer battle の作り方を確認したい | [Trainer Partygen Manual](trainer_partygen_manual.md) / [Trainer Battle Reward and Audio Flow](../flows/trainer_battle_reward_audio_flow_v15.md) | `src/data/trainers.party`, `src/battle_script_commands.c`, `src/battle_main.c`, `src/pokemon.c` |
+| Friendly Shop 風に Pokemon / sealed recruit を販売したい | [Pokemon Vendor Manual](pokemon_vendor_manual.md) | `asm/macros/event.inc`, `data/scripts/debug.inc`, `src/pokemon_vendor.c`, `include/pokemon_vendor.h` |
 | 未調査項目の優先順位を確認したい | [Open Investigation Queue](open_investigation_queue.md) | feature docs, overview, flows |
 | 既存ポケモンの種族値、タイプ、特性を変えたい | [Pokemon Stats Manual](pokemon_stats_manual.md) | `src/data/pokemon/species_info/gen_*_families.h` |
 | 既存技の威力、命中、タイプなどを変えたい | [Move Data Manual](move_data_manual.md) | `src/data/moves_info.h` |

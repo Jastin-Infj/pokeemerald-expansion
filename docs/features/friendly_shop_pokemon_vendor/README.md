@@ -152,6 +152,7 @@ one-time only.
 
 ## Related Docs
 
+- [Pokemon Vendor Manual](../../manuals/pokemon_vendor_manual.md)
 - [Investigation](investigation.md)
 - [Implementation](implementation.md)
 - [MVP Plan](mvp_plan.md)

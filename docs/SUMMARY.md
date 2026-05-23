@@ -52,6 +52,7 @@
     - [Trainer Partygen Manual](manuals/trainer_partygen_manual.md)
     - [Trainer Battle Selection Manual](manuals/trainer_battle_selection_manual.md)
     - [Pre-Battle Team Viewer Manual](manuals/prebattle_team_viewer_manual.md)
+    - [Pokemon Vendor Manual](manuals/pokemon_vendor_manual.md)
     - [新規マップ作成マニュアル](manuals/map_creation_manual.md)
     - [Open Investigation Queue](manuals/open_investigation_queue.md)
     - [Pokemon Stats Manual](manuals/pokemon_stats_manual.md)
