@@ -27,7 +27,7 @@ TEST("Pokemon Vendor sealed recruit keeps origin and unlocks by bond")
 
     EXPECT_EQ(PokemonVendor_IsSealedOriginMon(&mon), TRUE);
     EXPECT_EQ(PokemonVendor_IsLockedSealedRecruit(&mon), TRUE);
-    EXPECT_EQ(PokemonVendor_IsEditEntitled(&mon), TRUE);
+    EXPECT_EQ(PokemonVendor_IsEditEntitled(&mon), FALSE);
     EXPECT_EQ(PokemonVendor_GetSealedRecruitBondThreshold(&mon), threshold);
 
     EXPECT_EQ(PokemonVendor_AddBondExp(&mon, 40), FALSE);
@@ -37,5 +37,6 @@ TEST("Pokemon Vendor sealed recruit keeps origin and unlocks by bond")
     EXPECT_EQ(PokemonVendor_AddBondExp(&mon, 40), TRUE);
     EXPECT_EQ(PokemonVendor_IsSealedOriginMon(&mon), TRUE);
     EXPECT_EQ(PokemonVendor_IsLockedSealedRecruit(&mon), FALSE);
+    EXPECT_EQ(PokemonVendor_IsEditEntitled(&mon), TRUE);
     EXPECT_EQ(GetMonData(&mon, MON_DATA_IS_EGG), FALSE);
 }

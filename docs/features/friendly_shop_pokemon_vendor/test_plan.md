@@ -18,7 +18,7 @@
 | One-time normal Pokemon purchase | Buy one-time product, reopen vendor. | Product is hidden, sold out, or disabled according to selected policy. |
 | Repeat sealed purchase | Buy repeatable sealed recruit with an empty party slot. | Locked recruit is delivered, money is subtracted, and the party has one fewer usable battle Pokemon. |
 | One-time sealed purchase | Buy one-time sealed recruit and reopen vendor. | One-time state is set only after successful delivery. |
-| Locked shop row | Open vendor before the row's unlock condition is met. | Row shows `LOCKED` / still-locked text and cannot be purchased. |
+| Gated shop row | Open vendor before the row's unlock condition is met. | Row shows `GATED` / unavailable text and cannot be purchased. |
 | Party full sealed purchase | Fill party and try to buy a sealed recruit if MVP requires party slot. | Purchase is rejected and money is not subtracted. |
 | Money failure | Try to buy any product without enough money. | Purchase is rejected and no delivery occurs. |
 | PC delivery policy | Buy normal Pokemon with a full party if PC delivery is enabled. | Pokemon goes to PC and money is subtracted only after successful delivery. |
@@ -61,6 +61,8 @@
 | 2026-05-23 | mGBA Live repeated-open layout route | Pass | Opened debug `Scripts... -> Script 1`, checked initial display, confirmation, success message, field return, and a second open. The middle panel no longer shows a competing center border, the bottom message band no longer shares tile rows with the list / info panel, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-layout-polish3-open-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-confirm-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-success-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-reopen-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Vendor two-window layout build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after restoring the middle area to separate list / detail windows with a one-tile gutter. Existing RWX linker warning and expected test markers only. |
 | 2026-05-23 | mGBA Live two-window layout route | Pass | Opened debug `Scripts... -> Script 1`, checked initial display, confirmation, success message, field return, and a second open. The list and detail windows are visually separated, the bottom message band stays independent, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-two-window-open-20260523.png`, `/tmp/pokemon-vendor-two-window-confirm-20260523.png`, `/tmp/pokemon-vendor-two-window-success-20260523.png`, `/tmp/pokemon-vendor-two-window-reopen-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Gated-row / edit-entitlement build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after making `PokemonVendor_IsEditEntitled()` false for locked sealed recruits and true after unlock. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live gated-row route | Pass | Opened debug `Scripts... -> Script 1`, confirmed the unavailable concealed row displays `?????` plus `GATED`, and selected it to confirm `This recruit is not available yet.` Screenshots: `/tmp/pokemon-vendor-gated-open-20260523.png`, `/tmp/pokemon-vendor-gated-message-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, large search index. |
 
 ## Feature Complete Gate
@@ -77,6 +79,8 @@
 - No Pokemon can evolve through normal or special evolution triggers while the
   no-evolution runtime rule is enabled.
 - Locked row UI and vendor sealed-origin Summary marker are visible and tested.
+- Shop row gates are treated as pre-purchase availability only; the `LOCKED`
+  state belongs to sealed recruits after they are bought and placed in party.
 - Edit entitlement helper is implemented; actual Status Editor / relearner
   surface wiring is deferred to the next editor-focused slice.
 - `test_plan.md` records local make results, mGBA Live evidence, skipped long

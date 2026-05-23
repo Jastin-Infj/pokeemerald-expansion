@@ -15,7 +15,7 @@ Status: First runtime slice implemented on `feature/global-no-evolution-20260523
 
 The branch now includes the global no-evolution rule, a new script-facing
 Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
-delivery, one-time / repeat products, locked rows, script-driven bond progress,
+delivery, one-time / repeat products, gated shop rows, script-driven bond progress,
 and Summary-visible sealed-origin status.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
@@ -55,6 +55,10 @@ one-time only.
   Egg-cycle hatch logic.
 - The sealed-product risk is primarily the occupied party slot. While carried
   in locked state, the player effectively has one fewer battle-capable Pokemon.
+- The word "locked" refers to the post-acquisition sealed recruit state. A shop
+  row that is not buyable yet is only a gated offer; it may hide the species or
+  price until its unlock flag is met, but that is not the same as a locked
+  Pokemon in the party.
 - A sealed product is not limited to breedable species. Product data may point
   at a final evolution, restricted species, or legendary; the lock is a
   gameplay contract, not biological breeding compatibility.
@@ -99,7 +103,7 @@ one-time only.
   `ScriptGiveEgg()` mechanics or a custom locked-mon creator, depending on the
   chosen UI language.
 - A policy hook for move and held-item editing entitlement.
-- A lock-state UI for unavailable shop rows, e.g. "LOCKED" / "Still locked".
+- A gate-state UI for unavailable shop rows, e.g. "GATED" / "Not available".
 - Bond / seal EXP progress while a sealed recruit is carried.
 - A Summary-visible vendor sealed-origin marker.
 - Sealed progress policy that can be driven by carried-party state.

@@ -8,7 +8,7 @@
 | Per-mon origin tracking | High | Sealed-origin always-editable policy needs to know that an unlocked Pokemon came from a vendor sealed product. | Prefer a named mon-data bit backed by `PokemonSubstruct3.unused_0B` after confirming it is truly unused in this fork. Preserve it through hatch / unlock. |
 | Summary marker confusion | Medium | Ordinary daycare Eggs also show hatch-related memo text, while this feature may unlock final evolutions or legendaries. | Add dedicated `LOCKED` and sealed-origin Summary labels / badges. Do not infer from normal hatch memo text. |
 | Misusing event flags as per-mon identity | High | A global product flag proves the shop product was bought, not that a specific Pokemon came from that sealed recruit. It can misgrant editor access to the wrong Pokemon. | Store identity on the Pokemon when possible; use SaveBlock side tables only for product progress / counters. |
-| SaveBlock pressure | High | Locked row state, sealed progress, entitlement state, and product history can grow past saved vars / flags. | Use event flags only for one-time / simple shop locks; use compact dedicated state for repeatable progress. Check `docs/flows/save_data_flow_v15.md` before source work. |
+| SaveBlock pressure | High | Gated row state, sealed progress, entitlement state, and product history can grow past saved vars / flags. | Use event flags only for one-time / simple shop gates; use compact dedicated state for repeatable progress. Check `docs/flows/save_data_flow_v15.md` before source work. |
 | Battle-end hook side effects | High | Trainer battle end has Pyramid, Trainer Hill, follower, no-whiteout, forfeit, and trainer flag branches. A global sealed-progress hook can run in the wrong mode. | Prefer script-driven or challenge-clear progress first. If using trainer wins, add a narrow helper with explicit battle-type guards. |
 | Egg cycle collision | High | Existing Eggs store hatch cycles in `MON_DATA_FRIENDSHIP`. Reusing that value for sealed unlock progress can break hatching. | Store unlock progress separately from hatch cycles. If using custom sealed recruits, avoid Egg-cycle fields entirely. |
 | Normal EXP collision | High | Using `MON_DATA_EXP` for lock release can alter level, level caps, and accidentally pass through vanilla evolution checks if the global lock is incomplete. | Use feature-owned bond / seal EXP by default. If normal EXP-equivalent gain is desired, convert it into bond EXP rather than writing directly to `MON_DATA_EXP`. |
@@ -59,7 +59,7 @@
   move payload from the start?
 - Should vendor sealed-origin be tradeable/transferable as a persistent marker, or
   should editor entitlement apply only while the Pokemon belongs to this save?
-- Do locked shop rows reveal species like legendary names, or keep them hidden
+- Do gated shop rows reveal species like legendary names, or keep them hidden
   as `????` until unlocked?
 - Is bond EXP purely party-carried progress, or should it also persist while the
   sealed recruit is stored in PC?

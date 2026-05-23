@@ -50,7 +50,7 @@ enum {
 
 enum {
     PRODUCT_SELECT_OK,
-    PRODUCT_SELECT_LOCKED,
+    PRODUCT_SELECT_GATED,
     PRODUCT_SELECT_SOLD_OUT,
     PRODUCT_SELECT_NO_MONEY,
     PRODUCT_SELECT_NO_ROOM,
@@ -106,10 +106,10 @@ static const u8 sText_Sealed[] = _("SEALED");
 static const u8 sText_Normal[] = _("NORMAL");
 static const u8 sText_Repeat[] = _("Repeat");
 static const u8 sText_OneTime[] = _("One-time");
-static const u8 sText_LockedRow[] = _("LOCKED");
+static const u8 sText_GatedRow[] = _("GATED");
 static const u8 sText_QuestionMarks[] = _("?????");
 static const u8 sText_QuitVendor[] = _("Close the vendor.");
-static const u8 sText_ProductLocked[] = _("This recruit is still locked.");
+static const u8 sText_ProductGated[] = _("This recruit is not available yet.");
 static const u8 sText_SoldOut[] = _("That recruit is sold out.");
 static const u8 sText_NoRoomForPokemon[] = _("No room for this POKéMON.");
 static const u8 sText_NoRoomForSealed[] = _("A sealed recruit must join your party.");
@@ -257,7 +257,7 @@ static void PokemonVendorBuildList(void)
         if (PokemonVendorProductIsSoldOut(product))
             continue;
 
-        if (product->revealPolicy == POKEMON_VENDOR_REVEAL_LOCKED && !PokemonVendorProductIsUnlocked(product))
+        if (product->revealPolicy == POKEMON_VENDOR_REVEAL_GATED && !PokemonVendorProductIsUnlocked(product))
             StringCopy(sPokemonVendorMenu->names[visible], sText_QuestionMarks);
         else
             StringCopy(sPokemonVendorMenu->names[visible], GetSpeciesName(product->species));
@@ -353,8 +353,8 @@ static void Task_PokemonVendorHandleInput(u8 taskId)
 
         switch (state)
         {
-        case PRODUCT_SELECT_LOCKED:
-            PokemonVendorDisplayMessage(taskId, sText_ProductLocked, Task_PokemonVendorWaitForDismiss);
+        case PRODUCT_SELECT_GATED:
+            PokemonVendorDisplayMessage(taskId, sText_ProductGated, Task_PokemonVendorWaitForDismiss);
             break;
         case PRODUCT_SELECT_SOLD_OUT:
             PokemonVendorDisplayMessage(taskId, sText_SoldOut, Task_PokemonVendorWaitForDismiss);
@@ -382,7 +382,7 @@ static void Task_PokemonVendorHandleInput(u8 taskId)
 static u8 PokemonVendorGetProductSelectState(const struct PokemonVendorProduct *product)
 {
     if (!PokemonVendorProductIsUnlocked(product))
-        return PRODUCT_SELECT_LOCKED;
+        return PRODUCT_SELECT_GATED;
     if (PokemonVendorProductIsSoldOut(product))
         return PRODUCT_SELECT_SOLD_OUT;
     if (!IsEnoughMoney(&gSaveBlock1Ptr->money, product->price))
@@ -609,8 +609,8 @@ static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y)
     product = &sPokemonVendorMenu->products[sPokemonVendorMenu->productIndexes[item]];
     if (!PokemonVendorProductIsUnlocked(product))
     {
-        x = GetStringRightAlignXOffset(FONT_NARROW, sText_LockedRow, VENDOR_LIST_PRICE_RIGHT);
-        AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_LockedRow);
+        x = GetStringRightAlignXOffset(FONT_NARROW, sText_GatedRow, VENDOR_LIST_PRICE_RIGHT);
+        AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_GatedRow);
         return;
     }
 
@@ -728,7 +728,7 @@ bool32 PokemonVendor_IsLockedSealedRecruit(struct Pokemon *mon)
 
 bool32 PokemonVendor_IsEditEntitled(struct Pokemon *mon)
 {
-    return PokemonVendor_IsSealedOriginMon(mon);
+    return PokemonVendor_IsSealedOriginMon(mon) && !PokemonVendor_IsLockedSealedRecruit(mon);
 }
 
 u8 PokemonVendor_GetSealedRecruitBondProgress(struct Pokemon *mon)

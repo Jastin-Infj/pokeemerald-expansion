@@ -20,7 +20,7 @@ Pokemon Vendor.
   one-time policy, one-time flag, unlock flag, held item, ball, custom moves,
   edit policy, reveal policy, bond threshold, and bond yield metadata.
 - Debug `Script 1` opens a sample vendor with a repeat normal Pokemon, a
-  one-time sealed recruit, and a locked concealed row.
+  one-time sealed recruit, and a gated concealed row.
 - Debug `Script 2` awards sealed bond progress to carried locked recruits.
 - Normal Pokemon purchases can deliver to party or PC.
 - Sealed recruits require an empty party slot, occupy that slot while locked,
@@ -62,6 +62,7 @@ Normal products:
 Sealed products:
 
 - can target final evolutions, legendary Pokemon, or any explicit species;
+- are purchased first, then enter the locked sealed-recruit state in party;
 - are created as locked vendor-origin Pokemon using the Egg lock for battle
   exclusion;
 - store bond progress in the locked recruit's feature-owned vendor helpers,
@@ -70,6 +71,10 @@ Sealed products:
 - clear the Egg lock when bond progress reaches threshold;
 - keep the vendor sealed-origin marker after unlock, allowing future editor
   surfaces to recognize the entitlement.
+
+Shop unlock flags are pre-purchase availability gates only. They can hide a row
+or make it unavailable until a script condition is met, but they are not the
+same state as a locked sealed recruit after acquisition.
 
 The current progress source is script-driven through
 `PokemonVendor_AddBondExpToParty`. That is deliberate: challenge rooms can call
@@ -95,8 +100,8 @@ SomeVendorProducts:
 ```
 
 `pokemonvendorlistend` terminates the product table. Product rows may also pass
-unlock flags, held items, ball ids, bond thresholds, edit policy, reveal policy,
-IV policy, and up to four explicit moves.
+availability-gate flags, held items, ball ids, bond thresholds, edit policy,
+reveal policy, IV policy, and up to four explicit moves.
 
 ## Known Limitations
 
@@ -108,8 +113,9 @@ IV policy, and up to four explicit moves.
 - Sealed unlock currently happens immediately when script-driven bond progress
   reaches the threshold. A later UX branch can add a dedicated release
   animation / confirmation.
-- `PokemonVendor_IsEditEntitled()` exists, but Status Editor / move editor
-  surfaces are not wired to it in this slice.
+- `PokemonVendor_IsEditEntitled()` exists and returns true only after a
+  vendor-origin sealed recruit has been unlocked, but Status Editor / move
+  editor surfaces are not wired to it in this slice.
 - PC / daycare / trade policy relies on Egg restrictions while locked; unlocked
   vendor-origin Pokemon behave as ordinary Pokemon with a preserved origin bit.
 - Bond-yield metadata is stored in product rows but the first progress source
@@ -128,6 +134,8 @@ IV policy, and up to four explicit moves.
 | 2026-05-23 | mGBA Live vendor layout polish route | Pass | Revalidated after the tile-row separation and combined middle-panel polish. Checked initial display, confirmation, success, field return, and re-open. The center list / detail seam no longer redraws as two competing frames, the bottom message band has a visible bottom border, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-layout-polish3-open-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-confirm-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-success-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-reopen-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Vendor two-window build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after restoring the middle area to separate list / detail windows. Existing RWX linker warning and expected test markers only. |
 | 2026-05-23 | mGBA Live vendor two-window route | Pass | Revalidated after restoring the middle area to two framed windows. Checked initial display, confirmation, success, field return, and a second open. The list and detail panes are separated by a one-tile gutter, the bottom message band remains independent, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-two-window-open-20260523.png`, `/tmp/pokemon-vendor-two-window-confirm-20260523.png`, `/tmp/pokemon-vendor-two-window-success-20260523.png`, `/tmp/pokemon-vendor-two-window-reopen-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Vendor gated-row / edit-entitlement build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after separating pre-purchase gated rows from post-acquisition locked sealed recruits. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live vendor gated-row route | Pass | Revalidated debug `Scripts... -> Script 1` after the terminology / entitlement repair. The concealed unavailable product row displayed `?????` and `GATED`; selecting it showed `This recruit is not available yet.` Screenshots: `/tmp/pokemon-vendor-gated-open-20260523.png`, `/tmp/pokemon-vendor-gated-message-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
