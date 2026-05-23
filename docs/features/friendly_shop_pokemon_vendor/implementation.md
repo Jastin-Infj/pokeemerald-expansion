@@ -25,9 +25,9 @@ Pokemon Vendor.
 - Debug `Script 2` uses the shared `pokemonvendorawardbond 40` macro to award
   sealed bond progress to carried locked recruits and show progress / unlock
   messages.
-- Debug `Script 3` starts a normal trainer battle and then runs
-  `pokemonvendorawardbond 20` after the battle returns to field, giving a
-  focused route for post-battle reward validation.
+- Debug `Script 3` queues 20 sealed bond EXP before starting a normal trainer
+  battle. The queued reward is paid and displayed by the trainer victory battle
+  script after the money message, before returning to the field.
 - Normal Pokemon purchases can deliver to party or PC.
 - Sealed recruits require an empty party slot, occupy that slot while locked,
   and use Egg battle restrictions so the player has one fewer usable battler.
@@ -84,14 +84,14 @@ Shop unlock flags are pre-purchase availability gates only. They can hide a row
 or make it unavailable until a script condition is met, but they are not the
 same state as a locked sealed recruit after acquisition.
 
-The current progress source is script-driven through
-`PokemonVendor_AddBondExpToParty` and the `pokemonvendorawardbond` macro. That
-is deliberate: trainer post-battle scripts, challenge rooms, or clear scripts
-can choose different values without coupling this first slice to all battle-win
-paths. The product table still carries bond-yield metadata for later balancing.
-The debug trainer route uses the same script macro after a normal trainer battle
-returns, so it validates the intended map-script integration point without
-turning every trainer win into an automatic vendor reward.
+The current progress source is script-driven. Field / room clear scripts use
+`PokemonVendor_AddBondExpToParty` through the `pokemonvendorawardbond` macro.
+Trainer setup scripts can use `pokemonvendorqueuebattlebond amount`, which
+stores a one-battle reward and lets the normal trainer victory script call
+`BS_PokemonVendorAwardQueuedBattleBondExp` after the money message. That is
+deliberate: `.inc` scripts can tune values per NPC or challenge without
+turning every trainer win into an automatic vendor reward. The product table
+still carries bond-yield metadata for later balancing.
 
 ## Script API
 
@@ -115,6 +115,12 @@ SomeTrainer_PostBattle:
 	pokemonvendorawardbond 20
 	return
 
+SomeTrainer_PreBattle:
+	pokemonvendorqueuebattlebond 20
+	special PokemonVendor_StartDebugBondTrainerBattle
+	waitstate
+	return
+
 SomeQuietRoomReward:
 	pokemonvendorawardbond 80, FALSE
 	return
@@ -125,7 +131,10 @@ availability-gate flags, held items, ball ids, bond thresholds, edit policy,
 reveal policy, IV policy, up to four explicit moves, and up to four extra
 random-species candidates. `pokemonvendorawardbond amount` writes the number of
 affected locked recruits to `VAR_0x8005`, the number unlocked to `VAR_RESULT`,
-and can suppress messages with `FALSE`.
+and can suppress messages with `FALSE`. `pokemonvendorqueuebattlebond amount`
+queues the amount for the next trainer victory; the battle script prints the
+progress message only if at least one locked sealed recruit gained progress and
+prints the unlock message only if one or more recruits unlocked.
 
 ## Known Limitations
 
@@ -145,8 +154,9 @@ and can suppress messages with `FALSE`.
   editor surfaces are not wired to it in this slice.
 - PC / daycare / trade policy relies on Egg restrictions while locked; unlocked
   vendor-origin Pokemon behave as ordinary Pokemon with a preserved origin bit.
-- Bond-yield metadata is stored in product rows but the first progress source
-  uses the script-provided amount.
+- Bond-yield metadata is stored in product rows but the first progress sources
+  use script-provided amounts. Queued battle rewards are intentionally opt-in
+  per script, not global for every trainer battle.
 
 ## Validation
 
@@ -167,6 +177,8 @@ and can suppress messages with `FALSE`.
 | 2026-05-23 | mGBA Live mystery sealed / bond reward route | Pass | Revalidated debug `Scripts... -> Script 1` and `Script 2`. The mystery product displayed `?????` with price `3000`, confirmation kept `?????`, purchase succeeded and deducted money, then `Script 2` displayed `Sealed bond EXP increased by 40.` Screenshots: `/tmp/pokemon-vendor-mystery-open-20260523.png`, `/tmp/pokemon-vendor-mystery-confirm-20260523.png`, `/tmp/pokemon-vendor-mystery-success-20260523.png`, `/tmp/pokemon-vendor-mystery-bond-message-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Debug normal-trainer reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding debug `Script 3`. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
 | 2026-05-23 | mGBA Live debug normal-trainer reward route | Pass | Bought a locked `?????` sealed recruit through debug `Script 1`, ran debug `Script 3`, confirmed a normal trainer battle against `YOUNGSTER CALVIN`, won the battle, saw the debug defeat line, then saw `Sealed bond EXP increased by 20.` Screenshots: `/tmp/pokemon-vendor-debug-battle-script3-start-20260523.png`, `/tmp/pokemon-vendor-debug-battle-intro-20260523.png`, `/tmp/pokemon-vendor-debug-battle-defeat-text-20260523.png`, `/tmp/pokemon-vendor-debug-battle-bond-message2-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Queued battle-win reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after moving debug `Script 3` to `pokemonvendorqueuebattlebond 20` and printing the reward from the trainer victory battle script. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. The `data/script_cmd_table.inc` comments were converted from `@` to `//` so C-test inline asm can include `asm/macros/event.inc` after the macro edit. |
+| 2026-05-23 | mGBA Live queued battle-win reward route | Pass | Bought a locked `?????` sealed recruit through debug `Script 1`, ran debug `Script 3`, confirmed the normal trainer battle against `YOUNGSTER CALVIN`, won it, saw `You got ¥80 for winning!`, then saw `Sealed bond EXP increased by 20.` while still in battle before field return. No extra bond message appeared after returning to the field. Screenshots: `/tmp/pokemon-vendor-battlemsg-script3-start-20260523.png`, `/tmp/pokemon-vendor-battlemsg-battle-intro-20260523.png`, `/tmp/pokemon-vendor-battlemsg-money-20260523.png`, `/tmp/pokemon-vendor-battlemsg-bond-inbattle-20260523.png`, `/tmp/pokemon-vendor-battlemsg-field-return-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.

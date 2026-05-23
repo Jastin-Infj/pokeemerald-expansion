@@ -16,7 +16,7 @@ Status: First runtime slice implemented on `feature/global-no-evolution-20260523
 The branch now includes the global no-evolution rule, a new script-facing
 Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
 delivery, one-time / repeat products, gated shop rows, script-driven bond progress,
-trainer-script bond reward messages, purchasable mystery sealed products, and
+trainer victory bond reward messages, purchasable mystery sealed products, and
 Summary-visible sealed-origin status.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
@@ -51,12 +51,13 @@ one-time only.
   sealed progress / unlock counter; whether that maps to Battle Frontier BP,
   challenge-only points, or another reward value is a later balancing choice.
 - Trainer or challenge scripts should award sealed bond progress explicitly with
-  per-NPC amounts such as 10, 20, 80, or 100. The first runtime hook is the
-  `pokemonvendorawardbond amount[, showMessage]` macro, so map `.inc` scripts
-  can tune rewards without a broad battle-end hook.
+  per-NPC amounts such as 10, 20, 80, or 100. Field / room clear scripts can
+  use `pokemonvendorawardbond amount[, showMessage]`; trainer battle setup
+  scripts can use `pokemonvendorqueuebattlebond amount` so the reward is paid
+  and displayed from the battle victory text flow.
 - Debug `Scripts... -> Script 3` is the current normal-trainer validation
-  route: it starts a regular trainer battle and awards 20 sealed bond EXP after
-  victory through the same macro.
+  route: it queues 20 sealed bond EXP, starts a regular trainer battle, and
+  displays the reward inside the win-message sequence after the money message.
 - For the first runtime slice, prefer battle-win or challenge-clear based
   sealed progress while the locked recruit is in the party. Step-based progress
   is possible for literal Eggs, but it collides more directly with the existing
@@ -116,8 +117,9 @@ one-time only.
 - A policy hook for move and held-item editing entitlement.
 - A gate-state UI for unavailable shop rows, e.g. "GATED" / "Not available".
 - Bond / seal EXP progress while a sealed recruit is carried.
-- A script macro for trainer / room rewards that can show or suppress bond EXP
-  and unlock messages per call site.
+- Script macros for field / room rewards and queued trainer battle rewards.
+  Field rewards can show or suppress bond EXP and unlock messages per call
+  site; queued trainer rewards display from the battle victory text flow.
 - Mystery sealed products with hidden display and random purchase-time species
   selection.
 - A Summary-visible vendor sealed-origin marker.

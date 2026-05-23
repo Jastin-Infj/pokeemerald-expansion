@@ -35,6 +35,9 @@ u8 PokemonVendor_GetSealedRecruitBondProgress(struct Pokemon *mon);
 u8 PokemonVendor_GetSealedRecruitBondThreshold(struct Pokemon *mon);
 bool32 PokemonVendor_AddBondExp(struct Pokemon *mon, u8 amount);
 void PokemonVendor_AddBondExpToParty(void);
+void PokemonVendor_SetBattleBondExpReward(void);
+void PokemonVendor_ClearBattleBondExpReward(void);
+void BS_PokemonVendorAwardQueuedBattleBondExp(void);
 void PokemonVendor_IsSelectedMonSealedOrigin(void);
 void PokemonVendor_IsSelectedMonLockedSealed(void);
 

@@ -17,6 +17,7 @@
 #include "starter_choose.h"
 #include "script_pokemon_util.h"
 #include "palette.h"
+#include "pokemon_vendor.h"
 #include "window.h"
 #include "event_object_movement.h"
 #include "event_scripts.h"
@@ -1428,6 +1429,7 @@ static void HandleBattleVariantEndParty(void)
 static void CB2_EndTrainerBattle(void)
 {
     HandleBattleVariantEndParty();
+    PokemonVendor_ClearBattleBondExpReward();
 
     gIsDebugBattle = FALSE;
     if (FollowerNPCIsBattlePartner())
@@ -2130,4 +2132,3 @@ void SetMultiTrainerBattle(struct ScriptContext *ctx)
     TRAINER_BATTLE_PARAM.defeatTextB = (u8*)ScriptReadWord(ctx);
     gPartnerTrainerId = TRAINER_PARTNER(ScriptReadHalfword(ctx));
 };
-

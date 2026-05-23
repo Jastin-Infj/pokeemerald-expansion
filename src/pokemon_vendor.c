@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle.h"
 #include "battle_setup.h"
 #include "dynamic_placeholder_text_util.h"
 #include "event_data.h"
@@ -39,6 +40,7 @@
 #define VENDOR_BOND_MAX 255
 #define VENDOR_LIST_PRICE_RIGHT 112
 #define POKEMON_VENDOR_DEBUG_BOND_TRAINER TRAINER_CALVIN_1
+#define BATTLE_SCRIPT_CALLNATIVE_SIZE 5
 
 enum {
     WIN_MONEY,
@@ -77,6 +79,7 @@ struct PokemonVendorMenu
 };
 
 static EWRAM_DATA struct PokemonVendorMenu *sPokemonVendorMenu = NULL;
+static EWRAM_DATA u8 sPokemonVendorQueuedBattleBondExp = 0;
 
 static void Task_PokemonVendorWaitForFade(u8 taskId);
 static void Task_PokemonVendorHandleInput(u8 taskId);
@@ -109,6 +112,7 @@ static u16 PokemonVendorChooseProductSpecies(const struct PokemonVendorProduct *
 static void PokemonVendorMarkSealedRecruit(const struct PokemonVendorProduct *product, struct Pokemon *mon);
 static u8 PokemonVendorClampBondThreshold(u16 threshold);
 static void PokemonVendorUnlockSealedRecruit(struct Pokemon *mon);
+static void PokemonVendorAddBondExpToPartyInternal(u8 amount, u16 *affectedCount, u16 *unlockedCount);
 
 static const u8 sText_Sealed[] = _("SEALED");
 static const u8 sText_Normal[] = _("NORMAL");
@@ -829,7 +833,6 @@ static void PokemonVendorUnlockSealedRecruit(struct Pokemon *mon)
 
 void PokemonVendor_AddBondExpToParty(void)
 {
-    u8 i;
     u8 amount = gSpecialVar_0x8004;
     u16 affectedCount = 0;
     u16 unlockedCount = 0;
@@ -838,18 +841,72 @@ void PokemonVendor_AddBondExpToParty(void)
         amount = 1;
     gSpecialVar_0x8004 = amount;
 
+    PokemonVendorAddBondExpToPartyInternal(amount, &affectedCount, &unlockedCount);
+
+    gSpecialVar_0x8005 = affectedCount;
+    gSpecialVar_Result = unlockedCount;
+}
+
+void PokemonVendor_SetBattleBondExpReward(void)
+{
+    u16 amount = gSpecialVar_0x8004;
+
+    if (amount == 0)
+        amount = 1;
+    if (amount > VENDOR_BOND_MAX)
+        amount = VENDOR_BOND_MAX;
+
+    sPokemonVendorQueuedBattleBondExp = amount;
+    gSpecialVar_0x8004 = amount;
+}
+
+void PokemonVendor_ClearBattleBondExpReward(void)
+{
+    sPokemonVendorQueuedBattleBondExp = 0;
+}
+
+void BS_PokemonVendorAwardQueuedBattleBondExp(void)
+{
+    u8 amount = sPokemonVendorQueuedBattleBondExp;
+    u16 affectedCount = 0;
+    u16 unlockedCount = 0;
+
+    sPokemonVendorQueuedBattleBondExp = 0;
+    gBattleCommunication[0] = 0;
+    gBattleCommunication[1] = 0;
+
+    if (amount != 0)
+    {
+        PokemonVendorAddBondExpToPartyInternal(amount, &affectedCount, &unlockedCount);
+        gBattleCommunication[0] = affectedCount;
+        gBattleCommunication[1] = unlockedCount;
+
+        if (affectedCount != 0)
+        {
+            PREPARE_BYTE_NUMBER_BUFFER(gBattleTextBuff1, 3, amount)
+            PREPARE_HWORD_NUMBER_BUFFER(gBattleTextBuff2, 3, unlockedCount)
+        }
+    }
+
+    gBattlescriptCurrInstr += BATTLE_SCRIPT_CALLNATIVE_SIZE;
+}
+
+static void PokemonVendorAddBondExpToPartyInternal(u8 amount, u16 *affectedCount, u16 *unlockedCount)
+{
+    u8 i;
+
+    *affectedCount = 0;
+    *unlockedCount = 0;
+
     for (i = 0; i < gPlayerPartyCount; i++)
     {
         if (PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[i]))
         {
-            affectedCount++;
+            (*affectedCount)++;
             if (PokemonVendor_AddBondExp(&gPlayerParty[i], amount))
-                unlockedCount++;
+                (*unlockedCount)++;
         }
     }
-
-    gSpecialVar_0x8005 = affectedCount;
-    gSpecialVar_Result = unlockedCount;
 }
 
 void PokemonVendor_StartDebugBondTrainerBattle(void)

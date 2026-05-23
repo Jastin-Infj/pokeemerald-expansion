@@ -1328,6 +1328,13 @@
 	.endif
 	.endm
 
+	@ Queues vendor bond EXP so a trainer battle can award and print it from
+	@ the battle victory script instead of after returning to the field.
+	.macro pokemonvendorqueuebattlebond amount:req
+	setvar VAR_0x8004, \amount
+	special PokemonVendor_SetBattleBondExpReward
+	.endm
+
 	@ Starts up the slot machine minigame. id is a SLOT_MACHINE_* value that influences probabilities of certain reel outcomes.
 	.macro playslotmachine id:req
 	.byte SCR_OP_PLAYSLOTMACHINE
