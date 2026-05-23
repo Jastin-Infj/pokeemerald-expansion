@@ -27,6 +27,7 @@
 | Summary marker | Open Summary for ordinary Egg, locked sealed recruit, ordinary unlocked Pokemon, and sealed-origin Pokemon. | Locked recruit shows locked-state UI; unlocked sealed-origin Pokemon shows the dedicated origin label / badge. |
 | Bond EXP progress | Carry sealed recruit through selected progress source. | Bond / seal EXP advances only while the recruit is in party and only from allowed events. Normal `MON_DATA_EXP` does not change unless explicitly designed. |
 | Trainer bond reward macro | Add `pokemonvendorawardbond 20` to a post-battle script. | Locked sealed recruits gain 20 bond EXP, optional progress message appears, and unlock message appears when threshold is met. |
+| Debug normal trainer reward route | Buy or carry a locked sealed recruit, then run debug `Scripts... -> Script 3`. | A normal trainer battle starts; after victory and field return, the script awards 20 sealed bond EXP with the normal progress / unlock messages. |
 | Quiet bond reward macro | Add `pokemonvendorawardbond 20, FALSE` to a room clear script. | Bond EXP is awarded without showing progress / unlock messages. |
 | Mystery sealed purchase | Buy a `POKEMON_VENDOR_REVEAL_HIDDEN` product with random species candidates. | Shop displays `?????`, charges money, delivers a locked sealed recruit, and chooses the actual species at purchase time. |
 | Release threshold | Fill bond EXP to the configured threshold. | Recruit enters ready / release state, then unlocks through the selected automatic or confirmation flow. |
@@ -68,6 +69,8 @@
 | 2026-05-23 | mGBA Live gated-row route | Pass | Opened debug `Scripts... -> Script 1`, confirmed the unavailable concealed row displays `?????` plus `GATED`, and selected it to confirm `This recruit is not available yet.` Screenshots: `/tmp/pokemon-vendor-gated-open-20260523.png`, `/tmp/pokemon-vendor-gated-message-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Mystery sealed / bond reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after adding random-species mystery products and the trainer / room reward macro. Existing RWX linker warning and expected test markers only. |
 | 2026-05-23 | mGBA Live mystery sealed / bond reward route | Pass | Opened debug `Scripts... -> Script 1`, bought the `?????` mystery sealed product for `3000`, then ran `Scripts... -> Script 2` and confirmed the bond reward message. Screenshots: `/tmp/pokemon-vendor-mystery-open-20260523.png`, `/tmp/pokemon-vendor-mystery-confirm-20260523.png`, `/tmp/pokemon-vendor-mystery-success-20260523.png`, `/tmp/pokemon-vendor-mystery-bond-message-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Debug normal-trainer reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding debug `Script 3`. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live debug normal-trainer reward route | Pass | Bought a locked `?????` sealed recruit through debug `Scripts... -> Script 1`, ran debug `Scripts... -> Script 3`, confirmed the normal trainer battle against `YOUNGSTER CALVIN`, won it, and saw `Sealed bond EXP increased by 20.` Screenshots: `/tmp/pokemon-vendor-debug-battle-script3-start-20260523.png`, `/tmp/pokemon-vendor-debug-battle-intro-20260523.png`, `/tmp/pokemon-vendor-debug-battle-defeat-text-20260523.png`, `/tmp/pokemon-vendor-debug-battle-bond-message2-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, large search index. |
 
 ## Feature Complete Gate
@@ -82,6 +85,8 @@
 - Thresholds are explicit or generated from species tier with usage as a
   modifier only; missing usage has a neutral fallback.
 - Trainer / room scripts can award tuned bond amounts with optional messages.
+- Debug `Script 3` validates the normal-trainer post-battle reward route with
+  `pokemonvendorawardbond 20`.
 - Mystery sealed products can be purchased while species-hidden and can resolve
   to a random configured species at purchase time.
 - No Pokemon can evolve through normal or special evolution triggers while the

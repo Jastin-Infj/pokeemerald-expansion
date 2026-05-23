@@ -231,8 +231,17 @@ Debug_PokemonVendor_Text_Thanks:
 	.string "Please come again.$"
 
 Debug_EventScript_Script_3::
-	release
+	lockall
+	msgbox Debug_PokemonVendor_Text_BondTrainer, MSGBOX_DEFAULT
+	special PokemonVendor_StartDebugBondTrainerBattle
+	waitstate
+	pokemonvendorawardbond 20
+	releaseall
 	end
+
+Debug_PokemonVendor_Text_BondTrainer:
+	.string "Starting a normal trainer battle.\p"
+	.string "Winning awards 20 sealed bond EXP.$"
 
 Debug_EventScript_Script_4::
 	release

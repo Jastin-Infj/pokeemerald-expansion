@@ -25,6 +25,9 @@ Pokemon Vendor.
 - Debug `Script 2` uses the shared `pokemonvendorawardbond 40` macro to award
   sealed bond progress to carried locked recruits and show progress / unlock
   messages.
+- Debug `Script 3` starts a normal trainer battle and then runs
+  `pokemonvendorawardbond 20` after the battle returns to field, giving a
+  focused route for post-battle reward validation.
 - Normal Pokemon purchases can deliver to party or PC.
 - Sealed recruits require an empty party slot, occupy that slot while locked,
   and use Egg battle restrictions so the player has one fewer usable battler.
@@ -86,6 +89,9 @@ The current progress source is script-driven through
 is deliberate: trainer post-battle scripts, challenge rooms, or clear scripts
 can choose different values without coupling this first slice to all battle-win
 paths. The product table still carries bond-yield metadata for later balancing.
+The debug trainer route uses the same script macro after a normal trainer battle
+returns, so it validates the intended map-script integration point without
+turning every trainer win into an automatic vendor reward.
 
 ## Script API
 
@@ -159,6 +165,8 @@ and can suppress messages with `FALSE`.
 | 2026-05-23 | mGBA Live vendor gated-row route | Pass | Revalidated debug `Scripts... -> Script 1` after the terminology / entitlement repair. The concealed unavailable product row displayed `?????` and `GATED`; selecting it showed `This recruit is not available yet.` Screenshots: `/tmp/pokemon-vendor-gated-open-20260523.png`, `/tmp/pokemon-vendor-gated-message-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Mystery sealed / bond reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after adding mystery random species candidates and the `pokemonvendorawardbond` reward macro. Existing RWX linker warning and expected test markers only. |
 | 2026-05-23 | mGBA Live mystery sealed / bond reward route | Pass | Revalidated debug `Scripts... -> Script 1` and `Script 2`. The mystery product displayed `?????` with price `3000`, confirmation kept `?????`, purchase succeeded and deducted money, then `Script 2` displayed `Sealed bond EXP increased by 40.` Screenshots: `/tmp/pokemon-vendor-mystery-open-20260523.png`, `/tmp/pokemon-vendor-mystery-confirm-20260523.png`, `/tmp/pokemon-vendor-mystery-success-20260523.png`, `/tmp/pokemon-vendor-mystery-bond-message-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Debug normal-trainer reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding debug `Script 3`. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live debug normal-trainer reward route | Pass | Bought a locked `?????` sealed recruit through debug `Script 1`, ran debug `Script 3`, confirmed a normal trainer battle against `YOUNGSTER CALVIN`, won the battle, saw the debug defeat line, then saw `Sealed bond EXP increased by 20.` Screenshots: `/tmp/pokemon-vendor-debug-battle-script3-start-20260523.png`, `/tmp/pokemon-vendor-debug-battle-intro-20260523.png`, `/tmp/pokemon-vendor-debug-battle-defeat-text-20260523.png`, `/tmp/pokemon-vendor-debug-battle-bond-message2-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.

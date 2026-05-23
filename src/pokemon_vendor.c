@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_setup.h"
 #include "dynamic_placeholder_text_util.h"
 #include "event_data.h"
 #include "field_message_box.h"
@@ -23,8 +24,11 @@
 #include "strings.h"
 #include "task.h"
 #include "constants/game_stat.h"
+#include "constants/battle_setup.h"
+#include "constants/event_objects.h"
 #include "constants/items.h"
 #include "constants/moves.h"
+#include "constants/opponents.h"
 #include "constants/pokedex.h"
 #include "constants/pokeball.h"
 #include "constants/rgb.h"
@@ -34,6 +38,7 @@
 #define VENDOR_LIST_NAME_LENGTH 18
 #define VENDOR_BOND_MAX 255
 #define VENDOR_LIST_PRICE_RIGHT 112
+#define POKEMON_VENDOR_DEBUG_BOND_TRAINER TRAINER_CALVIN_1
 
 enum {
     WIN_MONEY,
@@ -121,6 +126,8 @@ static const u8 sText_ConfirmPurchase[] = _("You wanted {STR_VAR_1}?\nThat'll be
 static const u8 sText_InfoNormal[] = _("{DYNAMIC 0}  {LV_2}{DYNAMIC 1}\n{DYNAMIC 2}\nReady to use.");
 static const u8 sText_InfoSealed[] = _("{DYNAMIC 0}  {LV_2}{DYNAMIC 1}\n{DYNAMIC 2}\nBond: {DYNAMIC 3}");
 static const u8 sText_BondProgress[] = _("{STR_VAR_1}/{STR_VAR_2}");
+static const u8 sText_DebugBattleIntro[] = _("Let's test a vendor bond reward!");
+static const u8 sText_DebugBattleDefeat[] = _("That sealed bond looks stronger!");
 
 static const u8 sVendorTextColors[][3] =
 {
@@ -843,6 +850,21 @@ void PokemonVendor_AddBondExpToParty(void)
 
     gSpecialVar_0x8005 = affectedCount;
     gSpecialVar_Result = unlockedCount;
+}
+
+void PokemonVendor_StartDebugBondTrainerBattle(void)
+{
+    InitTrainerBattleParameter();
+    ClearTrainerFlag(POKEMON_VENDOR_DEBUG_BOND_TRAINER);
+
+    TRAINER_BATTLE_PARAM.mode = TRAINER_BATTLE_SINGLE;
+    TRAINER_BATTLE_PARAM.objEventLocalIdA = LOCALID_NONE;
+    TRAINER_BATTLE_PARAM.opponentA = POKEMON_VENDOR_DEBUG_BOND_TRAINER;
+    TRAINER_BATTLE_PARAM.introTextA = (u8 *)sText_DebugBattleIntro;
+    TRAINER_BATTLE_PARAM.defeatTextA = (u8 *)sText_DebugBattleDefeat;
+    TRAINER_BATTLE_PARAM.playMusicA = TRUE;
+
+    BattleSetup_StartTrainerBattle();
 }
 
 void PokemonVendor_IsSelectedMonSealedOrigin(void)

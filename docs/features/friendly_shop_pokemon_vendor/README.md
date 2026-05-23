@@ -54,6 +54,9 @@ one-time only.
   per-NPC amounts such as 10, 20, 80, or 100. The first runtime hook is the
   `pokemonvendorawardbond amount[, showMessage]` macro, so map `.inc` scripts
   can tune rewards without a broad battle-end hook.
+- Debug `Scripts... -> Script 3` is the current normal-trainer validation
+  route: it starts a regular trainer battle and awards 20 sealed bond EXP after
+  victory through the same macro.
 - For the first runtime slice, prefer battle-win or challenge-clear based
   sealed progress while the locked recruit is in the party. Step-based progress
   is possible for literal Eggs, but it collides more directly with the existing

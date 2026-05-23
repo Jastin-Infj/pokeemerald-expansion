@@ -639,5 +639,6 @@ gSpecials::
 	def_special StickerManGetBragFlags
 	def_special CheckAddCoins
 	def_special PokemonVendor_AddBondExpToParty
+	def_special PokemonVendor_StartDebugBondTrainerBattle
 	def_special PokemonVendor_IsSelectedMonSealedOrigin
 	def_special PokemonVendor_IsSelectedMonLockedSealed
