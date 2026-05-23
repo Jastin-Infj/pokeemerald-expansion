@@ -1512,6 +1512,14 @@ gText_PlayerFoundTMHMs::
 	.string "{PLAYER} found {STR_VAR_3} {STR_VAR_1}\n"
 	.string "{STR_VAR_2}!$"
 
+PokemonVendor_Text_BondExpGained::
+	.string "Sealed bond EXP increased\n"
+	.string "by {STR_VAR_1}.$"
+
+PokemonVendor_Text_RecruitsUnlocked::
+	.string "{STR_VAR_1} sealed recruit(s)\n"
+	.string "were unlocked.$"
+
 gText_Sudowoodo_Attacked::
 	.string "The weird tree doesn't like the\n"
 	.string "WAILMER PAIL!\p"

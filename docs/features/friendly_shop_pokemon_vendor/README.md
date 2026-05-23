@@ -16,7 +16,8 @@ Status: First runtime slice implemented on `feature/global-no-evolution-20260523
 The branch now includes the global no-evolution rule, a new script-facing
 Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
 delivery, one-time / repeat products, gated shop rows, script-driven bond progress,
-and Summary-visible sealed-origin status.
+trainer-script bond reward messages, purchasable mystery sealed products, and
+Summary-visible sealed-origin status.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
 Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon, literal
@@ -49,6 +50,10 @@ one-time only.
 - Treat BP as optional flavor only. The core design should use an abstract
   sealed progress / unlock counter; whether that maps to Battle Frontier BP,
   challenge-only points, or another reward value is a later balancing choice.
+- Trainer or challenge scripts should award sealed bond progress explicitly with
+  per-NPC amounts such as 10, 20, 80, or 100. The first runtime hook is the
+  `pokemonvendorawardbond amount[, showMessage]` macro, so map `.inc` scripts
+  can tune rewards without a broad battle-end hook.
 - For the first runtime slice, prefer battle-win or challenge-clear based
   sealed progress while the locked recruit is in the party. Step-based progress
   is possible for literal Eggs, but it collides more directly with the existing
@@ -72,6 +77,9 @@ one-time only.
   hatch resolution. The implementation promotes the currently unused
   `PokemonSubstruct3.unused_0B` bit into
   `MON_DATA_VENDOR_SEALED_ORIGIN`.
+- Mystery sealed products can hide species as `?????` while still being
+  purchasable. Their actual species is selected at purchase time from the
+  product's base species plus optional random-species candidates.
 - Summary should show a small "LOCKED" label while the recruit is still sealed,
   then a compact "Sealed Origin" / "Vendor Origin" style label or badge after
   unlock. The first slice shows bond progress while locked and a vendor-origin
@@ -105,6 +113,10 @@ one-time only.
 - A policy hook for move and held-item editing entitlement.
 - A gate-state UI for unavailable shop rows, e.g. "GATED" / "Not available".
 - Bond / seal EXP progress while a sealed recruit is carried.
+- A script macro for trainer / room rewards that can show or suppress bond EXP
+  and unlock messages per call site.
+- Mystery sealed products with hidden display and random purchase-time species
+  selection.
 - A Summary-visible vendor sealed-origin marker.
 - Sealed progress policy that can be driven by carried-party state.
 
@@ -116,6 +128,10 @@ one-time only.
 - Forcing use of Battle Frontier BP as the reward currency.
 - A full Champions Challenge save-session implementation.
 - Box-wide rollback or PC snapshot behavior.
+- Trainer item / TM drop tables after battle. This should be a separate reward
+  feature because it affects economy balance.
+- Pokemon icon rendering inside the vendor list. This remains the next UI slice
+  because it needs sprite lifecycle / scroll handling, not just text layout.
 
 ## Related Docs
 

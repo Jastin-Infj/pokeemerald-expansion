@@ -7,7 +7,7 @@
 
 TEST("Pokemon Vendor product ABI matches script macro layout")
 {
-    EXPECT_EQ(sizeof(struct PokemonVendorProduct), 34);
+    EXPECT_EQ(sizeof(struct PokemonVendorProduct), 42);
 }
 
 TEST("Pokemon Vendor sealed recruit keeps origin and unlocks by bond")

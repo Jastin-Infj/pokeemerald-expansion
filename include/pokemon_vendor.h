@@ -24,6 +24,7 @@ struct PokemonVendorProduct
     u8 editPolicy;
     u8 revealPolicy;
     u8 ivs;
+    u16 randomSpecies[POKEMON_VENDOR_RANDOM_SPECIES_COUNT];
 } __attribute__((packed));
 
 void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale);

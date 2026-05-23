@@ -46,7 +46,8 @@ fields:
 | Progress policy | None, trainer wins while carried, challenge clears while carried, steps, or script-driven. |
 | Bond EXP threshold | Feature-owned progress required to release the locked recruit. |
 | Bond EXP yield | Amount awarded per trainer win, challenge clear, script event, or EXP-equivalent event. |
-| Reveal policy | Whether gated rows show the target species or display `????`. |
+| Reveal policy | Whether gated rows show the target species, and whether purchasable mystery rows display `????`. |
+| Random species pool | Optional candidate species for mystery products; actual species is selected when purchased. |
 | Evolution policy | Runtime species are fixed; global evolution lock is allowed and preferred. |
 
 ## Recommended Implementation Shape
@@ -71,6 +72,11 @@ Do not hardcode BP in the first slice. Use a feature-local concept:
 - Sealed recruit must be in the player's party.
 - Sealed recruit occupies a party slot and cannot battle until unlocked.
 - Progress source is configurable per product.
+- Trainer / NPC scripts can call `pokemonvendorawardbond amount` after battle
+  to award per-NPC progress, e.g. 10 or 20 for regular trainers, 80 for Elite
+  Four, and 100 for a Champion-class clear.
+- The reward macro has a `showMessage` parameter so noisy repeat rewards can be
+  hidden while boss clears can show bond EXP and unlock messages.
 - The in-game feel is "bond deepened" / Shadow Pokemon style release.
 - Store progress as feature-owned bond / seal EXP, not normal
   `MON_DATA_EXP`, unless a later branch intentionally wants level EXP side
@@ -255,6 +261,8 @@ Recommended helper contract:
 - Product pools generated from partygen JSON.
 - Product-specific species de-duplication.
 - Product preview with Pokemon icon or Summary preview.
+- Trainer / challenge item-drop tables, including TM / held-item drops, as a
+  separate economy feature.
 - Custom moves, IVs, EVs, ability, nature, and held item payload parity with
   the script `givemon` macro.
 - Challenge-only Lv.50 normalization.

@@ -93,11 +93,14 @@ static void PokemonVendorConfirmPurchase(u8 taskId);
 static void PokemonVendorTryPurchase(u8 taskId);
 static void PokemonVendorCancelPurchase(u8 taskId);
 static void PokemonVendorFinishPurchase(u8 taskId);
+static bool32 PokemonVendorProductHidesSpecies(const struct PokemonVendorProduct *product);
+static void PokemonVendorCopyProductDisplayName(u8 *dest, const struct PokemonVendorProduct *product);
 static u8 PokemonVendorGetProductSelectState(const struct PokemonVendorProduct *product);
 static bool32 PokemonVendorProductIsSoldOut(const struct PokemonVendorProduct *product);
 static bool32 PokemonVendorProductIsUnlocked(const struct PokemonVendorProduct *product);
 static bool32 PokemonVendorTryDeliverProduct(const struct PokemonVendorProduct *product);
 static void PokemonVendorCreateMon(const struct PokemonVendorProduct *product, struct Pokemon *mon);
+static u16 PokemonVendorChooseProductSpecies(const struct PokemonVendorProduct *product);
 static void PokemonVendorMarkSealedRecruit(const struct PokemonVendorProduct *product, struct Pokemon *mon);
 static u8 PokemonVendorClampBondThreshold(u16 threshold);
 static void PokemonVendorUnlockSealedRecruit(struct Pokemon *mon);
@@ -257,10 +260,7 @@ static void PokemonVendorBuildList(void)
         if (PokemonVendorProductIsSoldOut(product))
             continue;
 
-        if (product->revealPolicy == POKEMON_VENDOR_REVEAL_GATED && !PokemonVendorProductIsUnlocked(product))
-            StringCopy(sPokemonVendorMenu->names[visible], sText_QuestionMarks);
-        else
-            StringCopy(sPokemonVendorMenu->names[visible], GetSpeciesName(product->species));
+        PokemonVendorCopyProductDisplayName(sPokemonVendorMenu->names[visible], product);
 
         sPokemonVendorMenu->items[visible].name = sPokemonVendorMenu->names[visible];
         sPokemonVendorMenu->items[visible].id = visible;
@@ -368,7 +368,7 @@ static void Task_PokemonVendorHandleInput(u8 taskId)
                                         Task_PokemonVendorWaitForDismiss);
             break;
         default:
-            StringCopy(gStringVar1, GetSpeciesName(product->species));
+            PokemonVendorCopyProductDisplayName(gStringVar1, product);
             ConvertIntToDecimalStringN(gStringVar2, product->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
             StringExpandPlaceholders(gStringVar4, sText_ConfirmPurchase);
             PokemonVendorDisplayMessage(taskId, gStringVar4, PokemonVendorConfirmPurchase);
@@ -398,6 +398,20 @@ static u8 PokemonVendorGetProductSelectState(const struct PokemonVendorProduct *
     }
 
     return PRODUCT_SELECT_OK;
+}
+
+static bool32 PokemonVendorProductHidesSpecies(const struct PokemonVendorProduct *product)
+{
+    return product->revealPolicy == POKEMON_VENDOR_REVEAL_HIDDEN
+        || (product->revealPolicy == POKEMON_VENDOR_REVEAL_GATED && !PokemonVendorProductIsUnlocked(product));
+}
+
+static void PokemonVendorCopyProductDisplayName(u8 *dest, const struct PokemonVendorProduct *product)
+{
+    if (PokemonVendorProductHidesSpecies(product))
+        StringCopy(dest, sText_QuestionMarks);
+    else
+        StringCopy(dest, GetSpeciesName(product->species));
 }
 
 static void PokemonVendorConfirmPurchase(u8 taskId)
@@ -656,6 +670,7 @@ static void PokemonVendorCreateMon(const struct PokemonVendorProduct *product, s
 {
     u32 i;
     u32 personality;
+    u16 species;
     u16 move;
     u8 fixedIvs = product->ivs;
 
@@ -663,7 +678,8 @@ static void PokemonVendorCreateMon(const struct PokemonVendorProduct *product, s
         fixedIvs = USE_RANDOM_IVS;
 
     personality = Random32();
-    CreateMonWithIVs(mon, product->species, product->level, personality, OTID_STRUCT_PLAYER_ID, fixedIvs);
+    species = PokemonVendorChooseProductSpecies(product);
+    CreateMonWithIVs(mon, species, product->level, personality, OTID_STRUCT_PLAYER_ID, fixedIvs);
 
     if (product->moves[0] == MOVE_NONE)
     {
@@ -692,6 +708,26 @@ static void PokemonVendorCreateMon(const struct PokemonVendorProduct *product, s
 
     if (product->kind == POKEMON_VENDOR_PRODUCT_SEALED)
         PokemonVendorMarkSealedRecruit(product, mon);
+}
+
+static u16 PokemonVendorChooseProductSpecies(const struct PokemonVendorProduct *product)
+{
+    u8 i;
+    u8 count = 1;
+    u16 speciesPool[POKEMON_VENDOR_RANDOM_SPECIES_COUNT + 1];
+
+    speciesPool[0] = product->species;
+
+    for (i = 0; i < POKEMON_VENDOR_RANDOM_SPECIES_COUNT; i++)
+    {
+        if (product->randomSpecies[i] != SPECIES_NONE)
+            speciesPool[count++] = product->randomSpecies[i];
+    }
+
+    if (count == 1)
+        return speciesPool[0];
+
+    return speciesPool[Random() % count];
 }
 
 static void PokemonVendorMarkSealedRecruit(const struct PokemonVendorProduct *product, struct Pokemon *mon)
@@ -788,17 +824,24 @@ void PokemonVendor_AddBondExpToParty(void)
 {
     u8 i;
     u8 amount = gSpecialVar_0x8004;
+    u16 affectedCount = 0;
     u16 unlockedCount = 0;
 
     if (amount == 0)
         amount = 1;
+    gSpecialVar_0x8004 = amount;
 
     for (i = 0; i < gPlayerPartyCount; i++)
     {
-        if (PokemonVendor_AddBondExp(&gPlayerParty[i], amount))
-            unlockedCount++;
+        if (PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[i]))
+        {
+            affectedCount++;
+            if (PokemonVendor_AddBondExp(&gPlayerParty[i], amount))
+                unlockedCount++;
+        }
     }
 
+    gSpecialVar_0x8005 = affectedCount;
     gSpecialVar_Result = unlockedCount;
 }
 

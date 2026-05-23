@@ -26,6 +26,9 @@
 | Vendor origin bit preservation | Buy vendor sealed recruit, confirm marker while locked, unlock it, then save/load. | Marker remains on the unlocked Pokemon and does not appear on ordinary Eggs or ordinary gift Pokemon. |
 | Summary marker | Open Summary for ordinary Egg, locked sealed recruit, ordinary unlocked Pokemon, and sealed-origin Pokemon. | Locked recruit shows locked-state UI; unlocked sealed-origin Pokemon shows the dedicated origin label / badge. |
 | Bond EXP progress | Carry sealed recruit through selected progress source. | Bond / seal EXP advances only while the recruit is in party and only from allowed events. Normal `MON_DATA_EXP` does not change unless explicitly designed. |
+| Trainer bond reward macro | Add `pokemonvendorawardbond 20` to a post-battle script. | Locked sealed recruits gain 20 bond EXP, optional progress message appears, and unlock message appears when threshold is met. |
+| Quiet bond reward macro | Add `pokemonvendorawardbond 20, FALSE` to a room clear script. | Bond EXP is awarded without showing progress / unlock messages. |
+| Mystery sealed purchase | Buy a `POKEMON_VENDOR_REVEAL_HIDDEN` product with random species candidates. | Shop displays `?????`, charges money, delivers a locked sealed recruit, and chooses the actual species at purchase time. |
 | Release threshold | Fill bond EXP to the configured threshold. | Recruit enters ready / release state, then unlocks through the selected automatic or confirmation flow. |
 | EXP table normalization | Generate or inspect a product whose growth table has high cumulative EXP. | Raw cumulative EXP is not used; generated threshold is clamped into the feature-owned bond EXP range. |
 | Missing usage fallback | Add a sealed product for a Pokemon with no usage data. | Product uses explicit threshold or neutral species-tier fallback; it is not blocked by missing usage stats. |
@@ -63,6 +66,8 @@
 | 2026-05-23 | mGBA Live two-window layout route | Pass | Opened debug `Scripts... -> Script 1`, checked initial display, confirmation, success message, field return, and a second open. The list and detail windows are visually separated, the bottom message band stays independent, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-two-window-open-20260523.png`, `/tmp/pokemon-vendor-two-window-confirm-20260523.png`, `/tmp/pokemon-vendor-two-window-success-20260523.png`, `/tmp/pokemon-vendor-two-window-reopen-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Gated-row / edit-entitlement build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after making `PokemonVendor_IsEditEntitled()` false for locked sealed recruits and true after unlock. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
 | 2026-05-23 | mGBA Live gated-row route | Pass | Opened debug `Scripts... -> Script 1`, confirmed the unavailable concealed row displays `?????` plus `GATED`, and selected it to confirm `This recruit is not available yet.` Screenshots: `/tmp/pokemon-vendor-gated-open-20260523.png`, `/tmp/pokemon-vendor-gated-message-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Mystery sealed / bond reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after adding random-species mystery products and the trainer / room reward macro. Existing RWX linker warning and expected test markers only. |
+| 2026-05-23 | mGBA Live mystery sealed / bond reward route | Pass | Opened debug `Scripts... -> Script 1`, bought the `?????` mystery sealed product for `3000`, then ran `Scripts... -> Script 2` and confirmed the bond reward message. Screenshots: `/tmp/pokemon-vendor-mystery-open-20260523.png`, `/tmp/pokemon-vendor-mystery-confirm-20260523.png`, `/tmp/pokemon-vendor-mystery-success-20260523.png`, `/tmp/pokemon-vendor-mystery-bond-message-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, large search index. |
 
 ## Feature Complete Gate
@@ -76,6 +81,9 @@
 - Raw cumulative EXP table values are never used directly as unlock thresholds.
 - Thresholds are explicit or generated from species tier with usage as a
   modifier only; missing usage has a neutral fallback.
+- Trainer / room scripts can award tuned bond amounts with optional messages.
+- Mystery sealed products can be purchased while species-hidden and can resolve
+  to a random configured species at purchase time.
 - No Pokemon can evolve through normal or special evolution triggers while the
   no-evolution runtime rule is enabled.
 - Locked row UI and vendor sealed-origin Summary marker are visible and tested.

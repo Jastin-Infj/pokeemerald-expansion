@@ -18,10 +18,13 @@ Pokemon Vendor.
   without routing through the item `pokemart` / `AddBagItem()` path.
 - Product records support species, level, price, product kind, repeat /
   one-time policy, one-time flag, unlock flag, held item, ball, custom moves,
-  edit policy, reveal policy, bond threshold, and bond yield metadata.
+  edit policy, reveal policy, bond threshold, bond yield metadata, and up to
+  four optional random-species candidates for mystery products.
 - Debug `Script 1` opens a sample vendor with a repeat normal Pokemon, a
-  one-time sealed recruit, and a gated concealed row.
-- Debug `Script 2` awards sealed bond progress to carried locked recruits.
+  one-time sealed recruit, and a purchasable mystery sealed recruit.
+- Debug `Script 2` uses the shared `pokemonvendorawardbond 40` macro to award
+  sealed bond progress to carried locked recruits and show progress / unlock
+  messages.
 - Normal Pokemon purchases can deliver to party or PC.
 - Sealed recruits require an empty party slot, occupy that slot while locked,
   and use Egg battle restrictions so the player has one fewer usable battler.
@@ -62,6 +65,8 @@ Normal products:
 Sealed products:
 
 - can target final evolutions, legendary Pokemon, or any explicit species;
+- can hide their species as `?????` and choose from a configured random species
+  pool at purchase time;
 - are purchased first, then enter the locked sealed-recruit state in party;
 - are created as locked vendor-origin Pokemon using the Egg lock for battle
   exclusion;
@@ -77,8 +82,9 @@ or make it unavailable until a script condition is met, but they are not the
 same state as a locked sealed recruit after acquisition.
 
 The current progress source is script-driven through
-`PokemonVendor_AddBondExpToParty`. That is deliberate: challenge rooms can call
-the special after a clear without coupling this first slice to all battle-win
+`PokemonVendor_AddBondExpToParty` and the `pokemonvendorawardbond` macro. That
+is deliberate: trainer post-battle scripts, challenge rooms, or clear scripts
+can choose different values without coupling this first slice to all battle-win
 paths. The product table still carries bond-yield metadata for later balancing.
 
 ## Script API
@@ -96,20 +102,35 @@ paths. The product table still carries bond-yield metadata for later balancing.
 SomeVendorProducts:
 	pokemonvendorproduct 1, SPECIES_PIKACHU, 50, 3000, POKEMON_VENDOR_PRODUCT_NORMAL, POKEMON_VENDOR_PURCHASE_REPEAT
 	pokemonvendorproduct 2, SPECIES_DRAGONITE, 50, 12000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_ONCE, FLAG_UNUSED_0x020
+	pokemonvendorproduct 3, SPECIES_MEW, 50, 3000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 180, 40, POKEMON_VENDOR_EDIT_ALWAYS, POKEMON_VENDOR_REVEAL_HIDDEN, USE_RANDOM_IVS, MOVE_NONE, MOVE_NONE, MOVE_NONE, MOVE_NONE, SPECIES_MEWTWO, SPECIES_CELEBI, SPECIES_JIRACHI, SPECIES_DEOXYS
 	pokemonvendorlistend
+
+SomeTrainer_PostBattle:
+	pokemonvendorawardbond 20
+	return
+
+SomeQuietRoomReward:
+	pokemonvendorawardbond 80, FALSE
+	return
 ```
 
 `pokemonvendorlistend` terminates the product table. Product rows may also pass
 availability-gate flags, held items, ball ids, bond thresholds, edit policy,
-reveal policy, IV policy, and up to four explicit moves.
+reveal policy, IV policy, up to four explicit moves, and up to four extra
+random-species candidates. `pokemonvendorawardbond amount` writes the number of
+affected locked recruits to `VAR_0x8005`, the number unlocked to `VAR_RESULT`,
+and can suppress messages with `FALSE`.
 
 ## Known Limitations
 
 - The vendor UI is intentionally functional and compact. It uses text rows and
   Summary-visible status, not Pokemon icons or a custom art skin. The current
   repair validates clean standard-window rendering, two-window middle layout,
-  and repeated-open stability; a later skin pass can still replace the visual
-  treatment.
+  and repeated-open stability; Pokemon icon rows remain a later UI pass because
+  they need sprite lifecycle and scroll handling.
+- Trainer item / TM drops are intentionally deferred to a separate reward
+  feature so money, vendor products, and post-battle reward economy can be
+  balanced together.
 - Sealed unlock currently happens immediately when script-driven bond progress
   reaches the threshold. A later UX branch can add a dedicated release
   animation / confirmation.
@@ -136,6 +157,8 @@ reveal policy, IV policy, and up to four explicit moves.
 | 2026-05-23 | mGBA Live vendor two-window route | Pass | Revalidated after restoring the middle area to two framed windows. Checked initial display, confirmation, success, field return, and a second open. The list and detail panes are separated by a one-tile gutter, the bottom message band remains independent, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-two-window-open-20260523.png`, `/tmp/pokemon-vendor-two-window-confirm-20260523.png`, `/tmp/pokemon-vendor-two-window-success-20260523.png`, `/tmp/pokemon-vendor-two-window-reopen-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Vendor gated-row / edit-entitlement build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after separating pre-purchase gated rows from post-acquisition locked sealed recruits. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
 | 2026-05-23 | mGBA Live vendor gated-row route | Pass | Revalidated debug `Scripts... -> Script 1` after the terminology / entitlement repair. The concealed unavailable product row displayed `?????` and `GATED`; selecting it showed `This recruit is not available yet.` Screenshots: `/tmp/pokemon-vendor-gated-open-20260523.png`, `/tmp/pokemon-vendor-gated-message-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Mystery sealed / bond reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after adding mystery random species candidates and the `pokemonvendorawardbond` reward macro. Existing RWX linker warning and expected test markers only. |
+| 2026-05-23 | mGBA Live mystery sealed / bond reward route | Pass | Revalidated debug `Scripts... -> Script 1` and `Script 2`. The mystery product displayed `?????` with price `3000`, confirmation kept `?????`, purchase succeeded and deducted money, then `Script 2` displayed `Sealed bond EXP increased by 40.` Screenshots: `/tmp/pokemon-vendor-mystery-open-20260523.png`, `/tmp/pokemon-vendor-mystery-confirm-20260523.png`, `/tmp/pokemon-vendor-mystery-success-20260523.png`, `/tmp/pokemon-vendor-mystery-bond-message-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
