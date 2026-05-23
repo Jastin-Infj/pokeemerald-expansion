@@ -5,6 +5,7 @@
 #include "string_util.h"
 #include "caps.h"
 #include "mail.h"
+#include "pokemon_vendor.h"
 #include "pokemon_storage_system.h"
 #include "event_data.h"
 #include "random.h"
@@ -1187,6 +1188,8 @@ static bool8 TryProduceOrHatchEgg(struct DayCare *daycare)
         for (i = 0; i < gPlayerPartyCount; i++)
         {
             if (!GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
+                continue;
+            if (PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[i]))
                 continue;
             if (GetMonData(&gPlayerParty[i], MON_DATA_SANITY_IS_BAD_EGG))
                 continue;

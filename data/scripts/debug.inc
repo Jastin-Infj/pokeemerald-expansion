@@ -203,12 +203,38 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
-	release
+	lockall
+	message Debug_PokemonVendor_Text_Welcome
+	waitmessage
+	pokemonvendor Debug_PokemonVendor_Products
+	msgbox Debug_PokemonVendor_Text_Thanks, MSGBOX_DEFAULT
+	releaseall
 	end
 
 Debug_EventScript_Script_2::
-	release
+	lockall
+	setvar VAR_0x8004, 40
+	special PokemonVendor_AddBondExpToParty
+	buffernumberstring STR_VAR_1, VAR_RESULT
+	msgbox Debug_PokemonVendor_Text_BondResult, MSGBOX_DEFAULT
+	releaseall
 	end
+
+	.align 2
+Debug_PokemonVendor_Products:
+	pokemonvendorproduct 1, SPECIES_PIKACHU, 50, 3000, POKEMON_VENDOR_PRODUCT_NORMAL, POKEMON_VENDOR_PURCHASE_REPEAT
+	pokemonvendorproduct 2, SPECIES_DRAGONITE, 50, 12000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_ONCE, FLAG_UNUSED_0x020, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 120, 40, POKEMON_VENDOR_EDIT_ALWAYS
+	pokemonvendorproduct 3, SPECIES_MEW, 50, 25000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, FLAG_UNUSED_0x021, ITEM_NONE, 27, 180, 40, POKEMON_VENDOR_EDIT_ALWAYS, POKEMON_VENDOR_REVEAL_LOCKED
+	pokemonvendorlistend
+
+Debug_PokemonVendor_Text_Welcome:
+	.string "Friendly Shop Pokemon Vendor$"
+
+Debug_PokemonVendor_Text_Thanks:
+	.string "Please come again.$"
+
+Debug_PokemonVendor_Text_BondResult:
+	.string "{STR_VAR_1} sealed recruit(s) unlocked.$"
 
 Debug_EventScript_Script_3::
 	release

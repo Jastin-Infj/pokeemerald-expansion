@@ -1272,6 +1272,43 @@
 	.4byte \products
 	.endm
 
+	@ Opens the Pokemon Vendor system, offering a list of PokemonVendorProduct records.
+	@ Product lists should be preceded by an .align 2 and terminated with pokemonvendorlistend.
+	.macro pokemonvendor products:req
+	.byte SCR_OP_POKEMONVENDOR
+	.4byte \products
+	.endm
+
+	.macro pokemonvendorproduct productId:req, species:req, level:req, price:req, kind:req, purchaseMode:req, oneTimeFlag=POKEMON_VENDOR_NO_FLAG, unlockFlag=POKEMON_VENDOR_NO_FLAG, heldItem=ITEM_NONE, ball=1, bondThreshold=POKEMON_VENDOR_DEFAULT_BOND_THRESHOLD, bondYield=0, editPolicy=POKEMON_VENDOR_EDIT_NORMAL, revealPolicy=POKEMON_VENDOR_REVEAL_SPECIES, ivs=USE_RANDOM_IVS, move1=MOVE_NONE, move2=MOVE_NONE, move3=MOVE_NONE, move4=MOVE_NONE
+	.2byte \productId
+	.2byte \species
+	.4byte \price
+	.2byte \oneTimeFlag
+	.2byte \unlockFlag
+	.2byte \heldItem
+	.2byte \ball
+	.2byte \bondThreshold
+	.2byte \bondYield
+	.2byte \move1, \move2, \move3, \move4
+	.byte \level
+	.byte \kind
+	.byte \purchaseMode
+	.byte \editPolicy
+	.byte \revealPolicy
+	.byte \ivs
+	.endm
+
+	.macro pokemonvendorlistend
+	.2byte POKEMON_VENDOR_NO_PRODUCT_ID
+	.2byte SPECIES_NONE
+	.4byte 0
+	.2byte 0, 0, 0, 0, 0, 0
+	.2byte 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0
+	release
+	end
+	.endm
+
 	@ Starts up the slot machine minigame. id is a SLOT_MACHINE_* value that influences probabilities of certain reel outcomes.
 	.macro playslotmachine id:req
 	.byte SCR_OP_PLAYSLOTMACHINE

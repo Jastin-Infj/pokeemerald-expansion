@@ -52,10 +52,10 @@
 | 2026-05-22 | Docs-only investigation | In progress | No runtime source changes in this branch. Runtime build / mGBA checks are not applicable until implementation branch. |
 | 2026-05-23 | `rtk git diff --check` | Pass | No whitespace issues before validation. |
 | 2026-05-23 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning only. |
-| 2026-05-23 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only. |
-| 2026-05-23 | `rtk make -j16 -O check` | Pass | Existing RWX linker warning only; test suite exits 0. |
+| 2026-05-23 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only; debug Script 1 / Script 2 route is available. |
+| 2026-05-23 | `rtk make -j16 -O check` | Pass | New `test/pokemon_vendor.c` passed; suite still includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
+| 2026-05-23 | mGBA Live vendor route | Pass | `DISPLAY=:0` `mgba-live-cli` booted, continued an existing save, opened debug `Scripts... -> Script 1`, displayed the vendor, bought Pikachu, and confirmed money changed from `¥3000` to `¥0`. Screenshot saved to `/tmp/pokemon-vendor-purchase-success-20260523.png`; session stopped cleanly. |
 | 2026-05-23 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, large search index. |
-| 2026-05-23 | mGBA Live boot | Pass | Direct MCP start failed with unset `DISPLAY`; `DISPLAY=:0` `mgba-live-cli` retry booted and captured the Game Freak screen. Session stopped cleanly. |
 
 ## Feature Complete Gate
 
@@ -71,14 +71,15 @@
 - No Pokemon can evolve through normal or special evolution triggers while the
   no-evolution runtime rule is enabled.
 - Locked row UI and vendor sealed-origin Summary marker are visible and tested.
-- Edit entitlement behavior is documented and either implemented or explicitly
-  deferred; always-available Status Editor access is limited to non-locked
-  vendor sealed-origin Pokemon.
+- Edit entitlement helper is implemented; actual Status Editor / relearner
+  surface wiring is deferred to the next editor-focused slice.
 - `test_plan.md` records local make results, mGBA Live evidence, skipped long
   GitHub Actions waits, and accepted remaining risk.
 
 ## Open Questions
 
-- Which map / NPC should host the first debug vendor?
-- Which source should be used for the first sealed progress proof: trainer win,
-  challenge clear, or script event?
+- Which non-debug map / NPC should host the first real vendor?
+- Should sealed release remain immediate at threshold or show a confirmation /
+  release animation?
+- Which editor / relearner entry point should consume
+  `PokemonVendor_IsEditEntitled()` first?

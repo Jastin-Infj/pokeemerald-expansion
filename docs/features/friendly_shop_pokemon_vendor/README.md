@@ -6,17 +6,17 @@
 |---|---|
 | Last reviewed | 2026-05-23 |
 | Baseline | `master` `33932f1c30`; upstream `expansion/1.15.2-86-g2bb16c85b3` |
-| Code status | Runtime implementation started on feature branch; Pokemon vendor menu is not implemented yet |
+| Code status | Runtime implementation active on feature branch; vendor / sealed recruit first slice implemented |
 | Provenance | Local project overlay |
 
 ## Status
 
-Status: Implementation started.
+Status: First runtime slice implemented on `feature/global-no-evolution-20260523`.
 
-The first runtime slice is the global no-evolution rule required by the fixed
-species product model. The actual Friendly Shop Pokemon vendor, sealed recruit
-delivery, and bond / seal EXP progress systems remain future work on this
-feature branch.
+The branch now includes the global no-evolution rule, a new script-facing
+Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
+delivery, one-time / repeat products, locked rows, script-driven bond progress,
+and Summary-visible sealed-origin status.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
 Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon, literal
@@ -65,15 +65,13 @@ one-time only.
   as Clefairy-style middle / stone-evolution species are still fixed products;
   evolution stones and other evolution triggers should not evolve them.
 - Vendor sealed products need a persistent origin marker that survives unlock /
-  hatch resolution. The
-  preferred implementation candidate is to promote the currently unused
-  `PokemonSubstruct3.unused_0B` bit into a named
-  `MON_DATA_VENDOR_SEALED_ORIGIN`
-  field, if the implementation branch confirms it is unused in this fork.
+  hatch resolution. The implementation promotes the currently unused
+  `PokemonSubstruct3.unused_0B` bit into
+  `MON_DATA_VENDOR_SEALED_ORIGIN`.
 - Summary should show a small "LOCKED" label while the recruit is still sealed,
   then a compact "Sealed Origin" / "Vendor Origin" style label or badge after
-  unlock. This is player-facing proof of why the Pokemon receives
-  always-available Status Editor access.
+  unlock. The first slice shows bond progress while locked and a vendor-origin
+  memo after unlock; a visual badge can be added in a later UI pass.
 - The tone should be close to a Shadow Pokemon purification / bond-deepening
   flow: the Pokemon is present but not yet usable, then becomes available when
   enough bond / seal EXP has accumulated.
@@ -129,16 +127,11 @@ one-time only.
 
 ## Open Questions
 
-- How should a purchased Pokemon's origin / edit entitlement be stored
-  persistently without exhausting Pokemon struct spare bits?
-- Should sealed products resolve through vanilla Egg hatch flow, or through a
-  custom unlock animation / message that better fits final evolutions and
-  legendary Pokemon?
-- Should repeat products be allowed to send Pokemon to PC, or should the vendor
-  require an empty party slot for all purchases?
-- Should sealed progress be tied to trainer wins only, any battle win, challenge
-  room clear, or a product-specific script event?
-- Should bond / seal EXP use a visible numeric meter, a small segmented gauge,
-  or only text such as "The bond is deepening"?
-- What exact Summary wording / badge should represent vendor sealed origin
-  without being confused with ordinary daycare Eggs?
+- Should sealed unlock use an explicit confirmation / animation instead of the
+  current immediate unlock when bond reaches threshold?
+- Which non-debug map / NPC should host the first real product list?
+- Should future progress be awarded from trainer wins, challenge clears, or
+  product-specific script events only?
+- Should the Summary origin proof become a visual badge instead of memo text?
+- Which editor / relearner surfaces should call `PokemonVendor_IsEditEntitled()`
+  first?
