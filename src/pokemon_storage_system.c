@@ -6968,6 +6968,9 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
     bool8 sanityIsBadEgg;
 
     sStorage->displayMonItemId = ITEM_NONE;
+    sStorage->displayMonIsEgg = FALSE;
+    sStorage->displayMonDisplayAsEgg = FALSE;
+    sStorage->displayMonIsVendorLocked = FALSE;
     gender = MON_MALE;
     sanityIsBadEgg = FALSE;
     if (mode == MODE_PARTY)
@@ -7038,9 +7041,6 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
     {
         sStorage->displayMonSpecies = SPECIES_NONE;
         sStorage->displayMonItemId = ITEM_NONE;
-        sStorage->displayMonIsEgg = FALSE;
-        sStorage->displayMonDisplayAsEgg = FALSE;
-        sStorage->displayMonIsVendorLocked = FALSE;
     }
 
     if (sStorage->displayMonSpecies == SPECIES_NONE)
