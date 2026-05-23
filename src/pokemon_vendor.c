@@ -26,7 +26,6 @@
 #include "string_util.h"
 #include "strings.h"
 #include "task.h"
-#include "text.h"
 #include "constants/game_stat.h"
 #include "constants/battle_setup.h"
 #include "constants/event_objects.h"
@@ -38,15 +37,17 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
-#define MAX_PRODUCTS_SHOWN 9
-#define VENDOR_LIST_FONT FONT_SMALL_NARROW
-#define VENDOR_LIST_ITEM_VERTICAL_PADDING 0
+#define MAX_PRODUCTS_SHOWN 4
 #define VENDOR_LIST_NAME_LENGTH 18
 #define VENDOR_BOND_MAX 255
 #define VENDOR_LIST_PRICE_RIGHT 112
 #define VENDOR_INFO_ICON_X 208
 #define VENDOR_INFO_ICON_Y 64
 #define VENDOR_INFO_ICON_SUBPRIORITY 0
+#define VENDOR_SCROLL_ARROW_X 128
+#define VENDOR_SCROLL_ARROW_UP_Y 48
+#define VENDOR_SCROLL_ARROW_DOWN_Y 100
+#define TAG_VENDOR_SCROLL_ARROW 2101
 #define POKEMON_VENDOR_DEBUG_BOND_TRAINER TRAINER_CALVIN_1
 #define BATTLE_SCRIPT_CALLNATIVE_SIZE 5
 
@@ -83,6 +84,7 @@ struct PokemonVendorMenu
     u16 scrollOffset;
     u16 selectedRow;
     u8 listTaskId;
+    u8 scrollIndicatorsTaskId;
     u8 productIconSpriteId;
     u8 windowIds[WIN_COUNT];
     u8 deliveryResult;
@@ -102,7 +104,8 @@ static void PokemonVendorDrawWindows(void);
 static void PokemonVendorPrintMoney(void);
 static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMenu *list);
 static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y);
-static u8 PokemonVendorGetMaxShownRows(void);
+static void PokemonVendorAddScrollIndicatorArrows(void);
+static void PokemonVendorRemoveScrollIndicatorArrows(void);
 static void PokemonVendorDestroyProductIcon(void);
 static void PokemonVendorShowProductIcon(const struct PokemonVendorProduct *product);
 static void PokemonVendorRestoreListAndInfo(void);
@@ -167,18 +170,18 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
     [WIN_LIST] = {
         .bg = 0,
         .tilemapLeft = 1,
-        .tilemapTop = 4,
+        .tilemapTop = 5,
         .width = 14,
-        .height = 10,
+        .height = 8,
         .paletteNum = 15,
         .baseBlock = 0x019,
     },
     [WIN_INFO] = {
         .bg = 0,
         .tilemapLeft = 18,
-        .tilemapTop = 4,
+        .tilemapTop = 5,
         .width = 11,
-        .height = 10,
+        .height = 8,
         .paletteNum = 15,
         .baseBlock = 0x0F9,
     },
@@ -189,7 +192,7 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
         .width = 28,
         .height = 4,
         .paletteNum = 15,
-        .baseBlock = 0x167,
+        .baseBlock = 0x159,
     },
 };
 
@@ -201,7 +204,7 @@ static const struct WindowTemplate sPokemonVendorYesNoWindowTemplate =
     .width = 5,
     .height = 4,
     .paletteNum = 15,
-    .baseBlock = 0x1D7,
+    .baseBlock = 0x1C9,
 };
 
 static const struct ListMenuTemplate sPokemonVendorListTemplate =
@@ -220,9 +223,9 @@ static const struct ListMenuTemplate sPokemonVendorListTemplate =
     .fillValue = 1,
     .cursorShadowPal = 3,
     .lettersSpacing = 0,
-    .itemVerticalPadding = VENDOR_LIST_ITEM_VERTICAL_PADDING,
+    .itemVerticalPadding = 1,
     .scrollMultiple = LIST_MULTIPLE_SCROLL_DPAD,
-    .fontId = VENDOR_LIST_FONT,
+    .fontId = FONT_NARROW,
     .cursorKind = CURSOR_BLACK_ARROW,
     .textNarrowWidth = 88,
 };
@@ -252,6 +255,7 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
 
     sPokemonVendorMenu->products = productsForSale;
     sPokemonVendorMenu->listTaskId = TASK_NONE;
+    sPokemonVendorMenu->scrollIndicatorsTaskId = TASK_NONE;
     sPokemonVendorMenu->productIconSpriteId = MAX_SPRITES;
     LoadMonIconPalettes();
     HideFieldMessageBox();
@@ -263,6 +267,7 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0, RGB_BLACK);
     gTasks[taskId].data[0] = ListMenuInit(&gMultiuseListMenuTemplate, 0, 0);
     sPokemonVendorMenu->listTaskId = gTasks[taskId].data[0];
+    PokemonVendorAddScrollIndicatorArrows();
     PokemonVendorRestoreListAndInfo();
 }
 
@@ -303,7 +308,7 @@ static void PokemonVendorBuildList(void)
     gMultiuseListMenuTemplate = sPokemonVendorListTemplate;
     gMultiuseListMenuTemplate.items = sPokemonVendorMenu->items;
     gMultiuseListMenuTemplate.totalItems = visible + 1;
-    gMultiuseListMenuTemplate.maxShowed = min(PokemonVendorGetMaxShownRows(), visible + 1);
+    gMultiuseListMenuTemplate.maxShowed = min(MAX_PRODUCTS_SHOWN, visible + 1);
     gMultiuseListMenuTemplate.windowId = sPokemonVendorMenu->windowIds[WIN_LIST];
 }
 
@@ -539,6 +544,7 @@ static void PokemonVendorFinishPurchase(u8 taskId)
         PutWindowTilemap(sPokemonVendorMenu->windowIds[WIN_LIST]);
         CopyWindowToVram(sPokemonVendorMenu->windowIds[WIN_LIST], COPYWIN_FULL);
         sPokemonVendorMenu->listTaskId = ListMenuInit(&gMultiuseListMenuTemplate, sPokemonVendorMenu->scrollOffset, min(sPokemonVendorMenu->selectedRow, sPokemonVendorMenu->visibleCount));
+        PokemonVendorAddScrollIndicatorArrows();
         Task_PokemonVendorReturnToList(taskId);
     }
 }
@@ -583,6 +589,7 @@ static void PokemonVendorFree(void)
         DestroyListMenuTask(sPokemonVendorMenu->listTaskId, NULL, NULL);
         sPokemonVendorMenu->listTaskId = TASK_NONE;
     }
+    PokemonVendorRemoveScrollIndicatorArrows();
     PokemonVendorDestroyProductIcon();
     Free(sPokemonVendorMenu->items);
     Free(sPokemonVendorMenu->names);
@@ -650,31 +657,42 @@ static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y)
     product = &sPokemonVendorMenu->products[sPokemonVendorMenu->productIndexes[item]];
     if (!PokemonVendorProductIsUnlocked(product))
     {
-        x = GetStringRightAlignXOffset(VENDOR_LIST_FONT, sText_GatedRow, VENDOR_LIST_PRICE_RIGHT);
-        AddTextPrinterParameterized4(windowId, VENDOR_LIST_FONT, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_GatedRow);
+        x = GetStringRightAlignXOffset(FONT_NARROW, sText_GatedRow, VENDOR_LIST_PRICE_RIGHT);
+        AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_GatedRow);
         return;
     }
 
     ConvertIntToDecimalStringN(gStringVar1, product->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
-    x = GetStringRightAlignXOffset(VENDOR_LIST_FONT, gStringVar1, VENDOR_LIST_PRICE_RIGHT);
+    x = GetStringRightAlignXOffset(FONT_NARROW, gStringVar1, VENDOR_LIST_PRICE_RIGHT);
     colorId = IsEnoughMoney(&gSaveBlock1Ptr->money, product->price) ? COLORID_NORMAL : COLORID_GRAY;
-    AddTextPrinterParameterized4(windowId, VENDOR_LIST_FONT, x, y, 0, 0, sVendorTextColors[colorId], TEXT_SKIP_DRAW, gStringVar1);
+    AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[colorId], TEXT_SKIP_DRAW, gStringVar1);
 }
 
-static u8 PokemonVendorGetMaxShownRows(void)
+static void PokemonVendorAddScrollIndicatorArrows(void)
 {
-    u8 rowHeight = GetFontAttribute(VENDOR_LIST_FONT, FONTATTR_MAX_LETTER_HEIGHT) + VENDOR_LIST_ITEM_VERTICAL_PADDING;
-    u8 windowHeight = sPokemonVendorWindowTemplates[WIN_LIST].height * 8;
-    u8 capacity;
+    u16 totalItems = sPokemonVendorMenu->visibleCount + 1;
 
-    if (rowHeight == 0)
-        return 1;
+    if (sPokemonVendorMenu->scrollIndicatorsTaskId == TASK_NONE && totalItems > gMultiuseListMenuTemplate.maxShowed)
+    {
+        sPokemonVendorMenu->scrollIndicatorsTaskId = AddScrollIndicatorArrowPairParameterized(
+            SCROLL_ARROW_UP,
+            VENDOR_SCROLL_ARROW_X,
+            VENDOR_SCROLL_ARROW_UP_Y,
+            VENDOR_SCROLL_ARROW_DOWN_Y,
+            totalItems - gMultiuseListMenuTemplate.maxShowed,
+            TAG_VENDOR_SCROLL_ARROW,
+            TAG_VENDOR_SCROLL_ARROW,
+            &sPokemonVendorMenu->scrollOffset);
+    }
+}
 
-    capacity = (windowHeight - sPokemonVendorListTemplate.upText_Y) / rowHeight;
-    if (capacity == 0)
-        capacity = 1;
-
-    return min(MAX_PRODUCTS_SHOWN, capacity);
+static void PokemonVendorRemoveScrollIndicatorArrows(void)
+{
+    if (sPokemonVendorMenu->scrollIndicatorsTaskId != TASK_NONE)
+    {
+        RemoveScrollIndicatorArrowPair(sPokemonVendorMenu->scrollIndicatorsTaskId);
+        sPokemonVendorMenu->scrollIndicatorsTaskId = TASK_NONE;
+    }
 }
 
 static void PokemonVendorDestroyProductIcon(void)
