@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-18 |
-| Baseline | `master` `187df44eb6`; `git describe` = `expansion/1.15.2-73-g187df44eb6` |
+| Last reviewed | 2026-05-23 |
+| Baseline | `master` `de310ef9eb`; `git describe` = `expansion/1.15.2-96-gde310ef9eb` |
 | Code status | Docs-only navigation |
-| Provenance | Local project overlay, 2026-05-18 comprehensive feature inventory |
+| Provenance | Local project overlay, 2026-05-18 comprehensive feature inventory, 2026-05-23 all-ability-slots investigation |
 
 この directory は local feature の planning / implementation handoff / validation
 evidence を置く場所。新しい作業に入る時は、feature folder を直接読む前に
@@ -85,6 +85,7 @@ adopted through fresh runtime branches.
 
 - [Nonconsumable Held Items](nonconsumable_held_items/README.md)
 - [Scout Selection](scout_selection/README.md)
+- [All Ability Slots Runtime](all_ability_slots/README.md)
 
 ## Current Runtime Shelves
 
