@@ -142,8 +142,10 @@ one-time only.
 - Box-wide rollback or PC snapshot behavior.
 - Trainer item / TM drop tables after battle. This should be a separate reward
   feature because it affects economy balance.
-- Pokemon icon rendering inside the vendor list. This remains the next UI slice
-  because it needs sprite lifecycle / scroll handling, not just text layout.
+- Per-row Pokemon icon rendering inside the vendor list. The current runtime
+  shows the selected product's real icon in the detail pane; row icons remain a
+  later custom-list pass because the standard list row height is too small for
+  32x32 mon icons without a layout rewrite.
 - Gen 7 / Gen 8-style "add to party and choose a party member to send to PC"
   swap UI. That should be a separate gift / capture / vendor delivery feature
   because it cuts across more than this Pokemon vendor.

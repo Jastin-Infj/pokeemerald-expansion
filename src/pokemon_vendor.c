@@ -16,11 +16,13 @@
 #include "overworld.h"
 #include "palette.h"
 #include "pokemon.h"
+#include "pokemon_icon.h"
 #include "pokemon_storage_system.h"
 #include "pokemon_vendor.h"
 #include "random.h"
 #include "script.h"
 #include "sound.h"
+#include "sprite.h"
 #include "string_util.h"
 #include "strings.h"
 #include "task.h"
@@ -39,6 +41,9 @@
 #define VENDOR_LIST_NAME_LENGTH 18
 #define VENDOR_BOND_MAX 255
 #define VENDOR_LIST_PRICE_RIGHT 112
+#define VENDOR_INFO_ICON_X 208
+#define VENDOR_INFO_ICON_Y 64
+#define VENDOR_INFO_ICON_SUBPRIORITY 0
 #define POKEMON_VENDOR_DEBUG_BOND_TRAINER TRAINER_CALVIN_1
 #define BATTLE_SCRIPT_CALLNATIVE_SIZE 5
 
@@ -75,6 +80,7 @@ struct PokemonVendorMenu
     u16 scrollOffset;
     u16 selectedRow;
     u8 listTaskId;
+    u8 productIconSpriteId;
     u8 windowIds[WIN_COUNT];
     u8 deliveryResult;
 };
@@ -93,6 +99,8 @@ static void PokemonVendorDrawWindows(void);
 static void PokemonVendorPrintMoney(void);
 static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMenu *list);
 static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y);
+static void PokemonVendorDestroyProductIcon(void);
+static void PokemonVendorShowProductIcon(const struct PokemonVendorProduct *product);
 static void PokemonVendorRestoreListAndInfo(void);
 static s32 PokemonVendorGetSelectedListItemId(void);
 static void PokemonVendorDisplayMessage(u8 taskId, const u8 *text, TaskFunc callback);
@@ -240,6 +248,8 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
 
     sPokemonVendorMenu->products = productsForSale;
     sPokemonVendorMenu->listTaskId = TASK_NONE;
+    sPokemonVendorMenu->productIconSpriteId = MAX_SPRITES;
+    LoadMonIconPalettes();
     HideFieldMessageBox();
     PokemonVendorInitWindows();
     PokemonVendorBuildList();
@@ -569,6 +579,7 @@ static void PokemonVendorFree(void)
         DestroyListMenuTask(sPokemonVendorMenu->listTaskId, NULL, NULL);
         sPokemonVendorMenu->listTaskId = TASK_NONE;
     }
+    PokemonVendorDestroyProductIcon();
     Free(sPokemonVendorMenu->items);
     Free(sPokemonVendorMenu->names);
     Free(sPokemonVendorMenu->productIndexes);
@@ -592,6 +603,7 @@ static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMen
 
     if (item == LIST_CANCEL)
     {
+        PokemonVendorDestroyProductIcon();
         AddTextPrinterParameterized4(windowId, FONT_NARROW, 4, 1, 0, 0, sVendorTextColors[COLORID_NORMAL], TEXT_SKIP_DRAW, sText_QuitVendor);
         CopyWindowToVram(windowId, COPYWIN_FULL);
         return;
@@ -619,6 +631,7 @@ static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMen
 
     AddTextPrinterParameterized4(windowId, FONT_NARROW, 4, 1, 0, 0, sVendorTextColors[COLORID_NORMAL], TEXT_SKIP_DRAW, gStringVar4);
     CopyWindowToVram(windowId, COPYWIN_FULL);
+    PokemonVendorShowProductIcon(product);
 }
 
 static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y)
@@ -642,6 +655,38 @@ static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y)
     x = GetStringRightAlignXOffset(FONT_NARROW, gStringVar1, VENDOR_LIST_PRICE_RIGHT);
     colorId = IsEnoughMoney(&gSaveBlock1Ptr->money, product->price) ? COLORID_NORMAL : COLORID_GRAY;
     AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[colorId], TEXT_SKIP_DRAW, gStringVar1);
+}
+
+static void PokemonVendorDestroyProductIcon(void)
+{
+    if (sPokemonVendorMenu->productIconSpriteId != MAX_SPRITES)
+    {
+        FreeAndDestroyMonIconSprite(&gSprites[sPokemonVendorMenu->productIconSpriteId]);
+        sPokemonVendorMenu->productIconSpriteId = MAX_SPRITES;
+    }
+}
+
+static void PokemonVendorShowProductIcon(const struct PokemonVendorProduct *product)
+{
+    u16 species = product->species;
+    bool32 isEgg = FALSE;
+
+    PokemonVendorDestroyProductIcon();
+
+    if (PokemonVendorProductHidesSpecies(product))
+    {
+        species = SPECIES_EGG;
+        isEgg = TRUE;
+    }
+
+    sPokemonVendorMenu->productIconSpriteId = CreateMonIconIsEgg(species,
+                                                                 SpriteCB_MonIcon,
+                                                                 VENDOR_INFO_ICON_X,
+                                                                 VENDOR_INFO_ICON_Y,
+                                                                 VENDOR_INFO_ICON_SUBPRIORITY,
+                                                                 0,
+                                                                 isEgg);
+    gSprites[sPokemonVendorMenu->productIconSpriteId].oam.priority = 0;
 }
 
 static bool32 PokemonVendorProductIsSoldOut(const struct PokemonVendorProduct *product)

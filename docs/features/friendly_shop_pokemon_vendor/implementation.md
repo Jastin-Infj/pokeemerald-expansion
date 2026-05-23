@@ -150,11 +150,12 @@ prints the unlock message only if one or more recruits unlocked.
 
 ## Known Limitations
 
-- The vendor UI is intentionally functional and compact. It uses text rows and
-  Summary-visible status, not Pokemon icons or a custom art skin. The current
-  repair validates clean standard-window rendering, two-window middle layout,
-  and repeated-open stability; Pokemon icon rows remain a later UI pass because
-  they need sprite lifecycle and scroll handling.
+- The vendor UI is intentionally functional and compact. It uses text rows,
+  Summary-visible status, and a selected-product Pokemon icon in the detail
+  pane. Named products show their real species icon; concealed `?????` products
+  show the generic Egg icon. Per-row Pokemon icon rendering remains a later UI
+  pass because the standard list row height is too small for 32x32 mon icons
+  without a custom list layout.
 - The delivery path now supports PC fallback for sealed recruits, but the
   Gen 7 / Gen 8-style prompt to add the new Pokemon to party and choose a party
   member to send to PC is not implemented in this slice. That belongs in a
@@ -203,6 +204,8 @@ prints the unlock message only if one or more recruits unlocked.
 | 2026-05-23 | mGBA Live concealed locked display route | Pass | Bought a `?????` sealed recruit through debug `Scripts... -> Script 1`. Party showed generic Egg icon, `EGG`, and `LOCKED`; Summary showed generic Egg art plus `LOCKED` and bond progress; a Lua-only validation copy to Box 1 slot 1 confirmed Pokemon Storage shows generic Egg art, `EGG`, and `LOCKED` in the left info panel. Screenshots: `/tmp/pokemon-vendor-final-party-concealed-egg-20260523.png`, `/tmp/pokemon-vendor-final-summary-concealed-egg-20260523.png`, `/tmp/pokemon-vendor-final-storage-box-concealed-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Storage empty-slot locked-state reset | Pass | `SetDisplayMonData()` now clears display-only Egg / vendor-lock flags before reading the current cursor target, so empty Box slots cannot inherit `LOCKED` from the previously inspected sealed recruit. |
 | 2026-05-23 | mGBA Live Storage empty-slot reset route | Pass | Bought a `?????` sealed recruit through debug `Scripts... -> Script 1`, copied it to Box 1 slot 1 for focused validation, cleared Box 1 slot 2, opened Pokemon Storage, confirmed slot 1 shows Egg art / `EGG` / `LOCKED`, then moved right to the empty slot and confirmed the left info panel clears instead of retaining `LOCKED`. Screenshot: `/tmp/pokemon-vendor-storage-empty-reset-blank-slot-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Vendor selected-product icon build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding selected-product icon rendering to the vendor detail pane. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live vendor selected-product icon route | Pass | Booted the debug ROM, continued the existing save, opened debug `Scripts... -> Script 1`, and confirmed the detail pane shows Pikachu's icon for the Pikachu product, Dragonite's icon for the Dragonite product, a generic Egg icon for the concealed `?????` product, and no stale icon on Cancel. Screenshots: `/tmp/pokemon-vendor-icon-pikachu-20260523.png`, `/tmp/pokemon-vendor-icon-dragonite-20260523.png`, `/tmp/pokemon-vendor-icon-mystery-20260523.png`, `/tmp/pokemon-vendor-icon-cancel-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
