@@ -30,7 +30,7 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
-#define MAX_PRODUCTS_SHOWN 5
+#define MAX_PRODUCTS_SHOWN 4
 #define VENDOR_LIST_NAME_LENGTH 18
 #define VENDOR_BOND_MAX 255
 #define VENDOR_LIST_PRICE_RIGHT 112
@@ -139,29 +139,29 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
     [WIN_LIST] = {
         .bg = 0,
         .tilemapLeft = 1,
-        .tilemapTop = 4,
-        .width = 16,
-        .height = 11,
+        .tilemapTop = 5,
+        .width = 28,
+        .height = 8,
         .paletteNum = 15,
         .baseBlock = 0x019,
     },
     [WIN_INFO] = {
         .bg = 0,
         .tilemapLeft = 17,
-        .tilemapTop = 4,
+        .tilemapTop = 5,
         .width = 12,
-        .height = 11,
+        .height = 8,
         .paletteNum = 15,
-        .baseBlock = 0x0C9,
+        .baseBlock = 0x0F9,
     },
     [WIN_MESSAGE] = {
         .bg = 0,
         .tilemapLeft = 1,
-        .tilemapTop = 16,
+        .tilemapTop = 15,
         .width = 28,
         .height = 4,
         .paletteNum = 15,
-        .baseBlock = 0x14D,
+        .baseBlock = 0x159,
     },
 };
 
@@ -169,11 +169,11 @@ static const struct WindowTemplate sPokemonVendorYesNoWindowTemplate =
 {
     .bg = 0,
     .tilemapLeft = 23,
-    .tilemapTop = 9,
+    .tilemapTop = 15,
     .width = 5,
     .height = 4,
     .paletteNum = 15,
-    .baseBlock = 0x1BD,
+    .baseBlock = 0x1C9,
 };
 
 static const struct ListMenuTemplate sPokemonVendorListTemplate =
@@ -233,6 +233,7 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0, RGB_BLACK);
     gTasks[taskId].data[0] = ListMenuInit(&gMultiuseListMenuTemplate, 0, 0);
     sPokemonVendorMenu->listTaskId = gTasks[taskId].data[0];
+    PokemonVendorRestoreListAndInfo();
 }
 
 static void PokemonVendorBuildList(void)
@@ -284,7 +285,6 @@ static void PokemonVendorInitWindows(void)
     u8 i;
 
     LoadMessageBoxAndBorderGfx();
-    Menu_LoadStdPal();
 
     for (i = 0; i < WIN_COUNT; i++)
         sPokemonVendorMenu->windowIds[i] = AddWindow(&sPokemonVendorWindowTemplates[i]);
@@ -298,7 +298,7 @@ static void PokemonVendorDrawWindows(void)
 
     for (i = 0; i < WIN_COUNT; i++)
     {
-        if (i == WIN_MESSAGE)
+        if (i == WIN_INFO || i == WIN_MESSAGE)
             continue;
 
         FillWindowPixelBuffer(sPokemonVendorMenu->windowIds[i], PIXEL_FILL(0));
@@ -563,8 +563,8 @@ static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMen
     if (onInit != TRUE)
         PlaySE(SE_SELECT);
 
-    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    DrawStdWindowFrame(windowId, FALSE);
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(1));
+    PutWindowTilemap(windowId);
 
     if (item == LIST_CANCEL)
     {

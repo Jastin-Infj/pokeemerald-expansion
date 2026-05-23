@@ -32,6 +32,10 @@ Pokemon Vendor.
 - The vendor UI now owns its bottom message window instead of reusing the field
   dialogue printer, clears any prior field message box before drawing, and
   restores the list / info windows after Yes / No overlays are dismissed.
+- The later layout polish keeps the money box, the combined list / info panel,
+  and the bottom message band on separate tile rows. The list / info area is a
+  single framed panel with a frameless right-side detail overlay, avoiding the
+  previous center seam and repeated-open frame dirt.
 
 ## Changed Files
 
@@ -120,6 +124,7 @@ IV policy, and up to four explicit moves.
 | 2026-05-23 | `rtk make -j16 -O check` | Pass | New `test/pokemon_vendor.c` passed; suite still includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
 | 2026-05-23 | mGBA Live vendor route | Pass | Booted with `DISPLAY=:0` `mgba-live-cli`, continued an existing save, opened debug `Scripts... -> Script 1`, confirmed the vendor list, bought the repeat Pikachu product, saw money drop from `¥3000` to `¥0`, and captured `/tmp/pokemon-vendor-purchase-success-20260523.png`. Session stopped cleanly. |
 | 2026-05-23 | mGBA Live vendor UI repair route | Pass | Revalidated debug `Scripts... -> Script 1` after the UI repair. Initial vendor display no longer leaves the field dialogue box behind, purchase confirmation uses loaded standard frame tiles, success text is clean, the money box updates from `¥3000` to `¥0`, and the list / info panes are restored after Yes / No dismissal. Screenshots: `/tmp/pokemon-vendor-ui-fix-final-open-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-confirm-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-success-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-return-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | mGBA Live vendor layout polish route | Pass | Revalidated after the tile-row separation and combined middle-panel polish. Checked initial display, confirmation, success, field return, and re-open. The center list / detail seam no longer redraws as two competing frames, the bottom message band has a visible bottom border, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-layout-polish3-open-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-confirm-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-success-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-reopen-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
