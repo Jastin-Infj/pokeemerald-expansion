@@ -140,16 +140,16 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
         .bg = 0,
         .tilemapLeft = 1,
         .tilemapTop = 5,
-        .width = 28,
+        .width = 14,
         .height = 8,
         .paletteNum = 15,
         .baseBlock = 0x019,
     },
     [WIN_INFO] = {
         .bg = 0,
-        .tilemapLeft = 17,
+        .tilemapLeft = 18,
         .tilemapTop = 5,
-        .width = 12,
+        .width = 11,
         .height = 8,
         .paletteNum = 15,
         .baseBlock = 0x0F9,
@@ -298,7 +298,7 @@ static void PokemonVendorDrawWindows(void)
 
     for (i = 0; i < WIN_COUNT; i++)
     {
-        if (i == WIN_INFO || i == WIN_MESSAGE)
+        if (i == WIN_MESSAGE)
             continue;
 
         FillWindowPixelBuffer(sPokemonVendorMenu->windowIds[i], PIXEL_FILL(0));
@@ -563,8 +563,8 @@ static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMen
     if (onInit != TRUE)
         PlaySE(SE_SELECT);
 
-    FillWindowPixelBuffer(windowId, PIXEL_FILL(1));
-    PutWindowTilemap(windowId);
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    DrawStdWindowFrame(windowId, FALSE);
 
     if (item == LIST_CANCEL)
     {

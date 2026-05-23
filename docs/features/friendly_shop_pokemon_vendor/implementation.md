@@ -32,10 +32,10 @@ Pokemon Vendor.
 - The vendor UI now owns its bottom message window instead of reusing the field
   dialogue printer, clears any prior field message box before drawing, and
   restores the list / info windows after Yes / No overlays are dismissed.
-- The later layout polish keeps the money box, the combined list / info panel,
-  and the bottom message band on separate tile rows. The list / info area is a
-  single framed panel with a frameless right-side detail overlay, avoiding the
-  previous center seam and repeated-open frame dirt.
+- The final layout polish keeps the money box, separate list / detail panels,
+  and the bottom message band on separate tile rows. The list and detail areas
+  are two framed windows with a one-tile gutter, preserving visual separation
+  without reintroducing frame overlap or repeated-open frame dirt.
 
 ## Changed Files
 
@@ -102,8 +102,9 @@ IV policy, and up to four explicit moves.
 
 - The vendor UI is intentionally functional and compact. It uses text rows and
   Summary-visible status, not Pokemon icons or a custom art skin. The current
-  repair validates clean standard-window rendering and layout stability; a
-  later skin pass can still replace the visual treatment.
+  repair validates clean standard-window rendering, two-window middle layout,
+  and repeated-open stability; a later skin pass can still replace the visual
+  treatment.
 - Sealed unlock currently happens immediately when script-driven bond progress
   reaches the threshold. A later UX branch can add a dedicated release
   animation / confirmation.
@@ -125,6 +126,8 @@ IV policy, and up to four explicit moves.
 | 2026-05-23 | mGBA Live vendor route | Pass | Booted with `DISPLAY=:0` `mgba-live-cli`, continued an existing save, opened debug `Scripts... -> Script 1`, confirmed the vendor list, bought the repeat Pikachu product, saw money drop from `¥3000` to `¥0`, and captured `/tmp/pokemon-vendor-purchase-success-20260523.png`. Session stopped cleanly. |
 | 2026-05-23 | mGBA Live vendor UI repair route | Pass | Revalidated debug `Scripts... -> Script 1` after the UI repair. Initial vendor display no longer leaves the field dialogue box behind, purchase confirmation uses loaded standard frame tiles, success text is clean, the money box updates from `¥3000` to `¥0`, and the list / info panes are restored after Yes / No dismissal. Screenshots: `/tmp/pokemon-vendor-ui-fix-final-open-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-confirm-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-success-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-return-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | mGBA Live vendor layout polish route | Pass | Revalidated after the tile-row separation and combined middle-panel polish. Checked initial display, confirmation, success, field return, and re-open. The center list / detail seam no longer redraws as two competing frames, the bottom message band has a visible bottom border, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-layout-polish3-open-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-confirm-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-success-20260523.png`, `/tmp/pokemon-vendor-layout-polish3-reopen-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Vendor two-window build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after restoring the middle area to separate list / detail windows. Existing RWX linker warning and expected test markers only. |
+| 2026-05-23 | mGBA Live vendor two-window route | Pass | Revalidated after restoring the middle area to two framed windows. Checked initial display, confirmation, success, field return, and a second open. The list and detail panes are separated by a one-tile gutter, the bottom message band remains independent, and repeated open did not show stale white panel / frame corruption. Screenshots: `/tmp/pokemon-vendor-two-window-open-20260523.png`, `/tmp/pokemon-vendor-two-window-confirm-20260523.png`, `/tmp/pokemon-vendor-two-window-success-20260523.png`, `/tmp/pokemon-vendor-two-window-reopen-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
