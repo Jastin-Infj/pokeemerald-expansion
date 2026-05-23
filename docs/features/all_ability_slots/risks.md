@@ -15,10 +15,10 @@
 |---|---|---|---|
 | Singular API misuse | High | Leaving equality checks on `GetBattlerAbility()` will make only one slot work, creating inconsistent behavior. | Add set helpers and migrate by call-site family. Keep legacy API only for primary display / compatibility. |
 | Trigger spam | High | A Pokemon with multiple switch-in abilities can produce too many popups, weather changes, stat changes, or form checks. | Stable slot order, duplicate suppression, and tests for multiple switch-in abilities. Consider grouping later. |
-| Ability-changing moves are ambiguous | High | Trace, Role Play, Doodle, Skill Swap, Entrainment, Worry Seed, Simple Beam, Receiver, and Power of Alchemy currently copy or overwrite one ability. | Use a conservative one-ability temporary override set for MVP; document any user-facing divergence. |
+| Ability-changing moves are ambiguous | High | Trace, Role Play, Doodle, Skill Swap, Entrainment, Worry Seed, Simple Beam, Receiver, and Power of Alchemy currently copy or overwrite one ability. Rewriting all three slots would be too strong. | Use slot-local battle overrides: same slot swap / copy / overwrite, with `abilityNum` as the representative operation slot. |
 | Suppression rules become wrong | High | Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield, and `cantBeSuppressed` can accidentally suppress too much or too little. | Apply suppression and bypass per ability. Add tests with one suppressible plus one unsuppressable ability. |
 | AI underestimates threats | High | AI caches one ability and may ignore immunities, trapping, priority, speed, or damage modifiers from other active slots. | Add AI ability-set helpers and focused tests for trapping, Magic Guard, priority, speed, and immunity decisions. |
-| Mega / form behavior changes | High | Mega overlay can create up to six active ability entries before dedupe, and ability-gated form changes currently receive one ability argument. | Implement explicit base-plus-Mega overlay logic, dedupe, and tests. Decide Primal / Ultra / non-Mega form policy separately. |
+| Mega / form behavior changes | Medium | Mega and other form changes can rebuild the natural three-slot set from the new species, and ability-gated form changes currently receive one ability argument. | Use current-form replacement: after Mega, only the Mega species' three direct slots are natural active slots. Test ability-gated form checks. |
 | Ability Capsule / Patch confusion | Medium | Items appear to work but no longer change battle behavior. | Disable cleanly under all-active mode unless a display-slot or hidden-unlock policy is chosen. |
 | Summary / party UI overflow | Medium | Three names and descriptions do not fit the current one-ability Summary layout. | Make Summary the first complete display surface with a compact list and selected description. Defer party cards if needed. |
 | Field ability behavior drift | Medium | Outside-battle lead ability checks will intentionally stay single-ability while battles use all slots. | Document battle-only MVP and leave global field behavior to a separate feature. |
@@ -29,9 +29,8 @@
 ## Blockers Before Runtime Work
 
 - Decide Ability Capsule / Patch behavior under all-active mode.
-- Decide temporary ability-copy / overwrite semantics.
-- Decide whether Primal Reversion, Ultra Burst, and non-Mega form changes use
-  Mega-style overlay or current-species-only ability sets.
+- Decide exact Trace slot selection behavior beyond the representative-slot MVP.
+- Decide how slot-local overrides persist or reset through form changes.
 
 ## Accepted First-Branch Risks
 
@@ -48,7 +47,8 @@
 - Slot 0 + slot 1 + hidden combinations can stack several damage multipliers.
 - Abilities that remove weaknesses, block status, or trap opponents become much
   stronger when combined with offensive abilities.
-- Mega forms with multiple filled slots may become the largest balance swing.
+- Mega forms may become weaker or stronger depending on the Mega species'
+  three-slot table, because base abilities no longer overlay.
 - Neutralizing Gas and similar field-wide suppression abilities may become format
   defining if the holder also keeps offensive or defensive abilities.
 - Species with duplicate or `ABILITY_NONE` slots will be less affected, which can

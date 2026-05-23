@@ -41,7 +41,7 @@ The first runtime branch should prove the rule without changing save layout:
 | 1 | `include/config/battle.h` or local runtime rule owner | Add a default-off guard such as `B_ALL_ABILITY_SLOTS_ACTIVE`. A runtime option can wrap this later. |
 | 2 | `include/pokemon.h`, `src/pokemon.c`, `include/battle_util.h`, `src/battle_util.c` | Add small ability-set structs and helpers. Use direct `GetSpeciesAbility()` slots, skip `ABILITY_NONE`, dedupe, preserve order. |
 | 3 | `src/battle_util.c` | Add `BattlerHasAbility`, `IsAbilityOnField` set-aware variants, and a per-ability suppression / Mold Breaker check. Keep `GetBattlerAbility()` as a primary compatibility function. |
-| 4 | `src/battle_script_commands.c`, `data/battle_scripts_1.s` | Convert `jumpifability` to set-aware behavior and audit copy / swap / overwrite commands behind the guard. |
+| 4 | `src/battle_script_commands.c`, `data/battle_scripts_1.s` | Convert `jumpifability` to set-aware behavior and implement slot-local copy / swap / overwrite commands behind the guard. |
 | 5 | `src/battle_switch_in.c`, `src/battle_end_turn.c`, `src/battle_move_resolution.c` | Convert selected trigger families to iterate active abilities in stable slot order. Start with switch-in weather / Intimidate-style tests and Magic Guard / Soundproof predicate tests. |
 | 6 | `src/party_menu.c`, `src/item_use.c` | Under all-active mode, make Ability Capsule / Patch fail cleanly or select display-only primary slot if that policy is chosen. |
 | 7 | `src/pokemon_summary_screen.c` | Add a Summary display mode that lists active abilities and descriptions. This is the minimum UI evidence before deeper party / PC work. |
@@ -64,32 +64,34 @@ When all-active mode is enabled:
 - a suppressed or bypassed ability should be removed from the effective set for
   that check, not by changing the saved mon.
 
-Mega Evolution contract:
+Form-change contract:
 
-- Mega Evolution overlays the Mega target species ability slots on top of the
-  base species ability slots;
-- the active set can therefore reach six entries before duplicate removal;
-- duplicate abilities across base and Mega species still count once;
-- Mega overlay behavior is part of this mode's identity, not a bug-compatible
-  replacement of the base species active set.
+- Mega Evolution uses the Mega species' three direct ability slots after the form
+  change;
+- base species abilities do not continue as an overlay after Mega Evolution;
+- the natural active set remains three species slots before duplicate removal;
+- Primal Reversion, Ultra Burst, and other form changes should follow the same
+  current-form replacement rule unless a later feature deliberately changes that.
 
 Field contract:
 
 - field lead ability checks stay single-ability in the MVP;
 - later global all-slot behavior must be a separate feature / revision.
 
-Recommended temporary override contract for the first implementation:
+Slot-local ability-change contract:
 
-- `overwrittenAbility` creates a one-ability active set while it is present;
-- Trace / Role Play / Entrainment / Worry Seed / Simple Beam / Receiver copy or
-  apply one ability, not all natural abilities;
-- Skill Swap swaps the current primary / override ability and then both battlers
-  use one-ability override sets;
+- ability-changing effects alter one slot, not the whole active set;
+- the default operation slot is the battler's representative `abilityNum`;
+- Skill Swap swaps the same slot index between attacker and target;
+- Trace, Role Play, Doodle, Entrainment, Receiver, and Power of Alchemy copy one
+  corresponding slot;
+- Worry Seed and Simple Beam overwrite one target slot, not all three slots;
 - switching out or battle cleanup follows existing volatile reset behavior.
 
-This override contract is intentionally conservative. It avoids needing a saved
-or volatile array of copied abilities in the first branch, while still making the
-natural three-slot rule work for ordinary battlers.
+This contract is intentionally bounded. It avoids all-set rewrites such as
+turning every slot into Insomnia, while preserving the tactical value of ability
+manipulation. It likely requires slot-indexed battle-only override state rather
+than the existing singular `overwrittenAbility`.
 
 ## UI Contract
 
@@ -121,7 +123,7 @@ Deferred UI:
 
 ## Open Questions
 
-- Should Primal Reversion, Ultra Burst, and non-Mega form changes use the Mega
-  overlay rule or current-species-only ability sets?
 - Should Ability Capsule / Patch become display-slot selectors, hidden-slot
   progression items for non-battle systems, or simply fail in this mode?
+- Should Trace ever choose a random / visible opponent slot, or should it always
+  use representative-slot copying in this mode?

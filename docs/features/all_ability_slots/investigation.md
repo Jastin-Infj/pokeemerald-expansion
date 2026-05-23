@@ -130,23 +130,51 @@ Ability impact enters through form-change helpers:
 | `GetFormChangeTargetSpecies_Internal()` | Some form-change methods compare `ctx.ability` with table parameters. |
 | `BS_HandleFormChange()` | Updates species and healthbox display, not a multi-ability cache. |
 
-All-active mode should treat Mega Evolution as an overlay, not a replacement:
+All-active mode should treat Mega Evolution as a current-form replacement for
+ability purposes:
 
 - before Mega Evolution, the active set is the base species direct slots;
-- after Mega Evolution, the active set is base species direct slots plus Mega
-  target species direct slots;
-- the maximum is six active ability entries before duplicate removal;
-- duplicate abilities across base and Mega species still count once.
+- after Mega Evolution, the active set is the Mega species direct slots;
+- the active set remains capped at three natural species slots before duplicate
+  removal;
+- base species abilities do not continue as an overlay.
 
-This is deliberately stronger than normal form species replacement. It keeps the
-mode's "all specs unlocked" fantasy intact, but it is a major balance risk. For
-Primal Reversion, Ultra Burst, and non-Mega form changes, the runtime branch must
-choose whether to use the same overlay rule or the safer current-species-only
-rule before implementation.
+This avoids a six-ability Mega state and keeps the rule easier to reason about:
+the current battle species owns the natural three-slot set. Mega Evolution may
+still feel weaker or stronger depending on the target species' ability table, but
+that is a balance-table issue rather than a runtime overlay rule.
 
 Ability-gated form-change checks still need explicit handling. A form change
 that requires an ability should pass when any effective active ability matches
 the requirement, unless that ability is suppressed for that check.
+
+## Slot-Local Ability Changes
+
+Ability-changing moves and effects should not replace the entire three-slot
+active set. They should alter exactly one runtime ability slot.
+
+Recommended slot model:
+
+| Effect family | Slot policy |
+|---|---|
+| Skill Swap | Swap the same slot index between attacker and target. If the attacker's representative `abilityNum` is slot 2, swap attacker slot 2 with target slot 2. |
+| Trace | Copy one opponent ability into the tracer's corresponding slot. MVP default should use the tracer's representative `abilityNum` as the operation slot. |
+| Role Play / Doodle | Copy one target slot into the user's corresponding slot, not all target abilities. |
+| Entrainment | Copy the user's operation-slot ability into the target's same slot. |
+| Worry Seed / Simple Beam | Overwrite only the target operation slot with Insomnia / Simple. Do not turn every active slot into the replacement ability. |
+| Receiver / Power of Alchemy | Copy one fainted ally slot into the receiver's corresponding slot. |
+
+This keeps effects powerful but bounded. For example, Worry Seed setting all
+three slots to Insomnia would erase too much of the all-active format and become
+an outsized control tool. Slot-local mutation also keeps Skill Swap and Trace
+readable: the player can reason about "slot 1 / slot 2 / hidden slot" instead of
+the whole set changing at once.
+
+Runtime implication: the existing singular `overwrittenAbility` volatile is not
+enough for full slot-local semantics. The implementation likely needs a
+slot-indexed battle-only override layer, such as "slot N has temporary ability X",
+while preserving `abilityNum` as the representative operation slot and save
+field.
 
 ## Battle-Only MVP Boundary
 
@@ -190,7 +218,7 @@ Balance work should be a separate feature or revision:
 | Field presence | Neutralizing Gas, weather auras, Ruin abilities, Unnerve | Replace field scans with `FindBattlerWithAbility` over active sets. |
 | Trigger dispatch | Intimidate, Drizzle, Download, Dancer, Opportunist | Iterate active abilities in stable slot order and run existing `AbilityBattleEffects` cases per ability. |
 | Modifier helpers | speed, priority, accuracy, type effectiveness, contact | Split helpers that take one `enum Ability` into either predicate helpers or a compact ability set parameter. |
-| Ability-changing effects | Trace, Role Play, Doodle, Skill Swap, Entrainment, Simple Beam, Worry Seed, Receiver | Needs explicit temporary override policy before implementation. |
+| Ability-changing effects | Trace, Role Play, Doodle, Skill Swap, Entrainment, Simple Beam, Worry Seed, Receiver | Use slot-local battle overrides. Do not replace or copy the whole active set. |
 | Suppression / bypass | Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield, Core Enforcer | Must suppress or bypass per active ability instead of returning one global ability. |
 
 ## Source-Wide Impact Check
@@ -202,7 +230,7 @@ Balance work should be a separate feature or revision:
 | Runtime entry point | `GetBattlerAbilityInternal()` cannot simply change return semantics. Add a helper layer and migrate call-site families. |
 | Script command / special | `jumpifability`, `trycopyability`, `tryentrainment`, `tryoverwriteability`, `trytoclearprimalweather`, and ability popup scripts need review. |
 | Callback / task | Ability Capsule / Patch item tasks and Summary / party UI tasks need behavior changes. |
-| Save / runtime state | Save layout can remain compatible if `abilityNum` stays as representative slot. Runtime temporary override state may need expansion if singular `overwrittenAbility` is not enough. |
+| Save / runtime state | Save layout can remain compatible if `abilityNum` stays as representative slot. Runtime temporary override state likely needs slot-indexed expansion because singular `overwrittenAbility` is not enough. |
 | UI / window / sprite / text | Summary prints one ability; battle popups display one ability; party / PC / team viewer surfaces need compact multi-ability display policy. Summary is the first required full-list surface. |
 | Battle / AI | Very high impact. AI and battle calc structs cache one ability per battler. |
 | Build tools / generated files | No generated data requirement for the MVP. Future balance audits may use generated species ability reports. |
@@ -221,13 +249,11 @@ Balance work should be a separate feature or revision:
 
 ## Open Questions
 
-- Should a temporary overwritten ability replace all natural abilities, or should
-  it be added on top of the natural set?
-- If a target has three traceable abilities, which one should Trace copy:
-  primary slot, first active slot, random active slot, or all active slots?
+- For Trace, should future versions allow random / chosen slot selection, or is
+  representative-slot copying enough?
 - Should Gastro Acid suppress all suppressible active abilities while leaving
   unsuppressable abilities active?
 - How much ability popup spam is acceptable when a Pokemon has multiple
   switch-in abilities?
-- Should Primal Reversion, Ultra Burst, and non-Mega form changes use the same
-  base-plus-form overlay rule as Mega Evolution, or only the current species set?
+- How should slot-local overrides interact with form changes if a battler is
+  Skill Swapped before Mega Evolution or another form change?

@@ -53,10 +53,13 @@ refactor rather than a data-only change.
   trigger once and Defiant should still be active.
 - Treat Ability Capsule and Ability Patch as impacted UI / item policy. In an
   all-active world they no longer change battle behavior unless repurposed.
-- Treat Mega Evolution as an overlay in this mode: the base form's active
-  ability set remains active and the Mega target species contributes its own
-  ability slots on top. The theoretical maximum is therefore six active
-  abilities before dedupe.
+- Ability-changing battle effects should be slot-local, not whole-set
+  replacements. Skill Swap, Trace, Role Play, Entrainment, Worry Seed, Simple
+  Beam, Receiver, and similar effects should change only one corresponding slot
+  in the active set.
+- Treat Mega Evolution and other form changes as current-form replacement for
+  ability purposes. After Mega Evolution, the active set is the Mega species'
+  three direct slots, not base slots plus Mega slots.
 - Keep balance tuning separate from the mechanics branch. Ability buffs /
   nerfs, species-slot table edits, and gym / trainer balance should be tracked
   by a later balance feature.
@@ -96,7 +99,7 @@ refactor rather than a data-only change.
   Champions-only facility flag?
 - Should Ability Capsule / Patch be disabled, repurposed to choose a primary
   display slot, or used as a hidden-slot unlock item?
-- For Trace / Role Play / Skill Swap / Receiver, should copied abilities replace
-  the whole active set temporarily, or add to the natural three-slot set?
+- For Trace, should the default copied slot always be the tracer's representative
+  slot, or should battle script support an explicit random / chosen slot later?
 - Should UI show all active abilities everywhere, or show one primary slot with a
   Summary-only full list?

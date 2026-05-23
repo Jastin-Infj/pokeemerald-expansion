@@ -41,8 +41,8 @@ Record mGBA Live evidence or the exact failure in this file before push.
 | Switch-in triggers | Two or three switch-in abilities trigger in deterministic slot order. Duplicate slots trigger once. |
 | Field presence | Neutralizing Gas, Unnerve, Ruin abilities, and weather / terrain setters work when not in primary slot. |
 | Suppression / bypass | Gastro Acid, Neutralizing Gas, Mold Breaker, Ability Shield, and `cantBeSuppressed` combinations. |
-| Ability-changing moves | Trace, Role Play, Skill Swap, Entrainment or Worry Seed, and Receiver with the MVP one-ability override policy. |
-| Form changes | Mega Evolution base-plus-Mega overlay, Primal Reversion, Ultra Burst, Weather forms, Stance Change, Disguise, Ice Face, and any ability-gated form change. |
+| Ability-changing moves | Trace, Role Play, Skill Swap, Entrainment, Worry Seed, Simple Beam, and Receiver change one corresponding slot only. Worry Seed must not turn all active slots into Insomnia. |
+| Form changes | Mega Evolution, Primal Reversion, Ultra Burst, Weather forms, Stance Change, Disguise, Ice Face, and any ability-gated form change use current-form natural ability slots. |
 | Battle-only boundary | Field lead ability behavior remains single-ability while battle behavior uses all active slots. |
 | AI | Damage / switch decisions that depend on immunity, trapping, priority, speed, and Magic Guard-style secondary damage. |
 | Items | Ability Capsule / Patch fail or apply chosen new policy under all-active mode, and retain upstream behavior when disabled. |
@@ -57,8 +57,10 @@ Record mGBA Live evidence or the exact failure in this file before push.
 - Try Ability Capsule and Ability Patch in all-active mode and confirm the
   chosen message / behavior is clear.
 - Mega Evolve a Pokemon whose target form has a different ability table and
-  confirm the post-form active set includes base slots plus Mega target slots,
-  with duplicates removed.
+  confirm the post-form active set uses the Mega species slots only, with no
+  base-form overlay.
+- Use Worry Seed or Simple Beam against an all-active target and confirm only
+  one operation slot is overwritten.
 - In a double battle, verify ability popup order and that the player is not
   trapped or immune incorrectly due to a missed secondary ability.
 
