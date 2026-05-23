@@ -55,6 +55,8 @@
 | 2026-05-23 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only; debug Script 1 / Script 2 route is available. |
 | 2026-05-23 | `rtk make -j16 -O check` | Pass | New `test/pokemon_vendor.c` passed; suite still includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
 | 2026-05-23 | mGBA Live vendor route | Pass | `DISPLAY=:0` `mgba-live-cli` booted, continued an existing save, opened debug `Scripts... -> Script 1`, displayed the vendor, bought Pikachu, and confirmed money changed from `¥3000` to `¥0`. Screenshot saved to `/tmp/pokemon-vendor-purchase-success-20260523.png`; session stopped cleanly. |
+| 2026-05-23 | Vendor UI repair build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed after the message-window / Yes-No overlay repair. Existing RWX linker warning and expected test markers only. |
+| 2026-05-23 | mGBA Live vendor UI repair route | Pass | Reopened debug `Scripts... -> Script 1` and checked initial list, purchase confirmation, success message, money update, and post-message list return. No leftover field dialogue box, no unloaded `#` / rough frame glyphs, and no right-side info-pane clearing after Yes / No dismissal. Screenshots: `/tmp/pokemon-vendor-ui-fix-final-open-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-confirm-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-success-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-return-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | `rtk mdbook build docs` | Pass | Existing warnings: missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, large search index. |
 
 ## Feature Complete Gate

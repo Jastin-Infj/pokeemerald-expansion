@@ -1,6 +1,7 @@
 #include "global.h"
 #include "dynamic_placeholder_text_util.h"
 #include "event_data.h"
+#include "field_message_box.h"
 #include "international_string_util.h"
 #include "item.h"
 #include "list_menu.h"
@@ -29,9 +30,10 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
-#define MAX_PRODUCTS_SHOWN 6
+#define MAX_PRODUCTS_SHOWN 5
 #define VENDOR_LIST_NAME_LENGTH 18
 #define VENDOR_BOND_MAX 255
+#define VENDOR_LIST_PRICE_RIGHT 112
 
 enum {
     WIN_MONEY,
@@ -82,6 +84,11 @@ static void PokemonVendorDrawWindows(void);
 static void PokemonVendorPrintMoney(void);
 static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMenu *list);
 static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y);
+static void PokemonVendorRestoreListAndInfo(void);
+static s32 PokemonVendorGetSelectedListItemId(void);
+static void PokemonVendorDisplayMessage(u8 taskId, const u8 *text, TaskFunc callback);
+static void PokemonVendorClearMessageWindow(void);
+static void Task_PokemonVendorWaitForDismiss(u8 taskId);
 static void PokemonVendorConfirmPurchase(u8 taskId);
 static void PokemonVendorTryPurchase(u8 taskId);
 static void PokemonVendorCancelPurchase(u8 taskId);
@@ -102,11 +109,11 @@ static const u8 sText_OneTime[] = _("One-time");
 static const u8 sText_LockedRow[] = _("LOCKED");
 static const u8 sText_QuestionMarks[] = _("?????");
 static const u8 sText_QuitVendor[] = _("Close the vendor.");
-static const u8 sText_ProductLocked[] = _("This recruit is still locked.{PAUSE_UNTIL_PRESS}");
-static const u8 sText_SoldOut[] = _("I'm sorry, but that recruit is sold out.{PAUSE_UNTIL_PRESS}");
-static const u8 sText_NoRoomForPokemon[] = _("There is no room for this POKéMON.{PAUSE_UNTIL_PRESS}");
-static const u8 sText_NoRoomForSealed[] = _("A sealed recruit must join your party.{PAUSE_UNTIL_PRESS}");
-static const u8 sText_HereYouGo[] = _("Here you go! Take good care of it.{PAUSE_UNTIL_PRESS}");
+static const u8 sText_ProductLocked[] = _("This recruit is still locked.");
+static const u8 sText_SoldOut[] = _("That recruit is sold out.");
+static const u8 sText_NoRoomForPokemon[] = _("No room for this POKéMON.");
+static const u8 sText_NoRoomForSealed[] = _("A sealed recruit must join your party.");
+static const u8 sText_HereYouGo[] = _("Here you go!\nTake good care of it.");
 static const u8 sText_ConfirmPurchase[] = _("You wanted {STR_VAR_1}?\nThat'll be ¥{STR_VAR_2}. Okay?");
 static const u8 sText_InfoNormal[] = _("{DYNAMIC 0}  {LV_2}{DYNAMIC 1}\n{DYNAMIC 2}\nReady to use.");
 static const u8 sText_InfoSealed[] = _("{DYNAMIC 0}  {LV_2}{DYNAMIC 1}\n{DYNAMIC 2}\nBond: {DYNAMIC 3}");
@@ -134,7 +141,7 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
         .tilemapLeft = 1,
         .tilemapTop = 4,
         .width = 16,
-        .height = 14,
+        .height = 11,
         .paletteNum = 15,
         .baseBlock = 0x019,
     },
@@ -143,18 +150,18 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
         .tilemapLeft = 17,
         .tilemapTop = 4,
         .width = 12,
-        .height = 8,
+        .height = 11,
         .paletteNum = 15,
-        .baseBlock = 0x0F9,
+        .baseBlock = 0x0C9,
     },
     [WIN_MESSAGE] = {
         .bg = 0,
-        .tilemapLeft = 2,
-        .tilemapTop = 15,
-        .width = 26,
+        .tilemapLeft = 1,
+        .tilemapTop = 16,
+        .width = 28,
         .height = 4,
         .paletteNum = 15,
-        .baseBlock = 0x159,
+        .baseBlock = 0x14D,
     },
 };
 
@@ -166,7 +173,7 @@ static const struct WindowTemplate sPokemonVendorYesNoWindowTemplate =
     .width = 5,
     .height = 4,
     .paletteNum = 15,
-    .baseBlock = 0x1C1,
+    .baseBlock = 0x1BD,
 };
 
 static const struct ListMenuTemplate sPokemonVendorListTemplate =
@@ -182,7 +189,7 @@ static const struct ListMenuTemplate sPokemonVendorListTemplate =
     .cursor_X = 0,
     .upText_Y = 1,
     .cursorPal = 2,
-    .fillValue = 0,
+    .fillValue = 1,
     .cursorShadowPal = 3,
     .lettersSpacing = 0,
     .itemVerticalPadding = 1,
@@ -217,6 +224,7 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
 
     sPokemonVendorMenu->products = productsForSale;
     sPokemonVendorMenu->listTaskId = TASK_NONE;
+    HideFieldMessageBox();
     PokemonVendorInitWindows();
     PokemonVendorBuildList();
     PokemonVendorDrawWindows();
@@ -290,6 +298,9 @@ static void PokemonVendorDrawWindows(void)
 
     for (i = 0; i < WIN_COUNT; i++)
     {
+        if (i == WIN_MESSAGE)
+            continue;
+
         FillWindowPixelBuffer(sPokemonVendorMenu->windowIds[i], PIXEL_FILL(0));
         DrawStdWindowFrame(sPokemonVendorMenu->windowIds[i], FALSE);
         PutWindowTilemap(sPokemonVendorMenu->windowIds[i]);
@@ -343,24 +354,24 @@ static void Task_PokemonVendorHandleInput(u8 taskId)
         switch (state)
         {
         case PRODUCT_SELECT_LOCKED:
-            DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(), sText_ProductLocked, Task_PokemonVendorReturnToList);
+            PokemonVendorDisplayMessage(taskId, sText_ProductLocked, Task_PokemonVendorWaitForDismiss);
             break;
         case PRODUCT_SELECT_SOLD_OUT:
-            DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(), sText_SoldOut, Task_PokemonVendorReturnToList);
+            PokemonVendorDisplayMessage(taskId, sText_SoldOut, Task_PokemonVendorWaitForDismiss);
             break;
         case PRODUCT_SELECT_NO_MONEY:
-            DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(), gText_YouDontHaveMoney, Task_PokemonVendorReturnToList);
+            PokemonVendorDisplayMessage(taskId, gText_YouDontHaveMoney, Task_PokemonVendorWaitForDismiss);
             break;
         case PRODUCT_SELECT_NO_ROOM:
-            DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(),
-                                          product->kind == POKEMON_VENDOR_PRODUCT_SEALED ? sText_NoRoomForSealed : sText_NoRoomForPokemon,
-                                          Task_PokemonVendorReturnToList);
+            PokemonVendorDisplayMessage(taskId,
+                                        product->kind == POKEMON_VENDOR_PRODUCT_SEALED ? sText_NoRoomForSealed : sText_NoRoomForPokemon,
+                                        Task_PokemonVendorWaitForDismiss);
             break;
         default:
             StringCopy(gStringVar1, GetSpeciesName(product->species));
             ConvertIntToDecimalStringN(gStringVar2, product->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
             StringExpandPlaceholders(gStringVar4, sText_ConfirmPurchase);
-            DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(), gStringVar4, PokemonVendorConfirmPurchase);
+            PokemonVendorDisplayMessage(taskId, gStringVar4, PokemonVendorConfirmPurchase);
             break;
         }
         break;
@@ -391,12 +402,14 @@ static u8 PokemonVendorGetProductSelectState(const struct PokemonVendorProduct *
 
 static void PokemonVendorConfirmPurchase(u8 taskId)
 {
-    CreateYesNoMenuWithCallbacks(taskId, &sPokemonVendorYesNoWindowTemplate, 1, 0, 0, 0x1, 0xE, &sPokemonVendorPurchaseYesNoFuncs);
+    CreateYesNoMenuWithCallbacks(taskId, &sPokemonVendorYesNoWindowTemplate, 1, 0, 0, STD_WINDOW_BASE_TILE_NUM, STD_WINDOW_PALETTE_NUM, &sPokemonVendorPurchaseYesNoFuncs);
 }
 
 static void PokemonVendorTryPurchase(u8 taskId)
 {
     const struct PokemonVendorProduct *product = &sPokemonVendorMenu->products[sPokemonVendorMenu->selectedProductIndex];
+
+    PokemonVendorRestoreListAndInfo();
 
     if (PokemonVendorTryDeliverProduct(product))
     {
@@ -406,19 +419,76 @@ static void PokemonVendorTryPurchase(u8 taskId)
         IncrementGameStat(GAME_STAT_SHOPPED);
         PlaySE(SE_SHOP);
         PokemonVendorPrintMoney();
-        DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(), sText_HereYouGo, PokemonVendorFinishPurchase);
+        PokemonVendorDisplayMessage(taskId, sText_HereYouGo, PokemonVendorFinishPurchase);
     }
     else
     {
-        DisplayMessageAndContinueTask(taskId, sPokemonVendorMenu->windowIds[WIN_MESSAGE], 0xA, 0xE, FONT_NORMAL, GetPlayerTextSpeedDelay(),
-                                      product->kind == POKEMON_VENDOR_PRODUCT_SEALED ? sText_NoRoomForSealed : sText_NoRoomForPokemon,
-                                      Task_PokemonVendorReturnToList);
+        PokemonVendorDisplayMessage(taskId,
+                                    product->kind == POKEMON_VENDOR_PRODUCT_SEALED ? sText_NoRoomForSealed : sText_NoRoomForPokemon,
+                                    Task_PokemonVendorWaitForDismiss);
     }
 }
 
 static void PokemonVendorCancelPurchase(u8 taskId)
 {
     Task_PokemonVendorReturnToList(taskId);
+}
+
+static void PokemonVendorRestoreListAndInfo(void)
+{
+    u8 listWindowId = sPokemonVendorMenu->windowIds[WIN_LIST];
+
+    DrawStdWindowFrame(listWindowId, FALSE);
+    RedrawListMenu(sPokemonVendorMenu->listTaskId);
+    PokemonVendorPrintProductInfo(PokemonVendorGetSelectedListItemId(), TRUE, NULL);
+    ScheduleBgCopyTilemapToVram(0);
+}
+
+static s32 PokemonVendorGetSelectedListItemId(void)
+{
+    u16 selectedItem = sPokemonVendorMenu->scrollOffset + sPokemonVendorMenu->selectedRow;
+
+    if (selectedItem >= sPokemonVendorMenu->visibleCount)
+        return LIST_CANCEL;
+    return selectedItem;
+}
+
+static void PokemonVendorDisplayMessage(u8 taskId, const u8 *text, TaskFunc callback)
+{
+    u8 windowId = sPokemonVendorMenu->windowIds[WIN_MESSAGE];
+    const u8 *expandedText;
+
+    if (text == gStringVar4)
+        expandedText = gStringVar4;
+    else
+    {
+        StringExpandPlaceholders(gStringVar4, text);
+        expandedText = gStringVar4;
+    }
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    DrawStdWindowFrame(windowId, FALSE);
+    AddTextPrinterParameterized4(windowId, FONT_NORMAL, 8, 2, 0, 0, sVendorTextColors[COLORID_NORMAL], TEXT_SKIP_DRAW, expandedText);
+    PutWindowTilemap(windowId);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
+    ScheduleBgCopyTilemapToVram(0);
+    gTasks[taskId].func = callback;
+}
+
+static void PokemonVendorClearMessageWindow(void)
+{
+    u8 windowId = sPokemonVendorMenu->windowIds[WIN_MESSAGE];
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    ClearStdWindowAndFrameToTransparent(windowId, FALSE);
+    ClearWindowTilemap(windowId);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
+}
+
+static void Task_PokemonVendorWaitForDismiss(u8 taskId)
+{
+    if (JOY_NEW(A_BUTTON | B_BUTTON))
+        Task_PokemonVendorReturnToList(taskId);
 }
 
 static void PokemonVendorFinishPurchase(u8 taskId)
@@ -437,13 +507,8 @@ static void PokemonVendorFinishPurchase(u8 taskId)
 
 static void Task_PokemonVendorReturnToList(u8 taskId)
 {
-    FillWindowPixelBuffer(sPokemonVendorMenu->windowIds[WIN_MESSAGE], PIXEL_FILL(0));
-    ClearStdWindowAndFrameToTransparent(sPokemonVendorMenu->windowIds[WIN_MESSAGE], FALSE);
-    ClearWindowTilemap(sPokemonVendorMenu->windowIds[WIN_MESSAGE]);
-    PutWindowTilemap(sPokemonVendorMenu->windowIds[WIN_LIST]);
-    PutWindowTilemap(sPokemonVendorMenu->windowIds[WIN_INFO]);
-    RedrawListMenu(sPokemonVendorMenu->listTaskId);
-    CopyWindowToVram(sPokemonVendorMenu->windowIds[WIN_MESSAGE], COPYWIN_FULL);
+    PokemonVendorClearMessageWindow();
+    PokemonVendorRestoreListAndInfo();
     ScheduleBgCopyTilemapToVram(0);
     gTasks[taskId].func = Task_PokemonVendorHandleInput;
 }
@@ -544,13 +609,13 @@ static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y)
     product = &sPokemonVendorMenu->products[sPokemonVendorMenu->productIndexes[item]];
     if (!PokemonVendorProductIsUnlocked(product))
     {
-        x = GetStringRightAlignXOffset(FONT_NARROW, sText_LockedRow, 112);
+        x = GetStringRightAlignXOffset(FONT_NARROW, sText_LockedRow, VENDOR_LIST_PRICE_RIGHT);
         AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_LockedRow);
         return;
     }
 
     ConvertIntToDecimalStringN(gStringVar1, product->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
-    x = GetStringRightAlignXOffset(FONT_NARROW, gStringVar1, 112);
+    x = GetStringRightAlignXOffset(FONT_NARROW, gStringVar1, VENDOR_LIST_PRICE_RIGHT);
     colorId = IsEnoughMoney(&gSaveBlock1Ptr->money, product->price) ? COLORID_NORMAL : COLORID_GRAY;
     AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[colorId], TEXT_SKIP_DRAW, gStringVar1);
 }

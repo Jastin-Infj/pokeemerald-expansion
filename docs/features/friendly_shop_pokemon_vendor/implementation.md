@@ -29,6 +29,9 @@ Pokemon Vendor.
 - Vendor sealed-origin Pokemon keep a per-mon origin marker through unlock.
 - Summary shows sealed bond progress while locked and a vendor-origin memo
   after unlock.
+- The vendor UI now owns its bottom message window instead of reusing the field
+  dialogue printer, clears any prior field message box before drawing, and
+  restores the list / info windows after Yes / No overlays are dismissed.
 
 ## Changed Files
 
@@ -94,7 +97,9 @@ IV policy, and up to four explicit moves.
 ## Known Limitations
 
 - The vendor UI is intentionally functional and compact. It uses text rows and
-  Summary-visible status, not Pokemon icons or a custom art skin.
+  Summary-visible status, not Pokemon icons or a custom art skin. The current
+  repair validates clean standard-window rendering and layout stability; a
+  later skin pass can still replace the visual treatment.
 - Sealed unlock currently happens immediately when script-driven bond progress
   reaches the threshold. A later UX branch can add a dedicated release
   animation / confirmation.
@@ -114,6 +119,7 @@ IV policy, and up to four explicit moves.
 | 2026-05-23 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only. |
 | 2026-05-23 | `rtk make -j16 -O check` | Pass | New `test/pokemon_vendor.c` passed; suite still includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
 | 2026-05-23 | mGBA Live vendor route | Pass | Booted with `DISPLAY=:0` `mgba-live-cli`, continued an existing save, opened debug `Scripts... -> Script 1`, confirmed the vendor list, bought the repeat Pikachu product, saw money drop from `¥3000` to `¥0`, and captured `/tmp/pokemon-vendor-purchase-success-20260523.png`. Session stopped cleanly. |
+| 2026-05-23 | mGBA Live vendor UI repair route | Pass | Revalidated debug `Scripts... -> Script 1` after the UI repair. Initial vendor display no longer leaves the field dialogue box behind, purchase confirmation uses loaded standard frame tiles, success text is clean, the money box updates from `¥3000` to `¥0`, and the list / info panes are restored after Yes / No dismissal. Screenshots: `/tmp/pokemon-vendor-ui-fix-final-open-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-confirm-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-success-20260523.png`, `/tmp/pokemon-vendor-ui-fix-final-return-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
