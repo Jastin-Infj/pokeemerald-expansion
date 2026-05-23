@@ -26,6 +26,7 @@
 #include "string_util.h"
 #include "strings.h"
 #include "task.h"
+#include "text.h"
 #include "constants/game_stat.h"
 #include "constants/battle_setup.h"
 #include "constants/event_objects.h"
@@ -37,7 +38,9 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
-#define MAX_PRODUCTS_SHOWN 4
+#define MAX_PRODUCTS_SHOWN 9
+#define VENDOR_LIST_FONT FONT_SMALL_NARROW
+#define VENDOR_LIST_ITEM_VERTICAL_PADDING 0
 #define VENDOR_LIST_NAME_LENGTH 18
 #define VENDOR_BOND_MAX 255
 #define VENDOR_LIST_PRICE_RIGHT 112
@@ -99,6 +102,7 @@ static void PokemonVendorDrawWindows(void);
 static void PokemonVendorPrintMoney(void);
 static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMenu *list);
 static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y);
+static u8 PokemonVendorGetMaxShownRows(void);
 static void PokemonVendorDestroyProductIcon(void);
 static void PokemonVendorShowProductIcon(const struct PokemonVendorProduct *product);
 static void PokemonVendorRestoreListAndInfo(void);
@@ -163,18 +167,18 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
     [WIN_LIST] = {
         .bg = 0,
         .tilemapLeft = 1,
-        .tilemapTop = 5,
+        .tilemapTop = 4,
         .width = 14,
-        .height = 8,
+        .height = 10,
         .paletteNum = 15,
         .baseBlock = 0x019,
     },
     [WIN_INFO] = {
         .bg = 0,
         .tilemapLeft = 18,
-        .tilemapTop = 5,
+        .tilemapTop = 4,
         .width = 11,
-        .height = 8,
+        .height = 10,
         .paletteNum = 15,
         .baseBlock = 0x0F9,
     },
@@ -185,7 +189,7 @@ static const struct WindowTemplate sPokemonVendorWindowTemplates[WIN_COUNT] =
         .width = 28,
         .height = 4,
         .paletteNum = 15,
-        .baseBlock = 0x159,
+        .baseBlock = 0x167,
     },
 };
 
@@ -197,7 +201,7 @@ static const struct WindowTemplate sPokemonVendorYesNoWindowTemplate =
     .width = 5,
     .height = 4,
     .paletteNum = 15,
-    .baseBlock = 0x1C9,
+    .baseBlock = 0x1D7,
 };
 
 static const struct ListMenuTemplate sPokemonVendorListTemplate =
@@ -216,9 +220,9 @@ static const struct ListMenuTemplate sPokemonVendorListTemplate =
     .fillValue = 1,
     .cursorShadowPal = 3,
     .lettersSpacing = 0,
-    .itemVerticalPadding = 1,
+    .itemVerticalPadding = VENDOR_LIST_ITEM_VERTICAL_PADDING,
     .scrollMultiple = LIST_MULTIPLE_SCROLL_DPAD,
-    .fontId = FONT_NARROW,
+    .fontId = VENDOR_LIST_FONT,
     .cursorKind = CURSOR_BLACK_ARROW,
     .textNarrowWidth = 88,
 };
@@ -299,7 +303,7 @@ static void PokemonVendorBuildList(void)
     gMultiuseListMenuTemplate = sPokemonVendorListTemplate;
     gMultiuseListMenuTemplate.items = sPokemonVendorMenu->items;
     gMultiuseListMenuTemplate.totalItems = visible + 1;
-    gMultiuseListMenuTemplate.maxShowed = min(MAX_PRODUCTS_SHOWN, visible + 1);
+    gMultiuseListMenuTemplate.maxShowed = min(PokemonVendorGetMaxShownRows(), visible + 1);
     gMultiuseListMenuTemplate.windowId = sPokemonVendorMenu->windowIds[WIN_LIST];
 }
 
@@ -646,15 +650,31 @@ static void PokemonVendorPrintPrice(u8 windowId, u32 item, u8 y)
     product = &sPokemonVendorMenu->products[sPokemonVendorMenu->productIndexes[item]];
     if (!PokemonVendorProductIsUnlocked(product))
     {
-        x = GetStringRightAlignXOffset(FONT_NARROW, sText_GatedRow, VENDOR_LIST_PRICE_RIGHT);
-        AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_GatedRow);
+        x = GetStringRightAlignXOffset(VENDOR_LIST_FONT, sText_GatedRow, VENDOR_LIST_PRICE_RIGHT);
+        AddTextPrinterParameterized4(windowId, VENDOR_LIST_FONT, x, y, 0, 0, sVendorTextColors[COLORID_GRAY], TEXT_SKIP_DRAW, sText_GatedRow);
         return;
     }
 
     ConvertIntToDecimalStringN(gStringVar1, product->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
-    x = GetStringRightAlignXOffset(FONT_NARROW, gStringVar1, VENDOR_LIST_PRICE_RIGHT);
+    x = GetStringRightAlignXOffset(VENDOR_LIST_FONT, gStringVar1, VENDOR_LIST_PRICE_RIGHT);
     colorId = IsEnoughMoney(&gSaveBlock1Ptr->money, product->price) ? COLORID_NORMAL : COLORID_GRAY;
-    AddTextPrinterParameterized4(windowId, FONT_NARROW, x, y, 0, 0, sVendorTextColors[colorId], TEXT_SKIP_DRAW, gStringVar1);
+    AddTextPrinterParameterized4(windowId, VENDOR_LIST_FONT, x, y, 0, 0, sVendorTextColors[colorId], TEXT_SKIP_DRAW, gStringVar1);
+}
+
+static u8 PokemonVendorGetMaxShownRows(void)
+{
+    u8 rowHeight = GetFontAttribute(VENDOR_LIST_FONT, FONTATTR_MAX_LETTER_HEIGHT) + VENDOR_LIST_ITEM_VERTICAL_PADDING;
+    u8 windowHeight = sPokemonVendorWindowTemplates[WIN_LIST].height * 8;
+    u8 capacity;
+
+    if (rowHeight == 0)
+        return 1;
+
+    capacity = (windowHeight - sPokemonVendorListTemplate.upText_Y) / rowHeight;
+    if (capacity == 0)
+        capacity = 1;
+
+    return min(MAX_PRODUCTS_SHOWN, capacity);
 }
 
 static void PokemonVendorDestroyProductIcon(void)
