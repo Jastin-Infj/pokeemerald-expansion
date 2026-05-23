@@ -648,6 +648,7 @@ extern const u8 gText_PeculiarEggTrade[];
 extern const u8 gText_EggFromTraveler[];
 extern const u8 gText_EggFromHotSprings[];
 extern const u8 gText_OddEggFoundByCouple[];
+extern const u8 gText_PokemonVendorLocked[];
 extern const u8 gText_PokemonVendorSealedBond[];
 extern const u8 gText_PokemonVendorSealedMemo[];
 extern const u8 gText_PokemonVendorOriginMemo[];

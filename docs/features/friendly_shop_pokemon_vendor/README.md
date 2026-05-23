@@ -17,7 +17,7 @@ The branch now includes the global no-evolution rule, a new script-facing
 Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
 delivery, one-time / repeat products, gated shop rows, script-driven bond progress,
 trainer victory bond reward messages, purchasable mystery sealed products, and
-Summary-visible sealed-origin status.
+Summary / party / PC-visible locked sealed status.
 
 This feature adds a shop-like runtime that sells Pokemon products from a
 Friendly Shop / Poke Mart style NPC. Products may be normal Pokemon, literal
@@ -62,8 +62,11 @@ one-time only.
   sealed progress while the locked recruit is in the party. Step-based progress
   is possible for literal Eggs, but it collides more directly with the existing
   Egg-cycle hatch logic.
-- The sealed-product risk is primarily the occupied party slot. While carried
-  in locked state, the player effectively has one fewer battle-capable Pokemon.
+- The sealed-product risk is primarily the occupied party slot after the
+  recruit is carried. If the party is full at purchase time, sealed recruits now
+  follow the normal gift-Pokemon fallback and are sent to PC when storage has
+  room. They do not gain party-carried bond progress until the player moves
+  them into the party.
 - The word "locked" refers to the post-acquisition sealed recruit state. A shop
   row that is not buyable yet is only a gated offer; it may hide the species or
   price until its unlock flag is met, but that is not the same as a locked
@@ -84,10 +87,10 @@ one-time only.
 - Mystery sealed products can hide species as `?????` while still being
   purchasable. Their actual species is selected at purchase time from the
   product's base species plus optional random-species candidates.
-- Summary should show a small "LOCKED" label while the recruit is still sealed,
-  then a compact "Sealed Origin" / "Vendor Origin" style label or badge after
-  unlock. The first slice shows bond progress while locked and a vendor-origin
-  memo after unlock; a visual badge can be added in a later UI pass.
+- Summary and party / PC icon surfaces should show the actual Pokemon identity
+  while the recruit is still locked, plus a small `LOCKED` label and bond
+  progress text. Ordinary Eggs must keep ordinary Egg visuals. A graphic lock
+  badge can be added in a later UI pass.
 - The tone should be close to a Shadow Pokemon purification / bond-deepening
   flow: the Pokemon is present but not yet usable, then becomes available when
   enough bond / seal EXP has accumulated.
@@ -114,6 +117,7 @@ one-time only.
 - Sealed recruit purchase path based on either existing `CreateEgg()` /
   `ScriptGiveEgg()` mechanics or a custom locked-mon creator, depending on the
   chosen UI language.
+- Sealed recruit full-party fallback to PC when storage has room.
 - A policy hook for move and held-item editing entitlement.
 - A gate-state UI for unavailable shop rows, e.g. "GATED" / "Not available".
 - Bond / seal EXP progress while a sealed recruit is carried.
@@ -137,6 +141,9 @@ one-time only.
   feature because it affects economy balance.
 - Pokemon icon rendering inside the vendor list. This remains the next UI slice
   because it needs sprite lifecycle / scroll handling, not just text layout.
+- Gen 7 / Gen 8-style "add to party and choose a party member to send to PC"
+  swap UI. That should be a separate gift / capture / vendor delivery feature
+  because it cuts across more than this Pokemon vendor.
 
 ## Related Docs
 
@@ -158,5 +165,7 @@ one-time only.
 - Should future progress be awarded from trainer wins, challenge clears, or
   product-specific script events only?
 - Should the Summary origin proof become a visual badge instead of memo text?
+- Should PC-stored sealed recruits ever gain bond progress, or is
+  party-carried progress the intended risk?
 - Which editor / relearner surfaces should call `PokemonVendor_IsEditEntitled()`
   first?

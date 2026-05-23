@@ -680,6 +680,7 @@ static const u8 *const sDescriptionStringTable[] =
     [PARTYBOX_DESC_LEARNED]    = gText_Learned,
     [PARTYBOX_DESC_HAVE]       = gText_Have,
     [PARTYBOX_DESC_DONT_HAVE]  = gText_DontHave,
+    [PARTYBOX_DESC_LOCKED]     = gText_PokemonVendorLocked,
 };
 
 static const u16 sUnusedData[] =

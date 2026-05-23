@@ -4,6 +4,7 @@
 #include "constants/global.h"
 #include "constants/pokemon_vendor.h"
 
+struct BoxPokemon;
 struct Pokemon;
 
 struct PokemonVendorProduct
@@ -30,6 +31,9 @@ struct PokemonVendorProduct
 void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale);
 bool32 PokemonVendor_IsSealedOriginMon(struct Pokemon *mon);
 bool32 PokemonVendor_IsLockedSealedRecruit(struct Pokemon *mon);
+bool32 PokemonVendor_IsLockedSealedBoxMon(struct BoxPokemon *boxMon);
+bool32 PokemonVendor_ShouldDisplayMonAsEgg(struct Pokemon *mon);
+bool32 PokemonVendor_ShouldDisplayBoxMonAsEgg(struct BoxPokemon *boxMon);
 bool32 PokemonVendor_IsEditEntitled(struct Pokemon *mon);
 u8 PokemonVendor_GetSealedRecruitBondProgress(struct Pokemon *mon);
 u8 PokemonVendor_GetSealedRecruitBondThreshold(struct Pokemon *mon);

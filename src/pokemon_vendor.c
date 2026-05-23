@@ -76,6 +76,7 @@ struct PokemonVendorMenu
     u16 selectedRow;
     u8 listTaskId;
     u8 windowIds[WIN_COUNT];
+    u8 deliveryResult;
 };
 
 static EWRAM_DATA struct PokemonVendorMenu *sPokemonVendorMenu = NULL;
@@ -124,8 +125,9 @@ static const u8 sText_QuitVendor[] = _("Close the vendor.");
 static const u8 sText_ProductGated[] = _("This recruit is not available yet.");
 static const u8 sText_SoldOut[] = _("That recruit is sold out.");
 static const u8 sText_NoRoomForPokemon[] = _("No room for this POKéMON.");
-static const u8 sText_NoRoomForSealed[] = _("A sealed recruit must join your party.");
+static const u8 sText_NoRoomForSealed[] = _("No room for this sealed recruit.");
 static const u8 sText_HereYouGo[] = _("Here you go!\nTake good care of it.");
+static const u8 sText_SentToPC[] = _("It was sent to a PC BOX.\nTake good care of it.");
 static const u8 sText_ConfirmPurchase[] = _("You wanted {STR_VAR_1}?\nThat'll be ¥{STR_VAR_2}. Okay?");
 static const u8 sText_InfoNormal[] = _("{DYNAMIC 0}  {LV_2}{DYNAMIC 1}\n{DYNAMIC 2}\nReady to use.");
 static const u8 sText_InfoSealed[] = _("{DYNAMIC 0}  {LV_2}{DYNAMIC 1}\n{DYNAMIC 2}\nBond: {DYNAMIC 3}");
@@ -398,12 +400,7 @@ static u8 PokemonVendorGetProductSelectState(const struct PokemonVendorProduct *
         return PRODUCT_SELECT_SOLD_OUT;
     if (!IsEnoughMoney(&gSaveBlock1Ptr->money, product->price))
         return PRODUCT_SELECT_NO_MONEY;
-    if (product->kind == POKEMON_VENDOR_PRODUCT_SEALED)
-    {
-        if (gPlayerPartyCount >= PARTY_SIZE)
-            return PRODUCT_SELECT_NO_ROOM;
-    }
-    else if (IsPlayerPartyAndPokemonStorageFull())
+    if (IsPlayerPartyAndPokemonStorageFull())
     {
         return PRODUCT_SELECT_NO_ROOM;
     }
@@ -444,7 +441,9 @@ static void PokemonVendorTryPurchase(u8 taskId)
         IncrementGameStat(GAME_STAT_SHOPPED);
         PlaySE(SE_SHOP);
         PokemonVendorPrintMoney();
-        PokemonVendorDisplayMessage(taskId, sText_HereYouGo, PokemonVendorFinishPurchase);
+        PokemonVendorDisplayMessage(taskId,
+                                    sPokemonVendorMenu->deliveryResult == MON_GIVEN_TO_PC ? sText_SentToPC : sText_HereYouGo,
+                                    PokemonVendorFinishPurchase);
     }
     else
     {
@@ -659,22 +658,36 @@ static bool32 PokemonVendorProductIsUnlocked(const struct PokemonVendorProduct *
 
 static bool32 PokemonVendorTryDeliverProduct(const struct PokemonVendorProduct *product)
 {
+    u32 result;
     struct Pokemon mon;
 
+    sPokemonVendorMenu->deliveryResult = MON_CANT_GIVE;
     PokemonVendorCreateMon(product, &mon);
 
     if (product->kind == POKEMON_VENDOR_PRODUCT_SEALED)
     {
         if (gPlayerPartyCount >= PARTY_SIZE)
+        {
+            result = CopyMonToPC(&mon);
+        }
+        else
+        {
+            CopyMon(&gPlayerParty[gPlayerPartyCount], &mon, sizeof(mon));
+            gPlayerPartyCount++;
+            result = MON_GIVEN_TO_PARTY;
+        }
+
+        sPokemonVendorMenu->deliveryResult = result;
+        if (result == MON_CANT_GIVE)
             return FALSE;
-        CopyMon(&gPlayerParty[gPlayerPartyCount], &mon, sizeof(mon));
-        gPlayerPartyCount++;
         HandleSetPokedexFlagFromMon(&mon, FLAG_SET_SEEN);
         HandleSetPokedexFlagFromMon(&mon, FLAG_SET_CAUGHT);
         return TRUE;
     }
 
-    return GiveScriptedMonToPlayer(&mon, PARTY_SIZE) != MON_CANT_GIVE;
+    result = GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
+    sPokemonVendorMenu->deliveryResult = result;
+    return result != MON_CANT_GIVE;
 }
 
 static void PokemonVendorCreateMon(const struct PokemonVendorProduct *product, struct Pokemon *mon)
@@ -771,6 +784,21 @@ bool32 PokemonVendor_IsSealedOriginMon(struct Pokemon *mon)
 bool32 PokemonVendor_IsLockedSealedRecruit(struct Pokemon *mon)
 {
     return PokemonVendor_IsSealedOriginMon(mon) && GetMonData(mon, MON_DATA_IS_EGG);
+}
+
+bool32 PokemonVendor_IsLockedSealedBoxMon(struct BoxPokemon *boxMon)
+{
+    return GetBoxMonData(boxMon, MON_DATA_VENDOR_SEALED_ORIGIN) && GetBoxMonData(boxMon, MON_DATA_IS_EGG);
+}
+
+bool32 PokemonVendor_ShouldDisplayMonAsEgg(struct Pokemon *mon)
+{
+    return GetMonData(mon, MON_DATA_IS_EGG) && !PokemonVendor_IsLockedSealedRecruit(mon);
+}
+
+bool32 PokemonVendor_ShouldDisplayBoxMonAsEgg(struct BoxPokemon *boxMon)
+{
+    return GetBoxMonData(boxMon, MON_DATA_IS_EGG) && !PokemonVendor_IsLockedSealedBoxMon(boxMon);
 }
 
 bool32 PokemonVendor_IsEditEntitled(struct Pokemon *mon)

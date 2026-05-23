@@ -29,12 +29,17 @@ Pokemon Vendor.
   battle. The queued reward is paid and displayed by the trainer victory battle
   script after the money message, before returning to the field.
 - Normal Pokemon purchases can deliver to party or PC.
-- Sealed recruits require an empty party slot, occupy that slot while locked,
-  and use Egg battle restrictions so the player has one fewer usable battler.
+- Sealed recruits deliver to party when there is room and fall back to PC when
+  the party is full and storage has room.
+- When carried in party, locked sealed recruits use Egg battle restrictions so
+  the player has one fewer usable battler.
 - Sealed recruits are excluded from vanilla Egg-cycle hatching.
 - Vendor sealed-origin Pokemon keep a per-mon origin marker through unlock.
-- Summary shows sealed bond progress while locked and a vendor-origin memo
-  after unlock.
+- Summary shows the actual Pokemon sprite / type identity, a `LOCKED` label,
+  and sealed bond progress while locked, then a vendor-origin memo after unlock.
+- Party menu and Pokemon Storage icon paths display locked sealed recruits as
+  their real species instead of the ordinary Egg icon. Ordinary Eggs still use
+  ordinary Egg visuals.
 - The vendor UI now owns its bottom message window instead of reusing the field
   dialogue printer, clears any prior field message box before drawing, and
   restores the list / info windows after Yes / No overlays are dismissed.
@@ -70,7 +75,8 @@ Sealed products:
 - can target final evolutions, legendary Pokemon, or any explicit species;
 - can hide their species as `?????` and choose from a configured random species
   pool at purchase time;
-- are purchased first, then enter the locked sealed-recruit state in party;
+- are purchased first, then enter the locked sealed-recruit state in party or
+  PC depending on available space;
 - are created as locked vendor-origin Pokemon using the Egg lock for battle
   exclusion;
 - store bond progress in the locked recruit's feature-owned vendor helpers,
@@ -143,6 +149,10 @@ prints the unlock message only if one or more recruits unlocked.
   repair validates clean standard-window rendering, two-window middle layout,
   and repeated-open stability; Pokemon icon rows remain a later UI pass because
   they need sprite lifecycle and scroll handling.
+- The delivery path now supports PC fallback for sealed recruits, but the
+  Gen 7 / Gen 8-style prompt to add the new Pokemon to party and choose a party
+  member to send to PC is not implemented in this slice. That belongs in a
+  broader gift / capture / vendor delivery feature.
 - Trainer item / TM drops are intentionally deferred to a separate reward
   feature so money, vendor products, and post-battle reward economy can be
   balanced together.
@@ -154,6 +164,8 @@ prints the unlock message only if one or more recruits unlocked.
   editor surfaces are not wired to it in this slice.
 - PC / daycare / trade policy relies on Egg restrictions while locked; unlocked
   vendor-origin Pokemon behave as ordinary Pokemon with a preserved origin bit.
+  Locked sealed recruits sent to PC do not gain the current party-carried bond
+  progress until moved into the party.
 - Bond-yield metadata is stored in product rows but the first progress sources
   use script-provided amounts. Queued battle rewards are intentionally opt-in
   per script, not global for every trainer battle.
@@ -179,6 +191,8 @@ prints the unlock message only if one or more recruits unlocked.
 | 2026-05-23 | mGBA Live debug normal-trainer reward route | Pass | Bought a locked `?????` sealed recruit through debug `Script 1`, ran debug `Script 3`, confirmed a normal trainer battle against `YOUNGSTER CALVIN`, won the battle, saw the debug defeat line, then saw `Sealed bond EXP increased by 20.` Screenshots: `/tmp/pokemon-vendor-debug-battle-script3-start-20260523.png`, `/tmp/pokemon-vendor-debug-battle-intro-20260523.png`, `/tmp/pokemon-vendor-debug-battle-defeat-text-20260523.png`, `/tmp/pokemon-vendor-debug-battle-bond-message2-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Queued battle-win reward build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after moving debug `Script 3` to `pokemonvendorqueuebattlebond 20` and printing the reward from the trainer victory battle script. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. The `data/script_cmd_table.inc` comments were converted from `@` to `//` so C-test inline asm can include `asm/macros/event.inc` after the macro edit. |
 | 2026-05-23 | mGBA Live queued battle-win reward route | Pass | Bought a locked `?????` sealed recruit through debug `Script 1`, ran debug `Script 3`, confirmed the normal trainer battle against `YOUNGSTER CALVIN`, won it, saw `You got ¥80 for winning!`, then saw `Sealed bond EXP increased by 20.` while still in battle before field return. No extra bond message appeared after returning to the field. Screenshots: `/tmp/pokemon-vendor-battlemsg-script3-start-20260523.png`, `/tmp/pokemon-vendor-battlemsg-battle-intro-20260523.png`, `/tmp/pokemon-vendor-battlemsg-money-20260523.png`, `/tmp/pokemon-vendor-battlemsg-bond-inbattle-20260523.png`, `/tmp/pokemon-vendor-battlemsg-field-return-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-23 | Full-party sealed PC fallback / locked display build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after adding sealed PC fallback and actual-species locked display helpers. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
+| 2026-05-23 | mGBA Live full-party sealed PC fallback / locked display route | Pass | Continued the existing save, used Lua only to raise money and set up space/full-party states, then used debug `Scripts... -> Script 1`. With party count 6, buying one-time Dragonite sealed showed `It was sent to a PC BOX.` Screenshot: `/tmp/pokemon-vendor-sealed-pc-delivery-20260523.png`. Then a repeat mystery sealed recruit was bought into party; Party menu showed the actual Pokemon icon plus `LOCKED`, and Summary showed the actual sprite/type plus `LOCKED` and `Locked bond: 0/180`. Screenshots: `/tmp/pokemon-vendor-locked-party-real-icon-20260523.png`, `/tmp/pokemon-vendor-locked-summary-real-sprite-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.

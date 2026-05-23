@@ -20,7 +20,7 @@
 | Global evolution leak | High | This game does not need evolution. If any Pokemon can evolve through level-up, item, trade, friendship, script, or special conditions, product identity and balance break. | Add a global no-evolution guard through the central evolution resolver and test every trigger class. Sell alternate stages/forms as separate products. |
 | Evolution item UX | Medium | A player may try to use an evolution stone on a fixed-species Pokemon such as Clefairy. A generic failure message can feel like a bug. | Add or reuse a clear "This Pokemon's form is fixed" style rejection path for evolution items. |
 | Lv.50 sealed policy ambiguity | Medium | Existing `CreateEgg()` uses `EGG_HATCH_LEVEL`; the desired challenge behavior may need Lv.50 after unlock or battle-only scaling. | Record the product level policy explicitly before implementation. |
-| Party full behavior | Medium | `GiveCapturedMonToPlayer()` may send Pokemon to PC, but the intended sealed risk depends on carrying it in party. | MVP should require an empty party slot for sealed products. Normal products may allow PC delivery if desired. |
+| Party full behavior | Medium | `GiveCapturedMonToPlayer()` may send Pokemon to PC, but the intended sealed risk depends on carrying it in party. | Sealed products now follow PC fallback when the party is full and storage has room. Bond progress remains party-carried, so PC delivery pauses progress until the player carries the recruit. A party swap prompt is deferred to a broader delivery UX feature. |
 | One-time flag allocation | Medium | New one-time products can consume many event flags. | Start with a small product count and document flag ownership in the local ledger. |
 | Editor integration order | Medium | Unified Move Relearner, Pokemon State Editor, and held-item catalog branches are not on `master`. | Add entitlement hook points first; wire editor UI only when the editor branch is selected for integration. |
 | Economy coupling to BP | Low | Using Battle Frontier BP directly may create unwanted economy coupling. | Keep BP optional. Use an abstract progress / reward policy until balancing is decided. |
@@ -53,8 +53,8 @@
 
 - Is a global product unlock table acceptable, or must entitlement follow the
   individual Pokemon forever?
-- Are sealed recruits allowed to be sent to PC, or must they always occupy a
-  party slot?
+- Should the future gift / capture / vendor delivery UI offer a Gen 7 /
+  Gen 8-style party swap prompt when the party is full?
 - Should bought normal Pokemon use default learnset moves or a product-specific
   move payload from the start?
 - Should vendor sealed-origin be tradeable/transferable as a persistent marker, or
