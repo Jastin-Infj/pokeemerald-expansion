@@ -744,6 +744,12 @@ static const u8 sTextColors[][3] =
     {0, 5, 6},
     {0, 7, 8}
 };
+static const u8 *const sAbilitySlotLabels[NUM_ABILITY_SLOTS] =
+{
+    COMPOUND_STRING("1 "),
+    COMPOUND_STRING("2 "),
+    COMPOUND_STRING("H "),
+};
 
 static const u8 sButtons_Gfx[][4 * TILE_SIZE_4BPP] = {
     INCGFX_U8("graphics/summary_screen/a_button.png", ".4bpp"),
@@ -3646,8 +3652,8 @@ static void PrintMonOTID(void)
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    u32 i, count;
-    enum Ability abilities[NUM_ABILITY_SLOTS];
+    u32 slot, y;
+    u32 abilitySlot = sMonSummaryScreen->summary.abilityNum < NUM_ABILITY_SLOTS ? sMonSummaryScreen->summary.abilityNum : 0;
     u32 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
 
     if (!GetConfig(B_ALL_ABILITY_SLOTS))
@@ -3656,15 +3662,21 @@ static void PrintMonAbilityName(void)
         return;
     }
 
-    count = GetSpeciesAbilitySet(sMonSummaryScreen->summary.species, abilities, ARRAY_COUNT(abilities));
-    if (count == 0)
+    for (slot = 0, y = 1; slot < NUM_ABILITY_SLOTS; slot++)
     {
-        PrintTextOnWindow(windowId, gAbilitiesInfo[ability].name, 0, 1, 0, 1);
-        return;
-    }
+        enum Ability slotAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, slot);
+        u8 text[ABILITY_NAME_LENGTH + 8];
+        bool32 isRepresentative = slot == abilitySlot;
 
-    for (i = 0; i < count; i++)
-        PrintTextOnWindow(windowId, gAbilitiesInfo[abilities[i]].name, 0, 1 + i * 10, 0, 1);
+        if (slotAbility == ABILITY_NONE)
+            continue;
+
+        StringCopy(text, isRepresentative ? COMPOUND_STRING("{RIGHT_ARROW}") : COMPOUND_STRING(" "));
+        StringAppend(text, sAbilitySlotLabels[slot]);
+        StringAppend(text, gAbilitiesInfo[slotAbility].name);
+        PrintTextOnWindow(windowId, text, 0, y, 0, isRepresentative ? 1 : 0);
+        y += 10;
+    }
 }
 
 static void PrintMonAbilityDescription(void)

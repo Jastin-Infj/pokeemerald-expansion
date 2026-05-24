@@ -2,6 +2,26 @@
 #include "battle_util.h"
 #include "test/battle.h"
 
+SINGLE_BATTLE_TEST("All Ability Slots leaves non-representative abilities inactive when config is false")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, FALSE);
+        ASSUME(GetSpeciesAbility(SPECIES_CLEFABLE, 0) == ABILITY_CUTE_CHARM);
+        ASSUME(GetSpeciesAbility(SPECIES_CLEFABLE, 1) == ABILITY_MAGIC_GUARD);
+        ASSUME(GetMoveRecoil(MOVE_DOUBLE_EDGE) == 33);
+        PLAYER(SPECIES_CLEFABLE) { Ability(ABILITY_CUTE_CHARM); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_DOUBLE_EDGE); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_DOUBLE_EDGE, player);
+        HP_BAR(opponent);
+        HP_BAR(player);
+    } THEN {
+        EXPECT(!BattlerHasAbility(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_MAGIC_GUARD));
+    }
+}
+
 SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Magic Guard prevent recoil")
 {
     GIVEN {

@@ -201,8 +201,12 @@ that still intentionally accept one representative ability argument. See
 ## UI / Item Policy
 
 Summary now prints the active ability names as a compact vertical list when
-`B_ALL_ABILITY_SLOTS` is enabled. The single-ability description block is
-suppressed in this MVP to avoid text overlap in the existing Summary window.
+`B_ALL_ABILITY_SLOTS` is enabled. It uses direct slot labels `1`, `2`, and `H`
+instead of a deduped set, and prefixes the representative / selected
+`abilityNum` slot with a right-arrow marker and stronger text color. The
+single-ability description block is still used when the mode is disabled, but
+is suppressed in the all-slot list view to avoid text overlap in the existing
+Summary window.
 
 Ability Capsule and Ability Patch fail with the usual "It won't have any
 effect" message while all-slot mode is enabled. They still keep upstream
@@ -489,6 +493,23 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   ability audit; the focused suite now includes 49 All Ability Slots cases,
   including hidden-slot `Gorilla Tactics`, `Poison Heal`, `Heatproof`,
   `Protean`, `Clear Body`, and `Contrary`.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed after the
+  Summary slot-marker pass; the focused suite now includes 50 All Ability Slots
+  cases and covers `B_ALL_ABILITY_SLOTS FALSE` returning non-representative
+  abilities to inactive normal behavior.
+- `rtk make -j16 -O check`, `rtk make -j16 -O all`, and
+  `rtk make -j16 -O debug` passed after the Summary slot-marker pass, with the
+  existing RWX linker warning and existing expected / known-failing test
+  markers.
+- mGBA Live session `all-ability-false-debug-20260524` kept
+  `B_ALL_ABILITY_SLOTS` at `FALSE`, opened `Party` -> `All Ability...`,
+  selected `T Partner Mods`, and reached the double-battle command menu. This
+  confirms the debug validation route still forces the runtime override while
+  the global config remains default-off. Screenshots:
+  `/tmp/all-ability-false-debug-t-menu-20260524.png` and
+  `/tmp/all-ability-false-debug-t-battle-20260524.png`. Cleanup was clean:
+  `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
+  returned `[]`.
 - `rtk make -j16 -O check TESTS='AI thinking time'` passed after the follow-up
   ability audit. The accepted stress ceilings are now 24 for doubles no-flags,
   44 for doubles smart, 32 for Steven multi, and 36 for Steven multi smart.

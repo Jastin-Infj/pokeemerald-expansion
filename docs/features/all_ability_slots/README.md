@@ -73,6 +73,10 @@ refactor rather than a data-only change.
   Mold Breaker / Teravolt / Turboblaze / Mycelium Might bypass target
   abilities, and `B_ALL_ABILITY_SLOTS_NEUTRALIZING_GAS` controls whether
   non-representative Neutralizing Gas suppresses other abilities.
+- Summary stays in normal single-ability name / description mode while
+  `B_ALL_ABILITY_SLOTS` is disabled. When the config is enabled, Summary shows
+  direct slots `1`, `2`, and `H`, with the representative `abilityNum` slot
+  marked by a right arrow.
 - The current implementation covers a broad battle-modifier pass: base-power,
   Attack / Defense, final damage, STAB / Tera STAB, accuracy, priority,
   multi-hit, contact, powder-block, and partner modifier helpers now use

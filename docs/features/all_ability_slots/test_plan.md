@@ -29,6 +29,10 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
 - `rtk make -j16 -O check TESTS='All Ability Slots'`
 - `rtk make -j16 -O check TESTS='All Ability Slots'` after the follow-up
   ability audit; focused suite now includes 49 All Ability Slots cases
+- `rtk make -j16 -O check TESTS='All Ability Slots'` after the Summary
+  slot-marker pass; focused suite now includes 50 All Ability Slots cases,
+  including a `B_ALL_ABILITY_SLOTS FALSE` regression where non-representative
+  `Magic Guard` stays inactive and recoil is applied
 - `rtk make -j16 -O check TESTS=Poi`
 - `rtk make -j16 -O check TESTS='AI thinking time'`
 - `rtk make -j16 -O check TESTS='Skill Swap'`
@@ -354,6 +358,20 @@ Additional debug-route validation added on 2026-05-24:
   ability audit; the focused suite now includes 49 All Ability Slots cases,
   including hidden `Gorilla Tactics`, `Poison Heal`, `Heatproof`, `Protean`,
   `Clear Body`, and `Contrary`.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed after adding the
+  `B_ALL_ABILITY_SLOTS FALSE` regression and Summary slot-marker display; the
+  focused suite now includes 50 All Ability Slots cases.
+- `rtk make -j16 -O check`, `rtk make -j16 -O all`, and
+  `rtk make -j16 -O debug` passed after the Summary slot-marker display.
+- mGBA Live session `all-ability-false-debug-20260524` kept global
+  `B_ALL_ABILITY_SLOTS FALSE`, opened `Party` -> `All Ability...`, selected
+  `T Partner Mods`, and reached the double-battle command menu. Screenshots:
+  `/tmp/all-ability-false-debug-t-menu-20260524.png` and
+  `/tmp/all-ability-false-debug-t-battle-20260524.png`.
+- Cleanup after the false-config debug-route mGBA Live check was clean:
+  `mgba-live-cli stop --session all-ability-false-debug-20260524` reported
+  `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
+  returned `[]`.
 - `rtk make -j16 -O check TESTS='AI thinking time'` passed after the follow-up
   ability audit. The accepted stress ceilings are now 24 for doubles no-flags,
   44 for doubles smart, 32 for Steven multi, and 36 for Steven multi smart.
