@@ -403,7 +403,14 @@ Additional debug-route validation added on 2026-05-24:
     `/tmp/all-ability-summary-toggle-r-20260524.png`,
     `/tmp/all-ability-summary-toggle-r2-20260524.png`, and
     `/tmp/all-ability-summary-toggle-l-20260524.png`.
-  - Cleanup was clean for both Summary sessions, and the final branch config
+  - `all-ability-selected-name-fallback-20260524` rechecked the compact fallback
+    after removing the number-only display. Nidoqueen showed selected slot plus
+    ability name for `->2 Rivalry`, `->3 Sheer Force`, and `->1 Poison Point`,
+    with the matching description below each selection. Screenshots:
+    `/tmp/all-ability-selected-name-fallback-summary-initial-20260524.png`,
+    `/tmp/all-ability-selected-name-fallback-summary-r-20260524.png`, and
+    `/tmp/all-ability-selected-name-fallback-summary-r2-20260524.png`.
+  - Cleanup was clean for the listed Summary sessions, and the final branch config
     is restored to `TRUE`.
 - Final `B_ALL_ABILITY_SLOTS TRUE` validation on 2026-05-24:
   - `rtk make -j16 -O check TESTS='All Ability Slots'` passed with the

@@ -754,12 +754,6 @@ static const u8 *const sAbilitySlotLabels[NUM_ABILITY_SLOTS] =
     COMPOUND_STRING("2 "),
     COMPOUND_STRING("3 "),
 };
-static const u8 *const sAbilitySlotNumbers[NUM_ABILITY_SLOTS] =
-{
-    COMPOUND_STRING("1"),
-    COMPOUND_STRING("2"),
-    COMPOUND_STRING("3"),
-};
 
 static const u8 sButtons_Gfx[][4 * TILE_SIZE_4BPP] = {
     INCGFX_U8("graphics/summary_screen/a_button.png", ".4bpp"),
@@ -3787,22 +3781,17 @@ static void PrintMonAbilityName(void)
             }
             else
             {
+                enum Ability selectedAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, selectedSlot);
+
                 topText[0] = EOS;
-                for (slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
-                {
-                    enum Ability slotAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, slot);
+                StringAppend(topText, COMPOUND_STRING("{RIGHT_ARROW}"));
+                StringAppend(topText, sAbilitySlotLabels[selectedSlot]);
+                StringAppend(topText, gAbilitiesInfo[selectedAbility].name);
 
-                    if (slotAbility == ABILITY_NONE)
-                        continue;
-
-                    if (topText[0] != EOS)
-                        StringAppend(topText, COMPOUND_STRING("  "));
-
-                    if (slot == selectedSlot)
-                        StringAppend(topText, COMPOUND_STRING("{RIGHT_ARROW}"));
-
-                    StringAppend(topText, sAbilitySlotNumbers[slot]);
-                }
+                if (GetStringWidth(FONT_NORMAL, topText, 0) <= WindowWidthPx(windowId))
+                    topFontId = FONT_NORMAL;
+                else
+                    topFontId = FONT_SMALL;
             }
         }
         PrintTextOnWindowWithFont(windowId, topText, 0, 1, 0, 0, topFontId);
