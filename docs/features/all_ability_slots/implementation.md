@@ -202,16 +202,14 @@ that still intentionally accept one representative ability argument. See
 
 ## UI / Item Policy
 
-Summary now uses a compact all-slot layout when `B_ALL_ABILITY_SLOTS` is
-enabled. It uses direct slot labels `1`, `2`, and `3` instead of a deduped set.
-The non-representative slots are printed as a single upper strip. That strip
-uses the normal Summary font when it fits, falls back to the small font when the
-names would otherwise overflow, and then falls back to showing only the
-currently selected slot label plus ability name. The selected slot is marked
-with a right-arrow marker in the upper strip. `L` / `R` on the Info page cycles
-the selected ability slot, and the lower white ability-detail area shows that
-slot's ability description. The single-ability name / description block is still
-used when the mode is disabled.
+Summary now uses a compact selectable-slot layout when `B_ALL_ABILITY_SLOTS` is
+enabled. It uses direct slot labels `1`, `2`, and `3` instead of a deduped set,
+but only prints the currently selected active slot label plus ability name in the
+upper ability line. The selected slot is marked with a right-arrow marker.
+`L` / `R` on the Info page cycles to the next non-empty ability slot, so sparse
+tables such as `1/3` use the same flow as full `1/2/3` tables. The lower white
+ability-detail area shows the selected slot's ability description. The
+single-ability name / description block is still used when the mode is disabled.
 
 Ability Capsule and Ability Patch fail with the usual "It won't have any
 effect" message while all-slot mode is enabled. They still keep upstream
@@ -580,6 +578,18 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   `/tmp/all-ability-selected-name-fallback-summary-initial-20260524.png`,
   `/tmp/all-ability-selected-name-fallback-summary-r-20260524.png`, and
   `/tmp/all-ability-selected-name-fallback-summary-r2-20260524.png`. Cleanup was
+  clean: `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
+  returned `[]`.
+- mGBA Live session `all-ability-unified-selector-20260524` rechecked the
+  unified selected-slot selector after removing adaptive multi-name display.
+  Nidoqueen (`1/2/3`) showed `->2 Rivalry` then `->3 Sheer Force`, while
+  Bastiodon (`1/3`) showed `->1 Sturdy` then skipped the empty middle slot and
+  changed to `->3 Soundproof`; each selection showed the matching description.
+  Screenshots:
+  `/tmp/all-ability-unified-selector-nidoqueen-20260524.png`,
+  `/tmp/all-ability-unified-selector-nidoqueen-r-20260524.png`,
+  `/tmp/all-ability-unified-selector-bastiodon-20260524.png`, and
+  `/tmp/all-ability-unified-selector-bastiodon-r-20260524.png`. Cleanup was
   clean: `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
 - mGBA Live session `all-ability-double-count-20260524` selected

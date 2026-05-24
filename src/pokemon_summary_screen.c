@@ -3738,11 +3738,10 @@ static void RefreshSummaryAbilityWindow(void)
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    u32 slot;
     u32 selectedSlot = GetSummaryAbilityDisplaySlot();
+    enum Ability selectedAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, selectedSlot);
     u32 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
     u8 topText[(ABILITY_NAME_LENGTH + 5) * NUM_ABILITY_SLOTS];
-    bool32 printedTopEntry = FALSE;
     u32 topFontId = FONT_NORMAL;
 
     if (!GetConfig(B_ALL_ABILITY_SLOTS))
@@ -3752,50 +3751,12 @@ static void PrintMonAbilityName(void)
     }
 
     topText[0] = EOS;
-    for (slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
-    {
-        enum Ability slotAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, slot);
-
-        if (slotAbility == ABILITY_NONE)
-            continue;
-
-        if (printedTopEntry)
-            StringAppend(topText, COMPOUND_STRING(" "));
-        else
-            printedTopEntry = TRUE;
-
-        if (slot == selectedSlot)
-            StringAppend(topText, COMPOUND_STRING("{RIGHT_ARROW}"));
-
-        StringAppend(topText, sAbilitySlotLabels[slot]);
-        StringAppend(topText, gAbilitiesInfo[slotAbility].name);
-    }
-
-    if (printedTopEntry)
-    {
-        if (GetStringWidth(FONT_NORMAL, topText, 0) > WindowWidthPx(windowId))
-        {
-            if (GetStringWidth(FONT_SMALL, topText, 0) <= WindowWidthPx(windowId))
-            {
-                topFontId = FONT_SMALL;
-            }
-            else
-            {
-                enum Ability selectedAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, selectedSlot);
-
-                topText[0] = EOS;
-                StringAppend(topText, COMPOUND_STRING("{RIGHT_ARROW}"));
-                StringAppend(topText, sAbilitySlotLabels[selectedSlot]);
-                StringAppend(topText, gAbilitiesInfo[selectedAbility].name);
-
-                if (GetStringWidth(FONT_NORMAL, topText, 0) <= WindowWidthPx(windowId))
-                    topFontId = FONT_NORMAL;
-                else
-                    topFontId = FONT_SMALL;
-            }
-        }
-        PrintTextOnWindowWithFont(windowId, topText, 0, 1, 0, 0, topFontId);
-    }
+    StringAppend(topText, COMPOUND_STRING("{RIGHT_ARROW}"));
+    StringAppend(topText, sAbilitySlotLabels[selectedSlot]);
+    StringAppend(topText, gAbilitiesInfo[selectedAbility].name);
+    if (GetStringWidth(FONT_NORMAL, topText, 0) > WindowWidthPx(windowId))
+        topFontId = FONT_SMALL;
+    PrintTextOnWindowWithFont(windowId, topText, 0, 1, 0, 0, topFontId);
 }
 
 static void PrintMonAbilityDescription(void)

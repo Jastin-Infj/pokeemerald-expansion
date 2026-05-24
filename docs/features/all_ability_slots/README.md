@@ -75,9 +75,10 @@ refactor rather than a data-only change.
   non-representative Neutralizing Gas suppresses other abilities.
 - Summary stays in normal single-ability name / description mode while
   `B_ALL_ABILITY_SLOTS` is disabled. When the config is enabled, Summary shows
-  direct slots `1`, `2`, and `3`, marks the currently selected slot with a
-  right arrow, and lets `L` / `R` cycle which slot's description is shown in the
-  lower ability-detail area.
+  the currently selected direct slot label (`1`, `2`, or `3`) plus ability name,
+  marks it with a right arrow, and lets `L` / `R` cycle which active slot's
+  description is shown in the lower ability-detail area. The same flow is used
+  for both `1/2/3` and sparse `1/3` species.
 - The current implementation covers a broad battle-modifier pass: base-power,
   Attack / Defense, final damage, STAB / Tera STAB, accuracy, priority,
   multi-hit, contact, powder-block, and partner modifier helpers now use

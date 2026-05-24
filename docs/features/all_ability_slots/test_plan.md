@@ -410,6 +410,16 @@ Additional debug-route validation added on 2026-05-24:
     `/tmp/all-ability-selected-name-fallback-summary-initial-20260524.png`,
     `/tmp/all-ability-selected-name-fallback-summary-r-20260524.png`, and
     `/tmp/all-ability-selected-name-fallback-summary-r2-20260524.png`.
+  - `all-ability-unified-selector-20260524` rechecked the unified selected-slot
+    selector after removing adaptive multi-name display. Nidoqueen (`1/2/3`)
+    showed `->2 Rivalry` then `->3 Sheer Force`; Bastiodon (`1/3`) showed
+    `->1 Sturdy` then skipped the empty middle slot and changed to
+    `->3 Soundproof`. Each selection showed the matching description.
+    Screenshots:
+    `/tmp/all-ability-unified-selector-nidoqueen-20260524.png`,
+    `/tmp/all-ability-unified-selector-nidoqueen-r-20260524.png`,
+    `/tmp/all-ability-unified-selector-bastiodon-20260524.png`, and
+    `/tmp/all-ability-unified-selector-bastiodon-r-20260524.png`.
   - Cleanup was clean for the listed Summary sessions, and the final branch config
     is restored to `TRUE`.
 - Final `B_ALL_ABILITY_SLOTS TRUE` validation on 2026-05-24:
@@ -566,7 +576,7 @@ Additional debug-route validation added on 2026-05-24:
 | Battle-only boundary | Field lead ability behavior remains single-ability while battle behavior uses all active slots. |
 | AI | Damage / switch decisions that depend on immunity, trapping, priority, speed, and Magic Guard-style secondary damage. |
 | Items | Ability Capsule / Patch fail or apply chosen new policy under all-active mode, and retain upstream behavior when disabled. |
-| Summary UI | Summary shows all active ability names without text overflow and lets `L` / `R` cycle the displayed ability description. |
+| Summary UI | Summary shows the selected active slot label plus ability name without text overflow and lets `L` / `R` cycle the displayed ability description across full `1/2/3` and sparse `1/3` species. |
 
 ## Candidate Manual Checks
 
@@ -592,8 +602,9 @@ Additional debug-route validation added on 2026-05-24:
   `Pressure`, not hidden-slot `Pickpocket`, before testing Muk's Sticky Hold
   item-retention flow.
 - Open Summary from party and from battle-adjacent flows, then inspect the
-  active ability list. On the Info page, use `L` / `R` and confirm the selected
-  slot marker and description change together.
+  active ability selector. On the Info page, use `L` / `R` and confirm the
+  selected slot marker, ability name, and description change together for both a
+  full `1/2/3` species and a sparse `1/3` species.
 - Try Ability Capsule and Ability Patch in all-active mode and confirm the
   chosen message / behavior is clear.
 - Mega Evolve a Pokemon whose target form has a different ability table and
