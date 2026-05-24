@@ -15,7 +15,10 @@ When implementation starts on a feature branch, run:
 
 - `rtk make -j16 -O all`
 - `rtk make -j16 -O debug`
-- `rtk make -j16 -O check`
+- `rtk make -j16 -O check` under the earlier single-ability default build;
+  with the final `B_ALL_ABILITY_SLOTS TRUE` build, use the focused all-ability
+  suite plus `all` / `debug` as the green gate because the upstream full suite
+  still asserts old single-ability default semantics.
 - focused `TESTS=...` checks for new all-active ability tests
 - one focused mGBA Live validation route when available
 
@@ -43,9 +46,13 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
 - `rtk make -j16 -O debug`
 - `rtk mdbook build docs`
 
-All local build / check commands pass with the existing RWX linker warning.
-`mdbook` passes with existing warnings for the missing root `CHANGELOG.md`
-include, existing `CREDITS.md` `</img>` warning, and large search index.
+The final `B_ALL_ABILITY_SLOTS TRUE` build passes `all`, `debug`, and the
+focused All Ability Slots suite with the existing RWX linker warning. `mdbook`
+passes with existing warnings for the missing root `CHANGELOG.md` include,
+existing `CREDITS.md` `</img>` warning, and large search index. The full
+`rtk make -j16 -O check` suite currently fails under global `TRUE` because many
+upstream tests still encode single-ability default expectations; see the
+2026-05-24 final-TRUE notes below.
 
 During full-suite validation, the damaging-move Poison Puppeteer test exposed a
 stale partner-slot side ability issue: a prior double battle could leave Pastel
@@ -76,8 +83,9 @@ Additional debug-route validation added on 2026-05-24:
   `Party` -> `All Ability...`.
 - The submenu contains one trainer-battle entry per Pattern A-T. Each battle
   entry rebuilds the player party for that pattern, then forces the debug
-  all-slot override for the next battle only. The normal config default remains
-  `B_ALL_ABILITY_SLOTS FALSE`.
+  all-slot override for the next battle only. In the current `TRUE`
+  implementation build the override is redundant, but it keeps temporary
+  `FALSE` validation builds able to exercise the mode.
 - Pattern A `Recoil`: Clefable has representative `Cute Charm`. Use
   `Double-Edge`; non-representative `Magic Guard` should prevent recoil.
 - Pattern B `Flash Fire`: Houndoom has representative `Early Bird`. Use
@@ -363,8 +371,8 @@ Additional debug-route validation added on 2026-05-24:
   focused suite now includes 50 All Ability Slots cases.
 - `rtk make -j16 -O check`, `rtk make -j16 -O all`, and
   `rtk make -j16 -O debug` passed after the Summary slot-marker display.
-- mGBA Live session `all-ability-false-debug-20260524` kept global
-  `B_ALL_ABILITY_SLOTS FALSE`, opened `Party` -> `All Ability...`, selected
+- mGBA Live session `all-ability-false-debug-20260524` used a temporary
+  `B_ALL_ABILITY_SLOTS FALSE` build, opened `Party` -> `All Ability...`, selected
   `T Partner Mods`, and reached the double-battle command menu. Screenshots:
   `/tmp/all-ability-false-debug-t-menu-20260524.png` and
   `/tmp/all-ability-false-debug-t-battle-20260524.png`.
@@ -373,16 +381,38 @@ Additional debug-route validation added on 2026-05-24:
   `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
 - Summary visual validation:
-  - `all-ability-summary-false-20260524` confirmed default
+  - `all-ability-summary-false-20260524` confirmed temporary
     `B_ALL_ABILITY_SLOTS FALSE` Summary behavior still shows one representative
     ability and its description:
     `/tmp/all-ability-summary-false-summary-20260524.png`.
-  - `all-ability-summary-true-20260524` temporarily rebuilt with
-    `B_ALL_ABILITY_SLOTS TRUE` and confirmed Nidoqueen shows `->1 Poison Point`,
+  - `all-ability-summary-true-20260524` used a `B_ALL_ABILITY_SLOTS TRUE` build
+    and confirmed Nidoqueen shows `->1 Poison Point`,
     `2 Rivalry`, and `H Sheer Force` in Summary:
     `/tmp/all-ability-summary-true-summary-down1-20260524.png`.
-  - Cleanup was clean for both Summary sessions, and the temporary config flip
-    was reverted to default `FALSE`.
+  - Cleanup was clean for both Summary sessions, and the final branch config
+    is restored to `TRUE`.
+- Final `B_ALL_ABILITY_SLOTS TRUE` validation on 2026-05-24:
+  - `rtk make -j16 -O check TESTS='All Ability Slots'` passed with the
+    50-case focused suite.
+  - `rtk make -j16 -O all` and `rtk make -j16 -O debug` passed with the
+    existing RWX linker warning.
+  - `rtk make -j16 -O check` failed under global `TRUE` with 264 failed tests
+    out of 5165 total because upstream baseline tests still assert
+    single-ability default behavior. Representative failures include Contrary,
+    Intimidate, Rocky Payload, Sheer Force, and AI thinking-time ceilings. Log:
+    `/home/jastin/.local/share/rtk/tee/1779616365_make_-j16_-O_check.log`.
+  - mGBA Live session `all-ability-final-true-20260524` used the final `TRUE`
+    debug ROM, continued from the local save, opened
+    `Party` -> `All Ability...`, selected `A Recoil Battle`, used
+    `Double-Edge`, and returned to the battle command menu with Recoil still at
+    `317/317` HP. Screenshots:
+    `/tmp/all-ability-final-true-all-ability-submenu-20260524.png`,
+    `/tmp/all-ability-final-true-a-moves-20260524.png`, and
+    `/tmp/all-ability-final-true-a-after-double-edge-20260524.png`.
+  - Cleanup after the final-TRUE mGBA Live check was clean:
+    `mgba-live-cli stop --session all-ability-final-true-20260524` reported
+    `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
+    returned `[]`.
 - `rtk make -j16 -O check TESTS='AI thinking time'` passed after the follow-up
   ability audit. The accepted stress ceilings are now 24 for doubles no-flags,
   44 for doubles smart, 32 for Steven multi, and 36 for Steven multi smart.

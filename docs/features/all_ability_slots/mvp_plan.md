@@ -38,7 +38,7 @@ The first runtime branch should prove the rule without changing save layout:
 
 | Step | Files | Notes |
 |---|---|---|
-| 1 | `include/config/battle.h` or local runtime rule owner | Add a default-off guard such as `B_ALL_ABILITY_SLOTS_ACTIVE`. A runtime option can wrap this later. |
+| 1 | `include/config/battle.h` or local runtime rule owner | Add a guarded config such as `B_ALL_ABILITY_SLOTS_ACTIVE`. A runtime option can wrap this later, and the implementation branch can choose whether the feature PR build defaults on or off. |
 | 2 | `include/pokemon.h`, `src/pokemon.c`, `include/battle_util.h`, `src/battle_util.c` | Add small ability-set structs and helpers. Use direct `GetSpeciesAbility()` slots, skip `ABILITY_NONE`, dedupe, preserve order. |
 | 3 | `src/battle_util.c` | Add `BattlerHasAbility`, `IsAbilityOnField` set-aware variants, and a per-ability suppression / Mold Breaker check. Keep `GetBattlerAbility()` as a primary compatibility function. |
 | 4 | `src/battle_script_commands.c`, `data/battle_scripts_1.s` | Convert `jumpifability` to set-aware behavior and implement slot-local copy / swap / overwrite commands behind the guard. |
