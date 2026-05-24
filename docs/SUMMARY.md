@@ -125,6 +125,7 @@
       - [Ability Audit](features/all_ability_slots/ability_audit.md)
       - [Risks](features/all_ability_slots/risks.md)
       - [Test Plan](features/all_ability_slots/test_plan.md)
+      - [Handoff](features/all_ability_slots/handoff.md)
     - [Champions Challenge Facility](features/champions_challenge/README.md)
       - [Run Session Restore](features/champions_challenge/run_session_restore.md)
     - [Party / Status UI Overhaul](features/party_status_ui_overhaul/README.md)

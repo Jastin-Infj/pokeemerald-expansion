@@ -3696,7 +3696,8 @@ static bool32 TryChangeSummaryAbilityDisplaySlot(s8 delta)
     s32 slot;
     u32 i;
 
-    if (!GetConfig(B_ALL_ABILITY_SLOTS)
+    if (!P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH
+        || !GetConfig(B_ALL_ABILITY_SLOTS)
         || sMonSummaryScreen->summary.isEgg
         || sMonSummaryScreen->currPageIndex != PSS_PAGE_INFO)
         return FALSE;

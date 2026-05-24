@@ -420,6 +420,15 @@ Additional debug-route validation added on 2026-05-24:
     `/tmp/all-ability-unified-selector-nidoqueen-r-20260524.png`,
     `/tmp/all-ability-unified-selector-bastiodon-20260524.png`, and
     `/tmp/all-ability-unified-selector-bastiodon-r-20260524.png`.
+  - A temporary `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH FALSE` build passed
+    `rtk make -j16 -O debug`. This confirms the Summary selector switch can be
+    disabled at compile time; the branch was restored to default `TRUE` before
+    commit.
+  - After adding `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH`, final default-`TRUE`
+    validation passed: `rtk git diff --check`,
+    `rtk make -j16 -O check TESTS='All Ability Slots'`,
+    `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
+    `rtk mdbook build docs`.
   - Cleanup was clean for the listed Summary sessions, and the final branch config
     is restored to `TRUE`.
 - Final `B_ALL_ABILITY_SLOTS TRUE` validation on 2026-05-24:
@@ -576,7 +585,7 @@ Additional debug-route validation added on 2026-05-24:
 | Battle-only boundary | Field lead ability behavior remains single-ability while battle behavior uses all active slots. |
 | AI | Damage / switch decisions that depend on immunity, trapping, priority, speed, and Magic Guard-style secondary damage. |
 | Items | Ability Capsule / Patch fail or apply chosen new policy under all-active mode, and retain upstream behavior when disabled. |
-| Summary UI | Summary shows the selected active slot label plus ability name without text overflow and lets `L` / `R` cycle the displayed ability description across full `1/2/3` and sparse `1/3` species. |
+| Summary UI | Summary shows the selected active slot label plus ability name without text overflow and lets `L` / `R` cycle the displayed ability description across full `1/2/3` and sparse `1/3` species when `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` is enabled. A temporary disabled-config build should still compile and keep the selected / representative display stable without cycling. |
 
 ## Candidate Manual Checks
 

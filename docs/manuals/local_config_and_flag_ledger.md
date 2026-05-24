@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-22 |
-| Baseline | `master` `b2d64f1577`; `git describe` = `expansion/1.15.2-84-gb2d64f1577` |
+| Last reviewed | 2026-05-24 |
+| Baseline | `master` `0407f6daf7` |
 | Code status | Docs-only ledger |
 | Provenance | Local source read and feature docs |
 
@@ -20,6 +20,7 @@ capability flag、save state の索引。`master` の値と branch-only の値�
 | `I_REUSABLE_TMS` | Item config | `docs/features/tm_shop_migration/` | `include/config/item.h` で `FALSE`。 | PR #31 branch では `TRUE`。既存 50 TM を持っている場合だけ reusable になる。 |
 | `P_SHOW_TERA_TYPE` | Pokemon / Summary config | `docs/features/summary_tera_type_icon/` | `include/config/pokemon.h` で `GEN_8`。Summary Tera表示は既定で無効。 | PR #26 branch では Summary Tera badge 用に有効化する前提。 |
 | `P_SUMMARY_SCREEN_MOVE_RELEARNER` | Summary config | `docs/features/unified_move_relearner/` | `TRUE`。Move page の `START RELEARN` 表示に使う。 | Unified mode では prompt copy / L-R category cycling の扱いを確認する。2x3 party grid 統合時は Summary route を正規入口にする。 |
+| `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` | Branch-only Summary config | `docs/features/all_ability_slots/` | Not present on `master`。 | PR #60 branch default is `TRUE`; it only controls `L` / `R` cycling of the displayed ability slot on the Info page when `B_ALL_ABILITY_SLOTS` is enabled. |
 | `P_ENABLE_MOVE_RELEARNERS` | Relearner config | `docs/features/unified_move_relearner/` | `FALSE`。egg / TM / tutor category をまとめて有効化しない。 | PR #28 branch は unified source toggles を追加。採用前に default を確認する。 |
 | `P_TM_MOVES_RELEARNER` / `P_ENABLE_ALL_TM_MOVES` | Relearner config | `docs/features/unified_move_relearner/` | `FALSE` / `FALSE`。 | Virtual TM pool と physical TM item ownership を分ける。 |
 | `P_FLAG_EGG_MOVES` / `P_FLAG_TUTOR_MOVES` | Event flag id config | `docs/features/unified_move_relearner/` | `0` / `0`。未割り当て。 | Runtime unlock に使うなら flag id を割り当て、save/flag ledger に追記する。 |

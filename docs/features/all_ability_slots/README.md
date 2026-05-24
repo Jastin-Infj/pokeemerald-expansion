@@ -79,6 +79,10 @@ refactor rather than a data-only change.
   marks it with a right arrow, and lets `L` / `R` cycle which active slot's
   description is shown in the lower ability-detail area. The same flow is used
   for both `1/2/3` and sparse `1/3` species.
+- `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` controls only the Summary `L` / `R`
+  selector. If it is disabled, Summary still shows the representative / initial
+  active slot in all-slot mode, but the player cannot cycle descriptions from the
+  Info page.
 - The current implementation covers a broad battle-modifier pass: base-power,
   Attack / Defense, final damage, STAB / Tera STAB, accuracy, priority,
   multi-hit, contact, powder-block, and partner modifier helpers now use
@@ -115,6 +119,7 @@ refactor rather than a data-only change.
 - [Ability Audit](ability_audit.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)
+- [Handoff](handoff.md)
 
 ## Open Questions
 

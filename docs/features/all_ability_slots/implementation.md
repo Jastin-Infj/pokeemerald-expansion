@@ -16,11 +16,13 @@ There is no known runtime blocker left for this branch after the 2026-05-24
 ability audit. The remaining risk is merge ordering with other staged feature
 branches, not an unmet all-ability requirement.
 
-Open PR file-level conflicts observed on 2026-05-24:
+Open PR file-level conflicts rechecked on 2026-05-24 after PR #60 commit
+`21deeb594a`:
 
 - #47 battle item restore overlaps `include/config/battle.h`,
   `src/battle_main.c`, and `src/battle_util.c`.
-- #48 held item token work overlaps docs registry files and `src/party_menu.c`.
+- #48 held item token work overlaps docs / manual ledger files and
+  `src/party_menu.c`.
 - #51 scout selection overlaps docs registry files and `src/debug.c`.
 - #54 party/status UI overlaps docs registry files and `src/party_menu.c`.
 - #57 friendly shop Pokemon vendor overlaps docs registry files,
@@ -210,6 +212,10 @@ upper ability line. The selected slot is marked with a right-arrow marker.
 tables such as `1/3` use the same flow as full `1/2/3` tables. The lower white
 ability-detail area shows the selected slot's ability description. The
 single-ability name / description block is still used when the mode is disabled.
+The `L` / `R` cycling behavior is separately guarded by
+`P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` in `include/config/summary_screen.h`;
+turning it off leaves the selected / representative ability display intact but
+prevents manual description cycling on the Info page.
 
 Ability Capsule and Ability Patch fail with the usual "It won't have any
 effect" message while all-slot mode is enabled. They still keep upstream
@@ -222,11 +228,11 @@ source dependencies.
 
 | Related feature / PR | Branch | Impact |
 |---|---|---|
-| Friendly Shop Pokemon Vendor / locked Pokemon (#57) | `feature/global-no-evolution-20260523` | Touches `src/pokemon.c`, `src/pokemon_summary_screen.c`, `src/party_menu.c`, `src/pokemon_storage_system.c`, battle setup / message, and Pokemon tests. Merge order will need conflict resolution around Summary, party menu item callbacks, and Pokemon metadata helpers. |
-| Party / Status UI Overhaul (#54) | `feature/party-status-ui-overhaul-20260521` | Touches `src/party_menu.c`, `src/data/party_menu.h`, and party layout constants. This branch only makes small item-policy edits in `party_menu.c`, but UI merge should verify menu text and Ability Capsule / Patch failure flow after #54. |
-| Scout Selection Runtime (#51) | `feature/scout-selection-runtime-20260520` | Mostly separate runtime, but it adds debug routes and party generation tooling. If scout-generated Pokemon rely on `abilityNum`, all-slot battle behavior will activate all species slots without changing the scout pool format. |
-| Held Item Ownership Tokens (#48) | `feature/held-item-catalog-current-master-20260519` | Touches `src/item.c`, `src/item_menu.c`, `src/party_menu.c`, and storage. Merge should verify Ability Capsule / Patch behavior and item menu text after item-policy changes. |
-| Battle Item Restore Policy (#47) | `feature/battle-item-restore-current-master-20260519` | Touches `include/config/battle.h`, `src/battle_main.c`, `src/battle_util.c`, and battle item tests. This is the largest battle-core conflict risk because all-slot mode also changes config, battle utility helpers, and run / item effect predicates. |
+| Battle Item Restore Policy (#47) | `feature/battle-item-restore-current-master-20260519` | Direct battle-core overlap in `include/config/battle.h`, `src/battle_main.c`, and `src/battle_util.c`. Resolve before treating either branch as integration-ready, then rerun item restore tests plus All Ability Slots focused tests. |
+| Held Item Ownership Tokens (#48) | `feature/held-item-catalog-current-master-20260519` | Direct overlap in `src/party_menu.c`; docs/manual ledger files also overlap. Recheck Ability Capsule / Patch failure text and held item assignment menus after merge. |
+| Scout Selection Runtime (#51) | `feature/scout-selection-runtime-20260520` | Direct overlap in `src/debug.c` and docs registry. Runtime systems are mostly separate, but debug menus and generated party/scout Pokemon should be rechecked because All Ability Slots activates all species slots without changing `abilityNum`. |
+| Party / Status UI Overhaul (#54) | `feature/party-status-ui-overhaul-20260521` | Direct overlap in `src/party_menu.c` and party UI docs. Recheck Summary entry / return and party item callbacks after adopting both. |
+| Friendly Shop Pokemon Vendor / locked Pokemon (#57) | `feature/global-no-evolution-20260523` | Direct overlap in `include/pokemon.h`, `src/pokemon.c`, `src/party_menu.c`, `src/pokemon_summary_screen.c`, and `test/pokemon.c`. This is the largest non-battle conflict because both branches alter Summary / locked Pokemon display and Pokemon metadata helpers. |
 
 ## Tests Added
 
@@ -592,6 +598,15 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   `/tmp/all-ability-unified-selector-bastiodon-r-20260524.png`. Cleanup was
   clean: `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
+- A temporary `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH FALSE` build passed
+  `rtk make -j16 -O debug`, confirming the new Summary selector compile-time
+  switch can be disabled without breaking the debug ROM build. The branch was
+  restored to the default `TRUE` config before commit.
+- After adding `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH`, final default-`TRUE`
+  validation passed: `rtk git diff --check`,
+  `rtk make -j16 -O check TESTS='All Ability Slots'`,
+  `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
+  `rtk mdbook build docs`.
 - mGBA Live session `all-ability-double-count-20260524` selected
   `T Partner Mods` after the debug-party count refresh and reached the
   double-battle command menu. The captured battle screen showed coherent
