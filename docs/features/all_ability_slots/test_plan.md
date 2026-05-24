@@ -386,9 +386,14 @@ Additional debug-route validation added on 2026-05-24:
     ability and its description:
     `/tmp/all-ability-summary-false-summary-20260524.png`.
   - `all-ability-summary-true-20260524` used a `B_ALL_ABILITY_SLOTS TRUE` build
-    and confirmed Nidoqueen shows `->1 Poison Point`,
-    `2 Rivalry`, and `H Sheer Force` in Summary:
+    and confirmed Nidoqueen shows the non-representative slots in the upper
+    strip and `->1 Poison Point` in the lower detail area:
     `/tmp/all-ability-summary-true-summary-down1-20260524.png`.
+  - `all-ability-summary-layout-v3-20260524` rechecked the final compact layout:
+    Nidoqueen shows `1 Poison Point 3 Sheer Force` in the upper strip and
+    `->2 Rivalry` in the lower white detail area without overlapping Trainer
+    Memo text. Screenshot:
+    `/tmp/all-ability-summary-layout-v3-nidoqueen-20260524.png`.
   - Cleanup was clean for both Summary sessions, and the final branch config
     is restored to `TRUE`.
 - Final `B_ALL_ABILITY_SLOTS TRUE` validation on 2026-05-24:

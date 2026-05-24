@@ -202,13 +202,16 @@ that still intentionally accept one representative ability argument. See
 
 ## UI / Item Policy
 
-Summary now prints the active ability names as a compact vertical list when
-`B_ALL_ABILITY_SLOTS` is enabled. It uses direct slot labels `1`, `2`, and `H`
-instead of a deduped set, and prefixes the representative / selected
-`abilityNum` slot with a right-arrow marker and stronger text color. The
-single-ability description block is still used when the mode is disabled, but
-is suppressed in the all-slot list view to avoid text overlap in the existing
-Summary window.
+Summary now uses a compact all-slot layout when `B_ALL_ABILITY_SLOTS` is
+enabled. It uses direct slot labels `1`, `2`, and `3` instead of a deduped set.
+The non-representative slots are printed as a single upper strip. That strip
+uses the normal Summary font when it fits, falls back to the small font when the
+names would otherwise overflow, and only then falls back to slot numbers. The
+representative / selected `abilityNum` slot is printed in the lower white
+ability-detail area with a right-arrow marker and stronger text color. The
+single-ability description block is still used when the mode is disabled, but is
+suppressed in the all-slot view to avoid text overlap in the existing Summary
+window.
 
 Ability Capsule and Ability Patch fail with the usual "It won't have any
 effect" message while all-slot mode is enabled. They still keep upstream
@@ -520,7 +523,8 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   - `all-ability-summary-true-20260524` used a
     `B_ALL_ABILITY_SLOTS TRUE` build and confirmed a multi-ability species shows
     direct slot labels and representative marking:
-    `->1 Poison Point`, `2 Rivalry`, `H Sheer Force` on Nidoqueen at
+    `2 Rivalry  3 Sheer Force` in the upper strip and `->1 Poison Point` in
+    the lower detail area on Nidoqueen at
     `/tmp/all-ability-summary-true-summary-down1-20260524.png`.
   - The final branch config is restored to `TRUE` after the visual checks.
 - `rtk make -j16 -O check TESTS='AI thinking time'` passed after the follow-up
@@ -546,6 +550,14 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   `/tmp/all-ability-final-true-all-ability-submenu-20260524.png`,
   `/tmp/all-ability-final-true-a-moves-20260524.png`, and
   `/tmp/all-ability-final-true-a-after-double-edge-20260524.png`. Cleanup was
+  clean: `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
+  returned `[]`.
+- mGBA Live session `all-ability-summary-layout-v3-20260524` rechecked the
+  compact Summary ability layout on the final `TRUE` build. Nidoqueen shows the
+  non-representative slots as `1 Poison Point 3 Sheer Force` in the upper strip
+  and the representative slot as `->2 Rivalry` in the lower white detail area,
+  with no overlap into Trainer Memo text:
+  `/tmp/all-ability-summary-layout-v3-nidoqueen-20260524.png`. Cleanup was
   clean: `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
 - mGBA Live session `all-ability-double-count-20260524` selected

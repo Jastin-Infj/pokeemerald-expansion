@@ -748,7 +748,13 @@ static const u8 *const sAbilitySlotLabels[NUM_ABILITY_SLOTS] =
 {
     COMPOUND_STRING("1 "),
     COMPOUND_STRING("2 "),
-    COMPOUND_STRING("H "),
+    COMPOUND_STRING("3 "),
+};
+static const u8 *const sAbilitySlotNumbers[NUM_ABILITY_SLOTS] =
+{
+    COMPOUND_STRING("1"),
+    COMPOUND_STRING("2"),
+    COMPOUND_STRING("3"),
 };
 
 static const u8 sButtons_Gfx[][4 * TILE_SIZE_4BPP] = {
@@ -3652,9 +3658,13 @@ static void PrintMonOTID(void)
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    u32 slot, y;
+    u32 slot;
     u32 abilitySlot = sMonSummaryScreen->summary.abilityNum < NUM_ABILITY_SLOTS ? sMonSummaryScreen->summary.abilityNum : 0;
     u32 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+    u8 topText[(ABILITY_NAME_LENGTH + 5) * NUM_ABILITY_SLOTS];
+    u8 selectedText[ABILITY_NAME_LENGTH + 8];
+    bool32 printedTopEntry = FALSE;
+    u32 topFontId = FONT_NORMAL;
 
     if (!GetConfig(B_ALL_ABILITY_SLOTS))
     {
@@ -3662,21 +3672,55 @@ static void PrintMonAbilityName(void)
         return;
     }
 
-    for (slot = 0, y = 1; slot < NUM_ABILITY_SLOTS; slot++)
+    topText[0] = EOS;
+    for (slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
     {
         enum Ability slotAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, slot);
-        u8 text[ABILITY_NAME_LENGTH + 8];
-        bool32 isRepresentative = slot == abilitySlot;
 
-        if (slotAbility == ABILITY_NONE)
+        if (slotAbility == ABILITY_NONE || slot == abilitySlot)
             continue;
 
-        StringCopy(text, isRepresentative ? COMPOUND_STRING("{RIGHT_ARROW}") : COMPOUND_STRING(" "));
-        StringAppend(text, sAbilitySlotLabels[slot]);
-        StringAppend(text, gAbilitiesInfo[slotAbility].name);
-        PrintTextOnWindow(windowId, text, 0, y, 0, isRepresentative ? 1 : 0);
-        y += 10;
+        if (printedTopEntry)
+            StringAppend(topText, COMPOUND_STRING(" "));
+        else
+            printedTopEntry = TRUE;
+
+        StringAppend(topText, sAbilitySlotLabels[slot]);
+        StringAppend(topText, gAbilitiesInfo[slotAbility].name);
     }
+
+    if (printedTopEntry)
+    {
+        if (GetStringWidth(FONT_NORMAL, topText, 0) > WindowWidthPx(windowId))
+        {
+            if (GetStringWidth(FONT_SMALL, topText, 0) <= WindowWidthPx(windowId))
+            {
+                topFontId = FONT_SMALL;
+            }
+            else
+            {
+                topText[0] = EOS;
+                for (slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
+                {
+                    enum Ability slotAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, slot);
+
+                    if (slotAbility == ABILITY_NONE || slot == abilitySlot)
+                        continue;
+
+                    if (topText[0] != EOS)
+                        StringAppend(topText, COMPOUND_STRING("  "));
+
+                    StringAppend(topText, sAbilitySlotNumbers[slot]);
+                }
+            }
+        }
+        PrintTextOnWindowWithFont(windowId, topText, 0, 1, 0, 0, topFontId);
+    }
+
+    StringCopy(selectedText, COMPOUND_STRING("{RIGHT_ARROW}"));
+    StringAppend(selectedText, sAbilitySlotLabels[abilitySlot]);
+    StringAppend(selectedText, gAbilitiesInfo[ability].name);
+    PrintTextOnWindow(windowId, selectedText, 0, 17, 0, 1);
 }
 
 static void PrintMonAbilityDescription(void)
