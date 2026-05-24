@@ -247,7 +247,12 @@ static bool32 FirstEventBlockEvents(struct BattleCalcValues *calcValues)
         }
         else if (EmergencyExitCanBeTriggered(battler))
         {
+            enum Ability ability = GetBattlerAbility(battler);
+            if (ability != ABILITY_EMERGENCY_EXIT && ability != ABILITY_WIMP_OUT)
+                ability = BattlerHasAbility(battler, ABILITY_EMERGENCY_EXIT) ? ABILITY_EMERGENCY_EXIT : ABILITY_WIMP_OUT;
             gBattleScripting.battler = gBattlerAbility = battler;
+            gLastUsedAbility = ability;
+            gBattleScripting.abilityPopupOverwrite = ability;
             gBattleStruct->battlerState[battler].forcedSwitch = FALSE;
             gBattleStruct->eventState.switchIn = 0;
             BattleScriptCall(BattleScript_EmergencyExit);

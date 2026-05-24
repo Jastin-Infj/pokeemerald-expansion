@@ -711,6 +711,7 @@ struct BattleStruct
     u8 dancerSavedAttacker:3;
     u8 dancerSavedTarget:3;
     u8 padding:2;
+    enum Ability abilitySlotOverrides[MAX_BATTLERS_COUNT][NUM_ABILITY_SLOTS];
 };
 
 struct AiBattleData

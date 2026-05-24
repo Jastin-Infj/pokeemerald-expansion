@@ -30,6 +30,7 @@
 #include "frontier_util.h"
 #include "gpu_regs.h"
 #include "graphics.h"
+#include "generational_changes.h"
 #include "international_string_util.h"
 #include "item.h"
 #include "item_menu.h"
@@ -4875,7 +4876,8 @@ void Task_AbilityCapsule(u8 taskId)
     {
     case 0:
         // Can't use.
-        if (GetSpeciesAbility(tSpecies, 0) == GetSpeciesAbility(tSpecies, 1)
+        if (GetConfig(B_ALL_ABILITY_SLOTS)
+            || GetSpeciesAbility(tSpecies, 0) == GetSpeciesAbility(tSpecies, 1)
             || GetSpeciesAbility(tSpecies, 1) == 0
             || tAbilityNum > 1
             || !tSpecies)
@@ -4961,7 +4963,8 @@ void Task_AbilityPatch(u8 taskId)
     {
     case 0:
         // Can't use.
-        if (GetSpeciesAbility(tSpecies, tAbilityNum) == 0
+        if (GetConfig(B_ALL_ABILITY_SLOTS)
+            || GetSpeciesAbility(tSpecies, tAbilityNum) == 0
             || !tSpecies
             )
         {

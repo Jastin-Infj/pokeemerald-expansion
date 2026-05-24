@@ -4,14 +4,14 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-23 |
-| Baseline | `master` `de310ef9eb`; upstream `expansion/1.15.2-96-gde310ef9eb` |
-| Code status | Docs-only investigation / no runtime source changes |
+| Last reviewed | 2026-05-24 |
+| Baseline | `master` `0407f6daf7` |
+| Code status | Runtime implementation validated locally on feature branch |
 | Provenance | Local project overlay, source read on current `master` |
 
 ## Status
 
-Status: Investigating.
+Status: Implementing on `feature/all-ability-slots-runtime-20260523`.
 
 This feature is the proposed runtime rule where every legal species ability slot
 is active at once: slot 0, slot 1, and the hidden slot. The current engine stores
@@ -45,6 +45,11 @@ refactor rather than a data-only change.
   explicitly opts into global all-slot behavior.
 - Hidden ability slot 2 is part of the battle active set when the mode is
   enabled. `abilityNum` remains a representative / primary slot only.
+- Runtime validation currently exposes Pattern A-T debug battles under
+  `Party` -> `All Ability...`, including Chlorophyll, Trace, Conkeldurr
+  offensive stacking, Durant Hustle, and Lightning Rod / Storm Drain
+  redirection routes, plus modifier-stack / defensive-modifier / partner-
+  modifier routes.
 - Enumerate species slots with `GetSpeciesAbility()`, not repeated
   `GetAbilityBySpecies()`, because `GetAbilityBySpecies()` intentionally falls
   back from empty slots to another valid ability.
@@ -63,6 +68,16 @@ refactor rather than a data-only change.
 - Keep balance tuning separate from the mechanics branch. Ability buffs /
   nerfs, species-slot table edits, and gym / trainer balance should be tracked
   by a later balance feature.
+- Add balance-facing config switches for the two most disruptive categories:
+  `B_ALL_ABILITY_SLOTS_MOLD_BREAKER` controls whether non-representative
+  Mold Breaker / Teravolt / Turboblaze / Mycelium Might bypass target
+  abilities, and `B_ALL_ABILITY_SLOTS_NEUTRALIZING_GAS` controls whether
+  non-representative Neutralizing Gas suppresses other abilities.
+- The current implementation covers a broad battle-modifier pass: base-power,
+  Attack / Defense, final damage, STAB / Tera STAB, accuracy, priority,
+  multi-hit, contact, powder-block, and partner modifier helpers now use
+  all-slot-aware predicates for the major ability families. Obscure
+  animation / form / item-edge paths remain on the manual regression list.
 
 ## Scope
 
@@ -90,16 +105,18 @@ refactor rather than a data-only change.
 
 - [Investigation](investigation.md)
 - [MVP Plan](mvp_plan.md)
+- [Implementation](implementation.md)
+- [Ability Audit](ability_audit.md)
 - [Risks](risks.md)
 - [Test Plan](test_plan.md)
 
 ## Open Questions
 
-- Should all-active mode be a compile-time config, a runtime rule option, or a
-  Champions-only facility flag?
-- Should Ability Capsule / Patch be disabled, repurposed to choose a primary
-  display slot, or used as a hidden-slot unlock item?
+- Should `B_ALL_ABILITY_SLOTS` stay as a compile-time config only, or should a
+  later Champions runtime rule toggle it per facility?
+- Should Ability Capsule / Patch stay disabled in all-slot mode, or should a
+  later UI pass repurpose them to choose the representative display slot?
 - For Trace, should the default copied slot always be the tracer's representative
   slot, or should battle script support an explicit random / chosen slot later?
-- Should UI show all active abilities everywhere, or show one primary slot with a
-  Summary-only full list?
+- Should Summary gain a dedicated per-ability description browser, or are compact
+  active names enough for the first runtime branch?

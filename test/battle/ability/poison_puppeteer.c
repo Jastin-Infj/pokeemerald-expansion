@@ -8,7 +8,7 @@ SINGLE_BATTLE_TEST("Poison Puppeteer confuses target if it was poisoned by a dam
         PLAYER(SPECIES_PECHARUNT) { Ability(ABILITY_POISON_PUPPETEER); }
         OPPONENT(SPECIES_WOBBUFFET);
     } WHEN {
-        TURN { MOVE(player, MOVE_POISON_STING); }
+        TURN { MOVE(player, MOVE_POISON_STING, secondaryEffect: TRUE); }
     } SCENE {
         ANIMATION(ANIM_TYPE_MOVE, MOVE_POISON_STING, player);
         HP_BAR(opponent);

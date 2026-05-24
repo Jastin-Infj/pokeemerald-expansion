@@ -10,6 +10,7 @@ void DebugNative_GetAbilityNames(void);
 void DebugNative_Party_SetFriendship(void);
 
 extern EWRAM_DATA bool8 gIsDebugBattle;
+extern EWRAM_DATA bool8 gDebugAllAbilitySlotsBattle;
 extern EWRAM_DATA u64 gDebugAIFlags;
 
 #endif // GUARD_DEBUG_H

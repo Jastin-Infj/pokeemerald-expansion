@@ -16,6 +16,7 @@
 #include "event_data.h"
 #include "gpu_regs.h"
 #include "graphics.h"
+#include "generational_changes.h"
 #include "international_string_util.h"
 #include "item.h"
 #include "link.h"
@@ -3645,12 +3646,34 @@ static void PrintMonOTID(void)
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+    u32 i, count;
+    enum Ability abilities[NUM_ABILITY_SLOTS];
+    u32 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+
+    if (!GetConfig(B_ALL_ABILITY_SLOTS))
+    {
+        PrintTextOnWindow(windowId, gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+        return;
+    }
+
+    count = GetSpeciesAbilitySet(sMonSummaryScreen->summary.species, abilities, ARRAY_COUNT(abilities));
+    if (count == 0)
+    {
+        PrintTextOnWindow(windowId, gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+        return;
+    }
+
+    for (i = 0; i < count; i++)
+        PrintTextOnWindow(windowId, gAbilitiesInfo[abilities[i]].name, 0, 1 + i * 10, 0, 1);
 }
 
 static void PrintMonAbilityDescription(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
+
+    if (GetConfig(B_ALL_ABILITY_SLOTS))
+        return;
+
     PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].description, 0, 17, 0, 0);
 }
 

@@ -121,6 +121,8 @@
     - [All Ability Slots Runtime](features/all_ability_slots/README.md)
       - [Investigation](features/all_ability_slots/investigation.md)
       - [MVP Plan](features/all_ability_slots/mvp_plan.md)
+      - [Implementation](features/all_ability_slots/implementation.md)
+      - [Ability Audit](features/all_ability_slots/ability_audit.md)
       - [Risks](features/all_ability_slots/risks.md)
       - [Test Plan](features/all_ability_slots/test_plan.md)
     - [Champions Challenge Facility](features/champions_challenge/README.md)

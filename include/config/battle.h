@@ -77,7 +77,10 @@
 #define B_PROTECT_FAILURE_RATE      GEN_LATEST // In Gen5+, protect moves fails 1/3 of the time instead of 1/2
 
 // Ability data settings
-#define B_UPDATED_ABILITY_DATA      GEN_LATEST // Affects flags
+#define B_UPDATED_ABILITY_DATA              GEN_LATEST // Affects flags
+#define B_ALL_ABILITY_SLOTS                 FALSE      // If TRUE, battle checks use all non-empty ability slots. abilityNum remains the representative slot.
+#define B_ALL_ABILITY_SLOTS_MOLD_BREAKER    TRUE       // If TRUE, all-slot mode lets non-representative Mold Breaker-family abilities bypass target abilities.
+#define B_ALL_ABILITY_SLOTS_NEUTRALIZING_GAS TRUE      // If TRUE, all-slot mode lets non-representative Neutralizing Gas suppress other abilities.
 
 // Move accuracy settings
 #define B_TOXIC_NEVER_MISS          GEN_LATEST // In Gen6+, if Toxic is used by a Poison-type Pokémon, it will never miss.

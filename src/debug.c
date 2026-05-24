@@ -291,6 +291,26 @@ static void DebugAction_Party_ClearPokerus(u8 taskId);
 static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
+static void DebugAction_Party_AllAbilityA(u8 taskId);
+static void DebugAction_Party_AllAbilityB(u8 taskId);
+static void DebugAction_Party_AllAbilityC(u8 taskId);
+static void DebugAction_Party_AllAbilityD(u8 taskId);
+static void DebugAction_Party_AllAbilityE(u8 taskId);
+static void DebugAction_Party_AllAbilityF(u8 taskId);
+static void DebugAction_Party_AllAbilityG(u8 taskId);
+static void DebugAction_Party_AllAbilityH(u8 taskId);
+static void DebugAction_Party_AllAbilityI(u8 taskId);
+static void DebugAction_Party_AllAbilityJ(u8 taskId);
+static void DebugAction_Party_AllAbilityK(u8 taskId);
+static void DebugAction_Party_AllAbilityL(u8 taskId);
+static void DebugAction_Party_AllAbilityM(u8 taskId);
+static void DebugAction_Party_AllAbilityN(u8 taskId);
+static void DebugAction_Party_AllAbilityO(u8 taskId);
+static void DebugAction_Party_AllAbilityP(u8 taskId);
+static void DebugAction_Party_AllAbilityQ(u8 taskId);
+static void DebugAction_Party_AllAbilityR(u8 taskId);
+static void DebugAction_Party_AllAbilityS(u8 taskId);
+static void DebugAction_Party_AllAbilityT(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, u32 selection);
@@ -609,6 +629,31 @@ static const struct DebugMenuOption sDebugMenu_Actions_EditPokemon[] =
     { NULL }
 };
 
+static const struct DebugMenuOption sDebugMenu_Actions_Party_AllAbility[] =
+{
+    { COMPOUND_STRING("A Recoil Battle"),      DebugAction_Party_AllAbilityA },
+    { COMPOUND_STRING("B Flash Fire Battle"),  DebugAction_Party_AllAbilityB },
+    { COMPOUND_STRING("C Soundproof Battle"),  DebugAction_Party_AllAbilityC },
+    { COMPOUND_STRING("D Drought Battle"),     DebugAction_Party_AllAbilityD },
+    { COMPOUND_STRING("E Skill Swap Battle"),  DebugAction_Party_AllAbilityE },
+    { COMPOUND_STRING("F Intimidate Battle"),  DebugAction_Party_AllAbilityF },
+    { COMPOUND_STRING("G Levitate Battle"),    DebugAction_Party_AllAbilityG },
+    { COMPOUND_STRING("H Storm Drain Battle"), DebugAction_Party_AllAbilityH },
+    { COMPOUND_STRING("I Sticky Hold Battle"), DebugAction_Party_AllAbilityI },
+    { COMPOUND_STRING("J Majesty Battle"),     DebugAction_Party_AllAbilityJ },
+    { COMPOUND_STRING("K Commander Battle"),   DebugAction_Party_AllAbilityK },
+    { COMPOUND_STRING("L Chlorophyll Battle"), DebugAction_Party_AllAbilityL },
+    { COMPOUND_STRING("M Trace Battle"),       DebugAction_Party_AllAbilityM },
+    { COMPOUND_STRING("N Power Stack"),        DebugAction_Party_AllAbilityN },
+    { COMPOUND_STRING("O Hustle Battle"),      DebugAction_Party_AllAbilityO },
+    { COMPOUND_STRING("P Rod Redirect"),       DebugAction_Party_AllAbilityP },
+    { COMPOUND_STRING("Q Drain Redirect"),     DebugAction_Party_AllAbilityQ },
+    { COMPOUND_STRING("R Mod Stack"),          DebugAction_Party_AllAbilityR },
+    { COMPOUND_STRING("S Guard Mods"),         DebugAction_Party_AllAbilityS },
+    { COMPOUND_STRING("T Partner Mods"),       DebugAction_Party_AllAbilityT },
+    { NULL }
+};
+
 static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 {
     { COMPOUND_STRING("Move Relearner"),     DebugAction_ExecuteScript, Common_EventScript_MoveRelearner },
@@ -622,6 +667,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
+    { COMPOUND_STRING("All Ability..."),     DebugAction_OpenSubMenu, sDebugMenu_Actions_Party_AllAbility },
     { NULL }
 };
 
@@ -4894,6 +4940,46 @@ enum DebugTrainerIds
 {
     DEBUG_TRAINER_PLAYER,
     DEBUG_TRAINER_AI,
+    DEBUG_TRAINER_ALL_ABILITY_A_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_A_AI,
+    DEBUG_TRAINER_ALL_ABILITY_B_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_B_AI,
+    DEBUG_TRAINER_ALL_ABILITY_C_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_C_AI,
+    DEBUG_TRAINER_ALL_ABILITY_D_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_D_AI,
+    DEBUG_TRAINER_ALL_ABILITY_E_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_E_AI,
+    DEBUG_TRAINER_ALL_ABILITY_F_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_F_AI,
+    DEBUG_TRAINER_ALL_ABILITY_G_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_G_AI,
+    DEBUG_TRAINER_ALL_ABILITY_H_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_H_AI,
+    DEBUG_TRAINER_ALL_ABILITY_I_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_I_AI,
+    DEBUG_TRAINER_ALL_ABILITY_J_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_J_AI,
+    DEBUG_TRAINER_ALL_ABILITY_K_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_K_AI,
+    DEBUG_TRAINER_ALL_ABILITY_L_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_L_AI,
+    DEBUG_TRAINER_ALL_ABILITY_M_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_M_AI,
+    DEBUG_TRAINER_ALL_ABILITY_N_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_N_AI,
+    DEBUG_TRAINER_ALL_ABILITY_O_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_O_AI,
+    DEBUG_TRAINER_ALL_ABILITY_P_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_P_AI,
+    DEBUG_TRAINER_ALL_ABILITY_Q_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_Q_AI,
+    DEBUG_TRAINER_ALL_ABILITY_R_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_R_AI,
+    DEBUG_TRAINER_ALL_ABILITY_S_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_S_AI,
+    DEBUG_TRAINER_ALL_ABILITY_T_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_T_AI,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -4931,6 +5017,126 @@ static void DebugAction_Party_BattleSingle(u8 taskId)
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
     Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_AllAbilityBattlePattern(u8 taskId, enum DebugTrainerIds playerTrainerId, enum DebugTrainerIds aiTrainerId)
+{
+    ZeroPlayerPartyMons();
+    ZeroEnemyPartyMons();
+    CreateNPCTrainerPartyFromTrainer(gPlayerParty, &sDebugTrainers[DIFFICULTY_NORMAL][playerTrainerId], TRUE, BATTLE_TYPE_TRAINER);
+    CreateNPCTrainerPartyFromTrainer(gEnemyParty, &sDebugTrainers[DIFFICULTY_NORMAL][aiTrainerId], FALSE, BATTLE_TYPE_TRAINER);
+    CalculatePlayerPartyCount();
+
+    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+    if (sDebugTrainers[DIFFICULTY_NORMAL][aiTrainerId].battleType == TRAINER_BATTLE_TYPE_DOUBLES)
+        gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
+    gDebugAIFlags = sDebugTrainers[DIFFICULTY_NORMAL][aiTrainerId].aiFlags;
+    gIsDebugBattle = TRUE;
+    gDebugAllAbilitySlotsBattle = TRUE;
+    gBattleEnvironment = BattleSetup_GetEnvironmentId();
+    CalculateEnemyPartyCount();
+    BattleSetup_StartTrainerBattle_Debug();
+    Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_AllAbilityA(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_A_PLAYER, DEBUG_TRAINER_ALL_ABILITY_A_AI);
+}
+
+static void DebugAction_Party_AllAbilityB(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_B_PLAYER, DEBUG_TRAINER_ALL_ABILITY_B_AI);
+}
+
+static void DebugAction_Party_AllAbilityC(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_C_PLAYER, DEBUG_TRAINER_ALL_ABILITY_C_AI);
+}
+
+static void DebugAction_Party_AllAbilityD(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_D_PLAYER, DEBUG_TRAINER_ALL_ABILITY_D_AI);
+}
+
+static void DebugAction_Party_AllAbilityE(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_E_PLAYER, DEBUG_TRAINER_ALL_ABILITY_E_AI);
+}
+
+static void DebugAction_Party_AllAbilityF(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_F_PLAYER, DEBUG_TRAINER_ALL_ABILITY_F_AI);
+}
+
+static void DebugAction_Party_AllAbilityG(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_G_PLAYER, DEBUG_TRAINER_ALL_ABILITY_G_AI);
+}
+
+static void DebugAction_Party_AllAbilityH(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_H_PLAYER, DEBUG_TRAINER_ALL_ABILITY_H_AI);
+}
+
+static void DebugAction_Party_AllAbilityI(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_I_PLAYER, DEBUG_TRAINER_ALL_ABILITY_I_AI);
+}
+
+static void DebugAction_Party_AllAbilityJ(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_J_PLAYER, DEBUG_TRAINER_ALL_ABILITY_J_AI);
+}
+
+static void DebugAction_Party_AllAbilityK(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_K_PLAYER, DEBUG_TRAINER_ALL_ABILITY_K_AI);
+}
+
+static void DebugAction_Party_AllAbilityL(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_L_PLAYER, DEBUG_TRAINER_ALL_ABILITY_L_AI);
+}
+
+static void DebugAction_Party_AllAbilityM(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_M_PLAYER, DEBUG_TRAINER_ALL_ABILITY_M_AI);
+}
+
+static void DebugAction_Party_AllAbilityN(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_N_PLAYER, DEBUG_TRAINER_ALL_ABILITY_N_AI);
+}
+
+static void DebugAction_Party_AllAbilityO(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_O_PLAYER, DEBUG_TRAINER_ALL_ABILITY_O_AI);
+}
+
+static void DebugAction_Party_AllAbilityP(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_P_PLAYER, DEBUG_TRAINER_ALL_ABILITY_P_AI);
+}
+
+static void DebugAction_Party_AllAbilityQ(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_Q_PLAYER, DEBUG_TRAINER_ALL_ABILITY_Q_AI);
+}
+
+static void DebugAction_Party_AllAbilityR(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_R_PLAYER, DEBUG_TRAINER_ALL_ABILITY_R_AI);
+}
+
+static void DebugAction_Party_AllAbilityS(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_S_PLAYER, DEBUG_TRAINER_ALL_ABILITY_S_AI);
+}
+
+static void DebugAction_Party_AllAbilityT(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_T_PLAYER, DEBUG_TRAINER_ALL_ABILITY_T_AI);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)
