@@ -394,6 +394,15 @@ Additional debug-route validation added on 2026-05-24:
     `->2 Rivalry` in the lower white detail area without overlapping Trainer
     Memo text. Screenshot:
     `/tmp/all-ability-summary-layout-v3-nidoqueen-20260524.png`.
+  - `all-ability-summary-toggle-20260524` rechecked the `L` / `R` selectable
+    description flow. Nidoqueen opened on slot `2 Rivalry` with `Powers up
+    against rivals.`, `R` changed to slot `3 Sheer Force` with `Trades effects
+    for power.`, another `R` wrapped to slot `1 Poison Point` with `Poisons foe
+    on contact.`, and `L` returned to slot `3 Sheer Force`. Screenshots:
+    `/tmp/all-ability-summary-toggle-initial-20260524.png`,
+    `/tmp/all-ability-summary-toggle-r-20260524.png`,
+    `/tmp/all-ability-summary-toggle-r2-20260524.png`, and
+    `/tmp/all-ability-summary-toggle-l-20260524.png`.
   - Cleanup was clean for both Summary sessions, and the final branch config
     is restored to `TRUE`.
 - Final `B_ALL_ABILITY_SLOTS TRUE` validation on 2026-05-24:
@@ -550,7 +559,7 @@ Additional debug-route validation added on 2026-05-24:
 | Battle-only boundary | Field lead ability behavior remains single-ability while battle behavior uses all active slots. |
 | AI | Damage / switch decisions that depend on immunity, trapping, priority, speed, and Magic Guard-style secondary damage. |
 | Items | Ability Capsule / Patch fail or apply chosen new policy under all-active mode, and retain upstream behavior when disabled. |
-| Summary UI | Summary shows all active ability names without text overflow. Per-ability description browsing remains a follow-up. |
+| Summary UI | Summary shows all active ability names without text overflow and lets `L` / `R` cycle the displayed ability description. |
 
 ## Candidate Manual Checks
 
@@ -576,7 +585,8 @@ Additional debug-route validation added on 2026-05-24:
   `Pressure`, not hidden-slot `Pickpocket`, before testing Muk's Sticky Hold
   item-retention flow.
 - Open Summary from party and from battle-adjacent flows, then inspect the
-  active ability list.
+  active ability list. On the Info page, use `L` / `R` and confirm the selected
+  slot marker and description change together.
 - Try Ability Capsule and Ability Patch in all-active mode and confirm the
   chosen message / behavior is clear.
 - Mega Evolve a Pokemon whose target form has a different ability table and
@@ -590,4 +600,6 @@ Additional debug-route validation added on 2026-05-24:
 ## Remaining Gaps
 
 - AI remains a single known-ability cache and needs a later ability-set pass.
-- Summary description browsing is not implemented in this MVP.
+- Summary selectable descriptions are implemented on the Info page. Remaining
+  Summary risk is visual polish / skin alignment with the broader Party / Status
+  UI overhaul.

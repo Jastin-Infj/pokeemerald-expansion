@@ -75,8 +75,9 @@ refactor rather than a data-only change.
   non-representative Neutralizing Gas suppresses other abilities.
 - Summary stays in normal single-ability name / description mode while
   `B_ALL_ABILITY_SLOTS` is disabled. When the config is enabled, Summary shows
-  direct slots `1`, `2`, and `H`, with the representative `abilityNum` slot
-  marked by a right arrow.
+  direct slots `1`, `2`, and `3`, marks the currently selected slot with a
+  right arrow, and lets `L` / `R` cycle which slot's description is shown in the
+  lower ability-detail area.
 - The current implementation covers a broad battle-modifier pass: base-power,
   Attack / Defense, final damage, STAB / Tera STAB, accuracy, priority,
   multi-hit, contact, powder-block, and partner modifier helpers now use
@@ -122,5 +123,3 @@ refactor rather than a data-only change.
   later UI pass repurpose them to choose the representative display slot?
 - For Trace, should the default copied slot always be the tracer's representative
   slot, or should battle script support an explicit random / chosen slot later?
-- Should Summary gain a dedicated per-ability description browser, or are compact
-  active names enough for the first runtime branch?

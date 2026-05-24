@@ -207,11 +207,10 @@ enabled. It uses direct slot labels `1`, `2`, and `3` instead of a deduped set.
 The non-representative slots are printed as a single upper strip. That strip
 uses the normal Summary font when it fits, falls back to the small font when the
 names would otherwise overflow, and only then falls back to slot numbers. The
-representative / selected `abilityNum` slot is printed in the lower white
-ability-detail area with a right-arrow marker and stronger text color. The
-single-ability description block is still used when the mode is disabled, but is
-suppressed in the all-slot view to avoid text overlap in the existing Summary
-window.
+currently selected slot is marked with a right-arrow marker in the upper strip.
+`L` / `R` on the Info page cycles the selected ability slot, and the lower white
+ability-detail area shows that slot's ability description. The single-ability
+name / description block is still used when the mode is disabled.
 
 Ability Capsule and Ability Patch fail with the usual "It won't have any
 effect" message while all-slot mode is enabled. They still keep upstream
@@ -560,6 +559,18 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   `/tmp/all-ability-summary-layout-v3-nidoqueen-20260524.png`. Cleanup was
   clean: `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
+- mGBA Live session `all-ability-summary-toggle-20260524` rechecked the
+  selectable description flow on the final `TRUE` build. Nidoqueen opened on
+  selected slot `2 Rivalry` with description `Powers up against rivals.`, `R`
+  changed to `3 Sheer Force` with `Trades effects for power.`, another `R`
+  wrapped to `1 Poison Point` with `Poisons foe on contact.`, and `L` returned
+  to `3 Sheer Force`. Screenshots:
+  `/tmp/all-ability-summary-toggle-initial-20260524.png`,
+  `/tmp/all-ability-summary-toggle-r-20260524.png`,
+  `/tmp/all-ability-summary-toggle-r2-20260524.png`, and
+  `/tmp/all-ability-summary-toggle-l-20260524.png`. Cleanup was clean:
+  `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
+  returned `[]`.
 - mGBA Live session `all-ability-double-count-20260524` selected
   `T Partner Mods` after the debug-party count refresh and reached the
   double-battle command menu. The captured battle screen showed coherent
@@ -606,5 +617,6 @@ mGBA Live boot validation, debug-route validation, and docs build are recorded i
   copying slot-local overrides rather than deriving non-representative slots
   from the current species.
 - Field / overworld lead ability behavior is intentionally unchanged.
-- Summary shows all active ability names, but does not yet provide a polished
-  per-ability description browser.
+- Summary now provides selectable per-slot descriptions on the Info page, but a
+  later UI polish pass may still improve the presentation if the broader
+  Party / Status UI overhaul changes the visual skin.
