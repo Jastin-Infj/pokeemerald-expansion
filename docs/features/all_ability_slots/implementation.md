@@ -510,6 +510,17 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   `/tmp/all-ability-false-debug-t-battle-20260524.png`. Cleanup was clean:
   `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
+- mGBA Live Summary display checks:
+  - `all-ability-summary-false-20260524` used the default
+    `B_ALL_ABILITY_SLOTS FALSE` build and confirmed Summary still shows a
+    single representative ability name plus description:
+    `/tmp/all-ability-summary-false-summary-20260524.png`.
+  - `all-ability-summary-true-20260524` temporarily rebuilt with
+    `B_ALL_ABILITY_SLOTS TRUE` and confirmed a multi-ability species shows
+    direct slot labels and representative marking:
+    `->1 Poison Point`, `2 Rivalry`, `H Sheer Force` on Nidoqueen at
+    `/tmp/all-ability-summary-true-summary-down1-20260524.png`.
+  - The temporary config flip was reverted to `FALSE` after the visual check.
 - `rtk make -j16 -O check TESTS='AI thinking time'` passed after the follow-up
   ability audit. The accepted stress ceilings are now 24 for doubles no-flags,
   44 for doubles smart, 32 for Steven multi, and 36 for Steven multi smart.

@@ -372,6 +372,17 @@ Additional debug-route validation added on 2026-05-24:
   `mgba-live-cli stop --session all-ability-false-debug-20260524` reported
   `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
+- Summary visual validation:
+  - `all-ability-summary-false-20260524` confirmed default
+    `B_ALL_ABILITY_SLOTS FALSE` Summary behavior still shows one representative
+    ability and its description:
+    `/tmp/all-ability-summary-false-summary-20260524.png`.
+  - `all-ability-summary-true-20260524` temporarily rebuilt with
+    `B_ALL_ABILITY_SLOTS TRUE` and confirmed Nidoqueen shows `->1 Poison Point`,
+    `2 Rivalry`, and `H Sheer Force` in Summary:
+    `/tmp/all-ability-summary-true-summary-down1-20260524.png`.
+  - Cleanup was clean for both Summary sessions, and the temporary config flip
+    was reverted to default `FALSE`.
 - `rtk make -j16 -O check TESTS='AI thinking time'` passed after the follow-up
   ability audit. The accepted stress ceilings are now 24 for doubles no-flags,
   44 for doubles smart, 32 for Steven multi, and 36 for Steven multi smart.
