@@ -75,6 +75,17 @@ Example:
 The tool may generate this plan from CLI flags, but the user should be able to
 edit it before apply.
 
+The default planning anchor is the map directory (`--match-by dir`) because it
+is usually the least ambiguous source after a Porymap-created temporary map is
+misnamed. When another field is the trusted source, `--match-by name` and
+`--match-by id` are available. Repair hints fill the cases that cannot be
+inferred safely:
+
+- `--old-group-map-name` for typoed `map_groups.json` entries;
+- `--old-map-id` for typoed map ids or warp / connection targets;
+- `--old-layout-id` when `map.json` points at the wrong layout;
+- `--new-mapsec` when `region_map_section` must be corrected.
+
 ## Phase 3: Dry-Run Apply
 
 Dry-run output should be explicit:

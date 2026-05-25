@@ -14,7 +14,7 @@
 | Command | Status |
 |---|---|
 | `audit` | Scans map directories, `map_groups.json`, `layouts.json`, layout binary paths, `region_map_section`, map id references, and `data/event_scripts.s` includes. |
-| `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`, inferring `MAP_*` and `LAYOUT_*` names from current source. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
+| `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`. It defaults to `--match-by dir` so the map directory can be the source of truth, infers `MAP_*` and `LAYOUT_*` names from current source, and accepts repair hints for typoed group names, map ids, layout ids, and mapsec. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
 | `apply --dry-run` | Prints planned directory moves, JSON edits, script include edits, and remaining textual references without modifying files. |
 | `apply` | Moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
 | `validate` | Runs the same consistency checks as `audit` after edits. |
@@ -29,6 +29,7 @@ point with `--root <repo>`, so normal usage can stay short:
 tools/map_asset_relinker/map_relink.sh audit
 tools/map_asset_relinker/map_relink.sh plan --map RougeCave_2:RougeCave_2F --out /tmp/rouge_cave_rename.json
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out /tmp/rouge_cave_group_move.json
+tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --old-group-map-name TempCaveTypo --old-layout-id LAYOUT_TEMP_CAVE_2 --old-map-id MAP_TEMP_CAVE_TYPO --new-mapsec MAPSEC_NONE --out /tmp/rouge_cave_repair.json
 ```
 
 Use the Python entry point directly for fixture tests that need a custom
@@ -64,9 +65,23 @@ fails on the high-risk authoring mistakes this tool is meant to catch:
 
 - map listed under the wrong name in `map_groups.json`;
 - `map.json` `name` mismatch against its directory;
+- typoed map id;
 - typoed layout id;
 - typoed `region_map_section`;
 - typoed warp target map id.
+
+For each broken copy, the script also creates a repair plan, applies it, and
+runs `validate` again. The repair paths cover these anchors / hints:
+
+- default `--match-by dir` when the directory name is the trusted source;
+- `--old-group-map-name` for typoed map group entries;
+- derived old map id plus `--old-map-id` for map id and warp target repairs;
+- `--old-layout-id` when `map.json` points at the wrong layout;
+- `--new-mapsec` when `region_map_section` was typoed.
+- `--match-by name` when the directory is wrong but `map.json` `name` is
+  trusted.
+- `--match-by id` when both the directory and `map.json` `name` are wrong but
+  the map id is trusted.
 
 ## Current Contract
 
@@ -84,6 +99,13 @@ fails on the high-risk authoring mistakes this tool is meant to catch:
 - `--group` remains a fallback for maps that are not already listed in any map
   group; it does not move an already grouped map unless `--to-group` is also
   used.
+- `--match-by dir` is the default repair anchor because Porymap-created map
+  directories are the most stable source after a typo. `--match-by name` and
+  `--match-by id` remain available when those fields are the intentional source
+  of truth.
+- Repair hints do not guess arbitrary typos. The user/agent must provide the
+  typoed group map name or old map id when references contain a wrong token the
+  tool cannot infer from the directory.
 - `audit` / `validate` treat group shape errors, duplicate map names / ids,
   map name mismatch, missing layout ids, missing mapsec ids, and broken
   warp/connection map ids as errors because those can make Porymap or generated

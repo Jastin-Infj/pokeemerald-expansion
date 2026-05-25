@@ -340,11 +340,38 @@ def print_diagnostics(diagnostics: list[Diagnostic]) -> int:
     return 1 if errors else 0
 
 
-def find_map_ref(root: Path, old_name: str) -> MapRef:
-    maps = build_map_index(root)
-    if old_name not in maps:
-        raise RelinkError(f"Map {old_name!r} was not found in {MAPS_DIR}.")
-    return maps[old_name]
+def map_groups_for_names(root: Path, names: set[str]) -> list[str]:
+    groups_data = load_map_groups(root)
+    groups: list[str] = []
+    for group in groups_data.get("group_order", []):
+        maps = groups_data.get(group, [])
+        if any(map_name in names for map_name in maps):
+            groups.append(group)
+    return groups
+
+
+def find_map_ref(root: Path, old_value: str, match_by: str) -> MapRef:
+    matches: list[MapRef] = []
+    for map_dir in iter_map_dirs(root):
+        map_json = map_dir / "map.json"
+        data = load_json(map_json)
+        json_name = data.get("name")
+        map_id = data.get("id")
+        if (
+            (match_by == "dir" and map_dir.name == old_value)
+            or (match_by == "name" and json_name == old_value)
+            or (match_by == "id" and map_id == old_value)
+        ):
+            group_names = {map_dir.name}
+            if isinstance(json_name, str):
+                group_names.add(json_name)
+            matches.append(MapRef(name=json_name or map_dir.name, path=map_json, data=data, groups=map_groups_for_names(root, group_names)))
+    if not matches:
+        raise RelinkError(f"Map {old_value!r} was not found by {match_by} in {MAPS_DIR}.")
+    if len(matches) > 1:
+        locations = ", ".join(rel(match.path, root) for match in matches)
+        raise RelinkError(f"Map {old_value!r} matched multiple maps by {match_by}: {locations}.")
+    return matches[0]
 
 
 def find_layout_ref(root: Path, layout_id: str) -> LayoutRef:
@@ -369,11 +396,20 @@ def default_layout_dir(layout: dict[str, Any]) -> str | None:
 def make_plan(args: argparse.Namespace) -> dict[str, Any]:
     root = Path(args.root).resolve()
     old_map, new_map = parse_pair(args.map, "--map")
-    map_ref = find_map_ref(root, old_map)
+    map_ref = find_map_ref(root, old_map, args.match_by)
+    old_dir_name = map_ref.path.parent.name
+    new_dir_name = args.new_map_dir or new_map
     old_map_id = map_ref.data.get("id")
+    old_map_ids = {map_id for map_id in (old_map_id, args.old_map_id) if isinstance(map_id, str) and map_id}
+    if args.match_by != "id":
+        old_map_ids.add(f"MAP_{camel_to_upper_snake(old_map)}")
+    else:
+        old_map_ids.add(old_map)
     new_map_id = args.new_map_id or f"MAP_{camel_to_upper_snake(new_map)}"
-    old_layout_id = map_ref.data.get("layout")
+    old_layout_id = args.old_layout_id or map_ref.data.get("layout")
     layout_ref = find_layout_ref(root, old_layout_id)
+    if args.new_mapsec and args.new_mapsec not in load_mapsec_ids(root):
+        raise RelinkError(f"Region map section {args.new_mapsec!r} was not found.")
 
     layout_plan = None
     if not args.no_layout_rename:
@@ -391,7 +427,13 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
             "newDir": new_layout_dir,
         }
 
-    groups = map_ref.groups
+    old_group_names = {old_dir_name, old_map}
+    json_name = map_ref.data.get("name")
+    if isinstance(json_name, str) and json_name:
+        old_group_names.add(json_name)
+    for old_group_map_name in args.old_group_map_name or []:
+        old_group_names.add(old_group_map_name)
+    groups = sorted(set(map_ref.groups + map_groups_for_names(root, old_group_names)))
     from_group = args.from_group
     to_group = args.to_group
     if from_group and from_group not in groups:
@@ -403,11 +445,18 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "oldName": old_map,
                 "newName": new_map,
+                "oldDirName": old_dir_name,
+                "newDirName": new_dir_name,
                 "oldId": old_map_id,
+                "oldIds": sorted(old_map_ids),
                 "newId": new_map_id,
+                "newMapsec": args.new_mapsec,
+                "newLayoutId": layout_plan["newId"] if layout_plan else None,
                 "group": group,
                 "fromGroup": from_group,
                 "toGroup": to_group,
+                "groupOldNames": sorted(old_group_names),
+                "matchBy": args.match_by,
             }
         ],
         "layouts": [layout_plan] if layout_plan else [],
@@ -437,12 +486,12 @@ def load_plan(path: Path) -> dict[str, Any]:
 def target_paths_from_plan(root: Path, plan: dict[str, Any]) -> list[Path]:
     paths = [repo_path(root, MAP_GROUPS), repo_path(root, LAYOUTS_JSON), repo_path(root, EVENT_SCRIPTS)]
     for map_plan in plan.get("maps", []):
-        old_name = map_plan["oldName"]
-        new_name = map_plan["newName"]
-        paths.append(repo_path(root, MAPS_DIR / old_name / "map.json"))
-        paths.append(repo_path(root, MAPS_DIR / new_name / "map.json"))
-        paths.append(repo_path(root, MAPS_DIR / old_name / "scripts.inc"))
-        paths.append(repo_path(root, MAPS_DIR / new_name / "scripts.inc"))
+        old_dir_name = map_plan.get("oldDirName", map_plan["oldName"])
+        new_dir_name = map_plan.get("newDirName", map_plan["newName"])
+        paths.append(repo_path(root, MAPS_DIR / old_dir_name / "map.json"))
+        paths.append(repo_path(root, MAPS_DIR / new_dir_name / "map.json"))
+        paths.append(repo_path(root, MAPS_DIR / old_dir_name / "scripts.inc"))
+        paths.append(repo_path(root, MAPS_DIR / new_dir_name / "scripts.inc"))
     return paths
 
 
@@ -480,12 +529,12 @@ def ensure_map_group(groups_data: dict[str, Any], group: str) -> list[Any]:
     return groups_data.setdefault(group, [])
 
 
-def remove_map_from_group(maps: list[Any], map_name: str) -> tuple[bool, int | None]:
+def remove_map_from_group(maps: list[Any], map_names: set[str]) -> tuple[bool, int | None]:
     changed = False
     first_index: int | None = None
     index = 0
     while index < len(maps):
-        if maps[index] == map_name:
+        if maps[index] in map_names:
             if first_index is None:
                 first_index = index
             del maps[index]
@@ -497,7 +546,7 @@ def remove_map_from_group(maps: list[Any], map_name: str) -> tuple[bool, int | N
 
 def update_map_groups(
     groups_data: dict[str, Any],
-    old_name: str,
+    old_names: Iterable[str],
     new_name: str,
     from_group: str | None,
     to_group: str | None,
@@ -505,13 +554,14 @@ def update_map_groups(
 ) -> bool:
     changed = False
     found = False
+    old_name_set = {name for name in old_names if name}
     if to_group:
         insert_index: int | None = None
         for group in groups_data.get("group_order", []):
             if from_group and group != from_group:
                 continue
             maps = groups_data.get(group, [])
-            removed, first_index = remove_map_from_group(maps, old_name)
+            removed, first_index = remove_map_from_group(maps, old_name_set)
             if removed:
                 found = True
                 changed = True
@@ -532,7 +582,7 @@ def update_map_groups(
             continue
         maps = groups_data.get(group, [])
         for index, map_name in enumerate(maps):
-            if map_name == old_name:
+            if map_name in old_name_set:
                 maps[index] = new_name
                 found = True
                 changed = True
@@ -544,9 +594,16 @@ def update_map_groups(
     return changed
 
 
-def update_map_json(data: dict[str, Any], old_id: str, new_id: str, new_name: str, new_layout: str | None) -> bool:
+def update_map_json(
+    data: dict[str, Any],
+    old_ids: set[str],
+    new_id: str,
+    new_name: str,
+    new_layout: str | None,
+    new_mapsec: str | None,
+) -> bool:
     changed = False
-    if data.get("id") == old_id:
+    if data.get("id") in old_ids:
         data["id"] = new_id
         changed = True
     if data.get("name") != new_name:
@@ -555,21 +612,24 @@ def update_map_json(data: dict[str, Any], old_id: str, new_id: str, new_name: st
     if new_layout and data.get("layout") != new_layout:
         data["layout"] = new_layout
         changed = True
+    if new_mapsec and data.get("region_map_section") != new_mapsec:
+        data["region_map_section"] = new_mapsec
+        changed = True
     return changed
 
 
-def update_map_refs(data: dict[str, Any], old_id: str, new_id: str) -> bool:
+def update_map_refs(data: dict[str, Any], old_ids: set[str], new_id: str) -> bool:
     changed = False
     connections = data.get("connections")
     if isinstance(connections, list):
         for connection in connections:
-            if isinstance(connection, dict) and connection.get("map") == old_id:
+            if isinstance(connection, dict) and connection.get("map") in old_ids:
                 connection["map"] = new_id
                 changed = True
     warps = data.get("warp_events")
     if isinstance(warps, list):
         for warp in warps:
-            if isinstance(warp, dict) and warp.get("dest_map") == old_id:
+            if isinstance(warp, dict) and warp.get("dest_map") in old_ids:
                 warp["dest_map"] = new_id
                 changed = True
     return changed
@@ -679,9 +739,9 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
             move_path(root, old_dir, new_dir, dry_run)
 
     for map_plan in plan.get("maps", []):
-        old_name = map_plan["oldName"]
-        new_name = map_plan["newName"]
-        move_path(root, (MAPS_DIR / old_name).as_posix(), (MAPS_DIR / new_name).as_posix(), dry_run)
+        old_dir_name = map_plan.get("oldDirName", map_plan["oldName"])
+        new_dir_name = map_plan.get("newDirName", map_plan["newName"])
+        move_path(root, (MAPS_DIR / old_dir_name).as_posix(), (MAPS_DIR / new_dir_name).as_posix(), dry_run)
 
     groups_path = repo_path(root, MAP_GROUPS)
     groups_data = load_json(groups_path)
@@ -689,7 +749,7 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
     for map_plan in plan.get("maps", []):
         groups_changed |= update_map_groups(
             groups_data,
-            map_plan["oldName"],
+            map_plan.get("groupOldNames", [map_plan["oldName"]]),
             map_plan["newName"],
             map_plan.get("fromGroup"),
             map_plan.get("toGroup"),
@@ -711,41 +771,44 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
             write_json(layouts_path, layouts_data)
 
     for map_plan in plan.get("maps", []):
-        old_name = map_plan["oldName"]
         new_name = map_plan["newName"]
-        old_id = map_plan["oldId"]
+        old_dir_name = map_plan.get("oldDirName", map_plan["oldName"])
+        new_dir_name = map_plan.get("newDirName", new_name)
+        old_ids = set(map_plan.get("oldIds", [map_plan["oldId"]]))
         new_id = map_plan["newId"]
-        map_json_path = repo_path(root, MAPS_DIR / (new_name if not dry_run else old_name) / "map.json")
+        map_json_path = repo_path(root, MAPS_DIR / (new_dir_name if not dry_run else old_dir_name) / "map.json")
         map_data = load_json(map_json_path)
-        new_layout = None
-        old_layout = map_data.get("layout")
-        if old_layout in layout_by_old_id:
-            new_layout = layout_by_old_id[old_layout]["newId"]
-        if update_map_json(map_data, old_id, new_id, new_name, new_layout):
-            print(f"EDIT {MAPS_DIR / new_name / 'map.json'}")
+        new_layout = map_plan.get("newLayoutId")
+        if new_layout is None:
+            old_layout = map_data.get("layout")
+            if old_layout in layout_by_old_id:
+                new_layout = layout_by_old_id[old_layout]["newId"]
+        if update_map_json(map_data, old_ids, new_id, new_name, new_layout, map_plan.get("newMapsec")):
+            print(f"EDIT {MAPS_DIR / new_dir_name / 'map.json'}")
             if not dry_run:
-                write_json(repo_path(root, MAPS_DIR / new_name / "map.json"), map_data)
+                write_json(repo_path(root, MAPS_DIR / new_dir_name / "map.json"), map_data)
 
         event_scripts = repo_path(root, EVENT_SCRIPTS)
         if event_scripts.exists():
-            new_text, changed = update_event_scripts(read_text(event_scripts), old_name, new_name)
+            new_text, changed = update_event_scripts(read_text(event_scripts), old_dir_name, new_dir_name)
             if changed:
                 print(f"EDIT {EVENT_SCRIPTS}")
                 if not dry_run:
                     write_text(event_scripts, new_text)
 
         for map_json in iter_all_map_json(root):
-            if dry_run and map_json.parent.name == old_name:
+            if dry_run and map_json.parent.name == old_dir_name:
                 continue
             data = load_json(map_json)
-            if update_map_refs(data, old_id, new_id):
+            if update_map_refs(data, old_ids, new_id):
                 print(f"EDIT {rel(map_json, root)}")
                 if not dry_run:
                     write_json(map_json, data)
 
     tokens = []
     for map_plan in plan.get("maps", []):
-        tokens.extend([map_plan["oldName"], map_plan["oldId"]])
+        tokens.extend(map_plan.get("groupOldNames", []))
+        tokens.extend(map_plan.get("oldIds", [map_plan["oldId"]]))
     for layout_plan in plan.get("layouts", []):
         tokens.extend([layout_plan["oldId"], layout_plan.get("oldName", "")])
     remaining = scan_text_refs(root, [token for token in tokens if token])
@@ -794,11 +857,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     plan = subparsers.add_parser("plan", help="Create a reviewable relink plan.")
     plan.add_argument("--map", required=True, help="Map rename in OLD:NEW format, e.g. RougeCave_2:RougeCave_2F.")
+    plan.add_argument("--match-by", choices=("dir", "name", "id"), default="dir", help="How to find OLD from --map. Defaults to directory name for repair-friendly plans.")
+    plan.add_argument("--new-map-dir", help="Override the destination data/maps directory name. Defaults to NEW from --map.")
+    plan.add_argument("--old-group-map-name", action="append", help="Additional old map name to remove from map_groups.json when repairing a typo. May be repeated.")
     plan.add_argument("--from-group", help="Only remove/rename the old map entry from this source map group.")
     plan.add_argument("--to-group", help="Move the renamed map entry into this target map group, creating it if missing.")
     plan.add_argument("--group", help="Preferred map group if the old map is not already grouped.")
+    plan.add_argument("--old-map-id", help="Additional old MAP_* id to rewrite when repairing id mismatches.")
     plan.add_argument("--new-map-id", help="Override generated new MAP_* id.")
+    plan.add_argument("--new-mapsec", help="Set region_map_section on the renamed map.")
     plan.add_argument("--no-layout-rename", action="store_true", help="Keep the existing layout id/name/path.")
+    plan.add_argument("--old-layout-id", help="Override the old layout id when map.json points at the wrong layout.")
     plan.add_argument("--new-layout-id", help="Override generated new LAYOUT_* id.")
     plan.add_argument("--new-layout-name", help="Override generated new layout label.")
     plan.add_argument("--old-layout-dir", help="Override old layout directory.")

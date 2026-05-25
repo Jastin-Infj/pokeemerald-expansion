@@ -79,25 +79,106 @@ broken_group_tmpdir=$(mktemp -d /tmp/maprelink-bad-group-test.XXXXXX)
 cp -R "$fixture/." "$broken_group_tmpdir/"
 python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["gMapGroup_Temp"][0] = "OldCave_Typo"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$broken_group_tmpdir/data/maps/map_groups.json"
 assert_audit_fails "$broken_group_tmpdir" "map_groups.json lists 'OldCave_Typo'"
+python3 "$script_dir/map_relink.py" --root "$broken_group_tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--old-group-map-name OldCave_Typo \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$broken_group_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$broken_group_tmpdir" apply --allow-dirty "$broken_group_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$broken_group_tmpdir" validate
 
 broken_map_name_tmpdir=$(mktemp -d /tmp/maprelink-bad-map-name-test.XXXXXX)
 cp -R "$fixture/." "$broken_map_name_tmpdir/"
 python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["name"] = "OldCaveTypo"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$broken_map_name_tmpdir/data/maps/OldCave_2/map.json"
 assert_audit_fails "$broken_map_name_tmpdir" "name is 'OldCaveTypo', expected 'OldCave_2'"
+python3 "$script_dir/map_relink.py" --root "$broken_map_name_tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$broken_map_name_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$broken_map_name_tmpdir" apply --allow-dirty "$broken_map_name_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$broken_map_name_tmpdir" validate
+
+broken_map_id_tmpdir=$(mktemp -d /tmp/maprelink-bad-map-id-test.XXXXXX)
+cp -R "$fixture/." "$broken_map_id_tmpdir/"
+python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["id"] = "MAP_OLD_CAVE_TYPO"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$broken_map_id_tmpdir/data/maps/OldCave_2/map.json"
+assert_audit_fails "$broken_map_id_tmpdir" "references missing map id 'MAP_OLD_CAVE_2'"
+python3 "$script_dir/map_relink.py" --root "$broken_map_id_tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$broken_map_id_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$broken_map_id_tmpdir" apply --allow-dirty "$broken_map_id_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$broken_map_id_tmpdir" validate
 
 broken_layout_tmpdir=$(mktemp -d /tmp/maprelink-bad-layout-test.XXXXXX)
 cp -R "$fixture/." "$broken_layout_tmpdir/"
 python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["layout"] = "LAYOUT_OLD_CAVE_TYPO"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$broken_layout_tmpdir/data/maps/OldCave_2/map.json"
 assert_audit_fails "$broken_layout_tmpdir" "references missing layout 'LAYOUT_OLD_CAVE_TYPO'"
+python3 "$script_dir/map_relink.py" --root "$broken_layout_tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--old-layout-id LAYOUT_OLD_CAVE_2 \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$broken_layout_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$broken_layout_tmpdir" apply --allow-dirty "$broken_layout_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$broken_layout_tmpdir" validate
 
 broken_mapsec_tmpdir=$(mktemp -d /tmp/maprelink-bad-mapsec-test.XXXXXX)
 cp -R "$fixture/." "$broken_mapsec_tmpdir/"
 python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["region_map_section"] = "MAPSEC_OLD_CAVE_TYPO"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$broken_mapsec_tmpdir/data/maps/OldCave_2/map.json"
 assert_audit_fails "$broken_mapsec_tmpdir" "references missing region_map_section 'MAPSEC_OLD_CAVE_TYPO'"
+python3 "$script_dir/map_relink.py" --root "$broken_mapsec_tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--new-mapsec MAPSEC_NONE \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$broken_mapsec_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$broken_mapsec_tmpdir" apply --allow-dirty "$broken_mapsec_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$broken_mapsec_tmpdir" validate
 
 broken_warp_tmpdir=$(mktemp -d /tmp/maprelink-bad-warp-test.XXXXXX)
 cp -R "$fixture/." "$broken_warp_tmpdir/"
 python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["warp_events"][0]["dest_map"] = "MAP_OLD_CAVE_TYPO"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$broken_warp_tmpdir/data/maps/OldCave_2/map.json"
 assert_audit_fails "$broken_warp_tmpdir" "references missing map id 'MAP_OLD_CAVE_TYPO'"
+python3 "$script_dir/map_relink.py" --root "$broken_warp_tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--old-map-id MAP_OLD_CAVE_TYPO \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$broken_warp_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$broken_warp_tmpdir" apply --allow-dirty "$broken_warp_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$broken_warp_tmpdir" validate
 
-echo "map_asset_relinker fixture test passed: $tmpdir $missing_group_tmpdir $broken_group_tmpdir $broken_map_name_tmpdir $broken_layout_tmpdir $broken_mapsec_tmpdir $broken_warp_tmpdir"
+match_by_name_tmpdir=$(mktemp -d /tmp/maprelink-match-name-test.XXXXXX)
+cp -R "$fixture/." "$match_by_name_tmpdir/"
+mv "$match_by_name_tmpdir/data/maps/OldCave_2" "$match_by_name_tmpdir/data/maps/OldCaveDirTypo"
+python3 -c 'import sys; p = sys.argv[1]; text = open(p).read().replace("data/maps/OldCave_2/scripts.inc", "data/maps/OldCaveDirTypo/scripts.inc"); open(p, "w").write(text)' "$match_by_name_tmpdir/data/event_scripts.s"
+assert_audit_fails "$match_by_name_tmpdir" "name is 'OldCave_2', expected 'OldCaveDirTypo'"
+python3 "$script_dir/map_relink.py" --root "$match_by_name_tmpdir" plan \
+	--match-by name \
+	--map OldCave_2:OldCave_2F \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$match_by_name_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$match_by_name_tmpdir" apply --allow-dirty "$match_by_name_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$match_by_name_tmpdir" validate
+
+match_by_id_tmpdir=$(mktemp -d /tmp/maprelink-match-id-test.XXXXXX)
+cp -R "$fixture/." "$match_by_id_tmpdir/"
+mv "$match_by_id_tmpdir/data/maps/OldCave_2" "$match_by_id_tmpdir/data/maps/OldCaveDirTypo"
+python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["name"] = "OldCaveNameTypo"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$match_by_id_tmpdir/data/maps/OldCaveDirTypo/map.json"
+python3 -c 'import sys; p = sys.argv[1]; text = open(p).read().replace("data/maps/OldCave_2/scripts.inc", "data/maps/OldCaveDirTypo/scripts.inc"); open(p, "w").write(text)' "$match_by_id_tmpdir/data/event_scripts.s"
+assert_audit_fails "$match_by_id_tmpdir" "name is 'OldCaveNameTypo', expected 'OldCaveDirTypo'"
+python3 "$script_dir/map_relink.py" --root "$match_by_id_tmpdir" plan \
+	--match-by id \
+	--map MAP_OLD_CAVE_2:OldCave_2F \
+	--old-group-map-name OldCave_2 \
+	--from-group gMapGroup_Temp \
+	--to-group gMapGroup_RougeCave \
+	--out "$match_by_id_tmpdir/repair.json"
+python3 "$script_dir/map_relink.py" --root "$match_by_id_tmpdir" apply --allow-dirty "$match_by_id_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$match_by_id_tmpdir" validate
+
+echo "map_asset_relinker fixture test passed: $tmpdir $missing_group_tmpdir $broken_group_tmpdir $broken_map_name_tmpdir $broken_map_id_tmpdir $broken_layout_tmpdir $broken_mapsec_tmpdir $broken_warp_tmpdir $match_by_name_tmpdir $match_by_id_tmpdir"

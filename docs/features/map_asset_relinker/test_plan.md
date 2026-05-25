@@ -21,7 +21,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Dry-run apply | `python3 tools/map_asset_relinker/map_relink.py apply --dry-run /tmp/map_relink_plan.json` | Prints map/layout move and edit list without changing files. |
 | JSON plan validity | `python3 -m json.tool /tmp/map_relink_plan.json` | Plan is valid JSON. |
 | Fixture apply | Copy `data/maps`, `data/layouts`, and `data/event_scripts.s` to `/tmp`; run real `apply --allow-dirty` there | Old map dir is removed, new map dir exists, renamed map JSON is valid, and `validate` completes with only existing warnings. |
-| Committed fixture test | `tools/map_asset_relinker/test_map_relink.sh` | Copies `testdata/basic` to `/tmp`, renames `OldCave_2` to `OldCave_2F`, moves it from `gMapGroup_Temp` to `gMapGroup_RougeCave`, confirms dry-run is read-only, applies for real, validates, checks map group, layout, include, warp, connection, and preserved dialogue text, repeats against a missing target group to confirm group creation, then creates broken fixture copies and confirms audit failure for map group, map name, layout, mapsec, and warp target typos. |
+| Committed fixture test | `tools/map_asset_relinker/test_map_relink.sh` | Copies `testdata/basic` to `/tmp`, renames `OldCave_2` to `OldCave_2F`, moves it from `gMapGroup_Temp` to `gMapGroup_RougeCave`, confirms dry-run is read-only, applies for real, validates, checks map group, layout, include, warp, connection, and preserved dialogue text, repeats against a missing target group to confirm group creation, then creates broken fixture copies and confirms audit failure plus repair apply/validate for map group, map name, map id, layout, mapsec, warp target, `--match-by name`, and `--match-by id` cases. |
 
 Current `audit` warnings on `master` are pre-existing:
 
@@ -46,7 +46,15 @@ Current `audit` warnings on `master` are pre-existing:
 | Plan map rename | `RougeCave_2` to `RougeCave_2F` fixture | Plan contains map dir move, `MAP_*` rename, `map_groups.json` update, event script include update. |
 | Plan group move | `TempCave_2` in `gMapGroup_Temp`; run `plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave` | Plan records `fromGroup` / `toGroup`; apply removes the old entry from the temporary group and appends the renamed entry to the target group. |
 | Missing target group | Run group move with `--to-group gMapGroup_NewArea` when that group is not present | Apply adds the group to `group_order`, creates the array, and appends the renamed map. |
+| Repair group typo | Fixture map dir is correct, but `map_groups.json` lists a typoed old map name | `plan --old-group-map-name <typo>` removes the typoed entry, adds the renamed map to the target group, and `validate` passes. |
+| Repair map name typo | Fixture map dir is correct, but `map.json` `name` is typoed | Default `--match-by dir` still finds the map, apply rewrites `name`, and `validate` passes. |
+| Repair map id typo | Fixture map dir is correct, but `map.json` `id` is typoed while references still use the expected id | Plan includes both the current id and derived old id; apply rewrites id/references and `validate` passes. |
 | Plan layout rename | `LAYOUT_ROUGE_CAVE_2` to `LAYOUT_ROUGE_CAVE_2F` fixture | Plan contains layout id/name/path changes and layout dir move. |
+| Repair layout typo | Fixture map points at a typoed layout id | `plan --old-layout-id <actual-layout-id>` renames the actual layout and rewrites the map layout field. |
+| Repair mapsec typo | Fixture map has a typoed `region_map_section` | `plan --new-mapsec <valid-mapsec>` rewrites the mapsec field and `validate` passes. |
+| Repair warp target typo | Fixture warp points at a typoed old map id | `plan --old-map-id <typoed-map-id>` rewrites the bad target id to the new map id and `validate` passes. |
+| Repair by map name anchor | Fixture directory is typoed but `map.json` `name` is correct | `plan --match-by name` selects the map, moves the actual directory, fixes script include, and `validate` passes. |
+| Repair by map id anchor | Fixture directory and `map.json` `name` are typoed but map id is correct | `plan --match-by id --old-group-map-name <group-entry>` selects the map, repairs name/directory/group/include, and `validate` passes. |
 | Dry-run is read-only | Run `apply --dry-run` | No file contents or paths change. |
 | Apply structured edits | Run `apply` on fixture | JSON remains valid and only expected fields changed. |
 | Warp rewrite | Fixture has `dest_map: MAP_ROUGE_CAVE_2` | Apply rewrites to `MAP_ROUGE_CAVE_2F`. |
