@@ -14,9 +14,9 @@
 | Command | Status |
 |---|---|
 | `audit` | Scans map directories, `map_groups.json`, `layouts.json`, layout binary paths, `region_map_section`, map id references, and `data/event_scripts.s` includes. |
-| `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`. It defaults to `--match-by dir` so the map directory can be the source of truth, infers `MAP_*` and `LAYOUT_*` names from current source, and accepts repair hints for typoed group names, map ids, layout ids, and mapsec. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
+| `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`. It defaults to `--match-by dir` so the map directory can be the source of truth, infers `MAP_*` and `LAYOUT_*` names from current source, and accepts repair hints for typoed group names, map ids, layout ids, mapsec, valid-but-wrong map layout assignments, stale script label prefixes, mapsec/group repairs, map-name popup metadata, Town Map cell/bounds, map type, transition visit flags, Fly destination metadata, Fly icon style, Fly mapsec type, mapsec-to-map Fly warp rows, and unused flag claims. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
 | `apply --dry-run` | Prints planned directory moves, JSON edits, script include edits, and remaining textual references without modifying files. |
-| `apply` | Moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
+| `apply` | Creates a `.bak.tar` backup archive, moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
 | `validate` | Runs the same consistency checks as `audit` after edits. |
 
 ## Wrapper
@@ -28,12 +28,24 @@ point with `--root <repo>`, so normal usage can stay short:
 ```bash
 tools/map_asset_relinker/map_relink.sh audit
 tools/map_asset_relinker/map_relink.sh plan --map RougeCave_2:RougeCave_2F --out /tmp/rouge_cave_rename.json
+tools/map_asset_relinker/map_relink.sh plan --map Test_3F:Tester_3F --to-group gMapGroup_Tester --rewrite-script-labels --out /tmp/tester_3f_repair.json
+tools/map_asset_relinker/map_relink.sh plan --map DS_LITE_1F:DS_LITE_1F --no-layout-rename --to-group gMapGroup_DSLite --rename-mapsec MAPSEC_DSLITE:MAPSEC_DS_LITE --new-mapsec-name DS-LITE --drop-group gMapGroup_dslite --out /tmp/ds_lite_repair.json
+tools/map_asset_relinker/map_relink.sh plan --map Route201:Route201 --no-layout-rename --to-group gMapGroup_TownsAndRoutes --rename-mapsec MAPSEC_Route201:MAPSEC_ROUTE_201 --new-mapsec-name 'ROUTE 201' --set-primary-tileset gTileset_General --out /tmp/route201_repair.json
+tools/map_asset_relinker/map_relink.sh plan --map Route201:Route201 --no-layout-rename --set-layout-name Route201_Layout --set-mapsec-name MAPSEC_ROUTE_201:'ROUTE 201' --out /tmp/route201_metadata_repair.json
+tools/map_asset_relinker/map_relink.sh plan --map Route301:Route301 --no-layout-rename --set-map-type MAP_TYPE_ROUTE --set-show-map-name true --set-transition-setflag FLAG_VISITED_ROUTE301 --set-mapsec-bounds MAPSEC_ROUTE_301:9:0:1:1 --set-region-map-cell hoenn:9:0:MAPSEC_ROUTE_301 --ensure-mapsec-map MAPSEC_ROUTE_301:MAP_ROUTE301:HEAL_LOCATION_NONE --ensure-fly-location hoenn:MAPSEC_ROUTE_301:FLAG_VISITED_ROUTE301 --ensure-fly-mapsec-type MAPSEC_ROUTE_301:FLAG_VISITED_ROUTE301 --set-fly-icon-style MAPSEC_ROUTE_301:palette-blink --claim-unused-flag FLAG_UNUSED_0x881:FLAG_VISITED_ROUTE301 --out /tmp/route301_worldmap.json
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out /tmp/rouge_cave_group_move.json
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --old-group-map-name TempCaveTypo --old-layout-id LAYOUT_TEMP_CAVE_2 --old-map-id MAP_TEMP_CAVE_TYPO --new-mapsec MAPSEC_NONE --out /tmp/rouge_cave_repair.json
+tools/map_asset_relinker/map_relink.sh plan --map AncientTomb:AncientTomb --no-layout-rename --set-layout-id LAYOUT_ANCIENT_TOMB --out /tmp/ancient_tomb_layout_repair.json
 ```
 
 Use the Python entry point directly for fixture tests that need a custom
 `--root`.
+
+Real `apply` snapshots existing target files and directories before it edits or
+moves source data. The default backup location is
+`.map_asset_relinker_backups/map_relink_*.bak.tar`, kept outside `data/maps` so
+Porymap will not see backup copies as real maps. `--backup-root` can redirect
+the archive when a test or handoff needs a different location.
 
 ## Fixture Test Data
 
@@ -67,8 +79,22 @@ fails on the high-risk authoring mistakes this tool is meant to catch:
 - `map.json` `name` mismatch against its directory;
 - typoed map id;
 - typoed layout id;
+- valid but wrong layout assignment where a map points at another existing
+  layout id;
 - typoed `region_map_section`;
+- wrong-but-valid mapsec id and empty bad group while the map name/layout are
+  already correct;
 - typoed warp target map id.
+- duplicate `data/event_scripts.s` include lines for the same map.
+- stale script label prefix inside the selected map's `scripts.inc`, for
+  example `Test_3F_MapScripts::` after the map has become `Tester_3F`.
+- correct layout identity with a build-incompatible tileset field.
+- duplicate layout labels, duplicate region map section ids, and typoed mapsec
+  display names.
+- missing or post-creation world-map metadata that Porymap does not reliably
+  maintain: `map_type`, `show_map_name`, mapsec bounds, region-map cells, Fly
+  destination rows, Fly icon style, Fly mapsec type, mapsec-to-map Fly warp
+  rows, transition visit flags, and claimed unused flags.
 
 For each broken copy, the script also creates a repair plan, applies it, and
 runs `validate` again. The repair paths cover these anchors / hints:
@@ -77,7 +103,29 @@ runs `validate` again. The repair paths cover these anchors / hints:
 - `--old-group-map-name` for typoed map group entries;
 - derived old map id plus `--old-map-id` for map id and warp target repairs;
 - `--old-layout-id` when `map.json` points at the wrong layout;
+- `--set-layout-id` with `--no-layout-rename` when the map itself needs to be
+  reattached to an existing layout and the layout entry must not be edited;
+- `--rewrite-script-labels` for safe symbol-prefix rewrites inside the selected
+  `scripts.inc`; `.string` dialogue lines are skipped.
+- `--old-script-prefix` when the map is already renamed and only old script
+  labels remain.
+- `--set-primary-tileset` / `--set-secondary-tileset` when `layouts.json`
+  should keep the same layout id/name/path but change the selected tileset.
+- `--set-layout-name` when layout id/path are correct but the layout label is
+  duplicated or typoed.
 - `--new-mapsec` when `region_map_section` was typoed.
+- `--rename-mapsec OLD:NEW` plus `--new-mapsec-name` when an existing mapsec id
+  was created with the wrong normalized name.
+- `--set-mapsec-name MAPSEC_ID:NAME` when the mapsec id is correct but the
+  display name is wrong.
+- `--set-show-map-name`, `--set-mapsec-bounds`,
+  `--set-region-map-cell`, `--set-map-type`, `--set-transition-setflag`,
+  `--ensure-mapsec-map`, `--ensure-fly-location`,
+  `--ensure-fly-mapsec-type`, `--set-fly-icon-style`, and
+  `--claim-unused-flag` for map-name popup, Town Map coordinate/cursor, Fly
+  unlock, Fly icon animation, and Fly warp metadata.
+- `--drop-group` to remove an empty accidental group after moving the map into
+  the intended `--to-group`.
 - `--match-by name` when the directory is wrong but `map.json` `name` is
   trusted.
 - `--match-by id` when both the directory and `map.json` `name` are wrong but
@@ -88,10 +136,25 @@ runs `validate` again. The repair paths cover these anchors / hints:
 - The tool does not modify Porymap or generated files.
 - Structured JSON updates are used for map groups, map JSON, and layouts JSON.
 - Text rewriting is constrained to exact `data/event_scripts.s` include paths.
+- Applying a plan for a map also deduplicates later exact `data/event_scripts.s`
+  includes for that map.
+- Applying a plan creates a `.bak.tar` archive first. The archive contains the
+  pre-apply source files/directories and `MANIFEST.json` with the plan.
+- Script label prefix rewrite is opt-in. When enabled, only the selected map's
+  `scripts.inc` is touched and `.string` lines are skipped.
 - Script labels and dialogue are not broadly renamed. Remaining matches are
   reported for manual review.
 - Layout rename is enabled by default, but `--no-layout-rename` allows shared
   layout cases.
+- `--set-layout-id` sets only `map.json`'s `layout` field and is the repair path
+  for cases like `AncientTomb` accidentally pointing at a Tester layout.
+- `--rename-mapsec` edits `src/data/region_map/region_map_sections.json` and
+  rewrites `region_map_section` references from the old id to the new id.
+- `--drop-group` refuses non-empty groups, so deleting a bad group remains an
+  explicit cleanup step rather than a lossy merge operation.
+- `--rewrite-script-labels` is the repair path for map renames where Porymap
+  left `OldName_MapScripts::` or local script labels behind. Use
+  `--old-script-prefix` for post-rename cleanup.
 - Group move is optional. Without `--to-group`, map groups are updated in place
   for backward-compatible rename plans. With `--to-group`, the old map is
   removed from `--from-group` or every current group, then the new map is
@@ -107,9 +170,36 @@ runs `validate` again. The repair paths cover these anchors / hints:
   typoed group map name or old map id when references contain a wrong token the
   tool cannot infer from the directory.
 - `audit` / `validate` treat group shape errors, duplicate map names / ids,
+  duplicate layout ids/names, duplicate mapsec ids, duplicate script includes,
   map name mismatch, missing layout ids, missing mapsec ids, and broken
   warp/connection map ids as errors because those can make Porymap or generated
   map constants unreliable.
+- `audit` / `validate` warn on suspicious map group and mapsec naming, such as
+  lowercase `gMapGroup_dslite` or mixed-case `MAPSEC_Route201`. These are
+  warnings because author intent cannot always be inferred from naming alone.
+- Fly destination editing is explicit. The complete Route301-style path is:
+  claim or provide a `FLAG_*`, set it from the map transition script, add the
+  `sFlyLocations` icon row, add the `GetMapsecType()` flag-gated can-fly case,
+  and add the `sMapHealLocations` mapsec-to-map row used by the actual Fly
+  warp.
+- Fly icon animation is sprite-driven, not data-table animation. `LoadFlyDestIcons()`
+  loads `graphics/pokenav/region_map/fly_target_icons.png`, `CreateFlyDestIcons()`
+  creates one sprite per `sFlyLocations` row at the mapsec bounds, and
+  `SpriteCB_FlyDestIcon()` flickers the selected visited icon every 16 frames.
+  Stock city destinations flicker by hiding the Fly sprite so the city dot in
+  the static region-map artwork shows underneath. Route301 has no city dot in
+  the artwork, so it is listed in `sPaletteBlinkFlyDestinations`; that path adds
+  a small underlay sprite and swaps between the normal and custom palette instead
+  of hiding the sprite. This keeps Route301 visually active when its name window
+  is shown and avoids the "icon just disappears over route art" look.
+- The tool can now set the source-side Fly icon style with
+  `--set-fly-icon-style MAPSEC_ID:stock`, `MAPSEC_ID:palette-blink`,
+  `MAPSEC_ID:blue-blink`, or `MAPSEC_ID:red-outline[:FLAG]`. `blue-blink` and
+  `palette-blink` are the same custom blue palette path from the older
+  `feature/new-map` experiment. This edits the style membership arrays while
+  leaving the actual icon frame shape to the mapsec bounds: `1x1` becomes 8x8,
+  `2x1` becomes the 16x8 horizontal oval, and `1x2` becomes the 8x16 vertical
+  oval.
 - The tool refuses real apply when target files are dirty unless
   `--allow-dirty` is passed.
 
@@ -159,4 +249,48 @@ in `test_plan.md`.
   `testdata/basic` fixture and leaves the temporary result path in the output
   for inspection. It covers successful rename/group move, missing target group
   creation, and negative audit checks for map group, map name, layout, mapsec,
-  and warp target typos.
+  warp target typos, wrong-but-existing layout assignment repair, and duplicate
+  script include cleanup. It also verifies metadata-only repairs for layout
+  label typos, duplicate mapsec ids, and mapsec display names.
+- The fixture test also covers `--rewrite-script-labels`; it rewrites
+  `OldCave_2_*` labels/references to `OldCave_2F_*` while preserving the
+  literal dialogue string `OldCave_2 should remain in dialogue`.
+- Real fixture apply creates `.map_asset_relinker_backups/map_relink_*.bak.tar`
+  before editing the temporary source tree.
+- Route301 post-creation world-map/Fly setup was applied through the tool with
+  backup archives:
+  `.map_asset_relinker_backups/map_relink_20260525_225213_796018.bak.tar` and
+  `.map_asset_relinker_backups/map_relink_20260525_225438_483794.bak.tar`.
+  The applied plan sets `MAP_TYPE_ROUTE`, `show_map_name`, mapsec bounds
+  `(9, 0, 1, 1)`, Hoenn region-map cell `(9, 0)`, `FLAG_VISITED_ROUTE301`,
+  `Route301_OnTransition`, `sMapHealLocations`, `sFlyLocations`, and
+  `GetMapsecType()` for `MAPSEC_ROUTE_301`.
+- Debug menu support now exposes `Scripts -> Route301 Fly` for setting
+  `FLAG_VISITED_ROUTE301` and `Scripts -> Warp Route301` for direct warp
+  validation. The debug `Cheat start` path and `Flags/Vars -> Toggle Locations`
+  include `FLAG_VISITED_ROUTE301`, so normal debug location unlocks also cover
+  the new route.
+- Route301's Fly icon now uses the custom blue / palette-blink path derived
+  from the older `feature/new-map` experiment (`a721e70605`, "fly regsion map
+  to townmap animetion added") instead of the stock hide/show blink used by map
+  art that already has a city dot.
+- `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route301
+  --no-layout-rename --set-fly-icon-style MAPSEC_ROUTE_301:palette-blink --out
+  /tmp/route301_fly_icon_style.json` followed by dry-run apply reports no file
+  changes, confirming the live Route301 source matches the toolized style.
+- `rtk make generated` passes after the Route301 world-map/Fly source edits.
+- `rtk make -j16 -O debug`, `rtk make -j16 -O all`, and
+  `rtk make -j16 -O check` pass with the existing RWX linker warning.
+- `rtk mdbook build docs` passes with existing warnings for missing root
+  `CHANGELOG.md`, `CREDITS.md` `</img>`, and the large search index.
+- mGBA Live boot smoke on `pokeemerald.gba` reaches the boot / intro flow,
+  captures a nonblank frame after the Route301 blink change, and stops cleanly.
+  A manual in-game Fly selection / blink check remains: run
+  `Scripts -> Route301 Fly`, then `Utilities -> Fly to map...`, select
+  `ROUTE 301`, and confirm the player lands on `MAP_ROUTE301`.
+- `tools/map_asset_relinker/map_relink.sh plan --map
+  AncientTomb:AncientTomb --no-layout-rename --set-layout-id
+  LAYOUT_ANCIENT_TOMB --out /tmp/ancient_tomb_layout_repair.json` succeeds, and
+  `apply --dry-run /tmp/ancient_tomb_layout_repair.json` reports no changes
+  after the current worktree's AncientTomb layout assignment has already been
+  restored.

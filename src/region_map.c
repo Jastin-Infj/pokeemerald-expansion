@@ -52,6 +52,8 @@ enum {
     TAG_CURSOR,
     TAG_PLAYER_ICON,
     TAG_FLY_ICON,
+    TAG_FLY_ICON_BG,
+    TAG_FLY_ICON_CUSTOM,
 };
 
 // Window IDs for the fly map
@@ -292,6 +294,17 @@ static const u32 sRegionMapFrameGfxLZ[] = INCGFX_U32("graphics/pokenav/region_ma
 static const u32 sRegionMapFrameTilemapLZ[] = INCBIN_U32("graphics/pokenav/region_map/frame.bin.smolTM");
 static const u16 sFlyTargetIcons_Pal[] = INCGFX_U16("graphics/pokenav/region_map/fly_target_icons.png", ".gbapal");
 static const u32 sFlyTargetIcons_Gfx[] = INCGFX_U32("graphics/pokenav/region_map/fly_target_icons.png", ".4bpp.smol");
+static const u8 sFlyTargetCustomBgTiles[] =
+{
+    0x00, 0xFF, 0xFF, 0x00, // ..####..
+    0xF0, 0xFF, 0xFF, 0x0F, // .######.
+    0xFF, 0x0F, 0xF0, 0xFF, // ###..###
+    0xFF, 0x00, 0x00, 0xFF, // ##....##
+    0xFF, 0x00, 0x00, 0xFF, // ##....##
+    0xFF, 0x0F, 0xF0, 0xFF, // ###..###
+    0xF0, 0xFF, 0xFF, 0x0F, // .######.
+    0x00, 0xFF, 0xFF, 0x00, // ..####..
+};
 
 static const u16 ALIGNED(4) sPokedexAreaMap_Pal[] = INCGFX_U16("graphics/pokedex/region_map.pal", ".gbapal");
 static const u32 sPokedexAreaMap_Gfx[] = INCGFX_U32("graphics/pokedex/region_map.png", ".8bpp.smol", "-num_tiles 232 -Wnum_tiles");
@@ -535,6 +548,7 @@ static const u8 sMapHealLocations[][3] =
     [MAPSEC_RIXY_CHAMBER] = {MAP_GROUP(MAP_PALLET_TOWN), MAP_NUM(MAP_PALLET_TOWN), HEAL_LOCATION_NONE},
     [MAPSEC_VIAPOIS_CHAMBER] = {MAP_GROUP(MAP_PALLET_TOWN), MAP_NUM(MAP_PALLET_TOWN), HEAL_LOCATION_NONE},
     [MAPSEC_EMBER_SPA] = {MAP_GROUP(MAP_PALLET_TOWN), MAP_NUM(MAP_PALLET_TOWN), HEAL_LOCATION_NONE},
+    [MAPSEC_ROUTE_301] = {MAP_GROUP(MAP_ROUTE301), MAP_NUM(MAP_ROUTE301), HEAL_LOCATION_NONE},
 };
 
 static const u8 *const sEverGrandeCityNames[] =
@@ -618,6 +632,38 @@ static const struct SpritePalette sFlyTargetIconsSpritePalette =
     .tag = TAG_FLY_ICON
 };
 
+static const u16 sFlyTargetIconsCustomPal[] =
+{
+    [0]  = RGB(0, 0, 0),
+    [1]  = RGB(31, 0, 0),
+    [2]  = RGB(0, 0, 0),
+    [3]  = RGB(0, 0, 0),
+    [4]  = RGB(25, 25, 25),
+    [5]  = RGB(0, 0, 0),
+    [6]  = RGB(0, 0, 0),
+    [7]  = RGB(6, 22, 31),
+    [8]  = RGB(4, 16, 28),
+    [9]  = RGB(2, 9, 21),
+    [10] = RGB(16, 16, 15),
+    [11] = RGB(12, 11, 11),
+    [12] = RGB(6, 6, 8),
+    [13] = RGB(0, 0, 0),
+    [14] = RGB(0, 0, 0),
+    [15] = RGB(31, 31, 31),
+};
+
+static const struct SpritePalette sFlyTargetIconsCustomSpritePalette =
+{
+    .data = sFlyTargetIconsCustomPal,
+    .tag = TAG_FLY_ICON_CUSTOM
+};
+
+static const mapsec_u16_t sPaletteBlinkFlyDestinations[] =
+{
+    MAPSEC_ROUTE_301,
+    MAPSEC_NONE
+};
+
 static const mapsec_u16_t sRedOutlineFlyDestinations[][2] =
 {
     {
@@ -631,6 +677,13 @@ static const mapsec_u16_t sRedOutlineFlyDestinations[][2] =
 };
 
 static const struct OamData sFlyDestIcon_OamData =
+{
+    .shape = SPRITE_SHAPE(8x8),
+    .size = SPRITE_SIZE(8x8),
+    .priority = 2
+};
+
+static const struct OamData sFlyDestIconBg_OamData =
 {
     .shape = SPRITE_SHAPE(8x8),
     .size = SPRITE_SIZE(8x8),
@@ -691,12 +744,31 @@ static const union AnimCmd *const sFlyDestIcon_Anims[] =
     [FLYDESTICON_RED_OUTLINE] = sFlyDestIcon_Anim_RedOutline
 };
 
+static const union AnimCmd sFlyDestIconBg_Anim[] =
+{
+    ANIMCMD_FRAME(0, 5),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sFlyDestIconBg_Anims[] =
+{
+    sFlyDestIconBg_Anim
+};
+
 static const struct SpriteTemplate sFlyDestIconSpriteTemplate =
 {
     .tileTag = TAG_FLY_ICON,
     .paletteTag = TAG_FLY_ICON,
     .oam = &sFlyDestIcon_OamData,
     .anims = sFlyDestIcon_Anims,
+};
+
+static const struct SpriteTemplate sFlyDestIconBgSpriteTemplate =
+{
+    .tileTag = TAG_FLY_ICON_BG,
+    .paletteTag = TAG_FLY_ICON,
+    .oam = &sFlyDestIconBg_OamData,
+    .anims = sFlyDestIconBg_Anims,
 };
 
 void InitRegionMap(struct RegionMap *regionMap, bool8 zoomed)
@@ -1502,6 +1574,8 @@ static u8 GetMapsecType(mapsec_u16_t mapSecId)
         return FlagGet(FLAG_WORLD_MAP_ROUTE4_POKEMON_CENTER_1F) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
     case MAPSEC_ROUTE_10_POKECENTER:
         return FlagGet(FLAG_WORLD_MAP_ROUTE10_POKEMON_CENTER_1F) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
+    case MAPSEC_ROUTE_301:
+        return FlagGet(FLAG_VISITED_ROUTE301) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;
     default:
         return MAPSECTYPE_ROUTE;
     }
@@ -2119,13 +2193,19 @@ static void DrawFlyDestTextWindow(void)
 static void LoadFlyDestIcons(void)
 {
     struct SpriteSheet sheet;
+    struct SpriteSheet bgSheet;
 
     DecompressDataWithHeaderWram(sFlyTargetIcons_Gfx, sFlyMap->tileBuffer);
     sheet.data = sFlyMap->tileBuffer;
     sheet.size = sizeof(sFlyMap->tileBuffer);
     sheet.tag = TAG_FLY_ICON;
     LoadSpriteSheet(&sheet);
+    bgSheet.data = sFlyTargetCustomBgTiles;
+    bgSheet.size = sizeof(sFlyTargetCustomBgTiles);
+    bgSheet.tag = TAG_FLY_ICON_BG;
+    LoadSpriteSheet(&bgSheet);
     LoadSpritePalette(&sFlyTargetIconsSpritePalette);
+    LoadSpritePalette(&sFlyTargetIconsCustomSpritePalette);
     CreateFlyDestIcons();
     TryCreateRedOutlineFlyDestIcons();
 }
@@ -2319,12 +2399,30 @@ static const struct FlyLocation sFlyLocations[] =
         .mapsec = MAPSEC_ROUTE_10_POKECENTER,
         .flag = FLAG_WORLD_MAP_ROUTE10_POKEMON_CENTER_1F,
     },
+    {
+        .regionMapType = REGION_MAP_HOENN,
+        .mapsec = MAPSEC_ROUTE_301,
+        .flag = FLAG_VISITED_ROUTE301,
+    },
 };
 
 
 // Sprite data for SpriteCB_FlyDestIcon
-#define sIconMapSec   data[0]
-#define sFlickerTimer data[1]
+#define sIconMapSec         data[0]
+#define sFlickerTimer       data[1]
+#define sPaletteBlinkPhase  data[2]
+
+static bool32 UsesPaletteBlinkFlyDestIcon(mapsec_u16_t mapSecId)
+{
+    u32 i;
+
+    for (i = 0; sPaletteBlinkFlyDestinations[i] != MAPSEC_NONE; i++)
+    {
+        if (sPaletteBlinkFlyDestinations[i] == mapSecId)
+            return TRUE;
+    }
+    return FALSE;
+}
 
 static void CreateFlyDestIcons(void)
 {
@@ -2336,6 +2434,7 @@ static void CreateFlyDestIcons(void)
     u16 height;
     u16 shape;
     u8 spriteId;
+    u8 bgSpriteId;
 
     for (i = 0; i < ARRAY_COUNT(sFlyLocations); i++)
     {
@@ -2353,6 +2452,13 @@ static void CreateFlyDestIcons(void)
         else
             shape = SPRITE_SHAPE(8x8);
 
+        if (FlagGet(sFlyLocations[i].flag) && UsesPaletteBlinkFlyDestIcon(sFlyLocations[i].mapsec))
+        {
+            bgSpriteId = CreateSprite(&sFlyDestIconBgSpriteTemplate, x, y, 11);
+            if (bgSpriteId != MAX_SPRITES)
+                StartSpriteAnim(&gSprites[bgSpriteId], 0);
+        }
+
         spriteId = CreateSprite(&sFlyDestIconSpriteTemplate, x, y, 10);
         if (spriteId != MAX_SPRITES)
         {
@@ -2365,6 +2471,7 @@ static void CreateFlyDestIcons(void)
 
             StartSpriteAnim(&gSprites[spriteId], shape);
             gSprites[spriteId].sIconMapSec = sFlyLocations[i].mapsec;
+            gSprites[spriteId].sPaletteBlinkPhase = 0;
         }
     }
 }
@@ -2401,9 +2508,37 @@ static void TryCreateRedOutlineFlyDestIcons(void)
     }
 }
 
-// Flickers fly destination icon color (by hiding the fly icon sprite) if the cursor is currently on it
+// Flickers the selected fly destination icon. Stock icons hide/show over the
+// map art; custom route icons swap palettes because no city dot exists below.
 static void SpriteCB_FlyDestIcon(struct Sprite *sprite)
 {
+    if (UsesPaletteBlinkFlyDestIcon(sprite->sIconMapSec))
+    {
+        u8 defaultPaletteNum = IndexOfSpritePaletteTag(TAG_FLY_ICON);
+        u8 customPaletteNum = IndexOfSpritePaletteTag(TAG_FLY_ICON_CUSTOM);
+
+        if (customPaletteNum == 0xFF)
+            customPaletteNum = defaultPaletteNum;
+
+        if (sFlyMap->regionMap.mapSecId == sprite->sIconMapSec)
+        {
+            if (++sprite->sFlickerTimer > 16)
+            {
+                sprite->sFlickerTimer = 0;
+                sprite->sPaletteBlinkPhase ^= 1;
+            }
+            sprite->oam.paletteNum = sprite->sPaletteBlinkPhase ? customPaletteNum : defaultPaletteNum;
+        }
+        else
+        {
+            sprite->sFlickerTimer = 16;
+            sprite->sPaletteBlinkPhase = 0;
+            sprite->oam.paletteNum = defaultPaletteNum;
+        }
+        sprite->invisible = FALSE;
+        return;
+    }
+
     if (sFlyMap->regionMap.mapSecId == sprite->sIconMapSec)
     {
         if (++sprite->sFlickerTimer > 16)
@@ -2421,6 +2556,7 @@ static void SpriteCB_FlyDestIcon(struct Sprite *sprite)
 
 #undef sIconMapSec
 #undef sFlickerTimer
+#undef sPaletteBlinkPhase
 
 static void CB_FadeInFlyMap(void)
 {

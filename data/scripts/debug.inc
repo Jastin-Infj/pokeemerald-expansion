@@ -62,6 +62,7 @@ Debug_CheatStart::
 	setflag FLAG_VISITED_MOSSDEEP_CITY
 	setflag FLAG_VISITED_SOOTOPOLIS_CITY
 	setflag FLAG_VISITED_EVER_GRANDE_CITY
+	setflag FLAG_VISITED_ROUTE301
 	setflag FLAG_LANDMARK_POKEMON_LEAGUE
 	setflag FLAG_LANDMARK_BATTLE_FRONTIER
 	clearflag FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY
@@ -203,10 +204,16 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
+	setflag FLAG_BADGE06_GET
+	setflag FLAG_VISITED_ROUTE301
+	msgbox Debug_EventScript_Route301FlySetup_Text, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_2::
+	setflag FLAG_VISITED_ROUTE301
+	warp MAP_ROUTE301, 7, 7
+	waitstate
 	release
 	end
 
@@ -233,6 +240,10 @@ Debug_EventScript_Script_7::
 Debug_EventScript_Script_8::
 	release
 	end
+
+Debug_EventScript_Route301FlySetup_Text:
+	.string "Route301 Fly enabled.\n"
+	.string "Use Utilities/Fly to map.$"
 
 Debug_CheckSaveBlock::
 	callnative CheckSaveBlock1Size

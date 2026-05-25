@@ -649,8 +649,8 @@ static const struct DebugMenuOption sDebugMenu_Actions_Player[] =
 
 static const struct DebugMenuOption sDebugMenu_Actions_Scripts[] =
 {
-    { COMPOUND_STRING("Script 1"), DebugAction_ExecuteScript, Debug_EventScript_Script_1 },
-    { COMPOUND_STRING("Script 2"), DebugAction_ExecuteScript, Debug_EventScript_Script_2 },
+    { COMPOUND_STRING("Route301 Fly"), DebugAction_ExecuteScript, Debug_EventScript_Script_1 },
+    { COMPOUND_STRING("Warp Route301"), DebugAction_ExecuteScript, Debug_EventScript_Script_2 },
     { COMPOUND_STRING("Script 3"), DebugAction_ExecuteScript, Debug_EventScript_Script_3 },
     { COMPOUND_STRING("Script 4"), DebugAction_ExecuteScript, Debug_EventScript_Script_4 },
     { COMPOUND_STRING("Script 5"), DebugAction_ExecuteScript, Debug_EventScript_Script_5 },
@@ -1136,6 +1136,7 @@ static const u16 sLocationFlags[] =
     FLAG_VISITED_MOSSDEEP_CITY,
     FLAG_VISITED_SOOTOPOLIS_CITY,
     FLAG_VISITED_EVER_GRANDE_CITY,
+    FLAG_VISITED_ROUTE301,
     FLAG_LANDMARK_POKEMON_LEAGUE,
     FLAG_LANDMARK_BATTLE_FRONTIER,
     FLAG_WORLD_MAP_PALLET_TOWN,

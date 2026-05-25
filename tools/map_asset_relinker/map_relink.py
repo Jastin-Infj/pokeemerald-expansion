@@ -9,12 +9,15 @@ include paths, and map references in warps/connections.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import io
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tarfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -26,8 +29,34 @@ MAP_GROUPS = MAPS_DIR / "map_groups.json"
 LAYOUTS_JSON = LAYOUTS_DIR / "layouts.json"
 EVENT_SCRIPTS = Path("data/event_scripts.s")
 REGION_MAP_SECTIONS_JSON = Path("src/data/region_map/region_map_sections.json")
+REGION_MAP_C = Path("src/region_map.c")
+FLAGS_H = Path("include/constants/flags.h")
+BACKUP_ROOT = Path(".map_asset_relinker_backups")
 SPECIAL_MAP_IDS = {"MAP_DYNAMIC", "MAP_NONE"}
 SPECIAL_MAPSECS = {"MAPSEC_DYNAMIC", "MAPSEC_NONE"}
+REGION_MAP_LAYOUT_FILES = {
+    "hoenn": Path("src/data/region_map/region_map_layout.h"),
+    "kanto": Path("src/data/region_map/region_map_layout_kanto.h"),
+    "sevii123": Path("src/data/region_map/region_map_layout_sevii123.h"),
+    "sevii45": Path("src/data/region_map/region_map_layout_sevii45.h"),
+    "sevii67": Path("src/data/region_map/region_map_layout_sevii67.h"),
+}
+REGION_MAP_TYPES = {
+    "hoenn": "REGION_MAP_HOENN",
+    "kanto": "REGION_MAP_KANTO",
+    "sevii123": "REGION_MAP_SEVII123",
+    "sevii45": "REGION_MAP_SEVII45",
+    "sevii67": "REGION_MAP_SEVII67",
+}
+FLY_ICON_STYLE_ALIASES = {
+    "blue": "palette-blink",
+    "blue-blink": "palette-blink",
+    "default": "stock",
+    "stock": "stock",
+    "palette": "palette-blink",
+    "palette-blink": "palette-blink",
+    "red-outline": "red-outline",
+}
 
 KNOWN_GENERATED_OUTPUTS = {
     Path("include/constants/map_groups.h"),
@@ -76,6 +105,13 @@ def rel(path: Path, root: Path) -> str:
     return path.relative_to(root).as_posix()
 
 
+def display_path(path: Path, root: Path) -> str:
+    try:
+        return rel(path, root)
+    except ValueError:
+        return path.as_posix()
+
+
 def load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
@@ -113,6 +149,113 @@ def parse_pair(raw: str, label: str) -> tuple[str, str]:
     if not old or not new:
         raise RelinkError(f"{label} must use non-empty OLD:NEW values.")
     return old, new
+
+
+def parse_bool(raw: str, label: str) -> bool:
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise RelinkError(f"{label} must be true or false.")
+
+
+def parse_mapsec_bounds(raw: str) -> dict[str, Any]:
+    parts = raw.split(":")
+    if len(parts) != 5:
+        raise RelinkError("--set-mapsec-bounds must use MAPSEC_ID:X:Y:WIDTH:HEIGHT format.")
+    mapsec_id, x, y, width, height = parts
+    try:
+        bounds = {
+            "mapsec": mapsec_id,
+            "x": int(x),
+            "y": int(y),
+            "width": int(width),
+            "height": int(height),
+        }
+    except ValueError as err:
+        raise RelinkError("--set-mapsec-bounds coordinates must be integers.") from err
+    if bounds["width"] <= 0 or bounds["height"] <= 0:
+        raise RelinkError("--set-mapsec-bounds width and height must be positive.")
+    return bounds
+
+
+def parse_region_map_cell(raw: str) -> dict[str, Any]:
+    parts = raw.split(":")
+    if len(parts) != 4:
+        raise RelinkError("--set-region-map-cell must use REGION:X:Y:MAPSEC_ID format.")
+    region, x, y, mapsec_id = parts
+    region = region.lower()
+    if region not in REGION_MAP_LAYOUT_FILES:
+        valid = ", ".join(sorted(REGION_MAP_LAYOUT_FILES))
+        raise RelinkError(f"--set-region-map-cell region must be one of: {valid}.")
+    try:
+        x_int = int(x)
+        y_int = int(y)
+    except ValueError as err:
+        raise RelinkError("--set-region-map-cell coordinates must be integers.") from err
+    return {"region": region, "x": x_int, "y": y_int, "mapsec": mapsec_id}
+
+
+def parse_fly_location(raw: str) -> dict[str, str]:
+    parts = raw.split(":")
+    if len(parts) != 3:
+        raise RelinkError("--ensure-fly-location must use REGION:MAPSEC_ID:FLAG format.")
+    region, mapsec_id, flag = parts
+    region = region.lower()
+    if region not in REGION_MAP_TYPES:
+        valid = ", ".join(sorted(REGION_MAP_TYPES))
+        raise RelinkError(f"--ensure-fly-location region must be one of: {valid}.")
+    if not flag.startswith("FLAG_"):
+        raise RelinkError("--ensure-fly-location flag must start with FLAG_.")
+    return {"region": region, "regionMapType": REGION_MAP_TYPES[region], "mapsec": mapsec_id, "flag": flag}
+
+
+def parse_fly_icon_style(raw: str) -> dict[str, str | None]:
+    parts = raw.split(":")
+    if len(parts) not in (2, 3):
+        raise RelinkError("--set-fly-icon-style must use MAPSEC_ID:STYLE[:FLAG] format.")
+    mapsec_id, style = parts[0], parts[1].lower()
+    if style not in FLY_ICON_STYLE_ALIASES:
+        valid = ", ".join(sorted(FLY_ICON_STYLE_ALIASES))
+        raise RelinkError(f"--set-fly-icon-style style must be one of: {valid}.")
+    flag = parts[2] if len(parts) == 3 else None
+    if flag is not None and not flag.startswith("FLAG_"):
+        raise RelinkError("--set-fly-icon-style optional flag must start with FLAG_.")
+    return {"mapsec": mapsec_id, "style": FLY_ICON_STYLE_ALIASES[style], "flag": flag}
+
+
+def parse_flag_pair(raw: str, option: str) -> dict[str, str]:
+    old_flag, new_flag = parse_pair(raw, option)
+    if not old_flag.startswith("FLAG_") or not new_flag.startswith("FLAG_"):
+        raise RelinkError(f"{option} values must be FLAG_* identifiers.")
+    if old_flag == new_flag:
+        raise RelinkError(f"{option} old and new flags must differ.")
+    return {"oldFlag": old_flag, "newFlag": new_flag}
+
+
+def parse_mapsec_flag(raw: str, option: str) -> dict[str, str]:
+    mapsec_id, flag = parse_pair(raw, option)
+    if not mapsec_id.startswith("MAPSEC_"):
+        raise RelinkError(f"{option} mapsec must be a MAPSEC_* identifier.")
+    if not flag.startswith("FLAG_"):
+        raise RelinkError(f"{option} flag must be a FLAG_* identifier.")
+    return {"mapsec": mapsec_id, "flag": flag}
+
+
+def parse_mapsec_map(raw: str) -> dict[str, str]:
+    parts = raw.split(":")
+    if len(parts) not in {2, 3}:
+        raise RelinkError("--ensure-mapsec-map must use MAPSEC_ID:MAP_ID[:HEAL_LOCATION_ID] format.")
+    mapsec_id, map_id = parts[0], parts[1]
+    heal_location = parts[2] if len(parts) == 3 else "HEAL_LOCATION_NONE"
+    if not mapsec_id.startswith("MAPSEC_"):
+        raise RelinkError("--ensure-mapsec-map mapsec must be a MAPSEC_* identifier.")
+    if not map_id.startswith("MAP_"):
+        raise RelinkError("--ensure-mapsec-map map must be a MAP_* identifier.")
+    if not heal_location.startswith("HEAL_LOCATION_"):
+        raise RelinkError("--ensure-mapsec-map heal location must be a HEAL_LOCATION_* identifier.")
+    return {"mapsec": mapsec_id, "map": map_id, "healLocation": heal_location}
 
 
 def iter_map_dirs(root: Path) -> Iterable[Path]:
@@ -176,6 +319,18 @@ def load_mapsec_ids(root: Path) -> set[str]:
     return ids
 
 
+def load_mapsec_entries(root: Path) -> dict[str, dict[str, Any]]:
+    path = repo_path(root, REGION_MAP_SECTIONS_JSON)
+    if not path.exists():
+        return {}
+    data = load_json(path)
+    entries: dict[str, dict[str, Any]] = {}
+    for section in data.get("map_sections", []):
+        if isinstance(section, dict) and isinstance(section.get("id"), str):
+            entries[section["id"]] = section
+    return entries
+
+
 def add_duplicate_diagnostics(
     diagnostics: list[Diagnostic],
     values: dict[str, list[str]],
@@ -192,6 +347,7 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
     groups_data = load_map_groups(root)
     layouts_data = load_layouts(root)
     mapsec_ids = load_mapsec_ids(root)
+    mapsec_entries = load_mapsec_entries(root)
 
     group_maps: dict[str, list[str]] = {}
     group_order_raw = groups_data.get("group_order")
@@ -206,11 +362,15 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
         if not isinstance(group, str):
             diagnostics.append(Diagnostic("error", f"map_groups.json group_order[{index}] must be a string."))
             continue
+        if not re.fullmatch(r"gMapGroup_[A-Z][A-Za-z0-9_]*", group):
+            diagnostics.append(Diagnostic("warning", f"map_groups.json group {group!r} has suspicious naming; expected gMapGroup_<UpperCamelOrUpperSnake>."))
         seen_groups.setdefault(group, []).append(f"group_order[{index}]")
         maps = groups_data.get(group)
         if not isinstance(maps, list):
             diagnostics.append(Diagnostic("error", f"map_groups.json lists group {group!r}, but that field is missing or not a list."))
             continue
+        if not maps:
+            diagnostics.append(Diagnostic("warning", f"map_groups.json group {group!r} is empty."))
         seen_in_group: set[str] = set()
         for map_index, map_name in enumerate(maps):
             if not isinstance(map_name, str):
@@ -229,6 +389,32 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
             diagnostics.append(Diagnostic("warning", f"map_groups.json has group {key!r}, but it is not listed in group_order."))
 
     add_duplicate_diagnostics(diagnostics, group_maps, "map group entry")
+
+    mapsec_id_locations: dict[str, list[str]] = {}
+    mapsec_path = repo_path(root, REGION_MAP_SECTIONS_JSON)
+    if mapsec_path.exists():
+        mapsec_data = load_json(mapsec_path)
+        sections = mapsec_data.get("map_sections")
+        if not isinstance(sections, list):
+            diagnostics.append(Diagnostic("error", f"{REGION_MAP_SECTIONS_JSON} field 'map_sections' must be a list."))
+        else:
+            for index, section in enumerate(sections):
+                if not isinstance(section, dict):
+                    diagnostics.append(Diagnostic("error", f"{REGION_MAP_SECTIONS_JSON} map_sections[{index}] must be an object."))
+                    continue
+                mapsec_id = section.get("id")
+                if not isinstance(mapsec_id, str) or not mapsec_id:
+                    diagnostics.append(Diagnostic("error", f"{REGION_MAP_SECTIONS_JSON} map_sections[{index}] must have a non-empty id."))
+                    continue
+                mapsec_id_locations.setdefault(mapsec_id, []).append(f"{REGION_MAP_SECTIONS_JSON}:map_sections[{index}]")
+    add_duplicate_diagnostics(diagnostics, mapsec_id_locations, "region map section id")
+
+    for mapsec_id, section in sorted(mapsec_entries.items()):
+        if not re.fullmatch(r"MAPSEC_[A-Z0-9_]+", mapsec_id):
+            diagnostics.append(Diagnostic("warning", f"region map section id {mapsec_id!r} has suspicious naming; expected uppercase MAPSEC_*."))
+        name = section.get("name")
+        if isinstance(name, str) and re.fullmatch(r"MAPSEC_ROUTE_\d+", mapsec_id) and name != mapsec_id.removeprefix("MAPSEC_").replace("_", " "):
+            diagnostics.append(Diagnostic("warning", f"region map section {mapsec_id!r} has route-like id but display name {name!r}."))
 
     map_dirs = {path.name: path for path in iter_map_dirs(root)}
     map_ids: set[str] = set(SPECIAL_MAP_IDS)
@@ -274,6 +460,7 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
             diagnostics.append(Diagnostic("error", f"map_groups.json lists {map_name!r}, but {MAPS_DIR / map_name / 'map.json'} is missing."))
 
     layout_id_counts: dict[str, int] = {}
+    layout_name_locations: dict[str, list[str]] = {}
     for layout in layouts_data.get("layouts", []):
         if not isinstance(layout, dict):
             continue
@@ -291,12 +478,15 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
                 diagnostics.append(Diagnostic("error", f"layout {layout_id!r} {field} points to missing {filepath}."))
 
         name = layout.get("name", "")
+        if isinstance(name, str) and name:
+            layout_name_locations.setdefault(name, []).append(str(layout_id or "<missing id>"))
         if "LAYOUT_" in name or name.endswith("_Layout_Layout"):
             diagnostics.append(Diagnostic("warning", f"layout {layout_id!r} has suspicious label name {name!r}."))
 
     for layout_id, count in sorted(layout_id_counts.items()):
         if count > 1:
             diagnostics.append(Diagnostic("error", f"layout id {layout_id!r} appears {count} times."))
+    add_duplicate_diagnostics(diagnostics, layout_name_locations, "layout name")
 
     for map_json in iter_all_map_json(root):
         data = load_json(map_json)
@@ -316,7 +506,13 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
     event_scripts = repo_path(root, EVENT_SCRIPTS)
     if event_scripts.exists():
         text = read_text(event_scripts)
-        included_maps = set(re.findall(r'\.include\s+"data/maps/([^"]+)/scripts\.inc"', text))
+        include_locations: dict[str, list[str]] = {}
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            match = re.search(r'\.include\s+"data/maps/([^"]+)/scripts\.inc"', line)
+            if match:
+                include_locations.setdefault(match.group(1), []).append(f"{EVENT_SCRIPTS}:{line_number}")
+        add_duplicate_diagnostics(diagnostics, include_locations, "script include")
+        included_maps = set(include_locations)
         for map_name in sorted(map_dirs):
             if (map_dirs[map_name] / "scripts.inc").exists() and map_name not in included_maps:
                 diagnostics.append(Diagnostic("warning", f"{MAPS_DIR / map_name / 'scripts.inc'} is not included by {EVENT_SCRIPTS}."))
@@ -406,18 +602,100 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
     else:
         old_map_ids.add(old_map)
     new_map_id = args.new_map_id or f"MAP_{camel_to_upper_snake(new_map)}"
+    if args.set_map_type and not args.set_map_type.startswith("MAP_TYPE_"):
+        raise RelinkError("--set-map-type must be a MAP_TYPE_* identifier.")
     old_layout_id = args.old_layout_id or map_ref.data.get("layout")
-    layout_ref = find_layout_ref(root, old_layout_id)
-    if args.new_mapsec and args.new_mapsec not in load_mapsec_ids(root):
-        raise RelinkError(f"Region map section {args.new_mapsec!r} was not found.")
+    needs_layout_plan = not args.no_layout_rename or args.set_layout_name or args.set_primary_tileset or args.set_secondary_tileset
+    layout_ref = find_layout_ref(root, old_layout_id) if needs_layout_plan else None
+    if args.set_layout_id:
+        find_layout_ref(root, args.set_layout_id)
+
+    mapsec_plans = []
+    new_mapsec = args.new_mapsec
+    if args.rename_mapsec:
+        if args.set_mapsec_name:
+            raise RelinkError("--set-mapsec-name cannot be combined with --rename-mapsec; use --new-mapsec-name for rename plans.")
+        old_mapsec, renamed_mapsec = parse_pair(args.rename_mapsec, "--rename-mapsec")
+        mapsec_entries = load_mapsec_entries(root)
+        if old_mapsec not in mapsec_entries:
+            raise RelinkError(f"Region map section {old_mapsec!r} was not found.")
+        if renamed_mapsec in mapsec_entries and renamed_mapsec != old_mapsec:
+            raise RelinkError(f"Region map section {renamed_mapsec!r} already exists.")
+        if args.new_mapsec and args.new_mapsec != renamed_mapsec:
+            raise RelinkError("--new-mapsec must match the NEW side of --rename-mapsec when both are provided.")
+        new_mapsec = renamed_mapsec
+        mapsec_plans.append({
+            "oldId": old_mapsec,
+            "newId": renamed_mapsec,
+            "oldName": mapsec_entries[old_mapsec].get("name"),
+            "newName": args.new_mapsec_name,
+        })
+    elif new_mapsec and new_mapsec not in load_mapsec_ids(root):
+        raise RelinkError(f"Region map section {new_mapsec!r} was not found.")
+    if args.set_mapsec_name:
+        mapsec_id, mapsec_name = parse_pair(args.set_mapsec_name, "--set-mapsec-name")
+        mapsec_entries = load_mapsec_entries(root)
+        if mapsec_id not in mapsec_entries:
+            raise RelinkError(f"Region map section {mapsec_id!r} was not found.")
+        mapsec_plans.append({
+            "oldId": mapsec_id,
+            "newId": mapsec_id,
+            "oldName": mapsec_entries[mapsec_id].get("name"),
+            "newName": mapsec_name,
+        })
+    known_mapsecs = load_mapsec_ids(root) | {plan["newId"] for plan in mapsec_plans}
+    for bounds in [parse_mapsec_bounds(raw) for raw in args.set_mapsec_bounds or []]:
+        if bounds["mapsec"] not in known_mapsecs:
+            raise RelinkError(f"Region map section {bounds['mapsec']!r} was not found.")
+        mapsec_plans.append({
+            "oldId": bounds["mapsec"],
+            "newId": bounds["mapsec"],
+            "oldName": load_mapsec_entries(root).get(bounds["mapsec"], {}).get("name"),
+            "newName": None,
+            "bounds": {
+                "x": bounds["x"],
+                "y": bounds["y"],
+                "width": bounds["width"],
+                "height": bounds["height"],
+            },
+        })
+    region_map_cells = [parse_region_map_cell(raw) for raw in args.set_region_map_cell or []]
+    for cell in region_map_cells:
+        if cell["mapsec"] not in known_mapsecs:
+            raise RelinkError(f"Region map section {cell['mapsec']!r} was not found.")
+    fly_locations = [parse_fly_location(raw) for raw in args.ensure_fly_location or []]
+    for fly_location in fly_locations:
+        if fly_location["mapsec"] not in known_mapsecs:
+            raise RelinkError(f"Region map section {fly_location['mapsec']!r} was not found.")
+    fly_mapsec_types = [parse_mapsec_flag(raw, "--ensure-fly-mapsec-type") for raw in args.ensure_fly_mapsec_type or []]
+    for fly_mapsec_type in fly_mapsec_types:
+        if fly_mapsec_type["mapsec"] not in known_mapsecs:
+            raise RelinkError(f"Region map section {fly_mapsec_type['mapsec']!r} was not found.")
+    fly_icon_styles = [parse_fly_icon_style(raw) for raw in args.set_fly_icon_style or []]
+    for icon_style in fly_icon_styles:
+        if icon_style["mapsec"] not in known_mapsecs:
+            raise RelinkError(f"Region map section {icon_style['mapsec']!r} was not found.")
+    mapsec_maps = [parse_mapsec_map(raw) for raw in args.ensure_mapsec_map or []]
+    for mapsec_map in mapsec_maps:
+        if mapsec_map["mapsec"] not in known_mapsecs:
+            raise RelinkError(f"Region map section {mapsec_map['mapsec']!r} was not found.")
+    flag_claims = [parse_flag_pair(raw, "--claim-unused-flag") for raw in args.claim_unused_flag or []]
+    if args.set_transition_setflag and not args.set_transition_setflag.startswith("FLAG_"):
+        raise RelinkError("--set-transition-setflag must be a FLAG_* identifier.")
 
     layout_plan = None
-    if not args.no_layout_rename:
-        new_layout_id = args.new_layout_id or f"LAYOUT_{camel_to_upper_snake(new_map)}"
+    if needs_layout_plan:
+        assert layout_ref is not None
+        new_layout_id = old_layout_id if args.no_layout_rename else (args.new_layout_id or f"LAYOUT_{camel_to_upper_snake(new_map)}")
         old_layout_name = layout_ref.data.get("name")
-        new_layout_name = args.new_layout_name or f"{new_map}_Layout"
-        old_layout_dir = args.old_layout_dir or default_layout_dir(layout_ref.data)
-        new_layout_dir = args.new_layout_dir or f"{LAYOUTS_DIR.as_posix()}/{new_map}"
+        if args.set_layout_name:
+            new_layout_name = args.set_layout_name
+        elif args.no_layout_rename:
+            new_layout_name = old_layout_name
+        else:
+            new_layout_name = args.new_layout_name or f"{new_map}_Layout"
+        old_layout_dir = None if args.no_layout_rename else (args.old_layout_dir or default_layout_dir(layout_ref.data))
+        new_layout_dir = None if args.no_layout_rename else (args.new_layout_dir or f"{LAYOUTS_DIR.as_posix()}/{new_map}")
         layout_plan = {
             "oldId": old_layout_id,
             "newId": new_layout_id,
@@ -425,6 +703,8 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
             "newName": new_layout_name,
             "oldDir": old_layout_dir,
             "newDir": new_layout_dir,
+            "primaryTileset": args.set_primary_tileset,
+            "secondaryTileset": args.set_secondary_tileset,
         }
 
     old_group_names = {old_dir_name, old_map}
@@ -439,6 +719,7 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
     if from_group and from_group not in groups:
         raise RelinkError(f"Map {old_map!r} is not listed in source group {from_group!r}.")
     group = to_group or args.group or from_group or (groups[0] if groups else None)
+    script_old_prefixes = sorted(set(args.old_script_prefix or []) | ({old_map, old_dir_name} if args.rewrite_script_labels else set()))
     plan: dict[str, Any] = {
         "version": 1,
         "maps": [
@@ -450,18 +731,30 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "oldId": old_map_id,
                 "oldIds": sorted(old_map_ids),
                 "newId": new_map_id,
-                "newMapsec": args.new_mapsec,
-                "newLayoutId": layout_plan["newId"] if layout_plan else None,
+                "newMapsec": new_mapsec,
+                "newLayoutId": args.set_layout_id or (layout_plan["newId"] if layout_plan else None),
+                "mapType": args.set_map_type,
+                "showMapName": parse_bool(args.set_show_map_name, "--set-show-map-name") if args.set_show_map_name is not None else None,
+                "transitionSetFlag": args.set_transition_setflag,
                 "group": group,
                 "fromGroup": from_group,
                 "toGroup": to_group,
                 "groupOldNames": sorted(old_group_names),
                 "matchBy": args.match_by,
+                "scriptOldPrefixes": script_old_prefixes,
             }
         ],
         "layouts": [layout_plan] if layout_plan else [],
+        "mapsecs": mapsec_plans,
+        "regionMapCells": region_map_cells,
+        "flyLocations": fly_locations,
+        "flyMapsecTypes": fly_mapsec_types,
+        "flyIconStyles": fly_icon_styles,
+        "mapsecMaps": mapsec_maps,
+        "flagClaims": flag_claims,
+        "dropGroups": args.drop_group or [],
         "options": {
-            "rewriteScriptLabels": False,
+            "rewriteScriptLabels": args.rewrite_script_labels,
         },
     }
     return plan
@@ -485,14 +778,90 @@ def load_plan(path: Path) -> dict[str, Any]:
 
 def target_paths_from_plan(root: Path, plan: dict[str, Any]) -> list[Path]:
     paths = [repo_path(root, MAP_GROUPS), repo_path(root, LAYOUTS_JSON), repo_path(root, EVENT_SCRIPTS)]
+    if plan.get("mapsecs"):
+        paths.append(repo_path(root, REGION_MAP_SECTIONS_JSON))
+    if plan.get("flagClaims"):
+        paths.append(repo_path(root, FLAGS_H))
+    for cell in plan.get("regionMapCells", []):
+        layout_file = REGION_MAP_LAYOUT_FILES.get(cell.get("region"))
+        if layout_file:
+            paths.append(repo_path(root, layout_file))
+    if plan.get("flyLocations") or plan.get("flyMapsecTypes") or plan.get("flyIconStyles") or plan.get("mapsecMaps"):
+        paths.append(repo_path(root, REGION_MAP_C))
+    for layout in plan.get("layouts", []):
+        for key in ("oldDir", "newDir"):
+            if layout.get(key):
+                paths.append(repo_path(root, layout[key]))
     for map_plan in plan.get("maps", []):
         old_dir_name = map_plan.get("oldDirName", map_plan["oldName"])
         new_dir_name = map_plan.get("newDirName", map_plan["newName"])
+        paths.append(repo_path(root, MAPS_DIR / old_dir_name))
+        paths.append(repo_path(root, MAPS_DIR / new_dir_name))
         paths.append(repo_path(root, MAPS_DIR / old_dir_name / "map.json"))
         paths.append(repo_path(root, MAPS_DIR / new_dir_name / "map.json"))
         paths.append(repo_path(root, MAPS_DIR / old_dir_name / "scripts.inc"))
         paths.append(repo_path(root, MAPS_DIR / new_dir_name / "scripts.inc"))
     return paths
+
+
+def backup_paths_from_plan(root: Path, plan: dict[str, Any]) -> list[Path]:
+    existing: list[Path] = []
+    seen: set[Path] = set()
+    for path in target_paths_from_plan(root, plan):
+        if not path.exists():
+            continue
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        existing.append(path)
+
+    selected: list[Path] = []
+    for path in sorted(existing, key=lambda item: len(item.relative_to(root).parts)):
+        if any(path == parent or parent in path.parents for parent in selected):
+            continue
+        selected.append(path)
+    return selected
+
+
+def resolve_backup_root(root: Path, backup_root: str | None) -> Path:
+    path = Path(backup_root) if backup_root else BACKUP_ROOT
+    return path if path.is_absolute() else root / path
+
+
+def create_backup_archive(root: Path, plan: dict[str, Any], backup_root: str | None) -> Path | None:
+    paths = backup_paths_from_plan(root, plan)
+    if not paths:
+        print("BACKUP skipped; no existing apply targets.")
+        return None
+
+    backup_dir = resolve_backup_root(root, backup_root)
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    archive = backup_dir / f"map_relink_{timestamp}.bak.tar"
+    suffix = 1
+    while archive.exists():
+        archive = backup_dir / f"map_relink_{timestamp}_{suffix}.bak.tar"
+        suffix += 1
+
+    manifest = {
+        "version": 1,
+        "createdAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "format": "tar",
+        "paths": [rel(path, root) for path in paths],
+        "plan": plan,
+    }
+    manifest_bytes = json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8")
+    with tarfile.open(archive, "w") as tar:
+        for path in paths:
+            tar.add(path, arcname=rel(path, root), recursive=True)
+        info = tarfile.TarInfo("MANIFEST.json")
+        info.size = len(manifest_bytes)
+        info.mtime = int(dt.datetime.now().timestamp())
+        tar.addfile(info, io.BytesIO(manifest_bytes))
+
+    print(f"BACKUP {display_path(archive, root)}")
+    return archive
 
 
 def check_dirty(root: Path, paths: list[Path]) -> None:
@@ -529,6 +898,26 @@ def ensure_map_group(groups_data: dict[str, Any], group: str) -> list[Any]:
     return groups_data.setdefault(group, [])
 
 
+def drop_empty_map_groups(groups_data: dict[str, Any], groups: Iterable[str]) -> bool:
+    changed = False
+    group_order = groups_data.get("group_order", [])
+    if not isinstance(group_order, list):
+        raise RelinkError("map_groups.json field 'group_order' must be a list.")
+    for group in groups:
+        if not group:
+            continue
+        maps = groups_data.get(group)
+        if maps is not None and maps:
+            raise RelinkError(f"Refusing to drop non-empty map group {group!r}.")
+        if group in group_order:
+            group_order.remove(group)
+            changed = True
+        if group in groups_data:
+            del groups_data[group]
+            changed = True
+    return changed
+
+
 def remove_map_from_group(maps: list[Any], map_names: set[str]) -> tuple[bool, int | None]:
     changed = False
     first_index: int | None = None
@@ -552,6 +941,7 @@ def update_map_groups(
     to_group: str | None,
     preferred_group: str | None,
 ) -> bool:
+    before = json.dumps(groups_data, sort_keys=True)
     changed = False
     found = False
     old_name_set = {name for name in old_names if name}
@@ -575,7 +965,7 @@ def update_map_groups(
             else:
                 target_maps.append(new_name)
             changed = True
-        return changed
+        return changed and json.dumps(groups_data, sort_keys=True) != before
 
     for group in groups_data.get("group_order", []):
         if from_group and group != from_group:
@@ -583,15 +973,16 @@ def update_map_groups(
         maps = groups_data.get(group, [])
         for index, map_name in enumerate(maps):
             if map_name in old_name_set:
-                maps[index] = new_name
                 found = True
-                changed = True
+                if map_name != new_name:
+                    maps[index] = new_name
+                    changed = True
     if not found and preferred_group:
         maps = ensure_map_group(groups_data, preferred_group)
         if new_name not in maps:
             maps.append(new_name)
             changed = True
-    return changed
+    return changed and json.dumps(groups_data, sort_keys=True) != before
 
 
 def update_map_json(
@@ -601,9 +992,11 @@ def update_map_json(
     new_name: str,
     new_layout: str | None,
     new_mapsec: str | None,
+    map_type: str | None,
+    show_map_name: bool | None,
 ) -> bool:
     changed = False
-    if data.get("id") in old_ids:
+    if data.get("id") in old_ids and data.get("id") != new_id:
         data["id"] = new_id
         changed = True
     if data.get("name") != new_name:
@@ -615,6 +1008,41 @@ def update_map_json(
     if new_mapsec and data.get("region_map_section") != new_mapsec:
         data["region_map_section"] = new_mapsec
         changed = True
+    if map_type and data.get("map_type") != map_type:
+        data["map_type"] = map_type
+        changed = True
+    if show_map_name is not None and data.get("show_map_name") != show_map_name:
+        data["show_map_name"] = show_map_name
+        changed = True
+    return changed
+
+
+def update_mapsec_refs(data: dict[str, Any], old_id: str, new_id: str) -> bool:
+    if data.get("region_map_section") == old_id and old_id != new_id:
+        data["region_map_section"] = new_id
+        return True
+    return False
+
+
+def update_mapsecs_json(data: dict[str, Any], mapsec_plan: dict[str, Any]) -> bool:
+    changed = False
+    old_id = mapsec_plan["oldId"]
+    for section in data.get("map_sections", []):
+        if not isinstance(section, dict) or section.get("id") != old_id:
+            continue
+        if section.get("id") != mapsec_plan["newId"]:
+            section["id"] = mapsec_plan["newId"]
+            changed = True
+        if mapsec_plan.get("newName") and section.get("name") != mapsec_plan["newName"]:
+            section["name"] = mapsec_plan["newName"]
+            changed = True
+        bounds = mapsec_plan.get("bounds")
+        if isinstance(bounds, dict):
+            for field in ("x", "y", "width", "height"):
+                if section.get(field) != bounds[field]:
+                    section[field] = bounds[field]
+                    changed = True
+        break
     return changed
 
 
@@ -623,13 +1051,13 @@ def update_map_refs(data: dict[str, Any], old_ids: set[str], new_id: str) -> boo
     connections = data.get("connections")
     if isinstance(connections, list):
         for connection in connections:
-            if isinstance(connection, dict) and connection.get("map") in old_ids:
+            if isinstance(connection, dict) and connection.get("map") in old_ids and connection.get("map") != new_id:
                 connection["map"] = new_id
                 changed = True
     warps = data.get("warp_events")
     if isinstance(warps, list):
         for warp in warps:
-            if isinstance(warp, dict) and warp.get("dest_map") in old_ids:
+            if isinstance(warp, dict) and warp.get("dest_map") in old_ids and warp.get("dest_map") != new_id:
                 warp["dest_map"] = new_id
                 changed = True
     return changed
@@ -644,6 +1072,10 @@ def update_layouts_json(layouts_data: dict[str, Any], layout_plan: dict[str, Any
         layout["id"] = layout_plan["newId"]
         if layout_plan.get("newName"):
             layout["name"] = layout_plan["newName"]
+        if layout_plan.get("primaryTileset"):
+            layout["primary_tileset"] = layout_plan["primaryTileset"]
+        if layout_plan.get("secondaryTileset"):
+            layout["secondary_tileset"] = layout_plan["secondaryTileset"]
         old_dir = layout_plan.get("oldDir")
         new_dir = layout_plan.get("newDir")
         if old_dir and new_dir:
@@ -656,12 +1088,334 @@ def update_layouts_json(layouts_data: dict[str, Any], layout_plan: dict[str, Any
     return changed
 
 
+def update_region_map_layout(text: str, cell_plan: dict[str, Any]) -> tuple[str, bool]:
+    row_index = 0
+    changed = False
+    updated_lines: list[str] = []
+    target_x = cell_plan["x"]
+    target_y = cell_plan["y"]
+    if target_x < 0 or target_y < 0:
+        raise RelinkError("--set-region-map-cell coordinates must be non-negative.")
+
+    for line in text.splitlines(keepends=True):
+        match = re.match(r"^(\s*)\{(.+)\}(,?\s*)$", line.rstrip("\n"))
+        if not match:
+            updated_lines.append(line)
+            continue
+
+        if row_index == target_y:
+            cells = [cell.strip() for cell in match.group(2).split(",")]
+            if target_x >= len(cells):
+                raise RelinkError(f"Region map x={target_x} is outside row width {len(cells)}.")
+            if cells[target_x] != cell_plan["mapsec"]:
+                cells[target_x] = cell_plan["mapsec"]
+                newline = "\n" if line.endswith("\n") else ""
+                updated_lines.append(f"{match.group(1)}{{{', '.join(cells)}}}{match.group(3).rstrip()}{newline}")
+                changed = True
+            else:
+                updated_lines.append(line)
+        else:
+            updated_lines.append(line)
+        row_index += 1
+
+    if target_y >= row_index:
+        raise RelinkError(f"Region map y={target_y} is outside row count {row_index}.")
+    return "".join(updated_lines), changed
+
+
+def fly_location_entry(region_map_type: str, mapsec: str, flag: str) -> str:
+    return (
+        "    {\n"
+        f"        .regionMapType = {region_map_type},\n"
+        f"        .mapsec = {mapsec},\n"
+        f"        .flag = {flag},\n"
+        "    },"
+    )
+
+
+def update_fly_locations(text: str, fly_plan: dict[str, str]) -> tuple[str, bool]:
+    array_match = re.search(r"static const struct FlyLocation sFlyLocations\[\] =\n\{\n(?P<body>.*?)\n\};", text, re.DOTALL)
+    if not array_match:
+        raise RelinkError("Could not find sFlyLocations array in src/region_map.c.")
+
+    body = array_match.group("body")
+    entry_pattern = re.compile(
+        r"    \{\n"
+        r"        \.regionMapType = (?P<region>[^,]+),\n"
+        r"        \.mapsec = (?P<mapsec>[^,]+),\n"
+        r"        \.flag = (?P<flag>[^,]+),\n"
+        r"    \},"
+    )
+    new_entry = fly_location_entry(fly_plan["regionMapType"], fly_plan["mapsec"], fly_plan["flag"])
+    for match in entry_pattern.finditer(body):
+        if match.group("mapsec") != fly_plan["mapsec"]:
+            continue
+        old_entry = match.group(0)
+        if old_entry == new_entry:
+            return text, False
+        new_body = body[:match.start()] + new_entry + body[match.end():]
+        return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+    separator = "" if body.endswith("\n") else "\n"
+    new_body = body + separator + new_entry
+    return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+
+def mapsec_map_entry(mapsec: str, map_id: str, heal_location: str) -> str:
+    return f"    [{mapsec}] = {{MAP_GROUP({map_id}), MAP_NUM({map_id}), {heal_location}}},"
+
+
+def update_mapsec_map_locations(text: str, mapsec_map: dict[str, str]) -> tuple[str, bool]:
+    array_match = re.search(r"static const u8 sMapHealLocations\[\]\[3\] =\n\{\n(?P<body>.*?)\n\};", text, re.DOTALL)
+    if not array_match:
+        raise RelinkError("Could not find sMapHealLocations array in src/region_map.c.")
+
+    body = array_match.group("body")
+    mapsec = re.escape(mapsec_map["mapsec"])
+    entry_pattern = re.compile(rf"    \[{mapsec}\] = \{{MAP_GROUP\([^)]+\), MAP_NUM\([^)]+\), [^}}]+\}},")
+    new_entry = mapsec_map_entry(mapsec_map["mapsec"], mapsec_map["map"], mapsec_map["healLocation"])
+    entry_match = entry_pattern.search(body)
+    if entry_match:
+        if entry_match.group(0) == new_entry:
+            return text, False
+        new_body = body[:entry_match.start()] + new_entry + body[entry_match.end():]
+        return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+    separator = "" if body.endswith("\n") else "\n"
+    new_body = body + separator + new_entry
+    return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+
+def update_get_mapsec_type(text: str, type_plan: dict[str, str]) -> tuple[str, bool]:
+    func_match = re.search(
+        r"static u8 GetMapsecType\(mapsec_u16_t mapSecId\)\n\{\n(?P<body>.*?)\n\}\n\nmapsec_u16_t GetRegionMapSecIdAt",
+        text,
+        re.DOTALL,
+    )
+    if not func_match:
+        raise RelinkError("Could not find GetMapsecType in src/region_map.c.")
+
+    body = func_match.group("body")
+    mapsec = re.escape(type_plan["mapsec"])
+    case_pattern = re.compile(rf"    case {mapsec}:\n(?P<body>.*?)(?=\n    case |\n    default:)", re.DOTALL)
+    new_case = (
+        f"    case {type_plan['mapsec']}:\n"
+        f"        return FlagGet({type_plan['flag']}) ? MAPSECTYPE_CITY_CANFLY : MAPSECTYPE_CITY_CANTFLY;"
+    )
+    case_match = case_pattern.search(body)
+    if case_match:
+        old_case = case_match.group(0)
+        if old_case == new_case:
+            return text, False
+        new_body = body[:case_match.start()] + new_case + body[case_match.end():]
+        return text[:func_match.start("body")] + new_body + text[func_match.end("body"):], True
+
+    default_marker = "    default:\n        return MAPSECTYPE_ROUTE;"
+    if default_marker not in body:
+        raise RelinkError("Could not find GetMapsecType default route case.")
+    new_body = body.replace(default_marker, f"{new_case}\n{default_marker}", 1)
+    return text[:func_match.start("body")] + new_body + text[func_match.end("body"):], True
+
+
+def find_fly_location_flag(text: str, mapsec_id: str) -> str | None:
+    array_match = re.search(r"static const struct FlyLocation sFlyLocations\[\] =\n\{\n(?P<body>.*?)\n\};", text, re.DOTALL)
+    if not array_match:
+        return None
+    entry_pattern = re.compile(
+        r"    \{\n"
+        r"        \.regionMapType = [^,]+,\n"
+        rf"        \.mapsec = {re.escape(mapsec_id)},\n"
+        r"        \.flag = (?P<flag>[^,]+),\n"
+        r"    \},"
+    )
+    match = entry_pattern.search(array_match.group("body"))
+    return match.group("flag").strip() if match else None
+
+
+def update_simple_mapsec_array(text: str, array_name: str, mapsec_id: str, enabled: bool) -> tuple[str, bool]:
+    array_match = re.search(rf"static const mapsec_u16_t {array_name}\[\] =\n\{{\n(?P<body>.*?)\n\}};", text, re.DOTALL)
+    if not array_match:
+        if enabled:
+            raise RelinkError(f"Could not find {array_name} array in src/region_map.c.")
+        return text, False
+
+    body = array_match.group("body")
+    entry_pattern = re.compile(rf"^    {re.escape(mapsec_id)},\n?", re.MULTILINE)
+    entry_match = entry_pattern.search(body)
+    if enabled:
+        if entry_match:
+            return text, False
+        sentinel = re.search(r"^    MAPSEC_NONE,?\n?", body, re.MULTILINE)
+        if not sentinel:
+            raise RelinkError(f"Could not find MAPSEC_NONE sentinel in {array_name}.")
+        new_body = body[:sentinel.start()] + f"    {mapsec_id},\n" + body[sentinel.start():]
+        return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+    if not entry_match:
+        return text, False
+    new_body = body[:entry_match.start()] + body[entry_match.end():]
+    return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+
+def red_outline_entry(flag: str, mapsec_id: str) -> str:
+    return (
+        "    {\n"
+        f"        {flag},\n"
+        f"        {mapsec_id}\n"
+        "    },"
+    )
+
+
+def update_red_outline_destinations(text: str, mapsec_id: str, flag: str | None, enabled: bool) -> tuple[str, bool]:
+    array_match = re.search(r"static const mapsec_u16_t sRedOutlineFlyDestinations\[\]\[2\] =\n\{\n(?P<body>.*?)\n\};", text, re.DOTALL)
+    if not array_match:
+        if enabled:
+            raise RelinkError("Could not find sRedOutlineFlyDestinations array in src/region_map.c.")
+        return text, False
+
+    body = array_match.group("body")
+    entry_pattern = re.compile(
+        r"    \{\n"
+        r"        (?P<flag>[^,]+),\n"
+        rf"        {re.escape(mapsec_id)}\n"
+        r"    \},"
+    )
+    entry_match = entry_pattern.search(body)
+    if enabled:
+        if flag is None:
+            flag = find_fly_location_flag(text, mapsec_id)
+        if flag is None:
+            raise RelinkError(f"Cannot infer red-outline flag for {mapsec_id}; pass MAPSEC_ID:red-outline:FLAG_*.")
+        new_entry = red_outline_entry(flag, mapsec_id)
+        if entry_match:
+            if entry_match.group(0) == new_entry:
+                return text, False
+            new_body = body[:entry_match.start()] + new_entry + body[entry_match.end():]
+            return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+        sentinel = re.search(r"    \{\n        -1,\n        MAPSEC_NONE\n    \},?", body)
+        if not sentinel:
+            raise RelinkError("Could not find sRedOutlineFlyDestinations sentinel.")
+        new_body = body[:sentinel.start()] + new_entry + "\n" + body[sentinel.start():]
+        return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+    if not entry_match:
+        return text, False
+    new_body = body[:entry_match.start()] + body[entry_match.end():]
+    return text[:array_match.start("body")] + new_body + text[array_match.end("body"):], True
+
+
+def update_fly_icon_style(text: str, style_plan: dict[str, str | None]) -> tuple[str, bool]:
+    mapsec_id = str(style_plan["mapsec"])
+    style = style_plan["style"]
+    changed = False
+
+    if style == "palette-blink":
+        text, step_changed = update_simple_mapsec_array(text, "sPaletteBlinkFlyDestinations", mapsec_id, True)
+        changed |= step_changed
+        text, step_changed = update_red_outline_destinations(text, mapsec_id, None, False)
+        changed |= step_changed
+    elif style == "red-outline":
+        text, step_changed = update_simple_mapsec_array(text, "sPaletteBlinkFlyDestinations", mapsec_id, False)
+        changed |= step_changed
+        text, step_changed = update_red_outline_destinations(text, mapsec_id, style_plan.get("flag"), True)
+        changed |= step_changed
+    elif style == "stock":
+        text, step_changed = update_simple_mapsec_array(text, "sPaletteBlinkFlyDestinations", mapsec_id, False)
+        changed |= step_changed
+        text, step_changed = update_red_outline_destinations(text, mapsec_id, None, False)
+        changed |= step_changed
+    else:
+        raise RelinkError(f"Unsupported Fly icon style {style!r}.")
+    return text, changed
+
+
+def update_flag_claim(text: str, claim: dict[str, str]) -> tuple[str, bool]:
+    pattern = re.compile(rf"^#define\s+{re.escape(claim['oldFlag'])}\s+(?P<value>\([^)]+\))(?:\s*//.*)?$", re.MULTILINE)
+    match = pattern.search(text)
+    if not match:
+        if re.search(rf"^#define\s+{re.escape(claim['newFlag'])}\b", text, re.MULTILINE):
+            return text, False
+        raise RelinkError(f"Could not find unused flag {claim['oldFlag']} in include/constants/flags.h.")
+    replacement = f"#define {claim['newFlag']:<45} {match.group('value')} // Claimed by map_asset_relinker"
+    return text[:match.start()] + replacement + text[match.end():], True
+
+
+def update_transition_setflag(text: str, map_name: str, flag: str) -> tuple[str, bool]:
+    if f"setflag {flag}" in text:
+        return text, False
+
+    header = f"{map_name}_MapScripts::"
+    header_index = text.find(header)
+    if header_index == -1:
+        raise RelinkError(f"Could not find map script header {header}.")
+
+    byte_index = text.find("\t.byte 0", header_index)
+    if byte_index == -1:
+        raise RelinkError(f"Could not find map script terminator for {map_name}.")
+
+    script_table = text[header_index:byte_index]
+    transition_match = re.search(r"^\tmap_script\s+MAP_SCRIPT_ON_TRANSITION,\s*(?P<label>[A-Za-z0-9_]+)\s*$", script_table, re.MULTILINE)
+    if transition_match:
+        label = transition_match.group("label")
+    else:
+        label = f"{map_name}_OnTransition"
+        insert_at = text.find("\n", header_index) + 1
+        text = text[:insert_at] + f"\tmap_script MAP_SCRIPT_ON_TRANSITION, {label}\n" + text[insert_at:]
+
+    label_pattern = re.compile(rf"^{re.escape(label)}:\n", re.MULTILINE)
+    label_match = label_pattern.search(text)
+    if label_match:
+        insert_at = label_match.end()
+        text = text[:insert_at] + f"\tsetflag {flag}\n" + text[insert_at:]
+    else:
+        if not text.endswith("\n"):
+            text += "\n"
+        text += f"\n{label}:\n\tsetflag {flag}\n\tend\n"
+    return text, True
+
+
 def update_event_scripts(text: str, old_name: str, new_name: str) -> tuple[str, bool]:
     old = f'.include "data/maps/{old_name}/scripts.inc"'
     new = f'.include "data/maps/{new_name}/scripts.inc"'
-    if old not in text:
-        return text, False
-    return text.replace(old, new, 1), True
+    changed = False
+    if old != new and old in text:
+        text = text.replace(old, new)
+        changed = True
+
+    lines = text.splitlines(keepends=True)
+    if not lines:
+        return text, changed
+
+    seen = False
+    normalized_lines: list[str] = []
+    for line in lines:
+        if line.strip() == new:
+            if seen:
+                changed = True
+                continue
+            seen = True
+        normalized_lines.append(line)
+    new_text = "".join(normalized_lines)
+    return new_text, changed
+
+
+def update_script_label_prefixes(text: str, old_prefixes: Iterable[str], new_prefix: str) -> tuple[str, bool]:
+    changed = False
+    for old_prefix in sorted({prefix for prefix in old_prefixes if prefix and prefix != new_prefix}, key=len, reverse=True):
+        pattern = re.compile(rf"(?<![A-Za-z0-9_]){re.escape(old_prefix)}(?=_)")
+        updated_lines: list[str] = []
+        for line in text.splitlines(keepends=True):
+            # Do not rewrite literal dialogue strings when script labels share
+            # a prefix with user-visible text.
+            if line.lstrip().startswith(".string"):
+                updated_lines.append(line)
+                continue
+            updated_line = pattern.sub(new_prefix, line)
+            if updated_line != line:
+                changed = True
+            updated_lines.append(updated_line)
+        text = "".join(updated_lines)
+    return text, changed
 
 
 def iter_all_map_json(root: Path) -> Iterable[Path]:
@@ -722,12 +1476,15 @@ def move_path(root: Path, src_rel: str, dst_rel: str, dry_run: bool) -> None:
     shutil.move(str(src), str(dst))
 
 
-def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: bool) -> None:
+def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: bool, backup_root: str | None) -> None:
     if not allow_dirty and not dry_run:
         check_dirty(root, target_paths_from_plan(root, plan))
 
     for path in target_paths_from_plan(root, plan):
         ensure_not_generated(path, root)
+
+    if not dry_run:
+        create_backup_archive(root, plan, backup_root)
 
     layout_by_old_id = {layout["oldId"]: layout for layout in plan.get("layouts", [])}
 
@@ -755,10 +1512,23 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
             map_plan.get("toGroup"),
             map_plan.get("group"),
         )
+    groups_changed |= drop_empty_map_groups(groups_data, plan.get("dropGroups", []))
     if groups_changed:
         print(f"EDIT {MAP_GROUPS}")
         if not dry_run:
             write_json(groups_path, groups_data)
+
+    mapsec_renames = {mapsec["oldId"]: mapsec["newId"] for mapsec in plan.get("mapsecs", [])}
+    if plan.get("mapsecs"):
+        mapsecs_path = repo_path(root, REGION_MAP_SECTIONS_JSON)
+        mapsecs_data = load_json(mapsecs_path)
+        mapsecs_changed = False
+        for mapsec_plan in plan.get("mapsecs", []):
+            mapsecs_changed |= update_mapsecs_json(mapsecs_data, mapsec_plan)
+        if mapsecs_changed:
+            print(f"EDIT {REGION_MAP_SECTIONS_JSON}")
+            if not dry_run:
+                write_json(mapsecs_path, mapsecs_data)
 
     layouts_path = repo_path(root, LAYOUTS_JSON)
     layouts_data = load_json(layouts_path)
@@ -783,10 +1553,32 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
             old_layout = map_data.get("layout")
             if old_layout in layout_by_old_id:
                 new_layout = layout_by_old_id[old_layout]["newId"]
-        if update_map_json(map_data, old_ids, new_id, new_name, new_layout, map_plan.get("newMapsec")):
+        if update_map_json(map_data, old_ids, new_id, new_name, new_layout, map_plan.get("newMapsec"), map_plan.get("mapType"), map_plan.get("showMapName")):
             print(f"EDIT {MAPS_DIR / new_dir_name / 'map.json'}")
             if not dry_run:
                 write_json(repo_path(root, MAPS_DIR / new_dir_name / "map.json"), map_data)
+
+        if plan.get("options", {}).get("rewriteScriptLabels"):
+            script_path = repo_path(root, MAPS_DIR / (new_dir_name if not dry_run else old_dir_name) / "scripts.inc")
+            if script_path.exists():
+                script_text, changed = update_script_label_prefixes(
+                    read_text(script_path),
+                    map_plan.get("scriptOldPrefixes", [old_dir_name, map_plan["oldName"]]),
+                    new_name,
+                )
+                if changed:
+                    print(f"EDIT {MAPS_DIR / new_dir_name / 'scripts.inc'}")
+                    if not dry_run:
+                        write_text(repo_path(root, MAPS_DIR / new_dir_name / "scripts.inc"), script_text)
+
+        if map_plan.get("transitionSetFlag"):
+            script_path = repo_path(root, MAPS_DIR / (new_dir_name if not dry_run else old_dir_name) / "scripts.inc")
+            if script_path.exists():
+                script_text, changed = update_transition_setflag(read_text(script_path), new_name, map_plan["transitionSetFlag"])
+                if changed:
+                    print(f"EDIT {MAPS_DIR / new_dir_name / 'scripts.inc'}")
+                    if not dry_run:
+                        write_text(repo_path(root, MAPS_DIR / new_dir_name / "scripts.inc"), script_text)
 
         event_scripts = repo_path(root, EVENT_SCRIPTS)
         if event_scripts.exists():
@@ -800,17 +1592,86 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
             if dry_run and map_json.parent.name == old_dir_name:
                 continue
             data = load_json(map_json)
-            if update_map_refs(data, old_ids, new_id):
+            refs_changed = update_map_refs(data, old_ids, new_id)
+            for old_mapsec, new_mapsec in mapsec_renames.items():
+                refs_changed |= update_mapsec_refs(data, old_mapsec, new_mapsec)
+            if refs_changed:
                 print(f"EDIT {rel(map_json, root)}")
                 if not dry_run:
                     write_json(map_json, data)
 
+    region_layouts: dict[str, str] = {}
+    region_layout_changed: dict[str, bool] = {}
+    for cell_plan in plan.get("regionMapCells", []):
+        region = cell_plan["region"]
+        layout_path = REGION_MAP_LAYOUT_FILES[region]
+        if region not in region_layouts:
+            region_layouts[region] = read_text(repo_path(root, layout_path))
+            region_layout_changed[region] = False
+        region_layouts[region], changed = update_region_map_layout(region_layouts[region], cell_plan)
+        region_layout_changed[region] |= changed
+    for region, changed in region_layout_changed.items():
+        if changed:
+            layout_path = REGION_MAP_LAYOUT_FILES[region]
+            print(f"EDIT {layout_path}")
+            if not dry_run:
+                write_text(repo_path(root, layout_path), region_layouts[region])
+
+    if plan.get("flagClaims"):
+        flags_path = repo_path(root, FLAGS_H)
+        flags_text = read_text(flags_path)
+        flags_changed = False
+        for claim in plan.get("flagClaims", []):
+            flags_text, changed = update_flag_claim(flags_text, claim)
+            flags_changed |= changed
+        if flags_changed:
+            print(f"EDIT {FLAGS_H}")
+            if not dry_run:
+                write_text(flags_path, flags_text)
+
+    if plan.get("flyLocations") or plan.get("flyMapsecTypes") or plan.get("flyIconStyles") or plan.get("mapsecMaps"):
+        region_map_c = repo_path(root, REGION_MAP_C)
+        region_map_text = read_text(region_map_c)
+        fly_changed = False
+        for mapsec_map in plan.get("mapsecMaps", []):
+            region_map_text, changed = update_mapsec_map_locations(region_map_text, mapsec_map)
+            fly_changed |= changed
+        for fly_plan in plan.get("flyLocations", []):
+            region_map_text, changed = update_fly_locations(region_map_text, fly_plan)
+            fly_changed |= changed
+        for type_plan in plan.get("flyMapsecTypes", []):
+            region_map_text, changed = update_get_mapsec_type(region_map_text, type_plan)
+            fly_changed |= changed
+        for style_plan in plan.get("flyIconStyles", []):
+            region_map_text, changed = update_fly_icon_style(region_map_text, style_plan)
+            fly_changed |= changed
+        if fly_changed:
+            print(f"EDIT {REGION_MAP_C}")
+            if not dry_run:
+                write_text(region_map_c, region_map_text)
+
     tokens = []
     for map_plan in plan.get("maps", []):
-        tokens.extend(map_plan.get("groupOldNames", []))
-        tokens.extend(map_plan.get("oldIds", [map_plan["oldId"]]))
+        tokens.extend(
+            token
+            for token in map_plan.get("groupOldNames", [])
+            if token and token not in {map_plan["newName"], map_plan.get("newDirName")}
+        )
+        tokens.extend(
+            token
+            for token in map_plan.get("oldIds", [map_plan["oldId"]])
+            if token and token != map_plan["newId"]
+        )
     for layout_plan in plan.get("layouts", []):
-        tokens.extend([layout_plan["oldId"], layout_plan.get("oldName", "")])
+        tokens.extend(
+            token
+            for token in (layout_plan["oldId"], layout_plan.get("oldName", ""))
+            if token and token not in {layout_plan["newId"], layout_plan.get("newName")}
+        )
+    for mapsec_plan in plan.get("mapsecs", []):
+        if mapsec_plan["oldId"] != mapsec_plan["newId"]:
+            tokens.append(mapsec_plan["oldId"])
+    tokens.extend(plan.get("dropGroups", []))
     remaining = scan_text_refs(root, [token for token in tokens if token])
     if remaining:
         print("REVIEW remaining textual references:")
@@ -833,7 +1694,7 @@ def command_plan(args: argparse.Namespace) -> int:
 def command_apply(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     plan = load_plan(Path(args.plan))
-    apply_plan(root, plan, args.dry_run, args.allow_dirty)
+    apply_plan(root, plan, args.dry_run, args.allow_dirty, args.backup_root)
     if args.dry_run:
         print("Dry-run complete; no files changed.")
     else:
@@ -865,13 +1726,33 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--group", help="Preferred map group if the old map is not already grouped.")
     plan.add_argument("--old-map-id", help="Additional old MAP_* id to rewrite when repairing id mismatches.")
     plan.add_argument("--new-map-id", help="Override generated new MAP_* id.")
+    plan.add_argument("--set-map-type", help="Set map.json map_type to a MAP_TYPE_* value.")
+    plan.add_argument("--set-show-map-name", help="Set map.json show_map_name to true or false.")
+    plan.add_argument("--set-transition-setflag", help="Ensure the map's MAP_SCRIPT_ON_TRANSITION sets this FLAG_* value.")
     plan.add_argument("--new-mapsec", help="Set region_map_section on the renamed map.")
+    plan.add_argument("--rename-mapsec", help="Rename a region map section id in OLD:NEW format and rewrite map references.")
+    plan.add_argument("--new-mapsec-name", help="Set the display name while using --rename-mapsec.")
+    plan.add_argument("--set-mapsec-name", help="Set an existing region map section display name in MAPSEC_ID:NAME format.")
+    plan.add_argument("--set-mapsec-bounds", action="append", help="Set mapsec town-map bounds in MAPSEC_ID:X:Y:WIDTH:HEIGHT format. May be repeated.")
+    plan.add_argument("--set-region-map-cell", action="append", help="Set a town-map grid cell in REGION:X:Y:MAPSEC_ID format. REGION is hoenn, kanto, sevii123, sevii45, or sevii67. May be repeated.")
+    plan.add_argument("--ensure-fly-location", action="append", help="Add or update a Fly destination in REGION:MAPSEC_ID:FLAG format. May be repeated.")
+    plan.add_argument("--ensure-fly-mapsec-type", action="append", help="Ensure GetMapsecType treats MAPSEC_ID as a flag-gated Fly target, in MAPSEC_ID:FLAG format. May be repeated.")
+    plan.add_argument("--set-fly-icon-style", action="append", help="Set Fly icon animation style in MAPSEC_ID:STYLE[:FLAG] format. STYLE is stock, palette-blink/blue-blink, or red-outline. May be repeated.")
+    plan.add_argument("--ensure-mapsec-map", action="append", help="Ensure sMapHealLocations maps MAPSEC_ID to MAP_ID and optional HEAL_LOCATION_ID, in MAPSEC_ID:MAP_ID[:HEAL_LOCATION_ID] format. May be repeated.")
+    plan.add_argument("--claim-unused-flag", action="append", help="Rename an existing unused FLAG_* define to a new FLAG_* define in OLD:NEW format. May be repeated.")
+    plan.add_argument("--set-layout-id", help="Set map.json layout without renaming the layout entry. Useful when a map accidentally points at another map's layout.")
+    plan.add_argument("--drop-group", action="append", help="Drop an empty bad map group from map_groups.json. May be repeated.")
+    plan.add_argument("--rewrite-script-labels", action="store_true", help="Rewrite script label prefixes in the selected map's scripts.inc. Literal .string lines are not rewritten.")
+    plan.add_argument("--old-script-prefix", action="append", help="Additional old script label prefix to rewrite when --rewrite-script-labels is set. May be repeated.")
     plan.add_argument("--no-layout-rename", action="store_true", help="Keep the existing layout id/name/path.")
     plan.add_argument("--old-layout-id", help="Override the old layout id when map.json points at the wrong layout.")
     plan.add_argument("--new-layout-id", help="Override generated new LAYOUT_* id.")
     plan.add_argument("--new-layout-name", help="Override generated new layout label.")
+    plan.add_argument("--set-layout-name", help="Set the selected layout label without otherwise changing layout id/path. Pair with --no-layout-rename for metadata-only repair.")
     plan.add_argument("--old-layout-dir", help="Override old layout directory.")
     plan.add_argument("--new-layout-dir", help="Override new layout directory.")
+    plan.add_argument("--set-primary-tileset", help="Set primary_tileset on the selected layout without otherwise changing the layout.")
+    plan.add_argument("--set-secondary-tileset", help="Set secondary_tileset on the selected layout without otherwise changing the layout.")
     plan.add_argument("--out", help="Write plan JSON to this path instead of stdout.")
     plan.set_defaults(func=command_plan)
 
@@ -879,6 +1760,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply.add_argument("plan", help="Path to plan JSON.")
     apply.add_argument("--dry-run", action="store_true", help="Print planned changes without modifying files.")
     apply.add_argument("--allow-dirty", action="store_true", help="Allow applying over dirty target files.")
+    apply.add_argument("--backup-root", help="Directory for automatic .bak.tar archives. Defaults to .map_asset_relinker_backups.")
     apply.set_defaults(func=command_apply)
 
     validate = subparsers.add_parser("validate", help="Run post-apply consistency checks.")

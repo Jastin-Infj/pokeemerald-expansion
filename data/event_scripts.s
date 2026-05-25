@@ -432,6 +432,8 @@ gStdScripts_End::
 	.include "data/maps/AbandonedShip_HiddenFloorRooms/scripts.inc"
 	.include "data/maps/IslandCave/scripts.inc"
 	.include "data/maps/AncientTomb/scripts.inc"
+	.include "data/maps/Tester_1F/scripts.inc"
+	.include "data/maps/Tester_2F/scripts.inc"
 	.include "data/maps/Underwater_Route134/scripts.inc"
 	.include "data/maps/Underwater_SealedChamber/scripts.inc"
 	.include "data/maps/SealedChamber_OuterRoom/scripts.inc"
@@ -1737,3 +1739,11 @@ EventScript_PalletTown_PlayersHouse_2F_TurnOnPC::
 	.include "data/scripts/dexnav.inc"
 	.include "data/scripts/battle_frontier.inc"
 	.include "data/scripts/apricorn_tree.inc"
+
+	.include "data/maps/Tester_3F/scripts.inc"
+
+	.include "data/maps/DS_LITE_1F/scripts.inc"
+
+	.include "data/maps/Route301/scripts.inc"
+
+	.include "data/maps/Sample1/scripts.inc"
