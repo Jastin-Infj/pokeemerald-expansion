@@ -7,6 +7,27 @@ For the investigation branch:
 - `rtk mdbook build docs`
 - Confirm docs-only diff before any master PR.
 
+## Current Tool Smoke Tests
+
+Implemented on `feature/map-asset-relinker-20260525`:
+
+| Test | Command | Expected |
+|---|---|---|
+| Help output | `python3 tools/map_asset_relinker/map_relink.py --help` | CLI lists `audit`, `plan`, `apply`, and `validate`. |
+| Master audit | `python3 tools/map_asset_relinker/map_relink.py audit` | Completes without modifying files. Existing repo issues, if any, are reported as diagnostics. |
+| Existing map dry-run plan | `python3 tools/map_asset_relinker/map_relink.py plan --map LittlerootTown:LittlerootTown_Test --out /tmp/map_relink_plan.json` | Plan infers old map id/layout and writes reviewable JSON. |
+| Dry-run apply | `python3 tools/map_asset_relinker/map_relink.py apply --dry-run /tmp/map_relink_plan.json` | Prints map/layout move and edit list without changing files. |
+| JSON plan validity | `python3 -m json.tool /tmp/map_relink_plan.json` | Plan is valid JSON. |
+| Fixture apply | Copy `data/maps`, `data/layouts`, and `data/event_scripts.s` to `/tmp`; run real `apply --allow-dirty` there | Old map dir is removed, new map dir exists, renamed map JSON is valid, and `validate` completes with only existing warnings. |
+
+Current `audit` warnings on `master` are pre-existing:
+
+- `Route19_UnusedHouse_Frlg`, `Route23_UnusedHouse`,
+  `Route6_UnusedHouse_Frlg`, and `SevenIsland_UnusedHouse` exist but are not
+  listed in `map_groups.json`.
+- `Route19_UnusedHouse_Frlg/scripts.inc` is not included by
+  `data/event_scripts.s`.
+
 ## Future Tool Tests
 
 | Test | Setup | Expected |

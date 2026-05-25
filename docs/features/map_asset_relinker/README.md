@@ -43,6 +43,7 @@ rename 中心で、標準ライブラリだけで dry-run と atomic-ish な更�
 
 - `docs/features/map_asset_relinker/investigation.md`
 - `docs/features/map_asset_relinker/mvp_plan.md`
+- `docs/features/map_asset_relinker/implementation.md`
 - `docs/features/map_asset_relinker/risks.md`
 - `docs/features/map_asset_relinker/test_plan.md`
 - `docs/flows/map_creation_flow_v15.md`

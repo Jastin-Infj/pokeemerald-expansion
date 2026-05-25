@@ -132,6 +132,7 @@
     - [Map Asset Relinker](features/map_asset_relinker/README.md)
       - [Investigation](features/map_asset_relinker/investigation.md)
       - [MVP Plan](features/map_asset_relinker/mvp_plan.md)
+      - [Implementation](features/map_asset_relinker/implementation.md)
       - [Risks](features/map_asset_relinker/risks.md)
       - [Test Plan](features/map_asset_relinker/test_plan.md)
     - [Party / Status UI Overhaul](features/party_status_ui_overhaul/README.md)
