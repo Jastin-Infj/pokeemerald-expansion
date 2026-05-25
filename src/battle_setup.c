@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "champions_run_session.h"
 #include "load_save.h"
 #include "battle_setup.h"
 #include "battle_tower.h"
@@ -80,6 +81,7 @@ static void CB2_EndFirstBattle(void);
 static void SaveChangesToPlayerParty(void);
 static void HandleBattleVariantEndParty(void);
 static void CB2_EndTrainerBattle(void);
+static void SetMainCallback2ToChampionsRunStartLocation(void);
 static bool32 IsPlayerDefeated(u32 battleOutcome);
 #if FREE_MATCH_CALL == FALSE
 static u16 GetRematchTrainerId(u16 trainerId);
@@ -657,7 +659,10 @@ static void CB2_EndWildBattle(void)
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE && CurrentBattlePyramidLocation() == PYRAMID_LOCATION_NONE && !InBattlePike())
     {
-        SetMainCallback2(CB2_WhiteOut);
+        if (ChampionsRun_EndByBattleOutcome(gBattleOutcome))
+            SetMainCallback2ToChampionsRunStartLocation();
+        else
+            SetMainCallback2(CB2_WhiteOut);
     }
     else
     {
@@ -674,7 +679,9 @@ static void CB2_EndScriptedWildBattle(void)
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE)
     {
-        if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE)
+        if (ChampionsRun_EndByBattleOutcome(gBattleOutcome))
+            SetMainCallback2ToChampionsRunStartLocation();
+        else if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE)
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         else
             SetMainCallback2(CB2_WhiteOut);
@@ -693,7 +700,10 @@ static void CB2_EndMarowakBattle(void)
 
     if (IsPlayerDefeated(gBattleOutcome))
     {
-        SetMainCallback2(CB2_WhiteOut);
+        if (ChampionsRun_EndByBattleOutcome(gBattleOutcome))
+            SetMainCallback2ToChampionsRunStartLocation();
+        else
+            SetMainCallback2(CB2_WhiteOut);
     }
     else
     {
@@ -1035,6 +1045,12 @@ static bool32 IsPlayerDefeated(u32 battleOutcome)
     default:
         return FALSE;
     }
+}
+
+static void SetMainCallback2ToChampionsRunStartLocation(void)
+{
+    gMain.state = 0;
+    SetMainCallback2(CB2_LoadMap);
 }
 
 void ResetTrainerOpponentIds(void)
@@ -1439,6 +1455,12 @@ static void CB2_EndTrainerBattle(void)
             HealPlayerParty();
     }
 
+    if (IsPlayerDefeated(gBattleOutcome) == TRUE && ChampionsRun_EndByBattleOutcome(gBattleOutcome))
+    {
+        SetMainCallback2ToChampionsRunStartLocation();
+        return;
+    }
+
     if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
     {
         if (IsPlayerDefeated(gBattleOutcome) == TRUE)
@@ -1502,7 +1524,10 @@ static void CB2_EndRematchBattle(void)
     }
     else if (IsPlayerDefeated(gBattleOutcome) == TRUE)
     {
-        SetMainCallback2(CB2_WhiteOut);
+        if (ChampionsRun_EndByBattleOutcome(gBattleOutcome))
+            SetMainCallback2ToChampionsRunStartLocation();
+        else
+            SetMainCallback2(CB2_WhiteOut);
     }
     else
     {
@@ -2130,4 +2155,3 @@ void SetMultiTrainerBattle(struct ScriptContext *ctx)
     TRAINER_BATTLE_PARAM.defeatTextB = (u8*)ScriptReadWord(ctx);
     gPartnerTrainerId = TRAINER_PARTNER(ScriptReadHalfword(ctx));
 };
-

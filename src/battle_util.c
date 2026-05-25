@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "champions_run_session.h"
 #include "battle_anim.h"
 #include "battle_arena.h"
 #include "battle_environment.h"
@@ -10821,6 +10822,9 @@ bool32 IsBattlerInvalidForSpreadMove(enum BattlerId battlerAtk, enum BattlerId b
 
 bool32 IsAllowedToUseBag(void)
 {
+    if (ChampionsRun_ShouldBlockBagUse())
+        return FALSE;
+
     switch (VarGet(B_VAR_NO_BAG_USE))
     {
     case NO_BAG_RESTRICTION:

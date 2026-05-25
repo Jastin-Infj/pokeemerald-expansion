@@ -203,26 +203,76 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
+	special ChampionsRun_DebugBegin
+	goto_if_eq VAR_RESULT, TRUE, Debug_EventScript_ChampionsRunBeginSuccess
+	msgbox Debug_Text_ChampionsRunBeginFailed, MSGBOX_DEFAULT
+	release
+	end
+
+Debug_EventScript_ChampionsRunBeginSuccess:
+	msgbox Debug_Text_ChampionsRunBeginSuccess, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_2::
+	special ChampionsRun_DebugGiveRunMon
+	goto_if_eq VAR_RESULT, TRUE, Debug_EventScript_ChampionsRunGiveSuccess
+	msgbox Debug_Text_ChampionsRunGiveFailed, MSGBOX_DEFAULT
+	release
+	end
+
+Debug_EventScript_ChampionsRunGiveSuccess:
+	msgbox Debug_Text_ChampionsRunGiveSuccess, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_3::
+	special ChampionsRun_DebugSaveCheckpoint
+	goto_if_eq VAR_RESULT, TRUE, Debug_EventScript_ChampionsRunSaveSuccess
+	msgbox Debug_Text_ChampionsRunSaveFailed, MSGBOX_DEFAULT
+	release
+	end
+
+Debug_EventScript_ChampionsRunSaveSuccess:
+	msgbox Debug_Text_ChampionsRunSaveSuccess, MSGBOX_DEFAULT
 	release
 	end
 
 Debug_EventScript_Script_4::
+	special ChampionsRun_DebugRestoreNormal
+	goto_if_eq VAR_RESULT, TRUE, Debug_EventScript_ChampionsRunRestoreSuccess
+	msgbox Debug_Text_ChampionsRunRestoreFailed, MSGBOX_DEFAULT
+	release
+	end
+
+Debug_EventScript_ChampionsRunRestoreSuccess:
+	msgbox Debug_Text_ChampionsRunRestoreSuccess, MSGBOX_DEFAULT
+	special ChampionsRun_ReloadMapAfterRestore
 	release
 	end
 
 Debug_EventScript_Script_5::
+	special ChampionsRun_DebugPrepareLoseTest
+	goto_if_eq VAR_RESULT, TRUE, Debug_EventScript_ChampionsRunLoseTestStart
+	msgbox Debug_Text_ChampionsRunLoseTestFailed, MSGBOX_DEFAULT
+	release
+	end
+
+Debug_EventScript_ChampionsRunLoseTestStart:
+	cleartrainerflag TRAINER_STEVEN
+	trainerbattle_no_intro TRAINER_STEVEN, Debug_Text_ChampionsRunLoseTestWin
 	release
 	end
 
 Debug_EventScript_Script_6::
+	special ChampionsRun_DebugClear
+	goto_if_eq VAR_RESULT, TRUE, Debug_EventScript_ChampionsRunClearSuccess
+	msgbox Debug_Text_ChampionsRunClearFailed, MSGBOX_DEFAULT
+	release
+	end
+
+Debug_EventScript_ChampionsRunClearSuccess:
+	msgbox Debug_Text_ChampionsRunClearSuccess, MSGBOX_DEFAULT
 	release
 	end
 
@@ -233,6 +283,42 @@ Debug_EventScript_Script_7::
 Debug_EventScript_Script_8::
 	release
 	end
+
+Debug_Text_ChampionsRunBeginSuccess:
+	.string "Champions run started.\nParty, bag, and money were cleared.$"
+
+Debug_Text_ChampionsRunBeginFailed:
+	.string "Champions run could not start.\nCheck whether a run is already active.$"
+
+Debug_Text_ChampionsRunGiveSuccess:
+	.string "Debug Dragonite was added and\ncheckpointed.$"
+
+Debug_Text_ChampionsRunGiveFailed:
+	.string "Debug Dragonite could not be added.\nStart a Champions run first.$"
+
+Debug_Text_ChampionsRunSaveSuccess:
+	.string "Champions checkpoint saved.$"
+
+Debug_Text_ChampionsRunSaveFailed:
+	.string "Champions checkpoint failed.$"
+
+Debug_Text_ChampionsRunRestoreSuccess:
+	.string "Champions run retired.\nReturned to the start point.$"
+
+Debug_Text_ChampionsRunRestoreFailed:
+	.string "No active Champions run was retired.$"
+
+Debug_Text_ChampionsRunLoseTestWin:
+	.string "Steven was defeated.\nThe run is still active.$"
+
+Debug_Text_ChampionsRunLoseTestFailed:
+	.string "Champions loss test could not start.\nCheck save or checkpoint state.$"
+
+Debug_Text_ChampionsRunClearSuccess:
+	.string "Champions run cleared.\nParty rewards were stored in PC.$"
+
+Debug_Text_ChampionsRunClearFailed:
+	.string "Champions clear failed.\nCheck active run or PC space.$"
 
 Debug_CheckSaveBlock::
 	callnative CheckSaveBlock1Size

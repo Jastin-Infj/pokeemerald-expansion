@@ -4,13 +4,13 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-20 |
-| Baseline | `master` `4125f7c4d5`; partygen implementation exists on `feature/trainer-partygen-catalog-expansion` |
-| Code status | Runtime not on `master`; partygen branch implementation exists; run session restore is docs-only investigation |
+| Last reviewed | 2026-05-25 |
+| Baseline | `master` `5b8ced1883`; partygen implementation exists on `feature/trainer-partygen-catalog-expansion` |
+| Code status | Runtime not on `master`; run session restore MVP is implemented on `feature/champions-run-session-runtime-20260524` |
 | Provenance | Local project feature docs |
 
-Status: Planned
-Code status: runtime not on `master`; partygen CLI / catalog implementation exists on `feature/trainer-partygen-catalog-expansion`
+Status: Run session restore MVP implemented on feature branch
+Code status: runtime not on `master`; run session restore MVP exists on `feature/champions-run-session-runtime-20260524`; partygen CLI / catalog implementation exists on `feature/trainer-partygen-catalog-expansion`
 
 ## Goal
 
@@ -24,12 +24,13 @@ Pokemon Champions / Battle Factory / Battle Pyramid 風の、専用ルールで�
 4. 6 匹そろったら Lv.50 ルールで battle を開始する。
 5. 戦闘では EXP を得ない。
 6. 勝利したら次の battle / 報酬 / 編成へ進む。
-7. 敗北したら release / run-end policy により挑戦中の Pokemon を失い、通常の手持ちとバッグを復元して終了する。
+7. 敗北したら checkpoint から再開せず、run 開始地点へ戻り、通常の手持ちとバッグを復元して終了する。
 
 ## Primary Docs
 
 - `docs/features/champions_challenge/investigation.md`
 - `docs/features/champions_challenge/run_session_restore.md`
+- `docs/features/champions_challenge/implementation.md`
 - `docs/features/champions_challenge/mvp_plan.md`
 - `docs/features/champions_challenge/risks.md`
 - `docs/features/champions_challenge/test_plan.md`
@@ -72,6 +73,16 @@ Battle Frontier 型の中断 / 復帰 / 退避 / 復元 contract を追加調査
   snapshot がもう 1 個必要になり、MVP では現実的でない。
 - 最初の runtime slice は、通常 party / bag を Champions 専用 state へ保存し、
   active run 中は通常 PC を閉じる contract が安全。
+- 実装中の runtime slice では、battle loss / draw / forfeit を通常 whiteout
+  前に捕捉し、run-start warp と通常 snapshot へ戻す。checkpoint は中断 /
+  電源断復帰用であり、敗北 retry point ではない。
+- Active run 中は通常 EXP、field / battle Bag、party menu の held-item 変更を
+  runtime helper で抑止する。
+- Clear 後の次回開始 party は config で切り替える。default は 0 匹開始で、
+  必要に応じて前回 clear party を PC slot から再利用する mode、または現在の
+  通常 party をそのまま run party にする mode を選べる。
+- Clear 時の held item は、破棄 / deposited Pokemon に保持 / 通常 bag へ移す
+  mode を `CHAMPIONS_RUN_CLEAR_HELD_ITEM_MODE` で選ぶ。
 
 このため、Champions runtime 実装の最初の gate は「施設 UI」よりも
 `ChampionsRunSession` 相当の保存先、checkpoint helper、restore helper を
@@ -109,16 +120,21 @@ Champions trainer ID の固定リストを増やさずに済む。
 
 ## Current Priority
 
-先行優先は **party generator** とする。理由は、challenge state / map / NPC / battle aftercare より ROM runtime への影響が小さく、仕様が後で変わっても catalog / weight / validation の形を応用しやすいため。
+`feature/champions-run-session-runtime-20260524` で run session restore の
+MVP は debug route まで実装済み。次の優先は **実施設 script への接続** と
+**active checkpoint resume の実機検証**。
 
-最初は game build へ深く接続しない。generator は copy-paste 可能な generated `.party` fragment、validation report、diff report を出すところまでを第一到達点にする。設計が固まるまでは `src/data/trainers.party` を直接置き換えず、予約出力として `src/data/generated/champions_trainers.party` 相当を作る。
+実装順の推奨:
 
-作業方針:
-
-- 未確定仕様、思いつき、リスク、後続案は一旦 docs に入れる。
-- 確定したものだけ MVP plan / contract / implementation task に移す。
-- generator core は先に作れるが、map 配置、trainer ID、旅順、battle rule は docs 側で仮 catalog として扱う。
-- ROM 側の runtime 実装は、generated output と challenge rule が review できる状態になってから接続する。
+1. 受付 / NPC / Scout Selection / Pokemon Vendor などの実際の入口から
+   `ChampionsRun_BeginEntryReport()`、`ChampionsRun_SaveCheckpoint()`、
+   `ChampionsRun_CompleteClearAndSave()` を呼ぶ。
+2. debug script ではなく、施設の clear / retire / loss / suspend flow で
+   同じ restore contract を通す。
+3. active checkpoint を保存した状態で mGBA を止め、Continue 後に run party /
+   run bag / map state が復帰することを検証する。
+4. partygen / battle selection は run session の保存 contract に接続する形で
+   進める。generated trainer catalog は引き続き別 feature として管理する。
 
 ### Party Generator Baseline Summary
 
