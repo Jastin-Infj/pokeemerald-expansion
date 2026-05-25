@@ -24,3 +24,20 @@ export type ProjectSummary = {
   maps: MapSummary[];
   warnings: string[];
 };
+
+export type PlanOptions = {
+  root: string;
+  oldName: string;
+  newName: string;
+  targetGroup: string;
+  renameLayout: boolean;
+  rewriteScriptLabels: boolean;
+};
+
+export type DryRunResult = {
+  planPath: string;
+  planStdout: string;
+  dryRunStdout: string;
+  stderr: string;
+  command: string;
+};

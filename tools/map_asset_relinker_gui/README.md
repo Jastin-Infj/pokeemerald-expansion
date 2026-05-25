@@ -16,10 +16,12 @@ opening a browser or remembering a localhost URL.
   `src/data/region_map/region_map_sections.json`.
 - Show map, group, layout, mapsec, map type, popup, and audit warning state.
 - Filter maps and generate a reviewable CLI plan command for a selected map.
+- Run the existing CLI `plan` plus `apply --dry-run` flow and display the
+  planned moves/edits without changing source files.
 - Keep the GUI read-only while the CLI remains the write path.
 
-Future slices can call `tools/map_asset_relinker/map_relink.py plan` and
-`apply --dry-run` from the Rust side after the plan preview UI is ready.
+Future slices can add guarded real apply. That should keep the existing backup
+archive behavior and require an explicit confirmation step after dry-run review.
 
 ## Development
 

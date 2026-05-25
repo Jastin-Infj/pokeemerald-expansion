@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ProjectSummary } from "./types";
+import type { DryRunResult, PlanOptions, ProjectSummary } from "./types";
 
 declare global {
   interface Window {
@@ -21,4 +21,22 @@ export async function scanProject(root: string | null): Promise<ProjectSummary> 
     throw new Error(await response.text());
   }
   return (await response.json()) as ProjectSummary;
+}
+
+export async function runDryRunPlan(options: PlanOptions): Promise<DryRunResult> {
+  if (window.__TAURI_INTERNALS__) {
+    return invoke<DryRunResult>("run_plan_dry_run", { options });
+  }
+
+  const response = await fetch("/api/dry-run", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(options),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as DryRunResult;
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { scanProject } from "./backend";
-import type { MapSummary, ProjectSummary } from "./types";
+import { runDryRunPlan, scanProject } from "./backend";
+import type { DryRunResult, MapSummary, ProjectSummary } from "./types";
 
 const emptySummary: ProjectSummary = {
   root: "",
@@ -136,7 +136,11 @@ function App() {
         </aside>
 
         <section className="detailPane">
-          {selected ? <MapDetail map={selected} /> : <EmptyState />}
+          {selected ? (
+            <MapDetail map={selected} projectRoot={summary.root} />
+          ) : (
+            <EmptyState />
+          )}
         </section>
 
         <aside className="auditPane">
@@ -176,17 +180,27 @@ function Metric({
   );
 }
 
-function MapDetail({ map }: { map: MapSummary }) {
+function MapDetail({
+  map,
+  projectRoot,
+}: {
+  map: MapSummary;
+  projectRoot: string;
+}) {
   const [newName, setNewName] = useState("");
   const [targetGroup, setTargetGroup] = useState(map.group ?? "");
   const [renameLayout, setRenameLayout] = useState(true);
   const [rewriteScriptLabels, setRewriteScriptLabels] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [dryRunStatus, setDryRunStatus] = useState("Not run");
+  const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
 
   useEffect(() => {
     setNewName(map.name);
     setTargetGroup(map.group ?? "");
     setCopied(false);
+    setDryRunStatus("Not run");
+    setDryRunResult(null);
   }, [map.name, map.group]);
 
   const command = useMemo(() => {
@@ -203,6 +217,40 @@ function MapDetail({ map }: { map: MapSummary }) {
     await navigator.clipboard.writeText(command);
     setCopied(true);
   }, [command]);
+
+  const runDryRun = useCallback(async () => {
+    setDryRunStatus("Running");
+    setDryRunResult(null);
+    try {
+      const result = await runDryRunPlan({
+        root: projectRoot,
+        oldName: map.name,
+        newName: newName.trim() || map.name,
+        targetGroup: targetGroup.trim(),
+        renameLayout,
+        rewriteScriptLabels,
+      });
+      setDryRunResult(result);
+      setDryRunStatus("Dry-run complete");
+    } catch (err) {
+      setDryRunStatus("Dry-run failed");
+      setDryRunResult({
+        planPath: "",
+        planStdout: "",
+        dryRunStdout: "",
+        stderr: err instanceof Error ? err.message : String(err),
+        command,
+      });
+    }
+  }, [
+    command,
+    map.name,
+    newName,
+    projectRoot,
+    renameLayout,
+    rewriteScriptLabels,
+    targetGroup,
+  ]);
 
   return (
     <div className="mapDetail">
@@ -240,7 +288,7 @@ function MapDetail({ map }: { map: MapSummary }) {
       <div className="planPanel">
         <div className="planHeader">
           <h3>Plan Preview</h3>
-          <span>dry-run first</span>
+          <span>{dryRunStatus}</span>
         </div>
         <div className="planControls">
           <label>
@@ -291,9 +339,22 @@ function MapDetail({ map }: { map: MapSummary }) {
         <pre>{command}</pre>
         <div className="actionRail">
           <button onClick={copyCommand}>{copied ? "Copied" : "Copy Command"}</button>
-          <button disabled>Run Dry-Run</button>
+          <button onClick={runDryRun} disabled={!projectRoot || dryRunStatus === "Running"}>
+            Run Dry-Run
+          </button>
           <button disabled>Apply With Backup</button>
         </div>
+        {dryRunResult ? (
+          <div className="dryRunOutput">
+            <h3>Dry-Run Output</h3>
+            <p>{dryRunResult.planPath ? `Plan: ${dryRunResult.planPath}` : "No plan file"}</p>
+            <pre>
+              {[dryRunResult.dryRunStdout, dryRunResult.stderr]
+                .filter(Boolean)
+                .join("\n")}
+            </pre>
+          </div>
+        ) : null}
       </div>
     </div>
   );

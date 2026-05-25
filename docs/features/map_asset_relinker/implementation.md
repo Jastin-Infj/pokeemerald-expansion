@@ -243,8 +243,10 @@ Current GUI scope is read-only:
 - show map/group/layout/mapsec relationships and selected-map warnings;
 - filter map rows and generate a reviewable CLI plan command for the selected
   map, including target group, layout rename, and script-label rewrite options;
-- keep all write operations on the existing Python CLI until plan preview and
-  backup review controls are implemented.
+- run the existing Python CLI `plan` and `apply --dry-run` flow from the GUI
+  and display the resulting planned moves/edits without changing source files;
+- keep real apply disabled until backup review and explicit confirmation
+  controls are implemented.
 
 The intended next GUI slice is to have Rust orchestrate
 `tools/map_asset_relinker/map_relink.py plan` and `apply --dry-run`, then show
@@ -262,6 +264,10 @@ Validation status for this scaffold:
   selects the live test map and generates the expected dry-run command for a
   `Route301:Route401` plan with `--to-group gMapGroup_TownsAndRoutes` and
   `--rewrite-script-labels`.
+- The Playwright Route301 dry-run button calls the existing CLI via the dev API,
+  creates `/tmp/route401_relink_*.json`, and displays the planned layout/map
+  moves plus map group, layout, map JSON, script include, and script label
+  edits. The CLI reports `Dry-run complete; no files changed.`
 - A 1040x720 Playwright viewport confirms the two-column layout path with the
   audit pane moved to a full-width row and no page-level overflow.
 - `cargo check --manifest-path src-tauri/Cargo.toml` currently stops before

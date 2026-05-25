@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 type JsonValue =
   | null
@@ -50,6 +52,23 @@ export type ProjectSummary = {
   warningCount: number;
   maps: MapSummary[];
   warnings: string[];
+};
+
+export type PlanOptions = {
+  root: string;
+  oldName: string;
+  newName: string;
+  targetGroup: string;
+  renameLayout: boolean;
+  rewriteScriptLabels: boolean;
+};
+
+export type DryRunResult = {
+  planPath: string;
+  planStdout: string;
+  dryRunStdout: string;
+  stderr: string;
+  command: string;
 };
 
 export function scanProjectFromNode(root?: string | null): ProjectSummary {
@@ -194,6 +213,57 @@ export function scanProjectFromNode(root?: string | null): ProjectSummary {
   };
 }
 
+export function runDryRunPlanFromNode(options: PlanOptions): DryRunResult {
+  const projectRoot = resolveProjectRoot(options.root);
+  const safeName = sanitizeForFile(options.newName || options.oldName || "map");
+  const planPath = path.join(os.tmpdir(), `${safeName}_relink_${Date.now()}.json`);
+  const scriptPath = path.join(projectRoot, "tools/map_asset_relinker/map_relink.py");
+  const python = process.env.PYTHON || "python3";
+
+  const planArgs = [
+    scriptPath,
+    "--root",
+    projectRoot,
+    "plan",
+    "--map",
+    `${options.oldName}:${options.newName}`,
+  ];
+  if (options.targetGroup) {
+    planArgs.push("--to-group", options.targetGroup);
+  }
+  if (!options.renameLayout) {
+    planArgs.push("--no-layout-rename");
+  }
+  if (options.rewriteScriptLabels) {
+    planArgs.push("--rewrite-script-labels");
+  }
+  planArgs.push("--out", planPath);
+
+  const plan = runPythonCommand(python, planArgs, projectRoot);
+  const dryRunArgs = [
+    scriptPath,
+    "--root",
+    projectRoot,
+    "apply",
+    "--dry-run",
+    planPath,
+  ];
+  const dryRun = runPythonCommand(python, dryRunArgs, projectRoot);
+
+  return {
+    planPath,
+    planStdout: plan.stdout,
+    dryRunStdout: dryRun.stdout,
+    stderr: [plan.stderr, dryRun.stderr].filter(Boolean).join("\n"),
+    command: `${[python, ...planArgs].map(shellQuote).join(" ")}\n${[
+      python,
+      ...dryRunArgs,
+    ]
+      .map(shellQuote)
+      .join(" ")}`,
+  };
+}
+
 function resolveProjectRoot(root?: string | null): string {
   if (root) {
     const resolved = path.resolve(root);
@@ -302,4 +372,45 @@ function numberField(value: JsonObject, key: string): number | null {
 function booleanField(value: JsonObject, key: string): boolean | null {
   const field = value[key];
   return typeof field === "boolean" ? field : null;
+}
+
+function runPythonCommand(
+  python: string,
+  args: string[],
+  cwd: string,
+): { stdout: string; stderr: string } {
+  const result = spawnSync(python, args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8,
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      [
+        `${python} ${args.map(shellQuote).join(" ")} failed with exit ${result.status}`,
+        result.stdout,
+        result.stderr,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    );
+  }
+  return {
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
+
+function sanitizeForFile(value: string): string {
+  return value.replace(/[^A-Za-z0-9_]+/g, "_").toLowerCase() || "map";
+}
+
+function shellQuote(value: string): string {
+  if (/^[A-Za-z0-9_./:=-]+$/.test(value)) {
+    return value;
+  }
+  return `'${value.replace(/'/g, "'\\''")}'`;
 }

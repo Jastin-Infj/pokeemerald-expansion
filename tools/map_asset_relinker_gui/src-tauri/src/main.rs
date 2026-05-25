@@ -1,9 +1,10 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +35,27 @@ struct MapSummary {
     group: Option<String>,
     group_count: usize,
     issues: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlanOptions {
+    root: String,
+    old_name: String,
+    new_name: String,
+    target_group: String,
+    rename_layout: bool,
+    rewrite_script_labels: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DryRunResult {
+    plan_path: String,
+    plan_stdout: String,
+    dry_run_stdout: String,
+    stderr: String,
+    command: String,
 }
 
 #[derive(Debug, Clone)]
@@ -212,6 +234,70 @@ fn scan_project(root: Option<String>) -> Result<ProjectSummary, String> {
     })
 }
 
+#[tauri::command]
+fn run_plan_dry_run(options: PlanOptions) -> Result<DryRunResult, String> {
+    let root = resolve_project_root(Some(options.root))?;
+    let safe_name = sanitize_for_file(if options.new_name.is_empty() {
+        &options.old_name
+    } else {
+        &options.new_name
+    });
+    let plan_path = env::temp_dir().join(format!(
+        "{safe_name}_relink_{}.json",
+        chrono_like_timestamp()
+    ));
+    let script_path = root.join("tools/map_asset_relinker/map_relink.py");
+    let python = env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
+
+    let mut plan_args = vec![
+        script_path.display().to_string(),
+        "--root".to_string(),
+        root.display().to_string(),
+        "plan".to_string(),
+        "--map".to_string(),
+        format!("{}:{}", options.old_name, options.new_name),
+    ];
+    if !options.target_group.is_empty() {
+        plan_args.push("--to-group".to_string());
+        plan_args.push(options.target_group.clone());
+    }
+    if !options.rename_layout {
+        plan_args.push("--no-layout-rename".to_string());
+    }
+    if options.rewrite_script_labels {
+        plan_args.push("--rewrite-script-labels".to_string());
+    }
+    plan_args.push("--out".to_string());
+    plan_args.push(plan_path.display().to_string());
+
+    let plan = run_python_command(&python, &plan_args, &root)?;
+    let dry_run_args = vec![
+        script_path.display().to_string(),
+        "--root".to_string(),
+        root.display().to_string(),
+        "apply".to_string(),
+        "--dry-run".to_string(),
+        plan_path.display().to_string(),
+    ];
+    let dry_run = run_python_command(&python, &dry_run_args, &root)?;
+
+    Ok(DryRunResult {
+        plan_path: plan_path.display().to_string(),
+        plan_stdout: plan.0,
+        dry_run_stdout: dry_run.0,
+        stderr: [plan.1, dry_run.1]
+            .into_iter()
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n"),
+        command: format!(
+            "{}\n{}",
+            command_line(&python, &plan_args),
+            command_line(&python, &dry_run_args)
+        ),
+    })
+}
+
 fn resolve_project_root(root: Option<String>) -> Result<PathBuf, String> {
     if let Some(root) = root {
         let root = PathBuf::from(root);
@@ -311,9 +397,77 @@ fn check_layout_path(
     }
 }
 
+fn run_python_command(
+    python: &str,
+    args: &[String],
+    cwd: &Path,
+) -> Result<(String, String), String> {
+    let output = Command::new(python)
+        .args(args)
+        .current_dir(cwd)
+        .output()
+        .map_err(|err| format!("failed to run {python}: {err}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    if !output.status.success() {
+        return Err(format!(
+            "{} failed with {}\n{}\n{}",
+            command_line(python, args),
+            output.status,
+            stdout,
+            stderr
+        ));
+    }
+    Ok((stdout, stderr))
+}
+
+fn sanitize_for_file(value: &str) -> String {
+    let sanitized = value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' {
+                ch.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    if sanitized.is_empty() {
+        "map".to_string()
+    } else {
+        sanitized
+    }
+}
+
+fn chrono_like_timestamp() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0)
+}
+
+fn command_line(program: &str, args: &[String]) -> String {
+    std::iter::once(program.to_string())
+        .chain(args.iter().cloned())
+        .map(|arg| shell_quote(&arg))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn shell_quote(value: &str) -> String {
+    if value
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || "_./:=-".contains(ch))
+    {
+        value.to_string()
+    } else {
+        format!("'{}'", value.replace('\'', "'\\''"))
+    }
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![scan_project])
+        .invoke_handler(tauri::generate_handler![scan_project, run_plan_dry_run])
         .run(tauri::generate_context!())
         .expect("error while running Map Asset Relinker GUI");
 }
