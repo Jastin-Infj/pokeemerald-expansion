@@ -14,7 +14,9 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Test | Command | Expected |
 |---|---|---|
 | Help output | `python3 tools/map_asset_relinker/map_relink.py --help` | CLI lists `audit`, `plan`, `apply`, and `validate`. |
+| Shell wrapper help | `tools/map_asset_relinker/map_relink.sh --help` | Wrapper delegates to the Python CLI and lists the same subcommands. |
 | Master audit | `python3 tools/map_asset_relinker/map_relink.py audit` | Completes without modifying files. Existing repo issues, if any, are reported as diagnostics. |
+| Shell wrapper audit | `tools/map_asset_relinker/map_relink.sh audit` | Completes with the same diagnostics as direct Python invocation. |
 | Existing map dry-run plan | `python3 tools/map_asset_relinker/map_relink.py plan --map LittlerootTown:LittlerootTown_Test --out /tmp/map_relink_plan.json` | Plan infers old map id/layout and writes reviewable JSON. |
 | Dry-run apply | `python3 tools/map_asset_relinker/map_relink.py apply --dry-run /tmp/map_relink_plan.json` | Prints map/layout move and edit list without changing files. |
 | JSON plan validity | `python3 -m json.tool /tmp/map_relink_plan.json` | Plan is valid JSON. |

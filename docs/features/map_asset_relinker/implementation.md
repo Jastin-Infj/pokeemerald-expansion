@@ -6,7 +6,7 @@
 |---|---|
 | Branch | `feature/map-asset-relinker-20260525` |
 | Status | Initial tool implementation |
-| Primary files | `tools/map_asset_relinker/map_relink.py`, `tools/map_asset_relinker/README.md` |
+| Primary files | `tools/map_asset_relinker/map_relink.py`, `tools/map_asset_relinker/map_relink.sh`, `tools/map_asset_relinker/README.md` |
 | Last updated | 2026-05-25 |
 
 ## Implemented Commands
@@ -18,6 +18,20 @@
 | `apply --dry-run` | Prints planned directory moves, JSON edits, script include edits, and remaining textual references without modifying files. |
 | `apply` | Moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
 | `validate` | Runs the same consistency checks as `audit` after edits. |
+
+## Wrapper
+
+`tools/map_asset_relinker/map_relink.sh` is a thin POSIX shell wrapper. It
+resolves the repository root from its own location and runs the Python entry
+point with `--root <repo>`, so normal usage can stay short:
+
+```bash
+tools/map_asset_relinker/map_relink.sh audit
+tools/map_asset_relinker/map_relink.sh plan --map RougeCave_2:RougeCave_2F --out /tmp/rouge_cave_rename.json
+```
+
+Use the Python entry point directly for fixture tests that need a custom
+`--root`.
 
 ## Current Contract
 
@@ -56,6 +70,9 @@ in `test_plan.md`.
 
 - `python3 tools/map_asset_relinker/map_relink.py --help` lists the expected
   subcommands.
+- `tools/map_asset_relinker/map_relink.sh --help` delegates to the Python CLI.
+- `tools/map_asset_relinker/map_relink.sh audit` completes with the same
+  diagnostics as the Python entry point.
 - `python3 -m py_compile tools/map_asset_relinker/map_relink.py` passes.
 - `python3 tools/map_asset_relinker/map_relink.py audit` completes with 0
   errors and 5 existing warnings for unused map directories / one unused script

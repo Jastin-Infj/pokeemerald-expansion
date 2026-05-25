@@ -15,12 +15,16 @@ It does not edit Porymap internals or generated outputs.
 ## Commands
 
 ```bash
-python3 tools/map_asset_relinker/map_relink.py audit
-python3 tools/map_asset_relinker/map_relink.py plan --map RougeCave_2:RougeCave_2F --out /tmp/rouge_cave_rename.json
-python3 tools/map_asset_relinker/map_relink.py apply --dry-run /tmp/rouge_cave_rename.json
-python3 tools/map_asset_relinker/map_relink.py apply /tmp/rouge_cave_rename.json
-python3 tools/map_asset_relinker/map_relink.py validate
+tools/map_asset_relinker/map_relink.sh audit
+tools/map_asset_relinker/map_relink.sh plan --map RougeCave_2:RougeCave_2F --out /tmp/rouge_cave_rename.json
+tools/map_asset_relinker/map_relink.sh apply --dry-run /tmp/rouge_cave_rename.json
+tools/map_asset_relinker/map_relink.sh apply /tmp/rouge_cave_rename.json
+tools/map_asset_relinker/map_relink.sh validate
 ```
+
+The `.sh` wrapper resolves the repository root from its own location, so it can
+be run from the repo root or another working directory. Use the Python entry
+point directly when you need to pass a custom `--root` for fixture testing.
 
 After a real apply, run:
 
