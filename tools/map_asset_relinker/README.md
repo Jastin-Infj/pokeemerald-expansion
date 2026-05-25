@@ -52,6 +52,23 @@ rtk make generated
 rtk make -j16 -O debug
 ```
 
+## Desktop GUI Scaffold
+
+`tools/map_asset_relinker_gui/` contains an early Tauri + React desktop shell.
+It is read-only for now: it scans map groups, maps, layouts, and mapsecs, then
+shows relationship warnings in a native window.
+
+Development uses a local Vite server:
+
+```bash
+cd tools/map_asset_relinker_gui
+npm install
+npm run tauri dev
+```
+
+Production bundles embed the frontend in the Tauri executable, so normal use
+does not require opening a browser or manually connecting to localhost.
+
 ## Fixture Test
 
 The repository includes a small fake map/layout tree that exercises a real

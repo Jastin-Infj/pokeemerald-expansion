@@ -224,6 +224,52 @@ rtk make -j16 -O debug
 The implementation branch should also run the script-level smoke tests recorded
 in `test_plan.md`.
 
+## GUI Scaffold
+
+The same feature branch now includes a first Tauri + React desktop shell under
+`tools/map_asset_relinker_gui/`.
+
+This is a native desktop packaging path rather than a permanent browser-only
+localhost workflow. `npm run tauri dev` uses a local Vite server for hot reload
+while developing, but `npm run tauri build` embeds the frontend into the Tauri
+bundle so normal use can be an exe / AppImage / platform bundle.
+
+Current GUI scope is read-only:
+
+- scan a project root from Rust without invoking Porymap;
+- scan the same data from a Vite-only `/api/scan` endpoint for browser /
+  Playwright validation when Tauri system libraries are not installed;
+- read map groups, map JSON, layouts, and region-map sections;
+- show map/group/layout/mapsec relationships and selected-map warnings;
+- filter map rows and generate a reviewable CLI plan command for the selected
+  map, including target group, layout rename, and script-label rewrite options;
+- keep all write operations on the existing Python CLI until plan preview and
+  backup review controls are implemented.
+
+The intended next GUI slice is to have Rust orchestrate
+`tools/map_asset_relinker/map_relink.py plan` and `apply --dry-run`, then show
+the generated plan before enabling any real apply action.
+
+Validation status for this scaffold:
+
+- `npm install` succeeds and writes a local `package-lock.json`.
+- `npm run build` passes for the React/Vite frontend.
+- `cargo fmt --check` passes for the Tauri Rust source.
+- Playwright browser validation against `http://127.0.0.1:1420/` loads the real
+  repo data through the dev-only scan endpoint and reports 945 maps, 78 groups,
+  791 layouts, 213 mapsecs, and 5 warnings. At 1320x860 there is no page-level
+  overflow and the map/detail panes scroll internally. Filtering `Route301`
+  selects the live test map and generates the expected dry-run command for a
+  `Route301:Route401` plan with `--to-group gMapGroup_TownsAndRoutes` and
+  `--rewrite-script-labels`.
+- A 1040x720 Playwright viewport confirms the two-column layout path with the
+  audit pane moved to a full-width row and no page-level overflow.
+- `cargo check --manifest-path src-tauri/Cargo.toml` currently stops before
+  checking the app because this Linux environment lacks Tauri's webview / GTK
+  system packages (`javascriptcoregtk-4.1`, `libsoup-3.0`, `gdk-pixbuf-2.0`,
+  `cairo`, and `atk`). Install the Tauri Linux prerequisites before native
+  window validation.
+
 ## Validation Evidence
 
 - `python3 tools/map_asset_relinker/map_relink.py --help` lists the expected
