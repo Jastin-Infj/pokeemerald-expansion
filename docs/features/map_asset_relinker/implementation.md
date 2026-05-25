@@ -279,6 +279,11 @@ Validation status for this scaffold:
   system packages (`javascriptcoregtk-4.1`, `libsoup-3.0`, `gdk-pixbuf-2.0`,
   `cairo`, and `atk`). Install the Tauri Linux prerequisites before native
   window validation.
+- `tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh` and
+  `tools/map_asset_relinker_gui/scripts/build_native.sh` were added to make the
+  native executable path explicit. The build script checks `pkg-config` first,
+  then runs `npm install` and `npm run tauri build`; it prints the generated
+  executable / bundle paths after a successful build.
 
 ## Validation Evidence
 

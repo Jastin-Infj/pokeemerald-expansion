@@ -48,15 +48,21 @@ For Debian/Ubuntu-like systems, install the Tauri prerequisites including
 `libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`, `libssl-dev`,
 `build-essential`, and `pkg-config`.
 
+This repo includes a helper for Ubuntu:
+
+```bash
+tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh
+```
+
 ## Build
 
 ```bash
-cd tools/map_asset_relinker_gui
-npm install
-npm run tauri build
+tools/map_asset_relinker_gui/scripts/build_native.sh
 ```
 
 The packaged output is written under `src-tauri/target/release/bundle/`.
+On Linux, the direct executable is also built under
+`tools/map_asset_relinker_gui/src-tauri/target/release/`.
 
 ## Notes
 
