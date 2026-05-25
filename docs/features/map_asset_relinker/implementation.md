@@ -284,6 +284,10 @@ Validation status for this scaffold:
   native executable path explicit. The build script checks `pkg-config` first,
   then runs `npm install` and `npm run tauri build`; it prints the generated
   executable / bundle paths after a successful build.
+- The native build helper now distinguishes `pkg-config` module names from
+  Ubuntu package names. For example `gdk-3.0` and `gtk+-3.0` come from
+  `libgtk-3-dev`, while `javascriptcoregtk-4.1` comes from
+  `libjavascriptcoregtk-4.1-dev`.
 
 ## Validation Evidence
 

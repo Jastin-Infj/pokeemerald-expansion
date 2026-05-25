@@ -13,6 +13,7 @@ sudo apt-get install -y \
   file \
   libayatana-appindicator3-dev \
   libgtk-3-dev \
+  libjavascriptcoregtk-4.1-dev \
   librsvg2-dev \
   libsoup-3.0-dev \
   libssl-dev \

@@ -44,14 +44,26 @@ use the Rust command instead.
 
 On Linux, Tauri also needs the platform webview / GTK development packages.
 For Debian/Ubuntu-like systems, install the Tauri prerequisites including
-`libwebkit2gtk-4.1-dev`, `libsoup-3.0-dev`, `libgtk-3-dev`,
-`libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`, `libssl-dev`,
-`build-essential`, and `pkg-config`.
+`libwebkit2gtk-4.1-dev`, `libjavascriptcoregtk-4.1-dev`,
+`libsoup-3.0-dev`, `libgtk-3-dev`, `libayatana-appindicator3-dev`,
+`librsvg2-dev`, `libxdo-dev`, `libssl-dev`, `build-essential`, and
+`pkg-config`.
+
+The error names from `pkg-config`, such as `gdk-3.0`, `gtk+-3.0`,
+`javascriptcoregtk-4.1`, `libsoup-3.0`, and `webkit2gtk-4.1`, are not apt
+package names. Use the `lib...-dev` package names above.
 
 This repo includes a helper for Ubuntu:
 
 ```bash
 tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh
+```
+
+Equivalent apt command:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential curl file libayatana-appindicator3-dev libgtk-3-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libsoup-3.0-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf pkg-config wget
 ```
 
 ## Build
