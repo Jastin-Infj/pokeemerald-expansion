@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+fixture="$script_dir/testdata/basic"
+tmpdir=$(mktemp -d /tmp/maprelink-test.XXXXXX)
+plan="$tmpdir/plan.json"
+dry_run_log="$tmpdir/dry-run.log"
+
+cp -R "$fixture/." "$tmpdir/"
+
+python3 "$script_dir/map_relink.py" --root "$tmpdir" audit
+python3 "$script_dir/map_relink.py" --root "$tmpdir" plan \
+	--map OldCave_2:OldCave_2F \
+	--out "$plan"
+python3 -m json.tool "$plan" >/dev/null
+
+grep -q '"newId": "MAP_OLD_CAVE_2F"' "$plan"
+grep -q '"newId": "LAYOUT_OLD_CAVE_2F"' "$plan"
+
+python3 "$script_dir/map_relink.py" --root "$tmpdir" apply --dry-run "$plan" >"$dry_run_log"
+grep -q 'MOVE data/maps/OldCave_2 -> data/maps/OldCave_2F' "$dry_run_log"
+test -d "$tmpdir/data/maps/OldCave_2"
+test ! -e "$tmpdir/data/maps/OldCave_2F"
+
+python3 "$script_dir/map_relink.py" --root "$tmpdir" apply --allow-dirty "$plan"
+python3 "$script_dir/map_relink.py" --root "$tmpdir" validate
+
+test -d "$tmpdir/data/maps/OldCave_2F"
+test ! -e "$tmpdir/data/maps/OldCave_2"
+test -d "$tmpdir/data/layouts/OldCave_2F"
+test ! -e "$tmpdir/data/layouts/OldCave_2"
+
+python3 -m json.tool "$tmpdir/data/maps/OldCave_2F/map.json" >/dev/null
+python3 -m json.tool "$tmpdir/data/maps/OldCave_Exit/map.json" >/dev/null
+python3 -m json.tool "$tmpdir/data/maps/map_groups.json" >/dev/null
+python3 -m json.tool "$tmpdir/data/layouts/layouts.json" >/dev/null
+
+grep -q '"id": "MAP_OLD_CAVE_2F"' "$tmpdir/data/maps/OldCave_2F/map.json"
+grep -q '"name": "OldCave_2F"' "$tmpdir/data/maps/OldCave_2F/map.json"
+grep -q '"layout": "LAYOUT_OLD_CAVE_2F"' "$tmpdir/data/maps/OldCave_2F/map.json"
+grep -q '"OldCave_2F"' "$tmpdir/data/maps/map_groups.json"
+grep -q '"id": "LAYOUT_OLD_CAVE_2F"' "$tmpdir/data/layouts/layouts.json"
+grep -q 'data/layouts/OldCave_2F/map.bin' "$tmpdir/data/layouts/layouts.json"
+grep -q 'data/maps/OldCave_2F/scripts.inc' "$tmpdir/data/event_scripts.s"
+grep -q '"MAP_OLD_CAVE_2F"' "$tmpdir/data/maps/OldCave_Exit/map.json"
+grep -q 'OldCave_2 should remain in dialogue' "$tmpdir/data/maps/OldCave_2F/scripts.inc"
+
+echo "map_asset_relinker fixture test passed: $tmpdir"

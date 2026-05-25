@@ -33,6 +33,20 @@ rtk make generated
 rtk make -j16 -O debug
 ```
 
+## Fixture Test
+
+The repository includes a small fake map/layout tree that exercises a real
+rename from `OldCave_2` to `OldCave_2F` without touching the project data:
+
+```bash
+tools/map_asset_relinker/test_map_relink.sh
+```
+
+The test copies `tools/map_asset_relinker/testdata/basic` to `/tmp`, runs
+`audit`, `plan`, `apply --dry-run`, real `apply --allow-dirty`, and `validate`,
+then checks the updated map id, layout id, map group entry, script include,
+warp/connection references, and preserved dialogue text.
+
 ## Notes
 
 - Close Porymap before applying a plan.

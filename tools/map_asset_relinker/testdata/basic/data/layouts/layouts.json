@@ -1,0 +1,27 @@
+{
+  "layouts_table_label": "gMapLayouts",
+  "layouts": [
+    {
+      "id": "LAYOUT_OLD_CAVE_2",
+      "name": "OldCave_2_Layout",
+      "width": 8,
+      "height": 8,
+      "primary_tileset": "gTileset_General",
+      "secondary_tileset": "gTileset_Cave",
+      "border_filepath": "data/layouts/OldCave_2/border.bin",
+      "blockdata_filepath": "data/layouts/OldCave_2/map.bin",
+      "layout_version": "emerald"
+    },
+    {
+      "id": "LAYOUT_OLD_CAVE_EXIT",
+      "name": "OldCave_Exit_Layout",
+      "width": 4,
+      "height": 4,
+      "primary_tileset": "gTileset_General",
+      "secondary_tileset": "gTileset_Cave",
+      "border_filepath": "data/layouts/OldCave_Exit/border.bin",
+      "blockdata_filepath": "data/layouts/OldCave_Exit/map.bin",
+      "layout_version": "emerald"
+    }
+  ]
+}

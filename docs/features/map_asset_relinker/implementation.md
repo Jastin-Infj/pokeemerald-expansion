@@ -6,7 +6,7 @@
 |---|---|
 | Branch | `feature/map-asset-relinker-20260525` |
 | Status | Initial tool implementation |
-| Primary files | `tools/map_asset_relinker/map_relink.py`, `tools/map_asset_relinker/map_relink.sh`, `tools/map_asset_relinker/README.md` |
+| Primary files | `tools/map_asset_relinker/map_relink.py`, `tools/map_asset_relinker/map_relink.sh`, `tools/map_asset_relinker/test_map_relink.sh`, `tools/map_asset_relinker/testdata/basic/`, `tools/map_asset_relinker/README.md` |
 | Last updated | 2026-05-25 |
 
 ## Implemented Commands
@@ -32,6 +32,26 @@ tools/map_asset_relinker/map_relink.sh plan --map RougeCave_2:RougeCave_2F --out
 
 Use the Python entry point directly for fixture tests that need a custom
 `--root`.
+
+## Fixture Test Data
+
+`tools/map_asset_relinker/testdata/basic/` is a minimal Porymap-shaped source
+tree with two maps and two layouts:
+
+- `OldCave_2` is the rename target.
+- `OldCave_Exit` points at `MAP_OLD_CAVE_2` through both a warp and a
+  connection.
+- `layouts.json` points at `data/layouts/OldCave_2/map.bin` and
+  `border.bin`.
+- `data/event_scripts.s` includes `data/maps/OldCave_2/scripts.inc`.
+- `OldCave_2/scripts.inc` keeps old-name dialogue text so the test can prove
+  the tool is not doing broad script text rewrites.
+
+`tools/map_asset_relinker/test_map_relink.sh` copies this fixture to `/tmp` and
+renames `OldCave_2` to `OldCave_2F`. It checks that the generated identifiers
+are `MAP_OLD_CAVE_2F` and `LAYOUT_OLD_CAVE_2F`, applies the plan for real in
+the temporary copy, runs `validate`, and confirms map group, map JSON, layout
+JSON, script include, warp, and connection updates.
 
 ## Current Contract
 
@@ -87,3 +107,6 @@ in `test_plan.md`.
   `data/event_scripts.s` successfully ran real `apply --allow-dirty`, then
   `validate`, and confirmed the old map directory was removed, the new
   directory existed, and the renamed `map.json` remained valid JSON.
+- `tools/map_asset_relinker/test_map_relink.sh` passes against the committed
+  `testdata/basic` fixture and leaves the temporary result path in the output
+  for inspection.

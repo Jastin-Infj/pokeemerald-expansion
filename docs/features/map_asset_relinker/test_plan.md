@@ -21,6 +21,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Dry-run apply | `python3 tools/map_asset_relinker/map_relink.py apply --dry-run /tmp/map_relink_plan.json` | Prints map/layout move and edit list without changing files. |
 | JSON plan validity | `python3 -m json.tool /tmp/map_relink_plan.json` | Plan is valid JSON. |
 | Fixture apply | Copy `data/maps`, `data/layouts`, and `data/event_scripts.s` to `/tmp`; run real `apply --allow-dirty` there | Old map dir is removed, new map dir exists, renamed map JSON is valid, and `validate` completes with only existing warnings. |
+| Committed fixture test | `tools/map_asset_relinker/test_map_relink.sh` | Copies `testdata/basic` to `/tmp`, renames `OldCave_2` to `OldCave_2F`, confirms dry-run is read-only, applies for real, validates, and checks map group, layout, include, warp, connection, and preserved dialogue text. |
 
 Current `audit` warnings on `master` are pre-existing:
 

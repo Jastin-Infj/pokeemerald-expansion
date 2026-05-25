@@ -98,7 +98,7 @@ def camel_to_upper_snake(name: str) -> str:
     # Handles both RougeCave_2F and LittlerootTown.
     parts: list[str] = []
     for token in name.split("_"):
-        split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", token)
+        split = re.sub(r"(?<=[a-z])(?=[A-Z])", "_", token)
         parts.append(split.upper())
     return "_".join(filter(None, parts))
 
@@ -456,6 +456,10 @@ def iter_all_map_json(root: Path) -> Iterable[Path]:
 
 def scan_text_refs(root: Path, tokens: list[str]) -> list[str]:
     matches: list[str] = []
+    patterns = [
+        re.compile(rf"(?<![A-Za-z0-9]){re.escape(token)}(?![A-Za-z0-9])")
+        for token in tokens
+    ]
     search_roots = [repo_path(root, "data/maps"), repo_path(root, "data/layouts"), repo_path(root, "data/event_scripts.s")]
     for search_root in search_roots:
         if not search_root.exists():
@@ -470,7 +474,7 @@ def scan_text_refs(root: Path, tokens: list[str]) -> list[str]:
                 text = read_text(path)
             except UnicodeDecodeError:
                 continue
-            if any(token in text for token in tokens):
+            if any(pattern.search(text) for pattern in patterns):
                 matches.append(rel(path, root))
     return sorted(set(matches))
 
