@@ -128,6 +128,7 @@
       - [Handoff](features/all_ability_slots/handoff.md)
     - [Champions Challenge Facility](features/champions_challenge/README.md)
       - [Run Session Restore](features/champions_challenge/run_session_restore.md)
+      - [Implementation](features/champions_challenge/implementation.md)
     - [Party / Status UI Overhaul](features/party_status_ui_overhaul/README.md)
       - [External References](features/party_status_ui_overhaul/external_references.md)
     - [Champions Partygen Impact And Next Steps](features/champions_challenge/partygen_impact_and_next_steps.md)
