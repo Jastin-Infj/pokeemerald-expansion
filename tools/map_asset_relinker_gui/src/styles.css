@@ -238,6 +238,13 @@ h3 {
   padding: 10px;
 }
 
+.paneTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .paneHeader input {
   width: 152px;
 }
@@ -356,6 +363,47 @@ h3 {
   gap: 10px;
 }
 
+.linkGraph {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.graphNode {
+  position: relative;
+  min-width: 0;
+  border: 1px solid #cdd9d0;
+  border-radius: 7px;
+  background: #f5fbf7;
+  padding: 10px;
+}
+
+.graphNode:not(:last-child)::after {
+  position: absolute;
+  top: 50%;
+  right: -8px;
+  width: 8px;
+  height: 2px;
+  background: #8ca899;
+  content: "";
+}
+
+.graphNode span {
+  display: block;
+  color: #607065;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.graphNode strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .field {
   min-width: 0;
   border: 1px solid #e0ded2;
@@ -434,6 +482,21 @@ h3 {
   font-weight: 800;
 }
 
+.dryRunState.isComplete {
+  background: #dfeee5;
+  color: #2d673d;
+}
+
+.dryRunState.isFailed {
+  background: #f5e3dc;
+  color: #994034;
+}
+
+.dryRunState.isRunning {
+  background: #fff8e7;
+  color: #744d19;
+}
+
 .planControls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -472,6 +535,33 @@ h3 {
   gap: 8px;
 }
 
+.dryRunStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dryRunStat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #cdd9d0;
+  border-radius: 6px;
+  background: #fbfffd;
+  padding: 8px 10px;
+}
+
+.dryRunStat span {
+  color: #607065;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dryRunStat strong {
+  font-size: 18px;
+}
+
 .dryRunOutput p {
   color: #5f685f;
   font-weight: 700;
@@ -504,5 +594,13 @@ h3 {
 
   .relationshipGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .linkGraph {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .graphNode::after {
+    display: none;
   }
 }

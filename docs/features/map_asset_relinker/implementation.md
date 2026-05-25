@@ -241,10 +241,13 @@ Current GUI scope is read-only:
   Playwright validation when Tauri system libraries are not installed;
 - read map groups, map JSON, layouts, and region-map sections;
 - show map/group/layout/mapsec relationships and selected-map warnings;
+- visualize the selected map as a compact `Map -> Group -> Layout -> Mapsec`
+  graph before the detailed field grid;
 - filter map rows and generate a reviewable CLI plan command for the selected
   map, including target group, layout rename, and script-label rewrite options;
 - run the existing Python CLI `plan` and `apply --dry-run` flow from the GUI
-  and display the resulting planned moves/edits without changing source files;
+  and display the resulting planned moves/edits plus move/edit/review counts
+  without changing source files;
 - keep real apply disabled until backup review and explicit confirmation
   controls are implemented.
 
@@ -267,7 +270,8 @@ Validation status for this scaffold:
 - The Playwright Route301 dry-run button calls the existing CLI via the dev API,
   creates `/tmp/route401_relink_*.json`, and displays the planned layout/map
   moves plus map group, layout, map JSON, script include, and script label
-  edits. The CLI reports `Dry-run complete; no files changed.`
+  edits. The visible dry-run counters show 2 moves, 5 edits, and 5 review
+  references. The CLI reports `Dry-run complete; no files changed.`
 - A 1040x720 Playwright viewport confirms the two-column layout path with the
   audit pane moved to a full-width row and no page-level overflow.
 - `cargo check --manifest-path src-tauri/Cargo.toml` currently stops before

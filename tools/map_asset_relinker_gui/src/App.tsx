@@ -108,7 +108,10 @@ function App() {
       <section className="workspace">
         <aside className="mapListPane">
           <div className="paneHeader">
-            <h2>Maps</h2>
+            <div className="paneTitle">
+              <h2>Maps</h2>
+              <span>{filteredMaps.length}/{summary.mapCount}</span>
+            </div>
             <input
               aria-label="Filter maps"
               placeholder="Filter"
@@ -194,6 +197,7 @@ function MapDetail({
   const [copied, setCopied] = useState(false);
   const [dryRunStatus, setDryRunStatus] = useState("Not run");
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
+  const dryRunStats = useMemo(() => summarizeDryRun(dryRunResult), [dryRunResult]);
 
   useEffect(() => {
     setNewName(map.name);
@@ -264,6 +268,13 @@ function MapDetail({
         </span>
       </div>
 
+      <div className="linkGraph" aria-label="Selected map relationship graph">
+        <GraphNode label="Map" value={map.name} />
+        <GraphNode label="Group" value={map.group ?? "Ungrouped"} />
+        <GraphNode label="Layout" value={map.layout} />
+        <GraphNode label="Mapsec" value={map.mapsec} />
+      </div>
+
       <div className="relationshipGrid">
         <Field label="Directory" value={map.directoryName} />
         <Field label="Group" value={map.group ?? "Ungrouped"} />
@@ -288,8 +299,17 @@ function MapDetail({
       <div className="planPanel">
         <div className="planHeader">
           <h3>Plan Preview</h3>
-          <span>{dryRunStatus}</span>
+          <span className={`dryRunState ${dryRunStateClass(dryRunStatus)}`}>
+            {dryRunStatus}
+          </span>
         </div>
+        {dryRunResult ? (
+          <div className="dryRunStats" aria-label="Dry-run operation counts">
+            <Stat label="Moves" value={dryRunStats.moves} />
+            <Stat label="Edits" value={dryRunStats.edits} />
+            <Stat label="Reviews" value={dryRunStats.reviews} />
+          </div>
+        ) : null}
         <div className="planControls">
           <label>
             New Map Name
@@ -358,6 +378,52 @@ function MapDetail({
       </div>
     </div>
   );
+}
+
+function GraphNode({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="graphNode">
+      <span>{label}</span>
+      <strong title={value}>{value}</strong>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="dryRunStat">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function summarizeDryRun(result: DryRunResult | null) {
+  const text = result?.dryRunStdout ?? "";
+  return {
+    moves: countLines(text, "MOVE "),
+    edits: countLines(text, "EDIT "),
+    reviews: countLines(text, "  "),
+  };
+}
+
+function countLines(text: string, prefix: string) {
+  return text
+    .split("\n")
+    .filter((line) => line.startsWith(prefix)).length;
+}
+
+function dryRunStateClass(status: string) {
+  if (status.includes("complete")) {
+    return "isComplete";
+  }
+  if (status.includes("failed")) {
+    return "isFailed";
+  }
+  if (status.includes("Running")) {
+    return "isRunning";
+  }
+  return "";
 }
 
 function buildPlanCommand({

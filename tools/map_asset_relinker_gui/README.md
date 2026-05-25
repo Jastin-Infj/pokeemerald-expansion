@@ -15,9 +15,12 @@ opening a browser or remembering a localhost URL.
   `data/layouts/layouts.json`, and
   `src/data/region_map/region_map_sections.json`.
 - Show map, group, layout, mapsec, map type, popup, and audit warning state.
+- Show the selected map's `Map -> Group -> Layout -> Mapsec` relationship as a
+  compact graph before the raw field grid.
 - Filter maps and generate a reviewable CLI plan command for a selected map.
 - Run the existing CLI `plan` plus `apply --dry-run` flow and display the
-  planned moves/edits without changing source files.
+  planned moves/edits plus move/edit/review counts without changing source
+  files.
 - Keep the GUI read-only while the CLI remains the write path.
 
 Future slices can add guarded real apply. That should keep the existing backup
