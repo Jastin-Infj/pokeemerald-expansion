@@ -21,7 +21,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Dry-run apply | `python3 tools/map_asset_relinker/map_relink.py apply --dry-run /tmp/map_relink_plan.json` | Prints map/layout move and edit list without changing files. |
 | JSON plan validity | `python3 -m json.tool /tmp/map_relink_plan.json` | Plan is valid JSON. |
 | Fixture apply | Copy `data/maps`, `data/layouts`, and `data/event_scripts.s` to `/tmp`; run real `apply --allow-dirty` there | Old map dir is removed, new map dir exists, renamed map JSON is valid, and `validate` completes with only existing warnings. |
-| Committed fixture test | `tools/map_asset_relinker/test_map_relink.sh` | Copies `testdata/basic` to `/tmp`, renames `OldCave_2` to `OldCave_2F`, moves it from `gMapGroup_Temp` to `gMapGroup_RougeCave`, confirms dry-run is read-only, applies for real, validates, checks map group, layout, include, warp, connection, and preserved dialogue text, then repeats against a missing target group to confirm group creation. |
+| Committed fixture test | `tools/map_asset_relinker/test_map_relink.sh` | Copies `testdata/basic` to `/tmp`, renames `OldCave_2` to `OldCave_2F`, moves it from `gMapGroup_Temp` to `gMapGroup_RougeCave`, confirms dry-run is read-only, applies for real, validates, checks map group, layout, include, warp, connection, and preserved dialogue text, repeats against a missing target group to confirm group creation, then creates broken fixture copies and confirms audit failure for map group, map name, layout, mapsec, and warp target typos. |
 
 Current `audit` warnings on `master` are pre-existing:
 
@@ -40,6 +40,8 @@ Current `audit` warnings on `master` are pre-existing:
 | Detect missing map dir | Fixture with `Foo` in `map_groups.json` but no `data/maps/Foo/map.json` | Audit reports missing map source. |
 | Detect map name mismatch | Directory `Foo/`, `map.json` name `Bar` | Audit reports mismatch. |
 | Detect missing layout id | `map.json` references `LAYOUT_FOO`, absent from `layouts.json` | Audit reports missing layout. |
+| Detect missing mapsec id | `map.json` references `MAPSEC_FOO`, absent from region map sections JSON | Audit reports missing `region_map_section`. |
+| Detect broken map id reference | Warp or connection points at a missing `MAP_FOO` id | Audit reports the missing target map id. |
 | Detect stale layout binary paths | `layouts.json` path points to missing `map.bin` / `border.bin` | Audit reports missing binary file. |
 | Plan map rename | `RougeCave_2` to `RougeCave_2F` fixture | Plan contains map dir move, `MAP_*` rename, `map_groups.json` update, event script include update. |
 | Plan group move | `TempCave_2` in `gMapGroup_Temp`; run `plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave` | Plan records `fromGroup` / `toGroup`; apply removes the old entry from the temporary group and appends the renamed entry to the target group. |

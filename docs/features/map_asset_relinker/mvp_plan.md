@@ -21,9 +21,16 @@ Input: current checkout.
 Output:
 
 - list of map directories not present in `map_groups.json`;
+- malformed `map_groups.json` group lists, duplicate groups, and duplicate map
+  membership;
 - maps in `map_groups.json` whose directory or `map.json` is missing;
 - `map.json` entries where `name` does not match the directory;
+- duplicate map `name` / `id` values;
 - `map.json` layout ids that do not exist in `layouts.json`;
+- `map.json` `region_map_section` ids that do not exist in region map section
+  data;
+- `connections[].map` / `warp_events[].dest_map` ids that do not point at a
+  known map id;
 - layout entries whose `border_filepath` / `blockdata_filepath` does not exist;
 - layout entry names that look like generated placeholders
   (`LAYOUT_*_Layout`, duplicate `_Layout`, numeric suffix without floor label);

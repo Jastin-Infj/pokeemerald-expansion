@@ -25,6 +25,9 @@ LAYOUTS_DIR = Path("data/layouts")
 MAP_GROUPS = MAPS_DIR / "map_groups.json"
 LAYOUTS_JSON = LAYOUTS_DIR / "layouts.json"
 EVENT_SCRIPTS = Path("data/event_scripts.s")
+REGION_MAP_SECTIONS_JSON = Path("src/data/region_map/region_map_sections.json")
+SPECIAL_MAP_IDS = {"MAP_DYNAMIC", "MAP_NONE"}
+SPECIAL_MAPSECS = {"MAPSEC_DYNAMIC", "MAPSEC_NONE"}
 
 KNOWN_GENERATED_OUTPUTS = {
     Path("include/constants/map_groups.h"),
@@ -161,18 +164,76 @@ def build_layout_index(root: Path) -> dict[str, LayoutRef]:
     return layouts
 
 
+def load_mapsec_ids(root: Path) -> set[str]:
+    ids = set(SPECIAL_MAPSECS)
+    path = repo_path(root, REGION_MAP_SECTIONS_JSON)
+    if not path.exists():
+        return ids
+    data = load_json(path)
+    for section in data.get("map_sections", []):
+        if isinstance(section, dict) and isinstance(section.get("id"), str):
+            ids.add(section["id"])
+    return ids
+
+
+def add_duplicate_diagnostics(
+    diagnostics: list[Diagnostic],
+    values: dict[str, list[str]],
+    label: str,
+    level: str = "error",
+) -> None:
+    for value, locations in sorted(values.items()):
+        if len(locations) > 1:
+            diagnostics.append(Diagnostic(level, f"{label} {value!r} appears multiple times: {', '.join(locations)}."))
+
+
 def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     groups_data = load_map_groups(root)
     layouts_data = load_layouts(root)
+    mapsec_ids = load_mapsec_ids(root)
 
     group_maps: dict[str, list[str]] = {}
-    for group in groups_data.get("group_order", []):
-        for map_name in groups_data.get(group, []):
+    group_order_raw = groups_data.get("group_order")
+    if not isinstance(group_order_raw, list):
+        diagnostics.append(Diagnostic("error", "map_groups.json field 'group_order' must be a list."))
+        group_order: list[Any] = []
+    else:
+        group_order = group_order_raw
+
+    seen_groups: dict[str, list[str]] = {}
+    for index, group in enumerate(group_order):
+        if not isinstance(group, str):
+            diagnostics.append(Diagnostic("error", f"map_groups.json group_order[{index}] must be a string."))
+            continue
+        seen_groups.setdefault(group, []).append(f"group_order[{index}]")
+        maps = groups_data.get(group)
+        if not isinstance(maps, list):
+            diagnostics.append(Diagnostic("error", f"map_groups.json lists group {group!r}, but that field is missing or not a list."))
+            continue
+        seen_in_group: set[str] = set()
+        for map_index, map_name in enumerate(maps):
+            if not isinstance(map_name, str):
+                diagnostics.append(Diagnostic("error", f"map_groups.json {group}[{map_index}] must be a string."))
+                continue
+            if map_name in seen_in_group:
+                diagnostics.append(Diagnostic("error", f"map_groups.json group {group!r} lists map {map_name!r} more than once."))
+            seen_in_group.add(map_name)
             group_maps.setdefault(map_name, []).append(group)
+    add_duplicate_diagnostics(diagnostics, seen_groups, "map group")
+
+    for key, value in sorted(groups_data.items()):
+        if key == "group_order":
+            continue
+        if isinstance(value, list) and key not in group_order:
+            diagnostics.append(Diagnostic("warning", f"map_groups.json has group {key!r}, but it is not listed in group_order."))
+
+    add_duplicate_diagnostics(diagnostics, group_maps, "map group entry")
 
     map_dirs = {path.name: path for path in iter_map_dirs(root)}
-    map_refs = build_map_index(root)
+    map_ids: set[str] = set(SPECIAL_MAP_IDS)
+    map_id_locations: dict[str, list[str]] = {}
+    map_name_locations: dict[str, list[str]] = {}
     layout_ids = {
         layout.get("id")
         for layout in layouts_data.get("layouts", [])
@@ -180,17 +241,33 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
     }
 
     for map_name in sorted(map_dirs):
-        map_ref = map_refs.get(map_name)
-        if map_ref is None:
-            continue
+        map_path = map_dirs[map_name] / "map.json"
+        map_data = load_json(map_path)
+        map_ref = MapRef(name=map_data.get("name", map_name), path=map_path, data=map_data, groups=group_maps.get(map_name, []))
         json_name = map_ref.data.get("name")
+        if not isinstance(json_name, str) or not json_name:
+            diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} must have a non-empty string name."))
+        else:
+            map_name_locations.setdefault(json_name, []).append(rel(map_ref.path, root))
         if json_name != map_name:
-            diagnostics.append(Diagnostic("warning", f"{rel(map_ref.path, root)} name is {json_name!r}, expected {map_name!r}."))
+            diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} name is {json_name!r}, expected {map_name!r}."))
         if map_name not in group_maps:
             diagnostics.append(Diagnostic("warning", f"{MAPS_DIR / map_name} exists but is not listed in map_groups.json."))
+        map_id = map_ref.data.get("id")
+        if not isinstance(map_id, str) or not map_id.startswith("MAP_"):
+            diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} must have an id string starting with MAP_."))
+        else:
+            map_ids.add(map_id)
+            map_id_locations.setdefault(map_id, []).append(rel(map_ref.path, root))
         layout_id = map_ref.data.get("layout")
         if layout_id not in layout_ids:
             diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} references missing layout {layout_id!r}."))
+        mapsec = map_ref.data.get("region_map_section")
+        if not isinstance(mapsec, str) or mapsec not in mapsec_ids:
+            diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} references missing region_map_section {mapsec!r}."))
+
+    add_duplicate_diagnostics(diagnostics, map_name_locations, "map json name")
+    add_duplicate_diagnostics(diagnostics, map_id_locations, "map id")
 
     for map_name in sorted(group_maps):
         if map_name not in map_dirs:
@@ -203,10 +280,14 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
         layout_id = layout.get("id")
         if layout_id:
             layout_id_counts[layout_id] = layout_id_counts.get(layout_id, 0) + 1
+        else:
+            diagnostics.append(Diagnostic("error", f"{LAYOUTS_JSON} has a layout entry without an id."))
 
         for field in ("border_filepath", "blockdata_filepath"):
             filepath = layout.get(field)
-            if filepath and not repo_path(root, filepath).exists():
+            if not isinstance(filepath, str) or not filepath:
+                diagnostics.append(Diagnostic("error", f"layout {layout_id!r} {field} must be a non-empty string."))
+            elif not repo_path(root, filepath).exists():
                 diagnostics.append(Diagnostic("error", f"layout {layout_id!r} {field} points to missing {filepath}."))
 
         name = layout.get("name", "")
@@ -216,6 +297,21 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
     for layout_id, count in sorted(layout_id_counts.items()):
         if count > 1:
             diagnostics.append(Diagnostic("error", f"layout id {layout_id!r} appears {count} times."))
+
+    for map_json in iter_all_map_json(root):
+        data = load_json(map_json)
+        for index, connection in enumerate(data.get("connections") or []):
+            if not isinstance(connection, dict):
+                continue
+            target_id = connection.get("map")
+            if isinstance(target_id, str) and target_id not in map_ids:
+                diagnostics.append(Diagnostic("error", f"{rel(map_json, root)} connection[{index}] references missing map id {target_id!r}."))
+        for index, warp in enumerate(data.get("warp_events") or []):
+            if not isinstance(warp, dict):
+                continue
+            target_id = warp.get("dest_map")
+            if isinstance(target_id, str) and target_id not in map_ids:
+                diagnostics.append(Diagnostic("error", f"{rel(map_json, root)} warp_events[{index}] references missing map id {target_id!r}."))
 
     event_scripts = repo_path(root, EVENT_SCRIPTS)
     if event_scripts.exists():

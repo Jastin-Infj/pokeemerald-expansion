@@ -13,7 +13,7 @@
 
 | Command | Status |
 |---|---|
-| `audit` | Scans map directories, `map_groups.json`, `layouts.json`, layout binary paths, and `data/event_scripts.s` includes. |
+| `audit` | Scans map directories, `map_groups.json`, `layouts.json`, layout binary paths, `region_map_section`, map id references, and `data/event_scripts.s` includes. |
 | `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`, inferring `MAP_*` and `LAYOUT_*` names from current source. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
 | `apply --dry-run` | Prints planned directory moves, JSON edits, script include edits, and remaining textual references without modifying files. |
 | `apply` | Moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
@@ -59,6 +59,15 @@ script include, warp, and connection updates. The same script also repeats the
 group move into a missing target group to confirm the tool adds the new group
 to `group_order` and creates its map list.
 
+The fixture script also creates broken temporary copies to prove the audit path
+fails on the high-risk authoring mistakes this tool is meant to catch:
+
+- map listed under the wrong name in `map_groups.json`;
+- `map.json` `name` mismatch against its directory;
+- typoed layout id;
+- typoed `region_map_section`;
+- typoed warp target map id.
+
 ## Current Contract
 
 - The tool does not modify Porymap or generated files.
@@ -75,6 +84,10 @@ to `group_order` and creates its map list.
 - `--group` remains a fallback for maps that are not already listed in any map
   group; it does not move an already grouped map unless `--to-group` is also
   used.
+- `audit` / `validate` treat group shape errors, duplicate map names / ids,
+  map name mismatch, missing layout ids, missing mapsec ids, and broken
+  warp/connection map ids as errors because those can make Porymap or generated
+  map constants unreliable.
 - The tool refuses real apply when target files are dirty unless
   `--allow-dirty` is passed.
 
@@ -122,4 +135,6 @@ in `test_plan.md`.
   directory existed, and the renamed `map.json` remained valid JSON.
 - `tools/map_asset_relinker/test_map_relink.sh` passes against the committed
   `testdata/basic` fixture and leaves the temporary result path in the output
-  for inspection.
+  for inspection. It covers successful rename/group move, missing target group
+  creation, and negative audit checks for map group, map name, layout, mapsec,
+  and warp target typos.

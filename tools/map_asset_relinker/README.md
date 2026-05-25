@@ -50,6 +50,21 @@ updated map id, layout id, map group move, script include, warp/connection
 references, and preserved dialogue text. It also repeats the move into a
 missing target group to confirm automatic group creation.
 
+## Audit Coverage
+
+`audit` / `validate` are intended to catch common Porymap-breaking mistakes
+before opening the editor:
+
+- malformed `map_groups.json` shape, missing group arrays, group names omitted
+  from `group_order`, and duplicate map entries;
+- map directory / `map.json` name mismatch and duplicate map `name` / `id`;
+- missing layout ids, duplicate layout ids, bad layout binary paths, and empty
+  layout file fields;
+- missing `region_map_section` ids from
+  `src/data/region_map/region_map_sections.json`;
+- `connections[].map` and `warp_events[].dest_map` values that do not point at
+  a known map id.
+
 ## Notes
 
 - Close Porymap before applying a plan.
