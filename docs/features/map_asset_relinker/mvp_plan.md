@@ -10,7 +10,7 @@ The MVP should handle the common case:
 - one map directory rename;
 - one map `id` / `name` rename;
 - one layout id / label / directory rename;
-- map group membership update;
+- map group membership update, including temporary group to final group moves;
 - script include path update;
 - warp / connection references to the renamed map.
 
@@ -47,7 +47,9 @@ Example:
       "newName": "RougeCave_2F",
       "oldId": "MAP_ROUGE_CAVE_2",
       "newId": "MAP_ROUGE_CAVE_2F",
-      "group": "gMapGroup_RougeCave"
+      "group": "gMapGroup_RougeCave",
+      "fromGroup": "gMapGroup_Temp",
+      "toGroup": "gMapGroup_RougeCave"
     }
   ],
   "layouts": [
@@ -122,6 +124,7 @@ If only `audit` ran, no build is required.
 
 - Can audit current `master` without modifying files.
 - Can produce a plan for a `RougeCave_2` to `RougeCave_2F` rename.
+- Can move a renamed map from a temporary map group into a final map group.
 - Dry-run lists all map/layout/script include changes.
 - Apply updates only known structural files.
 - Generated map/layout constants can be regenerated after apply.

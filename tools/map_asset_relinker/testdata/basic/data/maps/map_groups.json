@@ -1,9 +1,12 @@
 {
   "group_order": [
-    "gMapGroup_Test"
+    "gMapGroup_Temp",
+    "gMapGroup_RougeCave"
   ],
-  "gMapGroup_Test": [
-    "OldCave_2",
+  "gMapGroup_Temp": [
+    "OldCave_2"
+  ],
+  "gMapGroup_RougeCave": [
     "OldCave_Exit"
   ]
 }

@@ -296,7 +296,11 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
         }
 
     groups = map_ref.groups
-    group = args.group or (groups[0] if groups else None)
+    from_group = args.from_group
+    to_group = args.to_group
+    if from_group and from_group not in groups:
+        raise RelinkError(f"Map {old_map!r} is not listed in source group {from_group!r}.")
+    group = to_group or args.group or from_group or (groups[0] if groups else None)
     plan: dict[str, Any] = {
         "version": 1,
         "maps": [
@@ -306,6 +310,8 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "oldId": old_map_id,
                 "newId": new_map_id,
                 "group": group,
+                "fromGroup": from_group,
+                "toGroup": to_group,
             }
         ],
         "layouts": [layout_plan] if layout_plan else [],
@@ -371,10 +377,63 @@ def ensure_not_generated(path: Path, root: Path) -> None:
         raise RelinkError(f"Refusing to edit generated output {relative}.")
 
 
-def update_map_groups(groups_data: dict[str, Any], old_name: str, new_name: str, preferred_group: str | None) -> bool:
+def ensure_map_group(groups_data: dict[str, Any], group: str) -> list[Any]:
+    group_order = groups_data.setdefault("group_order", [])
+    if group not in group_order:
+        group_order.append(group)
+    return groups_data.setdefault(group, [])
+
+
+def remove_map_from_group(maps: list[Any], map_name: str) -> tuple[bool, int | None]:
+    changed = False
+    first_index: int | None = None
+    index = 0
+    while index < len(maps):
+        if maps[index] == map_name:
+            if first_index is None:
+                first_index = index
+            del maps[index]
+            changed = True
+            continue
+        index += 1
+    return changed, first_index
+
+
+def update_map_groups(
+    groups_data: dict[str, Any],
+    old_name: str,
+    new_name: str,
+    from_group: str | None,
+    to_group: str | None,
+    preferred_group: str | None,
+) -> bool:
     changed = False
     found = False
+    if to_group:
+        insert_index: int | None = None
+        for group in groups_data.get("group_order", []):
+            if from_group and group != from_group:
+                continue
+            maps = groups_data.get(group, [])
+            removed, first_index = remove_map_from_group(maps, old_name)
+            if removed:
+                found = True
+                changed = True
+                if group == to_group and insert_index is None:
+                    insert_index = first_index
+
+        target_maps = ensure_map_group(groups_data, to_group)
+        if new_name not in target_maps:
+            if insert_index is not None and insert_index <= len(target_maps):
+                target_maps.insert(insert_index, new_name)
+            else:
+                target_maps.append(new_name)
+            changed = True
+        return changed
+
     for group in groups_data.get("group_order", []):
+        if from_group and group != from_group:
+            continue
         maps = groups_data.get(group, [])
         for index, map_name in enumerate(maps):
             if map_name == old_name:
@@ -382,7 +441,7 @@ def update_map_groups(groups_data: dict[str, Any], old_name: str, new_name: str,
                 found = True
                 changed = True
     if not found and preferred_group:
-        maps = groups_data.setdefault(preferred_group, [])
+        maps = ensure_map_group(groups_data, preferred_group)
         if new_name not in maps:
             maps.append(new_name)
             changed = True
@@ -532,7 +591,14 @@ def apply_plan(root: Path, plan: dict[str, Any], dry_run: bool, allow_dirty: boo
     groups_data = load_json(groups_path)
     groups_changed = False
     for map_plan in plan.get("maps", []):
-        groups_changed |= update_map_groups(groups_data, map_plan["oldName"], map_plan["newName"], map_plan.get("group"))
+        groups_changed |= update_map_groups(
+            groups_data,
+            map_plan["oldName"],
+            map_plan["newName"],
+            map_plan.get("fromGroup"),
+            map_plan.get("toGroup"),
+            map_plan.get("group"),
+        )
     if groups_changed:
         print(f"EDIT {MAP_GROUPS}")
         if not dry_run:
@@ -632,6 +698,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     plan = subparsers.add_parser("plan", help="Create a reviewable relink plan.")
     plan.add_argument("--map", required=True, help="Map rename in OLD:NEW format, e.g. RougeCave_2:RougeCave_2F.")
+    plan.add_argument("--from-group", help="Only remove/rename the old map entry from this source map group.")
+    plan.add_argument("--to-group", help="Move the renamed map entry into this target map group, creating it if missing.")
     plan.add_argument("--group", help="Preferred map group if the old map is not already grouped.")
     plan.add_argument("--new-map-id", help="Override generated new MAP_* id.")
     plan.add_argument("--no-layout-rename", action="store_true", help="Keep the existing layout id/name/path.")

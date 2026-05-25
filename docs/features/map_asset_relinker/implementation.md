@@ -14,7 +14,7 @@
 | Command | Status |
 |---|---|
 | `audit` | Scans map directories, `map_groups.json`, `layouts.json`, layout binary paths, and `data/event_scripts.s` includes. |
-| `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`, inferring `MAP_*` and `LAYOUT_*` names from current source. |
+| `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`, inferring `MAP_*` and `LAYOUT_*` names from current source. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
 | `apply --dry-run` | Prints planned directory moves, JSON edits, script include edits, and remaining textual references without modifying files. |
 | `apply` | Moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
 | `validate` | Runs the same consistency checks as `audit` after edits. |
@@ -28,6 +28,7 @@ point with `--root <repo>`, so normal usage can stay short:
 ```bash
 tools/map_asset_relinker/map_relink.sh audit
 tools/map_asset_relinker/map_relink.sh plan --map RougeCave_2:RougeCave_2F --out /tmp/rouge_cave_rename.json
+tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out /tmp/rouge_cave_group_move.json
 ```
 
 Use the Python entry point directly for fixture tests that need a custom
@@ -36,9 +37,11 @@ Use the Python entry point directly for fixture tests that need a custom
 ## Fixture Test Data
 
 `tools/map_asset_relinker/testdata/basic/` is a minimal Porymap-shaped source
-tree with two maps and two layouts:
+tree with two maps, two map groups, and two layouts:
 
 - `OldCave_2` is the rename target.
+- `OldCave_2` starts in `gMapGroup_Temp`.
+- `gMapGroup_RougeCave` is the final target group.
 - `OldCave_Exit` points at `MAP_OLD_CAVE_2` through both a warp and a
   connection.
 - `layouts.json` points at `data/layouts/OldCave_2/map.bin` and
@@ -47,11 +50,14 @@ tree with two maps and two layouts:
 - `OldCave_2/scripts.inc` keeps old-name dialogue text so the test can prove
   the tool is not doing broad script text rewrites.
 
-`tools/map_asset_relinker/test_map_relink.sh` copies this fixture to `/tmp` and
-renames `OldCave_2` to `OldCave_2F`. It checks that the generated identifiers
-are `MAP_OLD_CAVE_2F` and `LAYOUT_OLD_CAVE_2F`, applies the plan for real in
-the temporary copy, runs `validate`, and confirms map group, map JSON, layout
-JSON, script include, warp, and connection updates.
+`tools/map_asset_relinker/test_map_relink.sh` copies this fixture to `/tmp`,
+renames `OldCave_2` to `OldCave_2F`, and moves it from `gMapGroup_Temp` to
+`gMapGroup_RougeCave`. It checks that the generated identifiers are
+`MAP_OLD_CAVE_2F` and `LAYOUT_OLD_CAVE_2F`, applies the plan for real in the
+temporary copy, runs `validate`, and confirms map group, map JSON, layout JSON,
+script include, warp, and connection updates. The same script also repeats the
+group move into a missing target group to confirm the tool adds the new group
+to `group_order` and creates its map list.
 
 ## Current Contract
 
@@ -62,6 +68,13 @@ JSON, script include, warp, and connection updates.
   reported for manual review.
 - Layout rename is enabled by default, but `--no-layout-rename` allows shared
   layout cases.
+- Group move is optional. Without `--to-group`, map groups are updated in place
+  for backward-compatible rename plans. With `--to-group`, the old map is
+  removed from `--from-group` or every current group, then the new map is
+  appended to the target group.
+- `--group` remains a fallback for maps that are not already listed in any map
+  group; it does not move an already grouped map unless `--to-group` is also
+  used.
 - The tool refuses real apply when target files are dirty unless
   `--allow-dirty` is passed.
 

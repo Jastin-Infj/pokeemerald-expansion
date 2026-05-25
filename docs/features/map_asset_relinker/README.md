@@ -6,7 +6,7 @@
 |---|---|
 | Last reviewed | 2026-05-25 |
 | Baseline | `master` `bbafc56b46` |
-| Code status | Docs-only investigation; tool not implemented |
+| Code status | Python CLI implementation on `feature/map-asset-relinker-20260525` |
 | Provenance | Local source read, Porymap-shaped map data, and `feature/new-map-test-v15` audit |
 
 ## Goal
