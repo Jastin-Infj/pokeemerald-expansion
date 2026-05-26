@@ -1,4 +1,7 @@
-use map_asset_relinker_core::{scan_project as scan_project_core, ProjectSummary};
+use map_asset_relinker_core::{
+    make_plan, resolve_project_root, scan_project as scan_project_core, write_plan, PlanRequest,
+    ProjectSummary,
+};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -44,7 +47,7 @@ fn run_plan_apply(options: PlanOptions) -> Result<DryRunResult, String> {
 }
 
 fn run_plan_command(options: PlanOptions, dry_run: bool) -> Result<DryRunResult, String> {
-    let root = resolve_project_root(Some(options.root))?;
+    let root = resolve_project_root(Some(PathBuf::from(options.root)))?;
     let safe_name = sanitize_for_file(if options.new_name.is_empty() {
         &options.old_name
     } else {
@@ -54,45 +57,32 @@ fn run_plan_command(options: PlanOptions, dry_run: bool) -> Result<DryRunResult,
         "{safe_name}_relink_{}.json",
         chrono_like_timestamp()
     ));
-    let script_path = root.join("tools/map_asset_relinker/map_relink.py");
-    let python = env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
-
-    let mut plan_args = vec![
-        script_path.display().to_string(),
-        "--root".to_string(),
-        root.display().to_string(),
-        "plan".to_string(),
-        "--map".to_string(),
-        format!("{}:{}", options.old_name, options.new_name),
-    ];
-    if !options.target_group.is_empty() {
-        plan_args.push("--to-group".to_string());
-        plan_args.push(options.target_group.clone());
-    }
     let should_rename_mapsec = !options.rename_mapsec_from.is_empty()
         && !options.rename_mapsec_to.is_empty()
         && options.rename_mapsec_from != options.rename_mapsec_to;
-    if should_rename_mapsec {
-        plan_args.push("--rename-mapsec".to_string());
-        plan_args.push(format!(
-            "{}:{}",
-            options.rename_mapsec_from, options.rename_mapsec_to
-        ));
-    }
-    if should_rename_mapsec && !options.new_mapsec_name.is_empty() {
-        plan_args.push("--new-mapsec-name".to_string());
-        plan_args.push(options.new_mapsec_name.clone());
-    }
-    if !options.rename_layout {
-        plan_args.push("--no-layout-rename".to_string());
-    }
-    if options.rewrite_script_labels {
-        plan_args.push("--rewrite-script-labels".to_string());
-    }
-    plan_args.push("--out".to_string());
-    plan_args.push(plan_path.display().to_string());
+    let request = PlanRequest {
+        old_map: options.old_name.clone(),
+        new_map: options.new_name.clone(),
+        match_by: "dir".to_string(),
+        from_group: None,
+        to_group: non_empty(options.target_group.clone()),
+        group: None,
+        rename_layout: options.rename_layout,
+        rename_mapsec: should_rename_mapsec.then_some((
+            options.rename_mapsec_from.clone(),
+            options.rename_mapsec_to.clone(),
+        )),
+        new_mapsec_name: non_empty(options.new_mapsec_name.clone()),
+        new_mapsec: None,
+        set_layout_id: None,
+        rewrite_script_labels: options.rewrite_script_labels,
+    };
+    let plan = make_plan(&root, &request)?;
+    write_plan(&plan_path, &plan)?;
+    let plan_stdout = format!("Wrote plan: {}\n", plan_path.display());
 
-    let plan = run_python_command(&python, &plan_args, &root)?;
+    let script_path = root.join("tools/map_asset_relinker/map_relink.py");
+    let python = env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
     let mut apply_args = vec![
         script_path.display().to_string(),
         "--root".to_string(),
@@ -109,49 +99,15 @@ fn run_plan_command(options: PlanOptions, dry_run: bool) -> Result<DryRunResult,
 
     Ok(DryRunResult {
         plan_path: plan_path.display().to_string(),
-        plan_stdout: plan.0,
+        plan_stdout,
         dry_run_stdout: apply.0,
-        stderr: [plan.1, apply.1]
-            .into_iter()
-            .filter(|part| !part.is_empty())
-            .collect::<Vec<_>>()
-            .join("\n"),
+        stderr: apply.1,
         command: format!(
             "{}\n{}",
-            command_line(&python, &plan_args),
+            core_plan_command(&root, &request, &plan_path),
             command_line(&python, &apply_args)
         ),
     })
-}
-
-fn resolve_project_root(root: Option<String>) -> Result<PathBuf, String> {
-    if let Some(root) = root {
-        let root = PathBuf::from(root);
-        validate_project_root(&root)?;
-        return Ok(root);
-    }
-
-    let mut candidate =
-        env::current_dir().map_err(|err| format!("failed to read current directory: {err}"))?;
-    loop {
-        if validate_project_root(&candidate).is_ok() {
-            return Ok(candidate);
-        }
-        if !candidate.pop() {
-            break;
-        }
-    }
-
-    Err("could not locate repo root; choose a folder containing data/maps/map_groups.json".into())
-}
-
-fn validate_project_root(root: &Path) -> Result<(), String> {
-    let required = root.join("data/maps/map_groups.json");
-    if required.exists() {
-        Ok(())
-    } else {
-        Err(format!("{} does not exist", required.display()))
-    }
 }
 
 fn run_python_command(
@@ -176,6 +132,45 @@ fn run_python_command(
         ));
     }
     Ok((stdout, stderr))
+}
+
+fn non_empty(value: String) -> Option<String> {
+    (!value.is_empty()).then_some(value)
+}
+
+fn core_plan_command(root: &Path, request: &PlanRequest, out: &Path) -> String {
+    let mut args = vec![
+        "tools/map_asset_relinker_core".to_string(),
+        "plan".to_string(),
+        "--root".to_string(),
+        root.display().to_string(),
+        "--map".to_string(),
+        format!("{}:{}", request.old_map, request.new_map),
+    ];
+    if let Some(to_group) = &request.to_group {
+        args.push("--to-group".to_string());
+        args.push(to_group.clone());
+    }
+    if let Some((old_mapsec, new_mapsec)) = &request.rename_mapsec {
+        args.push("--rename-mapsec".to_string());
+        args.push(format!("{old_mapsec}:{new_mapsec}"));
+    }
+    if let Some(name) = &request.new_mapsec_name {
+        args.push("--new-mapsec-name".to_string());
+        args.push(name.clone());
+    }
+    if !request.rename_layout {
+        args.push("--no-layout-rename".to_string());
+    }
+    if request.rewrite_script_labels {
+        args.push("--rewrite-script-labels".to_string());
+    }
+    args.push("--out".to_string());
+    args.push(out.display().to_string());
+    args.into_iter()
+        .map(|arg| shell_quote(&arg))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn sanitize_for_file(value: &str) -> String {
