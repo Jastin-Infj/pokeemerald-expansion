@@ -11,6 +11,10 @@ opening a browser or remembering a localhost URL.
 ## Current Scope
 
 - Scan a pokeemerald-expansion project root.
+- In the packaged desktop app, open a native project-folder picker on first
+  launch, then automatically scan the selected root.
+- Keep an `Open...` button beside the root field so the user can switch project
+  folders from the executable without typing a path.
 - Read `data/maps/map_groups.json`, `data/maps/*/map.json`,
   `data/layouts/layouts.json`, and
   `src/data/region_map/region_map_sections.json`.
@@ -58,7 +62,9 @@ is an implementation detail of hot reload.
 For browser-only validation, open `http://127.0.0.1:1420/` while the Vite
 server is running. The dev server exposes `/api/scan`, `/api/dry-run`, and
 `/api/apply` endpoints that use Node filesystem access and the Python CLI.
-Production Tauri builds use the Rust commands instead.
+Production Tauri builds use the Rust commands instead. The packaged desktop
+app uses the Tauri dialog plugin for native project-folder selection; the
+browser-only dev view falls back to manual path entry / prompt.
 
 On Linux, Tauri also needs the platform webview / GTK development packages.
 For Debian/Ubuntu-like systems, install the Tauri prerequisites including

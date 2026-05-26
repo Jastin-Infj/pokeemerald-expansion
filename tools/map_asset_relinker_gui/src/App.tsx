@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { runApplyPlan, runDryRunPlan, scanProject } from "./backend";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  chooseProjectRoot,
+  isDesktopApp,
+  runApplyPlan,
+  runDryRunPlan,
+  scanProject,
+} from "./backend";
 import type { DryRunResult, MapSummary, ProjectSummary } from "./types";
 
 const emptySummary: ProjectSummary = {
@@ -21,6 +27,7 @@ function App() {
   const [status, setStatus] = useState("Idle");
   const [error, setError] = useState<string | null>(null);
   const [lastApplyNotice, setLastApplyNotice] = useState<string | null>(null);
+  const didPromptForRoot = useRef(false);
 
   const selected = useMemo(() => {
     return (
@@ -50,11 +57,16 @@ function App() {
     });
   }, [query, summary.maps]);
 
-  const scan = useCallback(async (preferredName?: string) => {
+  const scan = useCallback(async (preferredName?: string, rootOverride?: string) => {
     setStatus("Scanning");
     setError(null);
     try {
-      const next = await scanProject(root.trim() || null);
+      const targetRoot = rootOverride ?? root.trim();
+      if (!targetRoot && isDesktopApp()) {
+        setStatus("Choose a project root to scan");
+        return;
+      }
+      const next = await scanProject(targetRoot || null);
       setSummary(next);
       setRoot(next.root);
       setSelectedName((current) => {
@@ -72,8 +84,33 @@ function App() {
   }, [root]);
 
   useEffect(() => {
-    void scan();
-  }, []);
+    if (didPromptForRoot.current) {
+      return;
+    }
+    didPromptForRoot.current = true;
+    if (!isDesktopApp()) {
+      void scan();
+      return;
+    }
+    void (async () => {
+      setStatus("Choose a project root to scan");
+      const selectedRoot = await chooseProjectRoot(root.trim());
+      if (selectedRoot) {
+        await scan(undefined, selectedRoot);
+      }
+    })();
+  }, [root, scan]);
+
+  const openProjectRoot = useCallback(async () => {
+    setError(null);
+    const selectedRoot = await chooseProjectRoot(root.trim());
+    if (!selectedRoot) {
+      setStatus(root ? "Project root unchanged" : "Choose a project root to scan");
+      return;
+    }
+    setRoot(selectedRoot);
+    await scan(undefined, selectedRoot);
+  }, [root, scan]);
 
   const handleApplied = useCallback(
     async (preferredName: string, result: DryRunResult) => {
@@ -106,6 +143,7 @@ function App() {
             onChange={(event) => setRoot(event.target.value)}
             spellCheck={false}
           />
+          <button onClick={() => void openProjectRoot()}>Open...</button>
           <button onClick={() => void scan()}>Scan</button>
         </div>
       </header>

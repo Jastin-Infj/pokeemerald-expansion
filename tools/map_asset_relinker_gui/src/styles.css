@@ -136,7 +136,7 @@ h3 {
 
 .rootControls {
   display: grid;
-  grid-template-columns: auto minmax(360px, 1fr) auto;
+  grid-template-columns: auto minmax(360px, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   flex: 1;

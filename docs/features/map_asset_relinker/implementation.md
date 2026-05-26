@@ -39,6 +39,15 @@ The direct executable still depends on host runtime libraries such as
 `libwebkit2gtk-4.1-0` and `libgtk-3-0`; the `.deb` bundle declares those runtime
 dependencies.
 
+The packaged desktop UX no longer assumes the executable is launched from a
+repository checkout. On first launch, the Tauri dialog plugin opens a native
+directory picker for the pokeemerald-expansion project root; after the user
+selects a folder, the GUI stores that root and immediately scans it. The top
+bar also keeps an `Open...` action beside `Scan`, so switching target projects
+does not require typing a path into the root field. Browser-only development
+keeps the previous automatic local scan path and uses a prompt fallback for the
+open action.
+
 When the host cannot install GTK/WebKit Tauri development packages globally,
 `prepare_linux_deps_local.sh` can download the Ubuntu packages into
 `tools/map_asset_relinker_gui/.cache/`, extract them as a local pkg-config

@@ -23,6 +23,29 @@ export async function scanProject(root: string | null): Promise<ProjectSummary> 
   return (await response.json()) as ProjectSummary;
 }
 
+export function isDesktopApp() {
+  return Boolean(window.__TAURI_INTERNALS__);
+}
+
+export async function chooseProjectRoot(currentRoot: string): Promise<string | null> {
+  if (window.__TAURI_INTERNALS__) {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const selected = await open({
+      title: "Select pokeemerald-expansion Project",
+      directory: true,
+      multiple: false,
+      defaultPath: currentRoot || undefined,
+    });
+    if (Array.isArray(selected)) {
+      return selected[0] ?? null;
+    }
+    return selected;
+  }
+
+  const selected = window.prompt("Project root", currentRoot);
+  return selected?.trim() || null;
+}
+
 export async function runDryRunPlan(options: PlanOptions): Promise<DryRunResult> {
   if (window.__TAURI_INTERNALS__) {
     return invoke<DryRunResult>("run_plan_dry_run", { options });

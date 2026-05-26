@@ -241,6 +241,7 @@ fn shell_quote(value: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             scan_project,
             run_plan_dry_run,

@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default desktop capability for the Map Asset Relinker GUI.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "dialog:allow-open"]
 }
