@@ -29,11 +29,12 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Live Route301 debug access | `Scripts -> Route301 Fly`, `Utilities -> Fly to map...`, and optional `Scripts -> Warp Route301` in the debug menu | `Route301 Fly` sets `FLAG_VISITED_ROUTE301` and badge 6 for compatibility, so the Route301 Fly icon should be selectable. `Warp Route301` directly warps to `MAP_ROUTE301` at `(7, 7)` to confirm the map exists and its transition script sets the same visit flag. The existing `Flags/Vars -> Toggle Locations` and `Cheat start` paths also include `FLAG_VISITED_ROUTE301`. |
 | Live Route301 Fly icon blink | `Scripts -> Route301 Fly`; open `Utilities -> Fly to map...`; move the cursor to `ROUTE 301` | Route301 is listed in `sPaletteBlinkFlyDestinations`, so its selected Fly icon should stay visible and blink by palette swap over a small underlay instead of disappearing over route artwork. Existing stock cities still use the original hide/show callback path. |
 | Live Route301 Fly icon style no-op | `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route301 --no-layout-rename --set-fly-icon-style MAPSEC_ROUTE_301:palette-blink --out /tmp/route301_fly_icon_style.json`; then `apply --dry-run` | Dry-run reports no file changes, confirming the live Route301 source already matches the toolized `palette-blink` style. |
-| GUI scaffold source check | `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`; `cd tools/map_asset_relinker_gui && npm install && npm run build`; `cargo check --manifest-path src-tauri/Cargo.toml` | Rust source is formatted. `npm install` and `npm run build` pass. `cargo check` downloads Rust deps but is blocked on this Linux environment by missing Tauri system packages: `javascriptcoregtk-4.1`, `libsoup-3.0`, `gdk-pixbuf-2.0`, `cairo`, and `atk`; install the Tauri Linux prerequisites before native-window validation. |
+| GUI source/web build check | `rtk sh -n tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh tools/map_asset_relinker_gui/scripts/build_native.sh tools/map_asset_relinker_gui/scripts/build_core_release.sh tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh`; `rtk cargo fmt --manifest-path tools/map_asset_relinker_core/Cargo.toml --check`; `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`; `rtk bash -lc 'cd tools/map_asset_relinker_gui && npm run build'` | Shell scripts parse, the Rust core remains formatted and compilable, and the React/Vite production bundle builds. |
 | Rust core scan check | `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`; `rtk cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan --root /home/jastin/dev/pokeemerald-expansion --pretty` | The core crate compiles and the CUI scan path returns the GUI summary JSON. After the live `Jongle` repair, scan reports 946 maps, 79 groups, 792 layouts, 214 mapsecs, and 5 warnings. |
 | Rust core plan and dry-run compatibility | On fixture copies, run `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- plan --root <tmp> --map OldCave_2:OldCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out <tmp>/rust-plan.json`; then Rust core `apply --dry-run`; repeat with `--map OldCave_2:Jongle --to-group gMapGroup_Jongle --rename-mapsec MAPSEC_Jongle:MAPSEC_JONGLE --new-mapsec-name JONGLE --rewrite-script-labels` | Rust emits valid version-1 JSON plans and simulates apply read-only. Dry-run reports the expected map/layout moves, map group edit, layout edit, map JSON edit, event script edit, mapsec edit for the Jongle case, script-label edit when requested, and checksum comparison confirms no file changes. |
 | Core release executable | `tools/map_asset_relinker_gui/scripts/build_core_release.sh`; then `tools/map_asset_relinker_core/target/release/map-asset-relinker-core audit --root .` | Builds the Rust CUI executable at `tools/map_asset_relinker_core/target/release/map-asset-relinker-core`; the release binary runs `audit` and reports the 5 existing warnings across 946 maps. On Windows the same release build produces `map-asset-relinker-core.exe`. |
-| GUI native build helper | `tools/map_asset_relinker_gui/scripts/build_native.sh` | Builds the core release executable first, then checks required Tauri Linux `pkg-config` modules before building the GUI. In the current environment it exits after core build because `gdk-3.0`, `gtk+-3.0`, `javascriptcoregtk-4.1`, `libsoup-3.0`, and `webkit2gtk-4.1` are not installed, prints the core executable path, and prints the correct Ubuntu package names: `libgtk-3-dev`, `libjavascriptcoregtk-4.1-dev`, `libsoup-3.0-dev`, and `libwebkit2gtk-4.1-dev`. Attempting `install_ubuntu_deps.sh` from this sandbox is blocked by sudo password prompt. |
+| GUI Linux native build helper | `TAURI_LOCAL_DEPS=/tmp/tauri-linux-deps tools/map_asset_relinker_gui/scripts/build_native.sh` | Builds the core release executable first, then builds host-dependent Linux GUI output without AppImage: `src-tauri/target/release/map-asset-relinker-gui`, `bundle/deb/Map Asset Relinker_0.1.0_amd64.deb`, and `bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm`. The local dependency sysroot was prepared from downloaded Ubuntu GTK/WebKit packages because `install_ubuntu_deps.sh` is blocked by the sandbox sudo password prompt. |
+| GUI Linux runtime dependency check | `dpkg-deb -I "tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb"`; `LD_LIBRARY_PATH=/tmp/tauri-linux-deps/usr/lib/x86_64-linux-gnu:/tmp/tauri-linux-deps/usr/lib ldd tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui \| rg "not found"` | The `.deb` declares `libwebkit2gtk-4.1-0` and `libgtk-3-0`. With the local sysroot on `LD_LIBRARY_PATH`, `ldd` reports no missing libraries. Without system runtime packages, the direct executable remains host-dependent and may report missing WebKit/JavascriptCore libraries. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
 | GUI layout rename default | Open the Route301 plan panel | `Rename layout with map` is checked and locked. The generated plan does not include `--no-layout-rename`, so layout id/name/path remain part of the default rename plan. |
@@ -71,11 +72,17 @@ GUI real apply:
 - `rtk tools/map_asset_relinker/test_map_relink.sh` passes.
 - `rtk tools/map_asset_relinker/map_relink.sh validate --target Jongle` passes
   with 0 errors and the 5 existing unused-map / script-include warnings.
-- `rtk bash -lc 'cd tools/map_asset_relinker_gui && npm run build'` passes.
-- `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`
-  passes.
+- `rtk sh -n tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh
+  tools/map_asset_relinker_gui/scripts/build_native.sh
+  tools/map_asset_relinker_gui/scripts/build_core_release.sh
+  tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh` passes.
+- `rtk cargo fmt --manifest-path tools/map_asset_relinker_core/Cargo.toml --check`
+  and
+  `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`
+  pass.
 - `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`
   passes.
+- `rtk bash -lc 'cd tools/map_asset_relinker_gui && npm run build'` passes.
 - `rtk cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan
   --root /home/jastin/dev/pokeemerald-expansion --pretty` succeeds and reports
   946 maps, 79 groups, 792 layouts, 214 mapsecs, and 5 warnings.
@@ -90,17 +97,19 @@ GUI real apply:
   `tools/map_asset_relinker_core/target/release/map-asset-relinker-core`.
   Running that release binary with `audit --root .` reports the 5 existing
   warnings across 946 maps.
-- `tools/map_asset_relinker_gui/scripts/build_native.sh` builds the same core
-  executable first, then stops before GUI packaging because this Linux
-  environment is missing `gdk-3.0`, `gtk+-3.0`, `javascriptcoregtk-4.1`,
-  `libsoup-3.0`, and `webkit2gtk-4.1`. Attempting
-  `install_ubuntu_deps.sh` is blocked by `sudo` requiring an interactive
-  password prompt.
-- `rtk cargo check --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml`
-  still stops on missing Linux Tauri system packages (`atk`, `pango`, `cairo`,
-  `gdk-3.0`, `gdk-pixbuf-2.0`, `javascriptcoregtk-4.1`, and `libsoup-3.0`);
-  the new core crate itself checked successfully before those system package
-  failures.
+- A local GTK/WebKit sysroot was prepared from downloaded Ubuntu packages under
+  `/tmp/tauri-linux-deps` because `install_ubuntu_deps.sh` is blocked by `sudo`
+  requiring an interactive password prompt in this sandbox.
+- `TAURI_LOCAL_DEPS=/tmp/tauri-linux-deps tools/map_asset_relinker_gui/scripts/build_native.sh`
+  passes. It builds the CUI executable plus host-dependent Linux GUI output:
+  `tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui`,
+  `tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb`,
+  and
+  `tools/map_asset_relinker_gui/src-tauri/target/release/bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm`.
+  AppImage is intentionally skipped by the helper.
+- `dpkg-deb -I` confirms the `.deb` declares runtime dependencies on
+  `libwebkit2gtk-4.1-0` and `libgtk-3-0`. `ldd` with the local sysroot on
+  `LD_LIBRARY_PATH` reports no missing libraries for the direct GUI executable.
 - Playwright verified GUI dry-run plus `Apply With Backup` on
   `/tmp/map-relink-gui-apply-root-4`: the GUI confirmed the write, created
   `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`,

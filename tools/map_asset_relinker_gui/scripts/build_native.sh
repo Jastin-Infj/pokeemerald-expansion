@@ -5,6 +5,21 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 app_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
 repo_root=$(CDPATH= cd -- "$app_dir/../.." && pwd)
 core_binary="$repo_root/tools/map_asset_relinker_core/target/release/map-asset-relinker-core"
+local_deps="${TAURI_LOCAL_DEPS:-}"
+
+if [ -z "$local_deps" ] && [ -d "$app_dir/.cache/tauri-linux-deps" ]; then
+  local_deps="$app_dir/.cache/tauri-linux-deps"
+fi
+
+if [ -n "$local_deps" ]; then
+  export PKG_CONFIG_SYSROOT_DIR="$local_deps"
+  export PKG_CONFIG_LIBDIR="$local_deps/usr/lib/x86_64-linux-gnu/pkgconfig:$local_deps/usr/share/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
+  export PKG_CONFIG_PATH="$PKG_CONFIG_LIBDIR"
+  export LD_LIBRARY_PATH="$local_deps/usr/lib/x86_64-linux-gnu:$local_deps/usr/lib:${LD_LIBRARY_PATH:-}"
+  export LIBRARY_PATH="$local_deps/usr/lib/x86_64-linux-gnu:$local_deps/usr/lib:${LIBRARY_PATH:-}"
+  export CPATH="$local_deps/usr/include:${CPATH:-}"
+  export PATH="$local_deps/usr/bin:$PATH"
+fi
 
 "$script_dir/build_core_release.sh"
 
@@ -20,7 +35,7 @@ if [ -n "$missing" ]; then
   echo "" >&2
   echo "Core executable was still built successfully:" >&2
   echo "  $core_binary" >&2
-  echo "The GUI executable / AppImage cannot be built until the packages below are installed." >&2
+  echo "The Linux GUI executable, .deb, and .rpm cannot be built until the packages below are installed." >&2
   echo "" >&2
   echo "These are pkg-config module names, not apt package names." >&2
   echo "Ubuntu package mapping:" >&2
@@ -43,12 +58,17 @@ fi
 
 cd "$app_dir"
 npm install
-npm run tauri build
+npm run tauri build -- --bundles deb,rpm
 
 echo ""
 echo "Native build output:"
 printf '%s\n' "$core_binary"
-find "$app_dir/src-tauri/target/release" -maxdepth 3 \
+find "$app_dir/src-tauri/target/release" \
+  -maxdepth 1 \
   \( -type f -o -type l \) \
-  \( -perm -111 -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) \
+  -perm -111 \
+  -print
+find "$app_dir/src-tauri/target/release/bundle" -maxdepth 3 \
+  \( -type f -o -type l \) \
+  \( -name '*.deb' -o -name '*.rpm' \) \
   -print

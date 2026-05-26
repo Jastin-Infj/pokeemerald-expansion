@@ -84,6 +84,13 @@ sudo apt-get update
 sudo apt-get install -y build-essential curl file libayatana-appindicator3-dev libgtk-3-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libsoup-3.0-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf pkg-config wget
 ```
 
+If sudo is not available but apt package downloads are allowed, prepare a
+project-local Linux dependency sysroot instead:
+
+```bash
+tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh
+```
+
 ## Build
 
 Build the Rust core executable only:
@@ -115,6 +122,20 @@ On Linux, the direct executable is also built under
 `tools/map_asset_relinker_gui/src-tauri/target/release/`.
 The script builds the Rust core executable first, so a missing Linux webview
 package does not hide whether the CUI executable was produced.
+The Linux helper intentionally builds host-dependent Linux output only:
+direct executable, `.deb`, and `.rpm`. It skips AppImage because that path is a
+portable bundle with stricter icon/runtime bundling requirements.
+The direct executable expects the host runtime libraries such as
+`libwebkit2gtk-4.1-0` and `libgtk-3-0`; the `.deb` bundle declares those
+runtime dependencies.
+
+Known Linux output paths:
+
+```text
+tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm
+```
 
 On Windows PowerShell:
 

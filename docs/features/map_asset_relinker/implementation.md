@@ -20,6 +20,41 @@
 | `apply` | Creates a `.bak.tar` backup archive, moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
 | `validate` | Runs the same consistency checks as `audit` after edits. |
 
+## Runtime Slice: Rust Core And Linux GUI Build
+
+| Field | Value |
+|---|---|
+| Branch | `feature/map-asset-relinker-20260525` |
+| Status | Host-dependent Linux executable build validated |
+| Primary files | `tools/map_asset_relinker_core/`, `tools/map_asset_relinker_gui/`, `tools/map_asset_relinker_gui/scripts/build_native.sh`, `tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh`, `tools/map_asset_relinker_gui/src-tauri/icons/icon.png` |
+| Last updated | 2026-05-26 |
+
+The GUI path now keeps the Rust core as the executable source of truth and uses
+Tauri for the local desktop shell. `build_native.sh` builds the Rust CUI release
+binary first, then builds host-dependent Linux GUI output only: the direct GUI
+executable plus `.deb` and `.rpm` packages. AppImage is intentionally skipped in
+this helper because it is the portable bundle path and has stricter icon/runtime
+bundling requirements than the current Linux-host target.
+The direct executable still depends on host runtime libraries such as
+`libwebkit2gtk-4.1-0` and `libgtk-3-0`; the `.deb` bundle declares those runtime
+dependencies.
+
+When the host cannot install GTK/WebKit Tauri development packages globally,
+`prepare_linux_deps_local.sh` can download the Ubuntu packages into
+`tools/map_asset_relinker_gui/.cache/`, extract them as a local pkg-config
+sysroot, and let `build_native.sh` consume that sysroot through
+`TAURI_LOCAL_DEPS`. The generated `.cache/`, `dist/`, `src-tauri/target/`, and
+Tauri `src-tauri/gen/` schema files remain ignored build output.
+
+Validated Linux output paths:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core
+tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm
+```
+
 ## Wrapper
 
 `tools/map_asset_relinker/map_relink.sh` is a thin POSIX shell wrapper. It
