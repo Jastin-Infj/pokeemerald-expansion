@@ -8,7 +8,6 @@ on:
       - "tools/map_asset_relinker/**"
       - "tools/map_asset_relinker_core/**"
       - "tools/map_asset_relinker_gui/**"
-      - "docs/features/map_asset_relinker/**"
   push:
     branches:
       - "feature/map-asset-relinker-*"
@@ -17,7 +16,6 @@ on:
       - "tools/map_asset_relinker/**"
       - "tools/map_asset_relinker_core/**"
       - "tools/map_asset_relinker_gui/**"
-      - "docs/features/map_asset_relinker/**"
 
 jobs:
   windows:
