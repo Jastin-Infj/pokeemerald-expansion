@@ -1,5 +1,8 @@
-use map_asset_relinker_core::{make_plan, scan_project, write_plan, PlanRequest};
+use map_asset_relinker_core::{
+    apply_plan_dry_run, make_plan, scan_project, write_plan, PlanRequest,
+};
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 
 fn main() {
@@ -16,12 +19,56 @@ fn run() -> Result<(), String> {
         "scan" => command_scan(args.collect()),
         "audit" => command_audit(args.collect()),
         "plan" => command_plan(args.collect()),
+        "apply" => command_apply(args.collect()),
         "help" | "--help" | "-h" => {
             print_help();
             Ok(())
         }
         _ => Err(format!("unknown command {command}; run with --help")),
     }
+}
+
+fn command_apply(args: Vec<String>) -> Result<(), String> {
+    let mut root = None;
+    let mut dry_run = false;
+    let mut plan_path = None;
+    let mut iter = args.into_iter();
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--root" => {
+                root = Some(PathBuf::from(
+                    iter.next()
+                        .ok_or_else(|| "--root requires a path".to_string())?,
+                ));
+            }
+            "--dry-run" => dry_run = true,
+            "--help" | "-h" => {
+                print_help();
+                std::process::exit(0);
+            }
+            _ if arg.starts_with('-') => return Err(format!("unknown option {arg}")),
+            _ => {
+                if plan_path.is_some() {
+                    return Err("apply accepts exactly one plan path".to_string());
+                }
+                plan_path = Some(PathBuf::from(arg));
+            }
+        }
+    }
+    if !dry_run {
+        return Err(
+            "Rust core apply currently supports --dry-run only; use the Python apply path for backup-backed writes."
+                .to_string(),
+        );
+    }
+    let plan_path = plan_path.ok_or_else(|| "apply requires a plan path".to_string())?;
+    let root = map_asset_relinker_core::resolve_project_root(root)?;
+    let plan_text = fs::read_to_string(&plan_path)
+        .map_err(|err| format!("failed to read {}: {err}", plan_path.display()))?;
+    let plan: serde_json::Value = serde_json::from_str(&plan_text)
+        .map_err(|err| format!("invalid JSON in {}: {err}", plan_path.display()))?;
+    print!("{}", apply_plan_dry_run(&root, &plan)?);
+    Ok(())
 }
 
 fn command_scan(args: Vec<String>) -> Result<(), String> {
@@ -183,6 +230,6 @@ fn parse_common_args(args: Vec<String>) -> Result<(Option<PathBuf>, bool), Strin
 
 fn print_help() {
     println!(
-        "map-asset-relinker-core\n\nUSAGE:\n  map-asset-relinker-core scan [--root PATH] [--pretty]\n  map-asset-relinker-core audit [--root PATH]\n  map-asset-relinker-core plan --root PATH --map OLD:NEW [--to-group GROUP] [--rename-mapsec OLD:NEW] [--new-mapsec-name NAME] [--rewrite-script-labels] --out PATH\n\nThis is the Rust core migration path. Python remains the full apply surface until Rust core reaches parity."
+        "map-asset-relinker-core\n\nUSAGE:\n  map-asset-relinker-core scan [--root PATH] [--pretty]\n  map-asset-relinker-core audit [--root PATH]\n  map-asset-relinker-core plan --root PATH --map OLD:NEW [--to-group GROUP] [--rename-mapsec OLD:NEW] [--new-mapsec-name NAME] [--rewrite-script-labels] --out PATH\n  map-asset-relinker-core apply --root PATH --dry-run PLAN.json\n\nThis is the Rust core migration path. Real apply and backup-backed writes still use the Python path until Rust core reaches write parity."
     );
 }

@@ -1,6 +1,6 @@
 use map_asset_relinker_core::{
-    make_plan, resolve_project_root, scan_project as scan_project_core, write_plan, PlanRequest,
-    ProjectSummary,
+    apply_plan_dry_run, make_plan, resolve_project_root, scan_project as scan_project_core,
+    write_plan, PlanRequest, ProjectSummary,
 };
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -83,29 +83,36 @@ fn run_plan_command(options: PlanOptions, dry_run: bool) -> Result<DryRunResult,
 
     let script_path = root.join("tools/map_asset_relinker/map_relink.py");
     let python = env::var("PYTHON").unwrap_or_else(|_| "python3".to_string());
-    let mut apply_args = vec![
-        script_path.display().to_string(),
-        "--root".to_string(),
-        root.display().to_string(),
-        "apply".to_string(),
-    ];
+    let mut stderr = String::new();
+    let dry_run_stdout;
+    let apply_command;
     if dry_run {
-        apply_args.push("--dry-run".to_string());
+        dry_run_stdout = apply_plan_dry_run(&root, &plan)?;
+        apply_command = core_apply_dry_run_command(&root, &plan_path);
     } else {
+        let mut apply_args = vec![
+            script_path.display().to_string(),
+            "--root".to_string(),
+            root.display().to_string(),
+            "apply".to_string(),
+        ];
         apply_args.push("--allow-dirty".to_string());
+        apply_args.push(plan_path.display().to_string());
+        let apply = run_python_command(&python, &apply_args, &root)?;
+        dry_run_stdout = apply.0;
+        stderr = apply.1;
+        apply_command = command_line(&python, &apply_args);
     }
-    apply_args.push(plan_path.display().to_string());
-    let apply = run_python_command(&python, &apply_args, &root)?;
 
     Ok(DryRunResult {
         plan_path: plan_path.display().to_string(),
         plan_stdout,
-        dry_run_stdout: apply.0,
-        stderr: apply.1,
+        dry_run_stdout,
+        stderr,
         command: format!(
             "{}\n{}",
             core_plan_command(&root, &request, &plan_path),
-            command_line(&python, &apply_args)
+            apply_command,
         ),
     })
 }
@@ -171,6 +178,21 @@ fn core_plan_command(root: &Path, request: &PlanRequest, out: &Path) -> String {
         .map(|arg| shell_quote(&arg))
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn core_apply_dry_run_command(root: &Path, plan_path: &Path) -> String {
+    [
+        "tools/map_asset_relinker_core".to_string(),
+        "apply".to_string(),
+        "--root".to_string(),
+        root.display().to_string(),
+        "--dry-run".to_string(),
+        plan_path.display().to_string(),
+    ]
+    .into_iter()
+    .map(|arg| shell_quote(&arg))
+    .collect::<Vec<_>>()
+    .join(" ")
 }
 
 fn sanitize_for_file(value: &str) -> String {

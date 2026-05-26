@@ -258,22 +258,22 @@ Current GUI scope:
 - keep layout rename locked on in the rename flow because the default repair
   path should update map, layout id/name, and layout directory together;
 - run Rust-core JSON plan generation from the Tauri GUI, then pass that plan
-  into the existing Python CLI `apply --dry-run` flow and display the resulting
-  planned moves/edits plus move/edit/review counts without changing source
-  files;
+  into Rust-core `apply --dry-run` and display the resulting planned
+  moves/edits plus move/edit/review counts without changing source files;
 - after a successful dry-run, enable `Apply With Backup`; the user must confirm
   the write, then the GUI runs the same CLI real `apply --allow-dirty` path,
   creates `.map_asset_relinker_backups/*.bak.tar` before edits, rescans the
   project, and keeps a visible backup-path notice.
 
-The GUI now treats Rust core as the scan and plan authority for the Tauri path.
-Python remains the write authority for dry-run / apply / backup behavior.
+The GUI now treats Rust core as the scan, plan, and dry-run authority for the
+Tauri path. Python remains the write authority for real apply / backup
+behavior.
 
 ## Rust Core Migration
 
 `tools/map_asset_relinker_core/` is the long-term shared implementation target.
 The current migration slice owns project scanning, map relationship summaries,
-and the GUI-compatible JSON plan path:
+the GUI-compatible JSON plan path, and read-only dry-run apply:
 
 - `scan_project()` reads map groups, map JSON, layouts, and region-map sections;
 - it returns the same camelCase `ProjectSummary` / `MapSummary` shape that the
@@ -282,16 +282,19 @@ and the GUI-compatible JSON plan path:
   carrying its own duplicate scan implementation;
 - `make_plan()` emits Python-compatible version-1 JSON plans for the main GUI
   rename / group move / mapsec rename / script-label rewrite path;
-- Tauri now writes those Rust-generated plans and invokes Python only for
-  `apply --dry-run` or real `apply --allow-dirty`;
+- `apply_plan_dry_run()` simulates plan application in memory and prints the
+  same move/edit/review style output without touching source files;
+- Tauri now writes those Rust-generated plans and invokes Rust for dry-run,
+  then invokes Python only for real `apply --allow-dirty`;
 - the crate also exposes a small CUI entry point:
   `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan --root . --pretty`
-  and `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- plan --root . --map OLD:NEW --out /tmp/plan.json`.
+  `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- plan --root . --map OLD:NEW --out /tmp/plan.json`,
+  and `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- apply --root . --dry-run /tmp/plan.json`.
 
-Python remains the full `apply` compatibility surface in this slice. The
-remaining migration order is expanding Rust plan parity beyond the GUI subset,
-then porting real apply / backup creation after fixture tests prove the Rust
-path.
+Python remains the real `apply` / backup compatibility surface in this slice.
+The remaining migration order is expanding Rust plan parity beyond the GUI
+subset, then porting real apply / backup creation after fixture tests prove the
+Rust path.
 
 Validation status for this scaffold:
 
@@ -305,9 +308,12 @@ Validation status for this scaffold:
   `Jongle` repair.
 - Rust core `plan` can emit Python-compatible JSON for the fixture
   `OldCave_2:OldCave_2F` rename/group move and for the mixed-case mapsec
-  `OldCave_2:Jongle` repair. Passing those plans to Python `apply --dry-run`
-  produces the expected map/layout moves, structured edits, script-label edit,
-  mapsec rename edit, and review output without changing files.
+  `OldCave_2:Jongle` repair. Passing those plans to Rust core
+  `apply --dry-run` produces the expected map/layout moves, structured edits,
+  script-label edit, mapsec rename edit, and review output without changing
+  files. The fixture checksum check confirms the dry-run path is read-only, and
+  the dry-run output matches Python `apply --dry-run` byte-for-byte for both
+  fixture plans.
 - `cargo fmt --check` passes for the Tauri Rust source.
 - Playwright browser validation against `http://127.0.0.1:1420/` loads the real
   repo data through the dev-only scan endpoint and reports 945 maps, 78 groups,

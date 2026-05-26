@@ -27,8 +27,8 @@ opening a browser or remembering a localhost URL.
   command when the normalized mapsec id differs from the selected mapsec.
 - Enable script-label rewrite by default for temporary-looking map names, so
   the GUI plan matches the CLI `plan-temp-mapsec` shortcut.
-- Run the existing CLI `plan` plus `apply --dry-run` flow and display the
-  planned moves/edits plus move/edit/review counts without changing source
+- Run Rust-core plan generation plus Rust-core `apply --dry-run` and display
+  the planned moves/edits plus move/edit/review counts without changing source
   files.
 - After a successful dry-run, enable `Apply With Backup`. The GUI requires an
   explicit confirmation, runs the same CLI real `apply --allow-dirty` path,
@@ -37,11 +37,12 @@ opening a browser or remembering a localhost URL.
 - Keep layout rename included by default for rename plans. The UI shows it as a
   locked checked option because map rename repair normally needs layout id/name
   and layout directory updates too.
-- Keep the CLI as the source of truth for relink behavior; the GUI only
-  orchestrates plan, dry-run, real apply, backup reporting, and rescan.
+- Keep the shared core / CLI as the source of truth for relink behavior; the
+  GUI only orchestrates plan, dry-run, real apply, backup reporting, and rescan.
 - Project scan / warning summaries and Tauri plan generation now use the shared
-  Rust core crate under `tools/map_asset_relinker_core/`. Apply / backup still
-  use the Python CLI until the Rust core reaches parity.
+  Rust core crate under `tools/map_asset_relinker_core/`. Tauri dry-run also
+  uses Rust core `apply --dry-run`. Real apply / backup still use the Python
+  CLI until the Rust core reaches write parity.
 
 ## Development
 
