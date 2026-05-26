@@ -62,6 +62,11 @@ an explicit confirmation. GUI apply creates the normal
 `.map_asset_relinker_backups/*.bak.tar` archive before source edits, then
 rescans the project and reports the backup path.
 
+The long-term migration target is `tools/map_asset_relinker_core/`, a Rust
+crate shared by CUI and GUI. The first slice moves scan / warning summary logic
+there and has Tauri call it directly. Python remains the compatibility surface
+for `plan` / `apply` until the Rust core reaches fixture parity.
+
 Development uses a local Vite server:
 
 ```bash

@@ -39,6 +39,9 @@ opening a browser or remembering a localhost URL.
   and layout directory updates too.
 - Keep the CLI as the source of truth for relink behavior; the GUI only
   orchestrates plan, dry-run, real apply, backup reporting, and rescan.
+- Project scan / warning summaries now use the shared Rust core crate under
+  `tools/map_asset_relinker_core/`. Plan/apply still use the Python CLI until
+  the Rust core reaches parity.
 
 ## Development
 
@@ -104,3 +107,5 @@ On Linux, the direct executable is also built under
   edited or moved.
 - Keep the CLI as the source of truth for relink behavior; the GUI should
   orchestrate it rather than fork the rules.
+- The Rust core migration starts with scan/audit data. Keep any new GUI-only
+  relink rule out of React/Tauri; promote it into the core or Python CLI first.

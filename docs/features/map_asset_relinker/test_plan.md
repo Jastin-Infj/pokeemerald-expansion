@@ -30,6 +30,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Live Route301 Fly icon blink | `Scripts -> Route301 Fly`; open `Utilities -> Fly to map...`; move the cursor to `ROUTE 301` | Route301 is listed in `sPaletteBlinkFlyDestinations`, so its selected Fly icon should stay visible and blink by palette swap over a small underlay instead of disappearing over route artwork. Existing stock cities still use the original hide/show callback path. |
 | Live Route301 Fly icon style no-op | `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route301 --no-layout-rename --set-fly-icon-style MAPSEC_ROUTE_301:palette-blink --out /tmp/route301_fly_icon_style.json`; then `apply --dry-run` | Dry-run reports no file changes, confirming the live Route301 source already matches the toolized `palette-blink` style. |
 | GUI scaffold source check | `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`; `cd tools/map_asset_relinker_gui && npm install && npm run build`; `cargo check --manifest-path src-tauri/Cargo.toml` | Rust source is formatted. `npm install` and `npm run build` pass. `cargo check` downloads Rust deps but is blocked on this Linux environment by missing Tauri system packages: `javascriptcoregtk-4.1`, `libsoup-3.0`, `gdk-pixbuf-2.0`, `cairo`, and `atk`; install the Tauri Linux prerequisites before native-window validation. |
+| Rust core scan check | `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`; `rtk cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan --root /home/jastin/dev/pokeemerald-expansion --pretty` | The new core crate compiles and the CUI scan path returns the GUI summary JSON. After the live `Jongle` repair, scan reports 946 maps, 79 groups, 792 layouts, 214 mapsecs, and 5 warnings. |
 | GUI native build helper | `tools/map_asset_relinker_gui/scripts/build_native.sh` | Checks required Tauri Linux `pkg-config` modules before building. In the current environment it exits early because `gdk-3.0`, `gtk+-3.0`, `javascriptcoregtk-4.1`, `libsoup-3.0`, and `webkit2gtk-4.1` are not installed, then prints the correct Ubuntu package names: `libgtk-3-dev`, `libjavascriptcoregtk-4.1-dev`, `libsoup-3.0-dev`, and `libwebkit2gtk-4.1-dev`. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
@@ -71,6 +72,16 @@ GUI real apply:
 - `rtk bash -lc 'cd tools/map_asset_relinker_gui && npm run build'` passes.
 - `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`
   passes.
+- `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`
+  passes.
+- `rtk cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan
+  --root /home/jastin/dev/pokeemerald-expansion --pretty` succeeds and reports
+  946 maps, 79 groups, 792 layouts, 214 mapsecs, and 5 warnings.
+- `rtk cargo check --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml`
+  still stops on missing Linux Tauri system packages (`atk`, `pango`, `cairo`,
+  `gdk-3.0`, `gdk-pixbuf-2.0`, `javascriptcoregtk-4.1`, and `libsoup-3.0`);
+  the new core crate itself checked successfully before those system package
+  failures.
 - Playwright verified GUI dry-run plus `Apply With Backup` on
   `/tmp/map-relink-gui-apply-root-4`: the GUI confirmed the write, created
   `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`,

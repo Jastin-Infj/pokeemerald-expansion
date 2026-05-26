@@ -269,10 +269,35 @@ The GUI still treats the Python CLI as the write authority. React and Tauri
 only build options, call `plan`, call dry-run / apply, display results, and
 refresh the scanned state.
 
+## Rust Core Migration
+
+`tools/map_asset_relinker_core/` is the long-term shared implementation target.
+The first migration slice moves project scanning and map relationship summary
+logic into a Rust crate:
+
+- `scan_project()` reads map groups, map JSON, layouts, and region-map sections;
+- it returns the same camelCase `ProjectSummary` / `MapSummary` shape that the
+  React GUI already consumes;
+- the Tauri command `scan_project` now delegates to this crate instead of
+  carrying its own duplicate scan implementation;
+- the crate also exposes a small CUI entry point:
+  `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan --root . --pretty`.
+
+Python remains the full `plan` / `apply` compatibility surface in this slice.
+The intended migration order is scan/audit first, then JSON plan generation
+with Python-compatible plans, then real apply / backup creation after fixture
+parity tests prove the Rust path.
+
 Validation status for this scaffold:
 
 - `npm install` succeeds and writes a local `package-lock.json`.
 - `npm run build` passes for the React/Vite frontend.
+- `cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`
+  passes for the new Rust core crate.
+- `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan
+  --root /home/jastin/dev/pokeemerald-expansion --pretty` succeeds and reports
+  946 maps, 79 groups, 792 layouts, 214 mapsecs, and 5 warnings after the live
+  `Jongle` repair.
 - `cargo fmt --check` passes for the Tauri Rust source.
 - Playwright browser validation against `http://127.0.0.1:1420/` loads the real
   repo data through the dev-only scan endpoint and reports 945 maps, 78 groups,
