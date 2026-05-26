@@ -519,6 +519,14 @@ h3 {
   text-transform: none;
 }
 
+.toggleLine.isLocked {
+  color: #3f5d4a;
+}
+
+.toggleLine.isLocked input {
+  accent-color: #25564e;
+}
+
 .planPanel pre {
   overflow: auto;
   margin: 0;

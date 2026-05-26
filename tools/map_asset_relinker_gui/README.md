@@ -21,6 +21,9 @@ opening a browser or remembering a localhost URL.
 - Run the existing CLI `plan` plus `apply --dry-run` flow and display the
   planned moves/edits plus move/edit/review counts without changing source
   files.
+- Keep layout rename included by default for rename plans. The UI shows it as a
+  locked checked option because map rename repair normally needs layout id/name
+  and layout directory updates too.
 - Keep the GUI read-only while the CLI remains the write path.
 
 Future slices can add guarded real apply. That should keep the existing backup

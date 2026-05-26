@@ -192,12 +192,12 @@ function MapDetail({
 }) {
   const [newName, setNewName] = useState("");
   const [targetGroup, setTargetGroup] = useState(map.group ?? "");
-  const [renameLayout, setRenameLayout] = useState(true);
   const [rewriteScriptLabels, setRewriteScriptLabels] = useState(false);
   const [copied, setCopied] = useState(false);
   const [dryRunStatus, setDryRunStatus] = useState("Not run");
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
   const dryRunStats = useMemo(() => summarizeDryRun(dryRunResult), [dryRunResult]);
+  const renameLayout = true;
 
   useEffect(() => {
     setNewName(map.name);
@@ -215,7 +215,7 @@ function MapDetail({
       renameLayout,
       rewriteScriptLabels,
     });
-  }, [map.name, newName, renameLayout, rewriteScriptLabels, targetGroup]);
+  }, [map.name, newName, rewriteScriptLabels, targetGroup]);
 
   const copyCommand = useCallback(async () => {
     await navigator.clipboard.writeText(command);
@@ -251,7 +251,6 @@ function MapDetail({
     map.name,
     newName,
     projectRoot,
-    renameLayout,
     rewriteScriptLabels,
     targetGroup,
   ]);
@@ -333,14 +332,12 @@ function MapDetail({
               spellCheck={false}
             />
           </label>
-          <label className="toggleLine">
+          <label className="toggleLine isLocked">
             <input
               type="checkbox"
-              checked={renameLayout}
-              onChange={(event) => {
-                setRenameLayout(event.target.checked);
-                setCopied(false);
-              }}
+              checked
+              disabled
+              readOnly
             />
             Rename layout with map
           </label>

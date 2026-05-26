@@ -245,6 +245,8 @@ Current GUI scope is read-only:
   graph before the detailed field grid;
 - filter map rows and generate a reviewable CLI plan command for the selected
   map, including target group, layout rename, and script-label rewrite options;
+- keep layout rename locked on in the rename flow because the default repair
+  path should update map, layout id/name, and layout directory together;
 - run the existing Python CLI `plan` and `apply --dry-run` flow from the GUI
   and display the resulting planned moves/edits plus move/edit/review counts
   without changing source files;
