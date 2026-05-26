@@ -223,6 +223,14 @@ export function scanProjectFromNode(root?: string | null): ProjectSummary {
 }
 
 export function runDryRunPlanFromNode(options: PlanOptions): DryRunResult {
+  return runPlanCommandFromNode(options, true);
+}
+
+export function runApplyPlanFromNode(options: PlanOptions): DryRunResult {
+  return runPlanCommandFromNode(options, false);
+}
+
+function runPlanCommandFromNode(options: PlanOptions, dryRun: boolean): DryRunResult {
   const projectRoot = resolveProjectRoot(options.root);
   const safeName = sanitizeForFile(options.newName || options.oldName || "map");
   const planPath = path.join(os.tmpdir(), `${safeName}_relink_${Date.now()}.json`);
@@ -263,24 +271,28 @@ export function runDryRunPlanFromNode(options: PlanOptions): DryRunResult {
   planArgs.push("--out", planPath);
 
   const plan = runPythonCommand(python, planArgs, projectRoot);
-  const dryRunArgs = [
+  const applyArgs = [
     scriptPath,
     "--root",
     projectRoot,
     "apply",
-    "--dry-run",
-    planPath,
   ];
-  const dryRun = runPythonCommand(python, dryRunArgs, projectRoot);
+  if (dryRun) {
+    applyArgs.push("--dry-run");
+  } else {
+    applyArgs.push("--allow-dirty");
+  }
+  applyArgs.push(planPath);
+  const apply = runPythonCommand(python, applyArgs, projectRoot);
 
   return {
     planPath,
     planStdout: plan.stdout,
-    dryRunStdout: dryRun.stdout,
-    stderr: [plan.stderr, dryRun.stderr].filter(Boolean).join("\n"),
+    dryRunStdout: apply.stdout,
+    stderr: [plan.stderr, apply.stderr].filter(Boolean).join("\n"),
     command: `${[python, ...planArgs].map(shellQuote).join(" ")}\n${[
       python,
-      ...dryRunArgs,
+      ...applyArgs,
     ]
       .map(shellQuote)
       .join(" ")}`,

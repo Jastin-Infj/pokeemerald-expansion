@@ -1646,6 +1646,10 @@
     {
       "id": "MAPSEC_SAMPLE",
       "name": "SAMPLE"
+    },
+    {
+      "id": "MAPSEC_JONGLE",
+      "name": "JONGLE"
     }
   ]
 }

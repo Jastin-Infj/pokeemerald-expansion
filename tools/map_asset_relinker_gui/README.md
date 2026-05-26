@@ -30,13 +30,15 @@ opening a browser or remembering a localhost URL.
 - Run the existing CLI `plan` plus `apply --dry-run` flow and display the
   planned moves/edits plus move/edit/review counts without changing source
   files.
+- After a successful dry-run, enable `Apply With Backup`. The GUI requires an
+  explicit confirmation, runs the same CLI real `apply --allow-dirty` path,
+  creates the normal `.map_asset_relinker_backups/*.bak.tar` archive before
+  editing files, then rescans the project and shows the backup path.
 - Keep layout rename included by default for rename plans. The UI shows it as a
   locked checked option because map rename repair normally needs layout id/name
   and layout directory updates too.
-- Keep the GUI read-only while the CLI remains the write path.
-
-Future slices can add guarded real apply. That should keep the existing backup
-archive behavior and require an explicit confirmation step after dry-run review.
+- Keep the CLI as the source of truth for relink behavior; the GUI only
+  orchestrates plan, dry-run, real apply, backup reporting, and rescan.
 
 ## Development
 
@@ -50,9 +52,9 @@ The development command opens a native Tauri window. The localhost dev server
 is an implementation detail of hot reload.
 
 For browser-only validation, open `http://127.0.0.1:1420/` while the Vite
-server is running. The dev server exposes a read-only `/api/scan` endpoint that
-uses Node filesystem access to scan the current repo. Production Tauri builds
-use the Rust command instead.
+server is running. The dev server exposes `/api/scan`, `/api/dry-run`, and
+`/api/apply` endpoints that use Node filesystem access and the Python CLI.
+Production Tauri builds use the Rust commands instead.
 
 On Linux, Tauri also needs the platform webview / GTK development packages.
 For Debian/Ubuntu-like systems, install the Tauri prerequisites including
@@ -95,9 +97,10 @@ On Linux, the direct executable is also built under
 - `npm run build` validates the React/Vite frontend only. `cargo check`,
   `npm run tauri dev`, and `npm run tauri build` also require the Tauri system
   libraries above.
-- The Vite-only `/api/scan` endpoint exists only for local development and
-  Playwright checks. It is not part of the packaged app.
-- The first GUI slice avoids write commands on purpose. Plan/apply integration
-  should preserve the existing CLI backup behavior and dry-run review step.
+- The Vite-only API endpoints exist only for local development and Playwright
+  checks. They are not part of the packaged app.
+- Real apply is intentionally behind dry-run success and an explicit
+  confirmation dialog. A backup archive is created before source files are
+  edited or moved.
 - Keep the CLI as the source of truth for relink behavior; the GUI should
   orchestrate it rather than fork the rules.

@@ -1747,3 +1747,5 @@ EventScript_PalletTown_PlayersHouse_2F_TurnOnPC::
 	.include "data/maps/Route301/scripts.inc"
 
 	.include "data/maps/Sample1/scripts.inc"
+
+	.include "data/maps/Jongle/scripts.inc"

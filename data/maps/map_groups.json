@@ -77,7 +77,8 @@
     "gMapGroup_IndoorSevenIslandRoute_Frlg",
     "gMapGroup_Tester",
     "gMapGroup_DSLite",
-    "gMapGroup_Sample"
+    "gMapGroup_Sample",
+    "gMapGroup_Jongle"
   ],
   "gMapGroup_TownsAndRoutes": [
     "PetalburgCity",
@@ -1175,5 +1176,8 @@
   ],
   "gMapGroup_Sample": [
     "Sample1"
+  ],
+  "gMapGroup_Jongle": [
+    "Jongle"
   ]
 }

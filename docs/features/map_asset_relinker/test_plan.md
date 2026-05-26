@@ -37,8 +37,10 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | GUI Playwright dry-run execution | With the same Route301 setup, click `Run Dry-Run` | The GUI status becomes `Dry-run complete`, displays counters for 2 moves, 5 edits, and 5 review references, displays a `/tmp/route401_relink_*.json` plan path, and shows the existing CLI dry-run output: layout/map moves, structured edits, review references, and `Dry-run complete; no files changed.` |
 | GUI Playwright audit warning navigation | In a local worktree containing `data/maps/test1`, click the right-side `test1: MAPSEC_Jongle...` audit warning | The detail pane switches to `test1`, showing its relationship graph, selected-map audit, and repair controls. |
 | GUI Playwright `test1` / `MAPSEC_Jongle` repair | In a local worktree containing `data/maps/test1` with `region_map_section: MAPSEC_Jongle`, click the audit warning or filter `test1`, then click `Run Dry-Run` | The selected map shows temporary-name and mixed-case mapsec warnings. The plan defaults to `--map test1:Jongle --to-group gMapGroup_Jongle --rename-mapsec MAPSEC_Jongle:MAPSEC_JONGLE --new-mapsec-name JONGLE --rewrite-script-labels`, then the dev API dry-run reports 2 moves, 6 edits, 5 review references, and `Dry-run complete; no files changed.` |
+| GUI Playwright apply with backup | In a `/tmp` fixture project containing `MAPSEC_Jongle`, click `Run Dry-Run`, then `Apply With Backup`, and accept the confirmation dialog | The GUI uses the same CLI write path, creates `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`, shows `Applied with backup: ...`, rescans automatically, and updates the selected map to `gMapGroup_Jongle` / `MAPSEC_JONGLE` with no selected-map issues. Follow-up CLI `validate --target MAPSEC_JONGLE` reports 0 errors and one fixture-only empty-group warning. |
 | CLI `test1` / `MAPSEC_Jongle` audit and dry-run | `tools/map_asset_relinker/map_relink.sh audit --target test1`; then `tools/map_asset_relinker/map_relink.sh plan --map test1:Jongle --to-group gMapGroup_Jongle --rename-mapsec MAPSEC_Jongle:MAPSEC_JONGLE --new-mapsec-name JONGLE --rewrite-script-labels --out /tmp/jongle_test1_repair.json` and `apply --dry-run` | Audit warns on the mixed-case mapsec id and temporary-looking map name. Dry-run plans the map/layout move, group repair, mapsec rename/display-name repair, layout JSON edit, map JSON edit, script include edit, and script-label rewrite without changing source files. |
 | CLI `plan-temp-mapsec` shortcut | `tools/map_asset_relinker/map_relink.sh plan-temp-mapsec --map test1 --dry-run --out /tmp/test1_temp_mapsec_auto.json` | Infers the same mapsec-derived repair from source data without GUI-only logic: `test1:Jongle`, `gMapGroup_Jongle`, `MAPSEC_JONGLE`, `JONGLE`, default layout rename, default script-label rewrite, and dry-run without changing source files. |
+| CLI `plan-temp-mapsec` real apply | `tools/map_asset_relinker/map_relink.sh plan-temp-mapsec --map test1 --out /tmp/test1_temp_mapsec_apply.json`; then `tools/map_asset_relinker/map_relink.sh apply --allow-dirty /tmp/test1_temp_mapsec_apply.json` | Applies the live `test1` / `MAPSEC_Jongle` repair as `Jongle`, creates `.map_asset_relinker_backups/map_relink_20260526_125816_385658.bak.tar`, moves `data/maps/test1` and `data/layouts/test1` to `Jongle`, rewrites map group, layout JSON, map JSON, event script include, script label, and region-map section data, and follow-up `validate --target Jongle` completes with 0 errors plus the 5 existing repo warnings. |
 | GUI Playwright layout overflow | Check 1320x860 and 1040x720 viewports | No page-level horizontal or vertical overflow. The 1320x860 view keeps map/detail/audit panes in three columns; the 1040x720 view moves the audit pane to a full-width second row. |
 | Python compile | `python3 -m py_compile tools/map_asset_relinker/map_relink.py` | Passes after adding Fly/mapsec-map/flag plan options. |
 | Diff whitespace | `rtk git diff --check` | Passes. |
@@ -56,6 +58,37 @@ Current `audit` warnings on `master` are pre-existing:
   listed in `map_groups.json`.
 - `Route19_UnusedHouse_Frlg/scripts.inc` is not included by
   `data/event_scripts.s`.
+
+## Latest Branch Validation (2026-05-26)
+
+After applying the live `test1` / `MAPSEC_Jongle` repair as `Jongle` and adding
+GUI real apply:
+
+- `rtk python3 -m py_compile tools/map_asset_relinker/map_relink.py` passes.
+- `rtk tools/map_asset_relinker/test_map_relink.sh` passes.
+- `rtk tools/map_asset_relinker/map_relink.sh validate --target Jongle` passes
+  with 0 errors and the 5 existing unused-map / script-include warnings.
+- `rtk bash -lc 'cd tools/map_asset_relinker_gui && npm run build'` passes.
+- `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`
+  passes.
+- Playwright verified GUI dry-run plus `Apply With Backup` on
+  `/tmp/map-relink-gui-apply-root-4`: the GUI confirmed the write, created
+  `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`,
+  displayed the backup notice, rescanned, and showed `gMapGroup_Jongle` /
+  `MAPSEC_JONGLE` with no selected-map issues. CLI validation of that fixture
+  reported 0 errors and one fixture-only empty-group warning.
+- `rtk make generated` passes.
+- `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
+  `rtk make -j16 -O check` pass with the existing RWX linker warning.
+- `rtk git diff --check` passes.
+- `rtk mdbook build docs` passes with existing warnings: missing root
+  `CHANGELOG.md`, existing `CREDITS.md` `</img>`, and large search index.
+- mGBA Live boot smoke: starting with the raw script-capable Qt path failed
+  because no display was available, but starting with the local `mgba-qt`
+  wrapper succeeded, `mgba_live_get_view` captured the Emerald title screen,
+  and `mgba_live_stop` stopped `map-relink-jongle-boot-wrapper` cleanly.
+- GitHub Actions were not re-waited; local build, check, GUI, Playwright, and
+  mGBA evidence are the handoff validation for this slice.
 
 ## Future Tool Tests
 

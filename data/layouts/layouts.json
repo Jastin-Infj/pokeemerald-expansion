@@ -9385,6 +9385,16 @@
       "secondary_tileset": "gTileset_Petalburg",
       "border_filepath": "data/layouts/Sample1/border.bin",
       "blockdata_filepath": "data/layouts/Sample1/map.bin"
+    },
+    {
+      "id": "LAYOUT_JONGLE",
+      "name": "Jongle_Layout",
+      "width": 32,
+      "height": 28,
+      "primary_tileset": "gTileset_General",
+      "secondary_tileset": "gTileset_Petalburg",
+      "border_filepath": "data/layouts/Jongle/border.bin",
+      "blockdata_filepath": "data/layouts/Jongle/map.bin"
     }
   ]
 }

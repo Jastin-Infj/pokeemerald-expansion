@@ -40,3 +40,21 @@ export async function runDryRunPlan(options: PlanOptions): Promise<DryRunResult>
   }
   return (await response.json()) as DryRunResult;
 }
+
+export async function runApplyPlan(options: PlanOptions): Promise<DryRunResult> {
+  if (window.__TAURI_INTERNALS__) {
+    return invoke<DryRunResult>("run_plan_apply", { options });
+  }
+
+  const response = await fetch("/api/apply", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(options),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as DryRunResult;
+}

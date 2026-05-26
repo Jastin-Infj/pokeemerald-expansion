@@ -56,8 +56,11 @@ rtk make -j16 -O debug
 ## Desktop GUI Scaffold
 
 `tools/map_asset_relinker_gui/` contains an early Tauri + React desktop shell.
-It is read-only for now: it scans map groups, maps, layouts, and mapsecs, then
-shows relationship warnings in a native window.
+It scans map groups, maps, layouts, and mapsecs, shows relationship warnings,
+runs CLI dry-runs, and can run the same real `apply --allow-dirty` path after
+an explicit confirmation. GUI apply creates the normal
+`.map_asset_relinker_backups/*.bak.tar` archive before source edits, then
+rescans the project and reports the backup path.
 
 Development uses a local Vite server:
 

@@ -1,6 +1,10 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { runDryRunPlanFromNode, scanProjectFromNode } from "./dev/scan-project";
+import {
+  runApplyPlanFromNode,
+  runDryRunPlanFromNode,
+  scanProjectFromNode,
+} from "./dev/scan-project";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -63,6 +67,31 @@ function mapScanApiPlugin(): Plugin {
         request.on("end", () => {
           try {
             const result = runDryRunPlanFromNode(JSON.parse(body));
+            response.statusCode = 200;
+            response.setHeader("Content-Type", "application/json");
+            response.end(JSON.stringify(result));
+          } catch (error) {
+            response.statusCode = 500;
+            response.setHeader("Content-Type", "text/plain");
+            response.end(error instanceof Error ? error.message : String(error));
+          }
+        });
+      });
+      server.middlewares.use("/api/apply", (request, response) => {
+        if (request.method !== "POST") {
+          response.statusCode = 405;
+          response.end("POST required");
+          return;
+        }
+
+        let body = "";
+        request.setEncoding("utf8");
+        request.on("data", (chunk) => {
+          body += chunk;
+        });
+        request.on("end", () => {
+          try {
+            const result = runApplyPlanFromNode(JSON.parse(body));
             response.statusCode = 200;
             response.setHeader("Content-Type", "application/json");
             response.end(JSON.stringify(result));

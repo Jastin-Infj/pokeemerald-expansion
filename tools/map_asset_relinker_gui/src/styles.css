@@ -157,6 +157,15 @@ h3 {
   font-weight: 700;
 }
 
+.successBanner {
+  border: 1px solid #4b8d6b;
+  border-radius: 8px;
+  background: #eefaf3;
+  color: #265a3d;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(5, minmax(120px, 1fr));
@@ -493,6 +502,13 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.stateRail {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .planHeader span {

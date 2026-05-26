@@ -249,6 +249,15 @@ fn scan_project(root: Option<String>) -> Result<ProjectSummary, String> {
 
 #[tauri::command]
 fn run_plan_dry_run(options: PlanOptions) -> Result<DryRunResult, String> {
+    run_plan_command(options, true)
+}
+
+#[tauri::command]
+fn run_plan_apply(options: PlanOptions) -> Result<DryRunResult, String> {
+    run_plan_command(options, false)
+}
+
+fn run_plan_command(options: PlanOptions, dry_run: bool) -> Result<DryRunResult, String> {
     let root = resolve_project_root(Some(options.root))?;
     let safe_name = sanitize_for_file(if options.new_name.is_empty() {
         &options.old_name
@@ -298,21 +307,25 @@ fn run_plan_dry_run(options: PlanOptions) -> Result<DryRunResult, String> {
     plan_args.push(plan_path.display().to_string());
 
     let plan = run_python_command(&python, &plan_args, &root)?;
-    let dry_run_args = vec![
+    let mut apply_args = vec![
         script_path.display().to_string(),
         "--root".to_string(),
         root.display().to_string(),
         "apply".to_string(),
-        "--dry-run".to_string(),
-        plan_path.display().to_string(),
     ];
-    let dry_run = run_python_command(&python, &dry_run_args, &root)?;
+    if dry_run {
+        apply_args.push("--dry-run".to_string());
+    } else {
+        apply_args.push("--allow-dirty".to_string());
+    }
+    apply_args.push(plan_path.display().to_string());
+    let apply = run_python_command(&python, &apply_args, &root)?;
 
     Ok(DryRunResult {
         plan_path: plan_path.display().to_string(),
         plan_stdout: plan.0,
-        dry_run_stdout: dry_run.0,
-        stderr: [plan.1, dry_run.1]
+        dry_run_stdout: apply.0,
+        stderr: [plan.1, apply.1]
             .into_iter()
             .filter(|part| !part.is_empty())
             .collect::<Vec<_>>()
@@ -320,7 +333,7 @@ fn run_plan_dry_run(options: PlanOptions) -> Result<DryRunResult, String> {
         command: format!(
             "{}\n{}",
             command_line(&python, &plan_args),
-            command_line(&python, &dry_run_args)
+            command_line(&python, &apply_args)
         ),
     })
 }
@@ -517,7 +530,11 @@ fn shell_quote(value: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![scan_project, run_plan_dry_run])
+        .invoke_handler(tauri::generate_handler![
+            scan_project,
+            run_plan_dry_run,
+            run_plan_apply
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Map Asset Relinker GUI");
 }

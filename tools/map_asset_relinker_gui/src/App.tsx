@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { runDryRunPlan, scanProject } from "./backend";
+import { runApplyPlan, runDryRunPlan, scanProject } from "./backend";
 import type { DryRunResult, MapSummary, ProjectSummary } from "./types";
 
 const emptySummary: ProjectSummary = {
@@ -20,6 +20,7 @@ function App() {
   const [selectedName, setSelectedName] = useState<string>("");
   const [status, setStatus] = useState("Idle");
   const [error, setError] = useState<string | null>(null);
+  const [lastApplyNotice, setLastApplyNotice] = useState<string | null>(null);
 
   const selected = useMemo(() => {
     return (
@@ -49,7 +50,7 @@ function App() {
     });
   }, [query, summary.maps]);
 
-  const scan = useCallback(async () => {
+  const scan = useCallback(async (preferredName?: string) => {
     setStatus("Scanning");
     setError(null);
     try {
@@ -57,8 +58,9 @@ function App() {
       setSummary(next);
       setRoot(next.root);
       setSelectedName((current) => {
-        if (next.maps.some((map) => map.name === current)) {
-          return current;
+        const wanted = preferredName ?? current;
+        if (next.maps.some((map) => map.name === wanted)) {
+          return wanted;
         }
         return next.maps[0]?.name ?? "";
       });
@@ -72,6 +74,19 @@ function App() {
   useEffect(() => {
     void scan();
   }, []);
+
+  const handleApplied = useCallback(
+    async (preferredName: string, result: DryRunResult) => {
+      const backupLine = firstOutputLine(result.dryRunStdout, "BACKUP ");
+      setLastApplyNotice(
+        backupLine
+          ? `Applied with backup: ${backupLine.slice("BACKUP ".length)}`
+          : "Applied with backup; no backup path was reported.",
+      );
+      await scan(preferredName);
+    },
+    [scan],
+  );
 
   return (
     <main className="appShell">
@@ -91,11 +106,12 @@ function App() {
             onChange={(event) => setRoot(event.target.value)}
             spellCheck={false}
           />
-          <button onClick={scan}>Scan</button>
+          <button onClick={() => void scan()}>Scan</button>
         </div>
       </header>
 
       {error ? <div className="errorBanner">{error}</div> : null}
+      {lastApplyNotice ? <div className="successBanner">{lastApplyNotice}</div> : null}
 
       <section className="metrics" aria-label="Project metrics">
         <Metric label="Maps" value={summary.mapCount} tone="teal" />
@@ -140,7 +156,11 @@ function App() {
 
         <section className="detailPane">
           {selected ? (
-            <MapDetail map={selected} projectRoot={summary.root} />
+            <MapDetail
+              map={selected}
+              projectRoot={summary.root}
+              onApplied={handleApplied}
+            />
           ) : (
             <EmptyState />
           )}
@@ -198,9 +218,11 @@ function Metric({
 function MapDetail({
   map,
   projectRoot,
+  onApplied,
 }: {
   map: MapSummary;
   projectRoot: string;
+  onApplied: (preferredName: string, result: DryRunResult) => Promise<void>;
 }) {
   const [newName, setNewName] = useState("");
   const [targetGroup, setTargetGroup] = useState(map.group ?? "");
@@ -210,8 +232,19 @@ function MapDetail({
   const [copied, setCopied] = useState(false);
   const [dryRunStatus, setDryRunStatus] = useState("Not run");
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
+  const [applyStatus, setApplyStatus] = useState("Not run");
+  const [applyResult, setApplyResult] = useState<DryRunResult | null>(null);
   const dryRunStats = useMemo(() => summarizeDryRun(dryRunResult), [dryRunResult]);
+  const applyStats = useMemo(() => summarizeDryRun(applyResult), [applyResult]);
   const renameLayout = true;
+
+  const resetPlanResults = useCallback(() => {
+    setCopied(false);
+    setDryRunStatus("Not run");
+    setDryRunResult(null);
+    setApplyStatus("Not run");
+    setApplyResult(null);
+  }, []);
 
   useEffect(() => {
     const suggestedName = suggestMapName(map);
@@ -224,6 +257,8 @@ function MapDetail({
     setCopied(false);
     setDryRunStatus("Not run");
     setDryRunResult(null);
+    setApplyStatus("Not run");
+    setApplyResult(null);
   }, [map.name, map.group, map.mapsec, map.mapsecName]);
 
   const command = useMemo(() => {
@@ -269,8 +304,12 @@ function MapDetail({
       });
       setDryRunResult(result);
       setDryRunStatus("Dry-run complete");
+      setApplyStatus("Ready");
+      setApplyResult(null);
     } catch (err) {
       setDryRunStatus("Dry-run failed");
+      setApplyStatus("Not run");
+      setApplyResult(null);
       setDryRunResult({
         planPath: "",
         planStdout: "",
@@ -285,6 +324,58 @@ function MapDetail({
     map.mapsec,
     mapsecDisplayName,
     newName,
+    projectRoot,
+    renameMapsecTo,
+    rewriteScriptLabels,
+    targetGroup,
+  ]);
+
+  const runApply = useCallback(async () => {
+    if (!dryRunResult) {
+      return;
+    }
+    const confirmed = window.confirm(
+      "Apply this plan to source files now? A .bak.tar backup will be created before edits.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setApplyStatus("Applying");
+    setApplyResult(null);
+    try {
+      const result = await runApplyPlan({
+        root: projectRoot,
+        oldName: map.name,
+        newName: newName.trim() || map.name,
+        targetGroup: targetGroup.trim(),
+        renameMapsecFrom: map.mapsec,
+        renameMapsecTo: renameMapsecTo.trim(),
+        newMapsecName: mapsecDisplayName.trim(),
+        renameLayout,
+        rewriteScriptLabels,
+      });
+      setApplyResult(result);
+      setApplyStatus("Apply complete");
+      await onApplied(newName.trim() || map.name, result);
+    } catch (err) {
+      setApplyStatus("Apply failed");
+      setApplyResult({
+        planPath: "",
+        planStdout: "",
+        dryRunStdout: "",
+        stderr: err instanceof Error ? err.message : String(err),
+        command,
+      });
+    }
+  }, [
+    command,
+    dryRunResult,
+    map.mapsec,
+    map.name,
+    mapsecDisplayName,
+    newName,
+    onApplied,
     projectRoot,
     renameMapsecTo,
     rewriteScriptLabels,
@@ -334,9 +425,14 @@ function MapDetail({
       <div className="planPanel">
         <div className="planHeader">
           <h3>Plan Preview</h3>
-          <span className={`dryRunState ${dryRunStateClass(dryRunStatus)}`}>
-            {dryRunStatus}
-          </span>
+          <div className="stateRail">
+            <span className={`dryRunState ${dryRunStateClass(dryRunStatus)}`}>
+              {dryRunStatus}
+            </span>
+            <span className={`dryRunState ${dryRunStateClass(applyStatus)}`}>
+              {applyStatus}
+            </span>
+          </div>
         </div>
         {dryRunResult ? (
           <div className="dryRunStats" aria-label="Dry-run operation counts">
@@ -352,7 +448,7 @@ function MapDetail({
               value={newName}
               onChange={(event) => {
                 setNewName(event.target.value);
-                setCopied(false);
+                resetPlanResults();
               }}
               spellCheck={false}
             />
@@ -363,7 +459,7 @@ function MapDetail({
               value={targetGroup}
               onChange={(event) => {
                 setTargetGroup(event.target.value);
-                setCopied(false);
+                resetPlanResults();
               }}
               spellCheck={false}
             />
@@ -374,7 +470,7 @@ function MapDetail({
               value={renameMapsecTo}
               onChange={(event) => {
                 setRenameMapsecTo(event.target.value);
-                setCopied(false);
+                resetPlanResults();
               }}
               spellCheck={false}
             />
@@ -385,7 +481,7 @@ function MapDetail({
               value={mapsecDisplayName}
               onChange={(event) => {
                 setMapsecDisplayName(event.target.value);
-                setCopied(false);
+                resetPlanResults();
               }}
               spellCheck={false}
             />
@@ -405,7 +501,7 @@ function MapDetail({
               checked={rewriteScriptLabels}
               onChange={(event) => {
                 setRewriteScriptLabels(event.target.checked);
-                setCopied(false);
+                resetPlanResults();
               }}
             />
             Rewrite script labels
@@ -417,7 +513,17 @@ function MapDetail({
           <button onClick={runDryRun} disabled={!projectRoot || dryRunStatus === "Running"}>
             Run Dry-Run
           </button>
-          <button disabled>Apply With Backup</button>
+          <button
+            onClick={runApply}
+            disabled={
+              !projectRoot ||
+              !dryRunResult ||
+              dryRunStatus !== "Dry-run complete" ||
+              applyStatus === "Applying"
+            }
+          >
+            Apply With Backup
+          </button>
         </div>
         {dryRunResult ? (
           <div className="dryRunOutput">
@@ -425,6 +531,22 @@ function MapDetail({
             <p>{dryRunResult.planPath ? `Plan: ${dryRunResult.planPath}` : "No plan file"}</p>
             <pre>
               {[dryRunResult.dryRunStdout, dryRunResult.stderr]
+                .filter(Boolean)
+                .join("\n")}
+            </pre>
+          </div>
+        ) : null}
+        {applyResult ? (
+          <div className="dryRunOutput">
+            <h3>Apply Output</h3>
+            <div className="dryRunStats" aria-label="Apply operation counts">
+              <Stat label="Moves" value={applyStats.moves} />
+              <Stat label="Edits" value={applyStats.edits} />
+              <Stat label="Backups" value={countLines(applyResult.dryRunStdout, "BACKUP ")} />
+            </div>
+            <p>{applyResult.planPath ? `Plan: ${applyResult.planPath}` : "No plan file"}</p>
+            <pre>
+              {[applyResult.dryRunStdout, applyResult.stderr]
                 .filter(Boolean)
                 .join("\n")}
             </pre>
@@ -468,6 +590,12 @@ function countLines(text: string, prefix: string) {
     .filter((line) => line.startsWith(prefix)).length;
 }
 
+function firstOutputLine(text: string, prefix: string) {
+  return text
+    .split("\n")
+    .find((line) => line.startsWith(prefix)) ?? "";
+}
+
 function dryRunStateClass(status: string) {
   if (status.includes("complete")) {
     return "isComplete";
@@ -476,6 +604,9 @@ function dryRunStateClass(status: string) {
     return "isFailed";
   }
   if (status.includes("Running")) {
+    return "isRunning";
+  }
+  if (status.includes("Applying")) {
     return "isRunning";
   }
   return "";

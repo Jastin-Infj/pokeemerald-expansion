@@ -240,7 +240,7 @@ localhost workflow. `npm run tauri dev` uses a local Vite server for hot reload
 while developing, but `npm run tauri build` embeds the frontend into the Tauri
 bundle so normal use can be an exe / AppImage / platform bundle.
 
-Current GUI scope is read-only:
+Current GUI scope:
 
 - scan a project root from Rust without invoking Porymap;
 - scan the same data from a Vite-only `/api/scan` endpoint for browser /
@@ -260,12 +260,14 @@ Current GUI scope is read-only:
 - run the existing Python CLI `plan` and `apply --dry-run` flow from the GUI
   and display the resulting planned moves/edits plus move/edit/review counts
   without changing source files;
-- keep real apply disabled until backup review and explicit confirmation
-  controls are implemented.
+- after a successful dry-run, enable `Apply With Backup`; the user must confirm
+  the write, then the GUI runs the same CLI real `apply --allow-dirty` path,
+  creates `.map_asset_relinker_backups/*.bak.tar` before edits, rescans the
+  project, and keeps a visible backup-path notice.
 
-The intended next GUI slice is to have Rust orchestrate
-`tools/map_asset_relinker/map_relink.py plan` and `apply --dry-run`, then show
-the generated plan before enabling any real apply action.
+The GUI still treats the Python CLI as the write authority. React and Tauri
+only build options, call `plan`, call dry-run / apply, display results, and
+refresh the scanned state.
 
 Validation status for this scaffold:
 
@@ -295,6 +297,12 @@ Validation status for this scaffold:
   `--rewrite-script-labels`. Clicking `Run Dry-Run` creates
   `/tmp/jongle_relink_*.json`, reports 2 moves, 6 edits, and 5 review
   references, and the CLI reports `Dry-run complete; no files changed.`
+- Playwright also confirmed GUI real apply on a `/tmp` fixture copy with
+  `MAPSEC_Jongle`. After `Run Dry-Run`, `Apply With Backup` required
+  confirmation, wrote `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`,
+  rescanned automatically, displayed `Applied with backup: ...`, and updated
+  the selected map from `gMapGroup_Temp` / `MAPSEC_Jongle` to
+  `gMapGroup_Jongle` / `MAPSEC_JONGLE` with no selected-map issues.
 - A 1040x720 Playwright viewport confirms the two-column layout path with the
   audit pane moved to a full-width row and no page-level overflow.
 - `cargo check --manifest-path src-tauri/Cargo.toml` currently stops before
@@ -334,6 +342,22 @@ Validation status for this scaffold:
   through the CLI shortcut: `test1:Jongle`, `gMapGroup_Jongle`,
   `MAPSEC_JONGLE`, `JONGLE`, default layout rename, and default script-label
   rewrite.
+- `tools/map_asset_relinker/map_relink.sh plan-temp-mapsec --map test1 --out
+  /tmp/test1_temp_mapsec_apply.json` followed by `apply --allow-dirty
+  /tmp/test1_temp_mapsec_apply.json` applied the live `test1` /
+  `MAPSEC_Jongle` repair as `Jongle`. The backup archive is
+  `.map_asset_relinker_backups/map_relink_20260526_125816_385658.bak.tar`;
+  follow-up `validate --target Jongle` completed with 0 errors and the 5
+  existing repository warnings, and `rg` found no remaining `MAPSEC_Jongle`,
+  `"test1"`, `data/maps/test1`, `MAP_TEST1`, or `LAYOUT_TEST1` references in
+  `data`, `src`, or `include`.
+- The latest 2026-05-26 branch validation after GUI apply support passes:
+  Python compile, `tools/map_asset_relinker/test_map_relink.sh`,
+  `validate --target Jongle`, GUI `npm run build`, Tauri `cargo fmt --check`,
+  `rtk make generated`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`,
+  `rtk make -j16 -O check`, `rtk git diff --check`, and `rtk mdbook build
+  docs`. mGBA Live boot validation succeeded through the local `mgba-qt`
+  wrapper and stopped cleanly; the direct raw Qt path failed without a display.
 - `python3 -m py_compile tools/map_asset_relinker/map_relink.py` passes.
 - `python3 tools/map_asset_relinker/map_relink.py audit` completes with 0
   errors and 5 existing warnings for unused map directories / one unused script
