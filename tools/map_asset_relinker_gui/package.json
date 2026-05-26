@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:desktop": "tauri build",
     "build:linux": "tauri build --bundles deb,rpm",
+    "build:windows": "tauri build --bundles \"nsis,msi\"",
     "preview": "vite preview --host 127.0.0.1 --port 1420",
     "tauri": "tauri"
   },

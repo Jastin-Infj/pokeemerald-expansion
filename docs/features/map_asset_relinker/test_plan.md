@@ -35,6 +35,8 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | Core release executable | `tools/map_asset_relinker_gui/scripts/build_core_release.sh`; then `tools/map_asset_relinker_core/target/release/map-asset-relinker-core audit --root .` | Builds the Rust CUI executable at `tools/map_asset_relinker_core/target/release/map-asset-relinker-core`; the release binary runs `audit` and reports the 5 existing warnings across 946 maps. On Windows the same release build produces `map-asset-relinker-core.exe`. |
 | GUI Linux native build helper | `TAURI_LOCAL_DEPS=/tmp/tauri-linux-deps tools/map_asset_relinker_gui/scripts/build_native.sh` | Builds the core release executable first, then builds host-dependent Linux GUI output without AppImage: `src-tauri/target/release/map-asset-relinker-gui`, `bundle/deb/Map Asset Relinker_0.1.0_amd64.deb`, and `bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm`. The local dependency sysroot was prepared from downloaded Ubuntu GTK/WebKit packages because `install_ubuntu_deps.sh` is blocked by the sandbox sudo password prompt. |
 | GUI Linux runtime dependency check | `dpkg-deb -I "tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb"`; `LD_LIBRARY_PATH=/tmp/tauri-linux-deps/usr/lib/x86_64-linux-gnu:/tmp/tauri-linux-deps/usr/lib ldd tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui \| rg "not found"` | The `.deb` declares `libwebkit2gtk-4.1-0` and `libgtk-3-0`. With the local sysroot on `LD_LIBRARY_PATH`, `ldd` reports no missing libraries. Without system runtime packages, the direct executable remains host-dependent and may report missing WebKit/JavascriptCore libraries. |
+| GUI Windows native build helper | On Windows: `tools/map_asset_relinker_gui/scripts/build_windows.ps1` | Builds `map-asset-relinker-core.exe`, then Tauri builds the direct GUI `.exe`, NSIS setup `.exe`, and `.msi` bundle. On Linux this is covered by the GitHub Actions Windows runner because local Windows WebView/Tauri packaging is not available. |
+| GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-windows`, containing the CUI `.exe`, direct GUI `.exe`, setup `.exe`, and `.msi` bundle. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
 | GUI layout rename default | Open the Route301 plan panel | `Rename layout with map` is checked and locked. The generated plan does not include `--no-layout-rename`, so layout id/name/path remain part of the default rename plan. |
@@ -110,6 +112,12 @@ GUI real apply:
 - `dpkg-deb -I` confirms the `.deb` declares runtime dependencies on
   `libwebkit2gtk-4.1-0` and `libgtk-3-0`. `ldd` with the local sysroot on
   `LD_LIBRARY_PATH` reports no missing libraries for the direct GUI executable.
+- `tools/map_asset_relinker_gui/scripts/build_windows.ps1` was updated to
+  build the Windows direct GUI `.exe`, NSIS setup `.exe`, and `.msi` bundle.
+  Local Linux validation cannot execute that PowerShell/Tauri Windows packaging
+  path, so `.github/workflows/map-asset-relinker-desktop.yml` runs the same
+  helper on `windows-latest` and uploads the `map-asset-relinker-windows`
+  artifact.
 - Playwright verified GUI dry-run plus `Apply With Backup` on
   `/tmp/map-relink-gui-apply-root-4`: the GUI confirmed the write, created
   `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`,

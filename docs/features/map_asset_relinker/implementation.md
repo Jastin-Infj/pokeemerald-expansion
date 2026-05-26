@@ -26,7 +26,7 @@
 |---|---|
 | Branch | `feature/map-asset-relinker-20260525` |
 | Status | Host-dependent Linux executable build validated |
-| Primary files | `tools/map_asset_relinker_core/`, `tools/map_asset_relinker_gui/`, `tools/map_asset_relinker_gui/scripts/build_native.sh`, `tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh`, `tools/map_asset_relinker_gui/src-tauri/icons/icon.png` |
+| Primary files | `tools/map_asset_relinker_core/`, `tools/map_asset_relinker_gui/`, `.github/workflows/map-asset-relinker-desktop.yml`, `tools/map_asset_relinker_gui/scripts/build_native.sh`, `tools/map_asset_relinker_gui/scripts/build_windows.ps1`, `tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh`, `tools/map_asset_relinker_gui/src-tauri/icons/icon.png`, `tools/map_asset_relinker_gui/src-tauri/icons/icon.ico` |
 | Last updated | 2026-05-26 |
 
 The GUI path now keeps the Rust core as the executable source of truth and uses
@@ -53,6 +53,23 @@ tools/map_asset_relinker_core/target/release/map-asset-relinker-core
 tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui
 tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb
 tools/map_asset_relinker_gui/src-tauri/target/release/bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm
+```
+
+Windows is the primary day-to-day GUI target. `build_windows.ps1` runs on a
+Windows host, builds `map-asset-relinker-core.exe`, then asks Tauri to build
+the direct GUI `.exe`, NSIS installer `.exe`, and `.msi` bundle. The
+`map-asset-relinker-desktop.yml` workflow runs that same script on
+`windows-latest` and uploads a `map-asset-relinker-windows` artifact so the exe
+can be downloaded from GitHub Actions without manually setting up a local
+Windows toolchain.
+
+Expected Windows output paths:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/nsis/Map Asset Relinker_0.1.0_x64-setup.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/msi/Map Asset Relinker_0.1.0_x64_en-US.msi
 ```
 
 ## Wrapper

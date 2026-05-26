@@ -26,7 +26,7 @@ if ($CoreOnly) {
 Push-Location $AppDir
 try {
     npm install
-    npm run tauri build
+    npm run tauri build -- --bundles "nsis,msi"
 }
 finally {
     Pop-Location
@@ -37,7 +37,7 @@ Write-Host "Native build output:"
 Write-Host "  $CoreExe"
 
 $ReleaseDir = Join-Path $AppDir "src-tauri/target/release"
-$Patterns = @("*.exe", "*.msi", "*.AppImage", "*.deb", "*.rpm")
+$Patterns = @("*.exe", "*.msi")
 foreach ($Pattern in $Patterns) {
     Get-ChildItem -Path $ReleaseDir -Recurse -File -Filter $Pattern -ErrorAction SilentlyContinue |
         ForEach-Object { Write-Host ("  " + $_.FullName) }

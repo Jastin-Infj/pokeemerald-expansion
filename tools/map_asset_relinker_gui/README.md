@@ -144,7 +144,27 @@ tools/map_asset_relinker_gui/scripts/build_windows.ps1
 ```
 
 This produces `map-asset-relinker-core.exe` and then runs the Tauri desktop
-build. Use `-CoreOnly` to build only the CUI executable.
+build for the direct GUI `.exe`, NSIS installer `.exe`, and `.msi` bundle. Use
+`-CoreOnly` to build only the CUI executable.
+
+Known Windows output paths:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/nsis/Map Asset Relinker_0.1.0_x64-setup.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/msi/Map Asset Relinker_0.1.0_x64_en-US.msi
+```
+
+The repository also includes a Windows artifact workflow:
+
+```text
+.github/workflows/map-asset-relinker-desktop.yml
+```
+
+It runs on a Windows GitHub Actions runner and uploads
+`map-asset-relinker-windows`, containing the CUI `.exe`, direct GUI `.exe`,
+and installer bundles.
 
 ## Notes
 
