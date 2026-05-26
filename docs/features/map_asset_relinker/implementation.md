@@ -353,13 +353,26 @@ Validation status for this scaffold:
   window validation.
 - `tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh` and
   `tools/map_asset_relinker_gui/scripts/build_native.sh` were added to make the
-  native executable path explicit. The build script checks `pkg-config` first,
-  then runs `npm install` and `npm run tauri build`; it prints the generated
-  executable / bundle paths after a successful build.
+  native executable path explicit. `build_native.sh` now builds the Rust core
+  release executable first, then checks `pkg-config`, then runs `npm install`
+  and `npm run tauri build` when the Linux webview packages are present. It
+  prints the generated executable / bundle paths after a successful build.
+- `tools/map_asset_relinker_gui/scripts/build_core_release.sh` builds the CUI
+  executable directly at
+  `tools/map_asset_relinker_core/target/release/map-asset-relinker-core`. This
+  is the part that can be generated in the current Linux environment without
+  installing Tauri webview packages.
+- `tools/map_asset_relinker_gui/scripts/build_windows.ps1` is the Windows
+  PowerShell path for creating `map-asset-relinker-core.exe` and then running
+  the Tauri desktop build for Windows app/bundle output.
 - The native build helper now distinguishes `pkg-config` module names from
   Ubuntu package names. For example `gdk-3.0` and `gtk+-3.0` come from
   `libgtk-3-dev`, while `javascriptcoregtk-4.1` comes from
   `libjavascriptcoregtk-4.1-dev`.
+- Attempting to install the Ubuntu prerequisites from this sandbox stopped at
+  `sudo: a terminal is required to read the password`; the helper scripts are
+  ready, but GUI executable generation still needs those packages installed on
+  the host.
 
 ## Validation Evidence
 

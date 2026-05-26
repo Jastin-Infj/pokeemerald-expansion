@@ -32,7 +32,8 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | GUI scaffold source check | `rtk cargo fmt --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml --check`; `cd tools/map_asset_relinker_gui && npm install && npm run build`; `cargo check --manifest-path src-tauri/Cargo.toml` | Rust source is formatted. `npm install` and `npm run build` pass. `cargo check` downloads Rust deps but is blocked on this Linux environment by missing Tauri system packages: `javascriptcoregtk-4.1`, `libsoup-3.0`, `gdk-pixbuf-2.0`, `cairo`, and `atk`; install the Tauri Linux prerequisites before native-window validation. |
 | Rust core scan check | `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`; `rtk cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan --root /home/jastin/dev/pokeemerald-expansion --pretty` | The core crate compiles and the CUI scan path returns the GUI summary JSON. After the live `Jongle` repair, scan reports 946 maps, 79 groups, 792 layouts, 214 mapsecs, and 5 warnings. |
 | Rust core plan and dry-run compatibility | On fixture copies, run `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- plan --root <tmp> --map OldCave_2:OldCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out <tmp>/rust-plan.json`; then Rust core `apply --dry-run`; repeat with `--map OldCave_2:Jongle --to-group gMapGroup_Jongle --rename-mapsec MAPSEC_Jongle:MAPSEC_JONGLE --new-mapsec-name JONGLE --rewrite-script-labels` | Rust emits valid version-1 JSON plans and simulates apply read-only. Dry-run reports the expected map/layout moves, map group edit, layout edit, map JSON edit, event script edit, mapsec edit for the Jongle case, script-label edit when requested, and checksum comparison confirms no file changes. |
-| GUI native build helper | `tools/map_asset_relinker_gui/scripts/build_native.sh` | Checks required Tauri Linux `pkg-config` modules before building. In the current environment it exits early because `gdk-3.0`, `gtk+-3.0`, `javascriptcoregtk-4.1`, `libsoup-3.0`, and `webkit2gtk-4.1` are not installed, then prints the correct Ubuntu package names: `libgtk-3-dev`, `libjavascriptcoregtk-4.1-dev`, `libsoup-3.0-dev`, and `libwebkit2gtk-4.1-dev`. |
+| Core release executable | `tools/map_asset_relinker_gui/scripts/build_core_release.sh`; then `tools/map_asset_relinker_core/target/release/map-asset-relinker-core audit --root .` | Builds the Rust CUI executable at `tools/map_asset_relinker_core/target/release/map-asset-relinker-core`; the release binary runs `audit` and reports the 5 existing warnings across 946 maps. On Windows the same release build produces `map-asset-relinker-core.exe`. |
+| GUI native build helper | `tools/map_asset_relinker_gui/scripts/build_native.sh` | Builds the core release executable first, then checks required Tauri Linux `pkg-config` modules before building the GUI. In the current environment it exits after core build because `gdk-3.0`, `gtk+-3.0`, `javascriptcoregtk-4.1`, `libsoup-3.0`, and `webkit2gtk-4.1` are not installed, prints the core executable path, and prints the correct Ubuntu package names: `libgtk-3-dev`, `libjavascriptcoregtk-4.1-dev`, `libsoup-3.0-dev`, and `libwebkit2gtk-4.1-dev`. Attempting `install_ubuntu_deps.sh` from this sandbox is blocked by sudo password prompt. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
 | GUI layout rename default | Open the Route301 plan panel | `Rename layout with map` is checked and locked. The generated plan does not include `--no-layout-rename`, so layout id/name/path remain part of the default rename plan. |
@@ -84,6 +85,17 @@ GUI real apply:
   structured edits, script-label edit, mapsec edit, and review references, and
   checksum comparison confirms no files changed. The Rust dry-run output also
   matches Python `apply --dry-run` byte-for-byte on both fixture plans.
+- `tools/map_asset_relinker_gui/scripts/build_core_release.sh` builds the CUI
+  executable at
+  `tools/map_asset_relinker_core/target/release/map-asset-relinker-core`.
+  Running that release binary with `audit --root .` reports the 5 existing
+  warnings across 946 maps.
+- `tools/map_asset_relinker_gui/scripts/build_native.sh` builds the same core
+  executable first, then stops before GUI packaging because this Linux
+  environment is missing `gdk-3.0`, `gtk+-3.0`, `javascriptcoregtk-4.1`,
+  `libsoup-3.0`, and `webkit2gtk-4.1`. Attempting
+  `install_ubuntu_deps.sh` is blocked by `sudo` requiring an interactive
+  password prompt.
 - `rtk cargo check --manifest-path tools/map_asset_relinker_gui/src-tauri/Cargo.toml`
   still stops on missing Linux Tauri system packages (`atk`, `pango`, `cairo`,
   `gdk-3.0`, `gdk-pixbuf-2.0`, `javascriptcoregtk-4.1`, and `libsoup-3.0`);

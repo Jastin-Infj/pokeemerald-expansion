@@ -86,6 +86,26 @@ sudo apt-get install -y build-essential curl file libayatana-appindicator3-dev l
 
 ## Build
 
+Build the Rust core executable only:
+
+```bash
+tools/map_asset_relinker_gui/scripts/build_core_release.sh
+```
+
+Output:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core
+```
+
+On Windows, the equivalent output is:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
+```
+
+Build the native desktop GUI plus the Rust core executable:
+
 ```bash
 tools/map_asset_relinker_gui/scripts/build_native.sh
 ```
@@ -93,6 +113,17 @@ tools/map_asset_relinker_gui/scripts/build_native.sh
 The packaged output is written under `src-tauri/target/release/bundle/`.
 On Linux, the direct executable is also built under
 `tools/map_asset_relinker_gui/src-tauri/target/release/`.
+The script builds the Rust core executable first, so a missing Linux webview
+package does not hide whether the CUI executable was produced.
+
+On Windows PowerShell:
+
+```powershell
+tools/map_asset_relinker_gui/scripts/build_windows.ps1
+```
+
+This produces `map-asset-relinker-core.exe` and then runs the Tauri desktop
+build. Use `-CoreOnly` to build only the CUI executable.
 
 ## Notes
 

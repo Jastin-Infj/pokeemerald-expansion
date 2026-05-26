@@ -16,6 +16,20 @@ cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- plan --roo
 cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- apply --root . --dry-run /tmp/plan.json
 ```
 
+Build a release executable:
+
+```bash
+tools/map_asset_relinker_gui/scripts/build_core_release.sh
+```
+
+Output:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core
+```
+
+On Windows this becomes `map-asset-relinker-core.exe`.
+
 `scan` prints the same camelCase summary shape consumed by the React GUI:
 
 - map / group / layout / mapsec counts

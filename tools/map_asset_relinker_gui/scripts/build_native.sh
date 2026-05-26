@@ -3,6 +3,10 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 app_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+repo_root=$(CDPATH= cd -- "$app_dir/../.." && pwd)
+core_binary="$repo_root/tools/map_asset_relinker_core/target/release/map-asset-relinker-core"
+
+"$script_dir/build_core_release.sh"
 
 missing=""
 for package in gdk-3.0 gtk+-3.0 javascriptcoregtk-4.1 libsoup-3.0 webkit2gtk-4.1; do
@@ -13,6 +17,10 @@ done
 
 if [ -n "$missing" ]; then
   echo "Missing Tauri Linux pkg-config modules:$missing" >&2
+  echo "" >&2
+  echo "Core executable was still built successfully:" >&2
+  echo "  $core_binary" >&2
+  echo "The GUI executable / AppImage cannot be built until the packages below are installed." >&2
   echo "" >&2
   echo "These are pkg-config module names, not apt package names." >&2
   echo "Ubuntu package mapping:" >&2
@@ -39,6 +47,7 @@ npm run tauri build
 
 echo ""
 echo "Native build output:"
+printf '%s\n' "$core_binary"
 find "$app_dir/src-tauri/target/release" -maxdepth 3 \
   \( -type f -o -type l \) \
   \( -perm -111 -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) \

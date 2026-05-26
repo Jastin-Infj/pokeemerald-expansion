@@ -68,6 +68,16 @@ plan path now live there, and GUI/CUI dry-run previews can use Rust
 `apply --dry-run`. Python remains the compatibility surface for real `apply` /
 backup behavior until the Rust core reaches write parity.
 
+Build the Rust CUI executable with:
+
+```bash
+tools/map_asset_relinker_gui/scripts/build_core_release.sh
+```
+
+The output is
+`tools/map_asset_relinker_core/target/release/map-asset-relinker-core`
+on Linux/macOS and `map-asset-relinker-core.exe` on Windows.
+
 Development uses a local Vite server:
 
 ```bash
