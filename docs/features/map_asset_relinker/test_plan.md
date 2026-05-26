@@ -37,7 +37,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | GUI Linux native build helper | `TAURI_LOCAL_DEPS=/tmp/tauri-linux-deps tools/map_asset_relinker_gui/scripts/build_native.sh` | Builds the core release executable first, then builds host-dependent Linux GUI output without AppImage: `src-tauri/target/release/map-asset-relinker-gui`, `bundle/deb/Map Asset Relinker_0.1.0_amd64.deb`, and `bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm`. The local dependency sysroot was prepared from downloaded Ubuntu GTK/WebKit packages because `install_ubuntu_deps.sh` is blocked by the sandbox sudo password prompt. |
 | GUI Linux runtime dependency check | `dpkg-deb -I "tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb"`; `LD_LIBRARY_PATH=/tmp/tauri-linux-deps/usr/lib/x86_64-linux-gnu:/tmp/tauri-linux-deps/usr/lib ldd tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui \| rg "not found"` | The `.deb` declares `libwebkit2gtk-4.1-0` and `libgtk-3-0`. With the local sysroot on `LD_LIBRARY_PATH`, `ldd` reports no missing libraries. Without system runtime packages, the direct executable remains host-dependent and may report missing WebKit/JavascriptCore libraries. |
 | GUI Windows native build helper | On Windows: `tools/map_asset_relinker_gui/scripts/build_windows.ps1` | Builds `map-asset-relinker-core.exe`, then Tauri builds the direct GUI `.exe`, NSIS setup `.exe`, and `.msi` bundle. On Linux this is covered by the GitHub Actions Windows runner because local Windows WebView/Tauri packaging is not available. |
-| GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-windows`, containing the CUI `.exe`, direct GUI `.exe`, setup `.exe`, and `.msi` bundle. Run `26455505119` passed on the current branch head and uploaded artifact id `7217867302`. |
+| GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-windows`, containing the CUI `.exe`, direct GUI `.exe`, setup `.exe`, and `.msi` bundle. Run `26481475862` passed on the current branch head after adding the native project-root picker and uploaded artifact id `7228721956`. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
 | GUI layout rename default | Open the Route301 plan panel | `Rename layout with map` is checked and locked. The generated plan does not include `--no-layout-rename`, so layout id/name/path remain part of the default rename plan. |
@@ -66,7 +66,7 @@ Current `audit` warnings on `master` are pre-existing:
 - `Route19_UnusedHouse_Frlg/scripts.inc` is not included by
   `data/event_scripts.s`.
 
-## Latest Branch Validation (2026-05-26)
+## Latest Branch Validation (2026-05-27)
 
 After applying the live `test1` / `MAPSEC_Jongle` repair as `Jongle` and adding
 GUI real apply:
@@ -122,9 +122,11 @@ GUI real apply:
   Local Linux validation cannot execute that PowerShell/Tauri Windows packaging
   path, so `.github/workflows/map-asset-relinker-desktop.yml` runs the same
   helper on `windows-latest`. After registering `icons/icon.ico` in
-  `tauri.conf.json`, run `26455505119` passed on the current branch head and
-  uploaded `map-asset-relinker-windows` artifact id `7217867302`.
-- Downloading `map-asset-relinker-windows` to `/tmp/map-asset-relinker-windows`
+  `tauri.conf.json` and adding the native project-root picker, run
+  `26481475862` passed on the current branch head and uploaded
+  `map-asset-relinker-windows` artifact id `7228721956`.
+- Downloading `map-asset-relinker-windows` to
+  `/tmp/map-asset-relinker-windows-26481475862`
   confirmed the artifact contains
   `map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe`,
   `map_asset_relinker_gui/src-tauri/target/release/bundle/nsis/Map Asset
