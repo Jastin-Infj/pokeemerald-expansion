@@ -63,7 +63,7 @@ the direct GUI `.exe`, NSIS installer `.exe`, and `.msi` bundle. The
 can be downloaded from GitHub Actions without manually setting up a local
 Windows toolchain. The first Windows run built the direct GUI exe but failed at
 MSI icon lookup; registering `icons/icon.ico` in `tauri.conf.json` fixed that,
-and run `26454582655` uploaded artifact id `7217447692` on the current branch
+and run `26455145388` uploaded artifact id `7217729160` on the current branch
 head.
 
 Expected Windows output paths:
