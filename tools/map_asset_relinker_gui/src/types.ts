@@ -30,6 +30,9 @@ export type PlanOptions = {
   oldName: string;
   newName: string;
   targetGroup: string;
+  renameMapsecFrom: string;
+  renameMapsecTo: string;
+  newMapsecName: string;
   renameLayout: boolean;
   rewriteScriptLabels: boolean;
 };

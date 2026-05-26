@@ -192,6 +192,8 @@ function MapDetail({
 }) {
   const [newName, setNewName] = useState("");
   const [targetGroup, setTargetGroup] = useState(map.group ?? "");
+  const [renameMapsecTo, setRenameMapsecTo] = useState("");
+  const [mapsecDisplayName, setMapsecDisplayName] = useState("");
   const [rewriteScriptLabels, setRewriteScriptLabels] = useState(false);
   const [copied, setCopied] = useState(false);
   const [dryRunStatus, setDryRunStatus] = useState("Not run");
@@ -200,22 +202,37 @@ function MapDetail({
   const renameLayout = true;
 
   useEffect(() => {
-    setNewName(map.name);
-    setTargetGroup(map.group ?? "");
+    const suggestedName = suggestMapName(map);
+    const suggestedMapsec = normalizeMapsecId(map.mapsec);
+    setNewName(suggestedName);
+    setTargetGroup(suggestTargetGroup(map, suggestedName));
+    setRenameMapsecTo(suggestedMapsec);
+    setMapsecDisplayName(suggestMapsecDisplayName(suggestedMapsec, map.mapsecName));
     setCopied(false);
     setDryRunStatus("Not run");
     setDryRunResult(null);
-  }, [map.name, map.group]);
+  }, [map.name, map.group, map.mapsec, map.mapsecName]);
 
   const command = useMemo(() => {
     return buildPlanCommand({
       oldName: map.name,
       newName: newName.trim() || map.name,
       targetGroup: targetGroup.trim(),
+      renameMapsecFrom: map.mapsec,
+      renameMapsecTo: renameMapsecTo.trim(),
+      newMapsecName: mapsecDisplayName.trim(),
       renameLayout,
       rewriteScriptLabels,
     });
-  }, [map.name, newName, rewriteScriptLabels, targetGroup]);
+  }, [
+    map.mapsec,
+    map.name,
+    mapsecDisplayName,
+    newName,
+    renameMapsecTo,
+    rewriteScriptLabels,
+    targetGroup,
+  ]);
 
   const copyCommand = useCallback(async () => {
     await navigator.clipboard.writeText(command);
@@ -231,6 +248,9 @@ function MapDetail({
         oldName: map.name,
         newName: newName.trim() || map.name,
         targetGroup: targetGroup.trim(),
+        renameMapsecFrom: map.mapsec,
+        renameMapsecTo: renameMapsecTo.trim(),
+        newMapsecName: mapsecDisplayName.trim(),
         renameLayout,
         rewriteScriptLabels,
       });
@@ -249,8 +269,11 @@ function MapDetail({
   }, [
     command,
     map.name,
+    map.mapsec,
+    mapsecDisplayName,
     newName,
     projectRoot,
+    renameMapsecTo,
     rewriteScriptLabels,
     targetGroup,
   ]);
@@ -327,6 +350,28 @@ function MapDetail({
               value={targetGroup}
               onChange={(event) => {
                 setTargetGroup(event.target.value);
+                setCopied(false);
+              }}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            New Mapsec ID
+            <input
+              value={renameMapsecTo}
+              onChange={(event) => {
+                setRenameMapsecTo(event.target.value);
+                setCopied(false);
+              }}
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            Mapsec Display
+            <input
+              value={mapsecDisplayName}
+              onChange={(event) => {
+                setMapsecDisplayName(event.target.value);
                 setCopied(false);
               }}
               spellCheck={false}
@@ -427,12 +472,18 @@ function buildPlanCommand({
   oldName,
   newName,
   targetGroup,
+  renameMapsecFrom,
+  renameMapsecTo,
+  newMapsecName,
   renameLayout,
   rewriteScriptLabels,
 }: {
   oldName: string;
   newName: string;
   targetGroup: string;
+  renameMapsecFrom: string;
+  renameMapsecTo: string;
+  newMapsecName: string;
   renameLayout: boolean;
   rewriteScriptLabels: boolean;
 }) {
@@ -446,6 +497,17 @@ function buildPlanCommand({
   if (targetGroup) {
     args.push("--to-group", targetGroup);
   }
+  const shouldRenameMapsec = Boolean(
+    renameMapsecFrom &&
+      renameMapsecTo &&
+      renameMapsecFrom !== renameMapsecTo,
+  );
+  if (shouldRenameMapsec) {
+    args.push("--rename-mapsec", `${renameMapsecFrom}:${renameMapsecTo}`);
+  }
+  if (shouldRenameMapsec && newMapsecName) {
+    args.push("--new-mapsec-name", newMapsecName);
+  }
   if (!renameLayout) {
     args.push("--no-layout-rename");
   }
@@ -457,6 +519,75 @@ function buildPlanCommand({
   return `${args.map(shellQuote).join(" ")}\n${shellQuote(
     "tools/map_asset_relinker/map_relink.sh",
   )} apply --dry-run ${shellQuote(`/tmp/${outName || "map"}_relink.json`)}`;
+}
+
+function suggestMapName(map: MapSummary) {
+  if (looksTemporaryMapName(map.name)) {
+    const fromMapsec = titleIdentifierFromMapsec(map.mapsec);
+    if (fromMapsec) {
+      return fromMapsec;
+    }
+  }
+  return map.name;
+}
+
+function suggestTargetGroup(map: MapSummary, proposedName: string) {
+  const fromMapsec = titleIdentifierFromMapsec(map.mapsec);
+  if (
+    fromMapsec &&
+    (!map.group || looksTemporaryMapName(map.name) || map.mapsec !== normalizeMapsecId(map.mapsec))
+  ) {
+    return `gMapGroup_${fromMapsec}`;
+  }
+  if (map.group) {
+    return map.group;
+  }
+  return `gMapGroup_${titleIdentifier(proposedName) || "NewMap"}`;
+}
+
+function normalizeMapsecId(mapsec: string) {
+  if (!mapsec || mapsec === "MAPSEC_NONE") {
+    return mapsec;
+  }
+  if (!mapsec.startsWith("MAPSEC_")) {
+    return mapsec;
+  }
+  const normalized = mapsec
+    .slice("MAPSEC_".length)
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+  return normalized ? `MAPSEC_${normalized}` : mapsec;
+}
+
+function suggestMapsecDisplayName(mapsec: string, currentName: string | null) {
+  if (!mapsec || mapsec === "MAPSEC_NONE") {
+    return currentName ?? "";
+  }
+  const suffix = mapsec.startsWith("MAPSEC_") ? mapsec.slice("MAPSEC_".length) : mapsec;
+  const displayName = suffix.replace(/_+/g, " ").trim();
+  return displayName || currentName || "";
+}
+
+function titleIdentifierFromMapsec(mapsec: string) {
+  if (!mapsec || mapsec === "MAPSEC_NONE") {
+    return "";
+  }
+  const suffix = mapsec.startsWith("MAPSEC_") ? mapsec.slice("MAPSEC_".length) : mapsec;
+  return titleIdentifier(suffix);
+}
+
+function titleIdentifier(value: string) {
+  return value
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("_");
+}
+
+function looksTemporaryMapName(name: string) {
+  return /^test\d*$/i.test(name) || /^temp(?:orary)?[_-]?\d*$/i.test(name);
 }
 
 function shellQuote(value: string) {

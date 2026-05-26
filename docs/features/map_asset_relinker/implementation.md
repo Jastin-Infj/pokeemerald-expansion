@@ -244,7 +244,11 @@ Current GUI scope is read-only:
 - visualize the selected map as a compact `Map -> Group -> Layout -> Mapsec`
   graph before the detailed field grid;
 - filter map rows and generate a reviewable CLI plan command for the selected
-  map, including target group, layout rename, and script-label rewrite options;
+  map, including target group, mapsec rename/display-name, layout rename, and
+  script-label rewrite options;
+- flag temporary-looking map names such as `test1` and mixed-case mapsec ids
+  such as `MAPSEC_Jongle`, then suggest mapsec-aligned repair defaults such as
+  `Jongle`, `gMapGroup_Jongle`, `MAPSEC_JONGLE`, and `JONGLE`;
 - keep layout rename locked on in the rename flow because the default repair
   path should update map, layout id/name, and layout directory together;
 - run the existing Python CLI `plan` and `apply --dry-run` flow from the GUI
@@ -274,6 +278,14 @@ Validation status for this scaffold:
   moves plus map group, layout, map JSON, script include, and script label
   edits. The visible dry-run counters show 2 moves, 5 edits, and 5 review
   references. The CLI reports `Dry-run complete; no files changed.`
+- In a local worktree containing the user-created `data/maps/test1` /
+  `MAPSEC_Jongle` case, Playwright filtering for `test1` shows two selected-map
+  warnings: temporary map name and mixed-case mapsec id. The GUI suggests
+  `test1:Jongle`, `--to-group gMapGroup_Jongle`, `--rename-mapsec
+  MAPSEC_Jongle:MAPSEC_JONGLE`, and `--new-mapsec-name JONGLE`. Clicking
+  `Run Dry-Run` creates `/tmp/jongle_relink_*.json`, reports 2 moves, 5 edits,
+  and 5 review references, and the CLI reports `Dry-run complete; no files
+  changed.`
 - A 1040x720 Playwright viewport confirms the two-column layout path with the
   audit pane moved to a full-width row and no page-level overflow.
 - `cargo check --manifest-path src-tauri/Cargo.toml` currently stops before
@@ -298,6 +310,16 @@ Validation status for this scaffold:
 - `tools/map_asset_relinker/map_relink.sh --help` delegates to the Python CLI.
 - `tools/map_asset_relinker/map_relink.sh audit` completes with the same
   diagnostics as the Python entry point.
+- With the local `test1` / `MAPSEC_Jongle` authoring test present,
+  `tools/map_asset_relinker/map_relink.sh audit --target test1` reports the
+  mixed-case mapsec warning plus a temporary-looking map name warning.
+- `tools/map_asset_relinker/map_relink.sh plan --map test1:Jongle --to-group
+  gMapGroup_Jongle --rename-mapsec MAPSEC_Jongle:MAPSEC_JONGLE
+  --new-mapsec-name JONGLE --rewrite-script-labels --out
+  /tmp/jongle_test1_repair.json` followed by `apply --dry-run` plans the map
+  and layout directory move, group creation/move, mapsec id/display-name
+  rewrite, layout JSON update, map JSON update, script include update, and
+  script-label rewrite without changing source files.
 - `python3 -m py_compile tools/map_asset_relinker/map_relink.py` passes.
 - `python3 tools/map_asset_relinker/map_relink.py audit` completes with 0
   errors and 5 existing warnings for unused map directories / one unused script

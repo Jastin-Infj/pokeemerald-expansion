@@ -44,6 +44,9 @@ struct PlanOptions {
     old_name: String,
     new_name: String,
     target_group: String,
+    rename_mapsec_from: String,
+    rename_mapsec_to: String,
+    new_mapsec_name: String,
     rename_layout: bool,
     rewrite_script_labels: bool,
 }
@@ -148,6 +151,11 @@ fn scan_project(root: Option<String>) -> Result<ProjectSummary, String> {
         if id.is_empty() {
             issues.push("map id is empty".to_string());
         }
+        if looks_temporary_map_name(&name) {
+            issues.push(format!(
+                "map name {name} looks temporary; pick a production map name before committing"
+            ));
+        }
         if layout.is_empty() {
             issues.push("layout is empty".to_string());
         } else if layout_info.is_none() {
@@ -157,6 +165,11 @@ fn scan_project(root: Option<String>) -> Result<ProjectSummary, String> {
             issues.push("region_map_section is empty".to_string());
         } else if mapsec != "MAPSEC_NONE" && mapsec_info.is_none() {
             issues.push(format!("{mapsec} is missing from region_map_sections.json"));
+        }
+        if !mapsec.is_empty() && mapsec != "MAPSEC_NONE" && !is_uppercase_mapsec_id(&mapsec) {
+            issues.push(format!(
+                "{mapsec} has suspicious naming; expected uppercase MAPSEC_*"
+            ));
         }
         match groups.len() {
             0 => issues.push("map is not listed in any map group".to_string()),
@@ -260,6 +273,20 @@ fn run_plan_dry_run(options: PlanOptions) -> Result<DryRunResult, String> {
     if !options.target_group.is_empty() {
         plan_args.push("--to-group".to_string());
         plan_args.push(options.target_group.clone());
+    }
+    let should_rename_mapsec = !options.rename_mapsec_from.is_empty()
+        && !options.rename_mapsec_to.is_empty()
+        && options.rename_mapsec_from != options.rename_mapsec_to;
+    if should_rename_mapsec {
+        plan_args.push("--rename-mapsec".to_string());
+        plan_args.push(format!(
+            "{}:{}",
+            options.rename_mapsec_from, options.rename_mapsec_to
+        ));
+    }
+    if should_rename_mapsec && !options.new_mapsec_name.is_empty() {
+        plan_args.push("--new-mapsec-name".to_string());
+        plan_args.push(options.new_mapsec_name.clone());
     }
     if !options.rename_layout {
         plan_args.push("--no-layout-rename".to_string());
@@ -395,6 +422,29 @@ fn check_layout_path(
     if !root.join(path).exists() {
         issues.push(format!("{layout} {label} file is missing: {path}"));
     }
+}
+
+fn looks_temporary_map_name(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    temporary_suffix(&lower, "test")
+        || temporary_suffix(&lower, "temp")
+        || temporary_suffix(&lower, "temporary")
+}
+
+fn temporary_suffix(value: &str, prefix: &str) -> bool {
+    value.strip_prefix(prefix).is_some_and(|suffix| {
+        let suffix = suffix.trim_start_matches(['_', '-']);
+        suffix.chars().all(|ch| ch.is_ascii_digit())
+    })
+}
+
+fn is_uppercase_mapsec_id(mapsec: &str) -> bool {
+    mapsec.strip_prefix("MAPSEC_").is_some_and(|suffix| {
+        !suffix.is_empty()
+            && suffix
+                .chars()
+                .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
+    })
 }
 
 fn run_python_command(

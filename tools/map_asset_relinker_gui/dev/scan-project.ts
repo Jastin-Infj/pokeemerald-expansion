@@ -59,6 +59,9 @@ export type PlanOptions = {
   oldName: string;
   newName: string;
   targetGroup: string;
+  renameMapsecFrom: string;
+  renameMapsecTo: string;
+  newMapsecName: string;
   renameLayout: boolean;
   rewriteScriptLabels: boolean;
 };
@@ -129,6 +132,9 @@ export function scanProjectFromNode(root?: string | null): ProjectSummary {
     if (!id) {
       issues.push("map id is empty");
     }
+    if (looksTemporaryMapName(name)) {
+      issues.push(`map name ${name} looks temporary; pick a production map name before committing`);
+    }
     if (!layout) {
       issues.push("layout is empty");
     } else if (!layoutInfo) {
@@ -138,6 +144,9 @@ export function scanProjectFromNode(root?: string | null): ProjectSummary {
       issues.push("region_map_section is empty");
     } else if (mapsec !== "MAPSEC_NONE" && !mapsecInfo) {
       issues.push(`${mapsec} is missing from region_map_sections.json`);
+    }
+    if (mapsec && mapsec !== "MAPSEC_NONE" && !isUppercaseMapsecId(mapsec)) {
+      issues.push(`${mapsec} has suspicious naming; expected uppercase MAPSEC_*`);
     }
     if (groups.length === 0) {
       issues.push("map is not listed in any map group");
@@ -230,6 +239,20 @@ export function runDryRunPlanFromNode(options: PlanOptions): DryRunResult {
   ];
   if (options.targetGroup) {
     planArgs.push("--to-group", options.targetGroup);
+  }
+  const shouldRenameMapsec = Boolean(
+    options.renameMapsecFrom &&
+      options.renameMapsecTo &&
+      options.renameMapsecFrom !== options.renameMapsecTo,
+  );
+  if (shouldRenameMapsec) {
+    planArgs.push(
+      "--rename-mapsec",
+      `${options.renameMapsecFrom}:${options.renameMapsecTo}`,
+    );
+  }
+  if (shouldRenameMapsec && options.newMapsecName) {
+    planArgs.push("--new-mapsec-name", options.newMapsecName);
   }
   if (!options.renameLayout) {
     planArgs.push("--no-layout-rename");
@@ -345,6 +368,14 @@ function checkLayoutPath(
   if (!fs.existsSync(path.join(root, layoutPath))) {
     issues.push(`${layout} ${label} file is missing: ${layoutPath}`);
   }
+}
+
+function looksTemporaryMapName(name: string): boolean {
+  return /^test\d*$/i.test(name) || /^temp(?:orary)?[_-]?\d*$/i.test(name);
+}
+
+function isUppercaseMapsecId(mapsec: string): boolean {
+  return /^MAPSEC_[A-Z0-9_]+$/.test(mapsec);
 }
 
 function asArray(value: JsonValue | undefined): JsonValue[] {

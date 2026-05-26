@@ -435,6 +435,8 @@ def collect_audit(root: Path, target: str | None = None) -> list[Diagnostic]:
             diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} must have a non-empty string name."))
         else:
             map_name_locations.setdefault(json_name, []).append(rel(map_ref.path, root))
+            if re.fullmatch(r"(?i:test\d*|temp(?:orary)?[_-]?\d*)", json_name):
+                diagnostics.append(Diagnostic("warning", f"{rel(map_ref.path, root)} has temporary-looking map name {json_name!r}."))
         if json_name != map_name:
             diagnostics.append(Diagnostic("error", f"{rel(map_ref.path, root)} name is {json_name!r}, expected {map_name!r}."))
         if map_name not in group_maps:
