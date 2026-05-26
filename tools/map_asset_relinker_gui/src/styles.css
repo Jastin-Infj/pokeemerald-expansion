@@ -439,14 +439,36 @@ h3 {
 }
 
 .issuePanel p,
-.warningList p {
+.warningList p,
+.warningItem {
   border-left: 4px solid #b27b2f;
   background: #fff8e7;
   color: #624a23;
   padding: 8px 10px;
 }
 
-.warningList p + p {
+.warningItem {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.warningItem:hover {
+  background: #fff0c9;
+}
+
+.warningList p + p,
+.warningList p + .warningItem,
+.warningList .warningItem + p,
+.warningList .warningItem + .warningItem {
   margin-top: 8px;
 }
 

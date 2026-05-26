@@ -31,6 +31,7 @@ tools/map_asset_relinker/map_relink.sh plan --map Route301:Route301 --no-layout-
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out /tmp/rouge_cave_group_move.json
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --old-group-map-name TempCaveTypo --old-layout-id LAYOUT_TEMP_CAVE_2 --old-map-id MAP_TEMP_CAVE_TYPO --new-mapsec MAPSEC_NONE --out /tmp/rouge_cave_repair.json
 tools/map_asset_relinker/map_relink.sh plan --map AncientTomb:AncientTomb --no-layout-rename --set-layout-id LAYOUT_ANCIENT_TOMB --out /tmp/ancient_tomb_layout_repair.json
+tools/map_asset_relinker/map_relink.sh plan-temp-mapsec --map test1 --dry-run --out /tmp/test1_temp_mapsec_repair.json
 tools/map_asset_relinker/map_relink.sh apply --dry-run /tmp/rouge_cave_rename.json
 tools/map_asset_relinker/map_relink.sh apply /tmp/rouge_cave_rename.json
 tools/map_asset_relinker/map_relink.sh validate
@@ -84,6 +85,13 @@ The test copies `tools/map_asset_relinker/testdata/basic` to `/tmp`, runs
 updated map id, layout id, map group move, script include, warp/connection
 references, and preserved dialogue text. It also repeats the move into a
 missing target group to confirm automatic group creation.
+
+`plan-temp-mapsec` is the CLI shortcut for the common Porymap mistake where a
+temporary map name, layout, group placement, and mixed-case `MAPSEC_*` were
+created together. Given a map such as `test1` with `region_map_section:
+MAPSEC_Jongle`, it infers `test1:Jongle`, `gMapGroup_Jongle`,
+`MAPSEC_JONGLE`, `JONGLE`, keeps layout rename on, rewrites script label
+prefixes by default, and can immediately run `apply --dry-run`.
 
 The fixture test also creates broken copies and confirms they can be repaired
 by generating a plan from a chosen anchor:

@@ -155,9 +155,21 @@ function App() {
             {summary.warnings.length === 0 ? (
               <p className="muted">No warnings.</p>
             ) : (
-              summary.warnings.map((warning, index) => (
-                <p key={`${warning}:${index}`}>{warning}</p>
-              ))
+              summary.warnings.map((warning, index) => {
+                const target = warningTargetMap(warning, summary.maps);
+                return target ? (
+                  <button
+                    key={`${warning}:${index}`}
+                    className="warningItem"
+                    onClick={() => setSelectedName(target.name)}
+                    title={`Open ${target.name}`}
+                  >
+                    {warning}
+                  </button>
+                ) : (
+                  <p key={`${warning}:${index}`}>{warning}</p>
+                );
+              })
             )}
           </div>
         </aside>
@@ -208,6 +220,7 @@ function MapDetail({
     setTargetGroup(suggestTargetGroup(map, suggestedName));
     setRenameMapsecTo(suggestedMapsec);
     setMapsecDisplayName(suggestMapsecDisplayName(suggestedMapsec, map.mapsecName));
+    setRewriteScriptLabels(looksTemporaryMapName(map.name));
     setCopied(false);
     setDryRunStatus("Not run");
     setDryRunResult(null);
@@ -588,6 +601,21 @@ function titleIdentifier(value: string) {
 
 function looksTemporaryMapName(name: string) {
   return /^test\d*$/i.test(name) || /^temp(?:orary)?[_-]?\d*$/i.test(name);
+}
+
+function warningTargetMap(warning: string, maps: MapSummary[]) {
+  const prefix = warning.match(/^([^:]+):/);
+  if (prefix) {
+    const byName = maps.find((map) => map.name === prefix[1] || map.directoryName === prefix[1]);
+    if (byName) {
+      return byName;
+    }
+  }
+  const pathMatch = warning.match(/data\/maps\/([^/\s]+)\//);
+  if (pathMatch) {
+    return maps.find((map) => map.directoryName === pathMatch[1] || map.name === pathMatch[1]) ?? null;
+  }
+  return null;
 }
 
 function shellQuote(value: string) {

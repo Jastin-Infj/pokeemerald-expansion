@@ -15,6 +15,7 @@
 |---|---|
 | `audit` | Scans map directories, `map_groups.json`, `layouts.json`, layout binary paths, `region_map_section`, map id references, and `data/event_scripts.s` includes. |
 | `plan` | Creates a JSON rename/relink plan from `--map OLD:NEW`. It defaults to `--match-by dir` so the map directory can be the source of truth, infers `MAP_*` and `LAYOUT_*` names from current source, and accepts repair hints for typoed group names, map ids, layout ids, mapsec, valid-but-wrong map layout assignments, stale script label prefixes, mapsec/group repairs, map-name popup metadata, Town Map cell/bounds, map type, transition visit flags, Fly destination metadata, Fly icon style, Fly mapsec type, mapsec-to-map Fly warp rows, and unused flag claims. `--from-group` / `--to-group` can move the map from a temporary group into the final group. |
+| `plan-temp-mapsec` | CLI shortcut for temporary-map repairs anchored to the selected map's current `region_map_section`. For a map like `test1` with `MAPSEC_Jongle`, it infers `test1:Jongle`, `gMapGroup_Jongle`, `MAPSEC_JONGLE`, `JONGLE`, keeps layout rename on, rewrites script labels by default, and can immediately run `apply --dry-run`. |
 | `apply --dry-run` | Prints planned directory moves, JSON edits, script include edits, and remaining textual references without modifying files. |
 | `apply` | Creates a `.bak.tar` backup archive, moves map/layout directories, updates structured JSON, updates exact script include paths, and rewrites warp/connection map ids. |
 | `validate` | Runs the same consistency checks as `audit` after edits. |
@@ -33,6 +34,7 @@ tools/map_asset_relinker/map_relink.sh plan --map DS_LITE_1F:DS_LITE_1F --no-lay
 tools/map_asset_relinker/map_relink.sh plan --map Route201:Route201 --no-layout-rename --to-group gMapGroup_TownsAndRoutes --rename-mapsec MAPSEC_Route201:MAPSEC_ROUTE_201 --new-mapsec-name 'ROUTE 201' --set-primary-tileset gTileset_General --out /tmp/route201_repair.json
 tools/map_asset_relinker/map_relink.sh plan --map Route201:Route201 --no-layout-rename --set-layout-name Route201_Layout --set-mapsec-name MAPSEC_ROUTE_201:'ROUTE 201' --out /tmp/route201_metadata_repair.json
 tools/map_asset_relinker/map_relink.sh plan --map Route301:Route301 --no-layout-rename --set-map-type MAP_TYPE_ROUTE --set-show-map-name true --set-transition-setflag FLAG_VISITED_ROUTE301 --set-mapsec-bounds MAPSEC_ROUTE_301:9:0:1:1 --set-region-map-cell hoenn:9:0:MAPSEC_ROUTE_301 --ensure-mapsec-map MAPSEC_ROUTE_301:MAP_ROUTE301:HEAL_LOCATION_NONE --ensure-fly-location hoenn:MAPSEC_ROUTE_301:FLAG_VISITED_ROUTE301 --ensure-fly-mapsec-type MAPSEC_ROUTE_301:FLAG_VISITED_ROUTE301 --set-fly-icon-style MAPSEC_ROUTE_301:palette-blink --claim-unused-flag FLAG_UNUSED_0x881:FLAG_VISITED_ROUTE301 --out /tmp/route301_worldmap.json
+tools/map_asset_relinker/map_relink.sh plan-temp-mapsec --map test1 --dry-run --out /tmp/test1_temp_mapsec_repair.json
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --from-group gMapGroup_Temp --to-group gMapGroup_RougeCave --out /tmp/rouge_cave_group_move.json
 tools/map_asset_relinker/map_relink.sh plan --map TempCave_2:RougeCave_2F --old-group-map-name TempCaveTypo --old-layout-id LAYOUT_TEMP_CAVE_2 --old-map-id MAP_TEMP_CAVE_TYPO --new-mapsec MAPSEC_NONE --out /tmp/rouge_cave_repair.json
 tools/map_asset_relinker/map_relink.sh plan --map AncientTomb:AncientTomb --no-layout-rename --set-layout-id LAYOUT_ANCIENT_TOMB --out /tmp/ancient_tomb_layout_repair.json
@@ -116,6 +118,10 @@ runs `validate` again. The repair paths cover these anchors / hints:
 - `--new-mapsec` when `region_map_section` was typoed.
 - `--rename-mapsec OLD:NEW` plus `--new-mapsec-name` when an existing mapsec id
   was created with the wrong normalized name.
+- `plan-temp-mapsec --map <map>` when a temporary map and mixed-case mapsec
+  were created together and the mapsec suffix should drive the map name,
+  target group, normalized mapsec id, display name, layout rename, and script
+  label rewrite in one CLI command.
 - `--set-mapsec-name MAPSEC_ID:NAME` when the mapsec id is correct but the
   display name is wrong.
 - `--set-show-map-name`, `--set-mapsec-bounds`,
@@ -278,14 +284,17 @@ Validation status for this scaffold:
   moves plus map group, layout, map JSON, script include, and script label
   edits. The visible dry-run counters show 2 moves, 5 edits, and 5 review
   references. The CLI reports `Dry-run complete; no files changed.`
+- Audit pane warnings that resolve to a map are buttons. Clicking a warning
+  such as `test1: MAPSEC_Jongle...` selects that map and shows its relationship
+  graph, field details, selected-map audit, and repair controls.
 - In a local worktree containing the user-created `data/maps/test1` /
   `MAPSEC_Jongle` case, Playwright filtering for `test1` shows two selected-map
   warnings: temporary map name and mixed-case mapsec id. The GUI suggests
   `test1:Jongle`, `--to-group gMapGroup_Jongle`, `--rename-mapsec
-  MAPSEC_Jongle:MAPSEC_JONGLE`, and `--new-mapsec-name JONGLE`. Clicking
-  `Run Dry-Run` creates `/tmp/jongle_relink_*.json`, reports 2 moves, 5 edits,
-  and 5 review references, and the CLI reports `Dry-run complete; no files
-  changed.`
+  MAPSEC_Jongle:MAPSEC_JONGLE`, `--new-mapsec-name JONGLE`, and
+  `--rewrite-script-labels`. Clicking `Run Dry-Run` creates
+  `/tmp/jongle_relink_*.json`, reports 2 moves, 6 edits, and 5 review
+  references, and the CLI reports `Dry-run complete; no files changed.`
 - A 1040x720 Playwright viewport confirms the two-column layout path with the
   audit pane moved to a full-width row and no page-level overflow.
 - `cargo check --manifest-path src-tauri/Cargo.toml` currently stops before
@@ -320,6 +329,11 @@ Validation status for this scaffold:
   and layout directory move, group creation/move, mapsec id/display-name
   rewrite, layout JSON update, map JSON update, script include update, and
   script-label rewrite without changing source files.
+- `tools/map_asset_relinker/map_relink.sh plan-temp-mapsec --map test1
+  --dry-run --out /tmp/test1_temp_mapsec_auto.json` produces the same repair
+  through the CLI shortcut: `test1:Jongle`, `gMapGroup_Jongle`,
+  `MAPSEC_JONGLE`, `JONGLE`, default layout rename, and default script-label
+  rewrite.
 - `python3 -m py_compile tools/map_asset_relinker/map_relink.py` passes.
 - `python3 tools/map_asset_relinker/map_relink.py audit` completes with 0
   errors and 5 existing warnings for unused map directories / one unused script

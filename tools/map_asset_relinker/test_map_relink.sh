@@ -171,6 +171,21 @@ python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); assert "OldCa
 python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); assert data["region_map_section"] == "MAPSEC_OLD_CAVE"; assert data["layout"] == "LAYOUT_OLD_CAVE_2"' "$map_name_anchor_tmpdir/data/maps/OldCave_2/map.json"
 python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); sections = {s["id"]: s for s in data["map_sections"]}; assert "MAPSEC_OLDCAVE" not in sections; assert sections["MAPSEC_OLD_CAVE"]["name"] == "OLD-CAVE"' "$map_name_anchor_tmpdir/src/data/region_map/region_map_sections.json"
 
+temp_mapsec_tmpdir=$(mktemp -d /tmp/maprelink-temp-mapsec-test.XXXXXX)
+cp -R "$fixture/." "$temp_mapsec_tmpdir/"
+mkdir -p "$temp_mapsec_tmpdir/src/data/region_map"
+python3 -c 'import json, os, sys; p = sys.argv[1]; os.makedirs(os.path.dirname(p), exist_ok=True); json.dump({"map_sections": [{"id": "MAPSEC_Jongle", "name": "Jongle"}]}, open(p, "w"), indent=2); open(p, "a").write("\n")' "$temp_mapsec_tmpdir/src/data/region_map/region_map_sections.json"
+python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["region_map_section"] = "MAPSEC_Jongle"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$temp_mapsec_tmpdir/data/maps/OldCave_2/map.json"
+python3 "$script_dir/map_relink.py" --root "$temp_mapsec_tmpdir" plan-temp-mapsec \
+	--map OldCave_2 \
+	--dry-run \
+	--out "$temp_mapsec_tmpdir/repair.json" | grep -q "EDIT data/maps/Jongle/scripts.inc"
+python3 "$script_dir/map_relink.py" --root "$temp_mapsec_tmpdir" apply --allow-dirty "$temp_mapsec_tmpdir/repair.json" >/dev/null
+python3 "$script_dir/map_relink.py" --root "$temp_mapsec_tmpdir" validate
+python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); assert "OldCave_2" not in data["gMapGroup_Temp"]; assert "Jongle" in data["gMapGroup_Jongle"]' "$temp_mapsec_tmpdir/data/maps/map_groups.json"
+python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); assert data["name"] == "Jongle"; assert data["region_map_section"] == "MAPSEC_JONGLE"; assert data["layout"] == "LAYOUT_JONGLE"' "$temp_mapsec_tmpdir/data/maps/Jongle/map.json"
+python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); sections = {s["id"]: s for s in data["map_sections"]}; assert "MAPSEC_Jongle" not in sections; assert sections["MAPSEC_JONGLE"]["name"] == "JONGLE"' "$temp_mapsec_tmpdir/src/data/region_map/region_map_sections.json"
+
 tileset_fix_tmpdir=$(mktemp -d /tmp/maprelink-tileset-fix-test.XXXXXX)
 cp -R "$fixture/." "$tileset_fix_tmpdir/"
 python3 -c 'import json, sys; p = sys.argv[1]; data = json.load(open(p)); data["layouts"][0]["primary_tileset"] = "gTileset_Bad"; json.dump(data, open(p, "w"), indent=2); open(p, "a").write("\n")' "$tileset_fix_tmpdir/data/layouts/layouts.json"
@@ -413,4 +428,4 @@ grep -q 'OldCave_2F_EventScript_Guide::' "$script_label_tmpdir/data/maps/OldCave
 grep -q 'msgbox OldCave_2F_Text_Guide' "$script_label_tmpdir/data/maps/OldCave_2F/scripts.inc"
 grep -q 'OldCave_2 should remain in dialogue' "$script_label_tmpdir/data/maps/OldCave_2F/scripts.inc"
 
-echo "map_asset_relinker fixture test passed: $tmpdir $missing_group_tmpdir $broken_group_tmpdir $broken_map_name_tmpdir $broken_map_id_tmpdir $broken_layout_tmpdir $foreign_layout_tmpdir $broken_mapsec_tmpdir $map_name_anchor_tmpdir $tileset_fix_tmpdir $layout_name_fix_tmpdir $duplicate_mapsec_tmpdir $mapsec_name_fix_tmpdir $region_map_tools_tmpdir $broken_warp_tmpdir $match_by_name_tmpdir $match_by_id_tmpdir $duplicate_script_tmpdir $script_label_tmpdir"
+echo "map_asset_relinker fixture test passed: $tmpdir $missing_group_tmpdir $broken_group_tmpdir $broken_map_name_tmpdir $broken_map_id_tmpdir $broken_layout_tmpdir $foreign_layout_tmpdir $broken_mapsec_tmpdir $map_name_anchor_tmpdir $temp_mapsec_tmpdir $tileset_fix_tmpdir $layout_name_fix_tmpdir $duplicate_mapsec_tmpdir $mapsec_name_fix_tmpdir $region_map_tools_tmpdir $broken_warp_tmpdir $match_by_name_tmpdir $match_by_id_tmpdir $duplicate_script_tmpdir $script_label_tmpdir"

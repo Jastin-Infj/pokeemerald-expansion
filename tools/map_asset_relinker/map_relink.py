@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -140,6 +141,35 @@ def camel_to_upper_snake(name: str) -> str:
         split = re.sub(r"(?<=[a-z])(?=[A-Z])", "_", token)
         parts.append(split.upper())
     return "_".join(filter(None, parts))
+
+
+def title_identifier(name: str) -> str:
+    parts = [part for part in re.split(r"[^A-Za-z0-9]+", name) if part]
+    return "_".join(part[:1].upper() + part[1:] for part in parts)
+
+
+def title_identifier_from_mapsec(mapsec_id: str) -> str:
+    suffix = mapsec_id.removeprefix("MAPSEC_")
+    return title_identifier(suffix)
+
+
+def normalize_mapsec_id(mapsec_id: str) -> str:
+    if not mapsec_id.startswith("MAPSEC_"):
+        return mapsec_id
+    suffix = mapsec_id.removeprefix("MAPSEC_")
+    suffix = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", suffix)
+    suffix = re.sub(r"[^A-Za-z0-9]+", "_", suffix).strip("_").upper()
+    return f"MAPSEC_{suffix}" if suffix else mapsec_id
+
+
+def display_name_from_mapsec(mapsec_id: str) -> str:
+    suffix = mapsec_id.removeprefix("MAPSEC_")
+    return re.sub(r"_+", " ", suffix).strip()
+
+
+def safe_temp_name(name: str) -> str:
+    value = re.sub(r"[^A-Za-z0-9_]+", "_", name).strip("_").lower()
+    return value or "map"
 
 
 def parse_pair(raw: str, label: str) -> tuple[str, str]:
@@ -1693,6 +1723,86 @@ def command_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def make_temp_mapsec_plan_args(args: argparse.Namespace) -> argparse.Namespace:
+    root = Path(args.root).resolve()
+    map_ref = find_map_ref(root, args.map, args.match_by)
+    current_mapsec = map_ref.data.get("region_map_section")
+    if not isinstance(current_mapsec, str) or not current_mapsec.startswith("MAPSEC_"):
+        raise RelinkError(f"Map {args.map!r} does not reference a MAPSEC_* region map section.")
+    if current_mapsec in SPECIAL_MAPSECS:
+        raise RelinkError(f"Map {args.map!r} references special mapsec {current_mapsec!r}; pass explicit plan options instead.")
+    mapsec_entries = load_mapsec_entries(root)
+    if current_mapsec not in mapsec_entries:
+        raise RelinkError(f"Region map section {current_mapsec!r} was not found.")
+
+    inferred_map = title_identifier_from_mapsec(current_mapsec)
+    new_map = args.new_map_name or inferred_map
+    if not new_map:
+        raise RelinkError(f"Could not infer a production map name from {current_mapsec!r}; pass --new-map-name.")
+    new_mapsec = args.new_mapsec or normalize_mapsec_id(current_mapsec)
+    new_mapsec_name = args.new_mapsec_name or display_name_from_mapsec(new_mapsec)
+    rename_mapsec = f"{current_mapsec}:{new_mapsec}" if current_mapsec != new_mapsec else None
+    set_mapsec_name = None if rename_mapsec else f"{current_mapsec}:{new_mapsec_name}"
+    to_group = args.to_group or f"gMapGroup_{title_identifier_from_mapsec(current_mapsec) or new_map}"
+
+    return argparse.Namespace(
+        root=args.root,
+        map=f"{args.map}:{new_map}",
+        match_by=args.match_by,
+        new_map_dir=None,
+        old_group_map_name=None,
+        from_group=None,
+        to_group=to_group,
+        group=None,
+        old_map_id=None,
+        new_map_id=None,
+        set_map_type=None,
+        set_show_map_name=None,
+        set_transition_setflag=None,
+        new_mapsec=new_mapsec if not rename_mapsec else None,
+        rename_mapsec=rename_mapsec,
+        new_mapsec_name=new_mapsec_name if rename_mapsec else None,
+        set_mapsec_name=set_mapsec_name,
+        set_mapsec_bounds=None,
+        set_region_map_cell=None,
+        ensure_fly_location=None,
+        ensure_fly_mapsec_type=None,
+        set_fly_icon_style=None,
+        ensure_mapsec_map=None,
+        claim_unused_flag=None,
+        set_layout_id=None,
+        drop_group=None,
+        rewrite_script_labels=not args.no_rewrite_script_labels,
+        old_script_prefix=None,
+        no_layout_rename=args.no_layout_rename,
+        old_layout_id=None,
+        new_layout_id=None,
+        new_layout_name=None,
+        set_layout_name=None,
+        old_layout_dir=None,
+        new_layout_dir=None,
+        set_primary_tileset=None,
+        set_secondary_tileset=None,
+        out=args.out,
+    )
+
+
+def command_plan_temp_mapsec(args: argparse.Namespace) -> int:
+    plan_args = make_temp_mapsec_plan_args(args)
+    plan = make_plan(plan_args)
+    if args.dry_run:
+        root = Path(args.root).resolve()
+        out = args.out
+        if not out:
+            out = str(Path(tempfile.gettempdir()) / f"{safe_temp_name(plan['maps'][0]['newName'])}_temp_mapsec_repair.json")
+        save_plan(plan, out)
+        apply_plan(root, plan, dry_run=True, allow_dirty=False, backup_root=None)
+        print("Dry-run complete; no files changed.")
+        return 0
+    save_plan(plan, args.out)
+    return 0
+
+
 def command_apply(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     plan = load_plan(Path(args.plan))
@@ -1757,6 +1867,19 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--set-secondary-tileset", help="Set secondary_tileset on the selected layout without otherwise changing the layout.")
     plan.add_argument("--out", help="Write plan JSON to this path instead of stdout.")
     plan.set_defaults(func=command_plan)
+
+    temp_mapsec = subparsers.add_parser("plan-temp-mapsec", help="Create or dry-run a mapsec-derived repair plan for a temporary map.")
+    temp_mapsec.add_argument("--map", required=True, help="Temporary map to repair, e.g. test1.")
+    temp_mapsec.add_argument("--match-by", choices=("dir", "name", "id"), default="dir", help="How to find --map. Defaults to directory name.")
+    temp_mapsec.add_argument("--new-map-name", help="Override the production map name inferred from region_map_section.")
+    temp_mapsec.add_argument("--to-group", help="Override the target map group. Defaults to gMapGroup_<MapsecSuffix> and creates the group if missing.")
+    temp_mapsec.add_argument("--new-mapsec", help="Override the normalized MAPSEC_* id inferred from the current region_map_section.")
+    temp_mapsec.add_argument("--new-mapsec-name", help="Override the mapsec display name inferred from the normalized MAPSEC_* id.")
+    temp_mapsec.add_argument("--no-layout-rename", action="store_true", help="Keep the existing layout id/name/path.")
+    temp_mapsec.add_argument("--no-rewrite-script-labels", action="store_true", help="Do not rewrite temporary script label prefixes in scripts.inc.")
+    temp_mapsec.add_argument("--dry-run", action="store_true", help="Write the inferred plan and immediately run apply --dry-run.")
+    temp_mapsec.add_argument("--out", help="Write plan JSON to this path. With --dry-run, defaults to /tmp/<name>_temp_mapsec_repair.json.")
+    temp_mapsec.set_defaults(func=command_plan_temp_mapsec)
 
     apply = subparsers.add_parser("apply", help="Apply or dry-run a relink plan.")
     apply.add_argument("plan", help="Path to plan JSON.")

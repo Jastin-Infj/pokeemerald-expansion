@@ -17,6 +17,7 @@ opening a browser or remembering a localhost URL.
 - Show map, group, layout, mapsec, map type, popup, and audit warning state.
 - Flag temporary-looking map names such as `test1` and mixed-case mapsec ids
   such as `MAPSEC_Jongle`.
+- Let map-linked audit warnings in the right pane select the affected map.
 - Show the selected map's `Map -> Group -> Layout -> Mapsec` relationship as a
   compact graph before the raw field grid.
 - Filter maps and generate a reviewable CLI plan command for a selected map.
@@ -24,6 +25,8 @@ opening a browser or remembering a localhost URL.
   mapsec display name when a temporary map is anchored to a mapsec.
 - Include `--rename-mapsec` / `--new-mapsec-name` in the generated dry-run
   command when the normalized mapsec id differs from the selected mapsec.
+- Enable script-label rewrite by default for temporary-looking map names, so
+  the GUI plan matches the CLI `plan-temp-mapsec` shortcut.
 - Run the existing CLI `plan` plus `apply --dry-run` flow and display the
   planned moves/edits plus move/edit/review counts without changing source
   files.
