@@ -48,6 +48,14 @@ does not require typing a path into the root field. Browser-only development
 keeps the previous automatic local scan path and uses a prompt fallback for the
 open action.
 
+After Windows manual feedback showed that typing a path worked but Explorer did
+not appear, folder selection was moved behind a first-party Rust/Tauri command
+that opens the native folder dialog from the backend with the main window as
+the parent. The JavaScript dialog plugin remains as a fallback, startup opening
+is delayed until after the window has rendered, failures are surfaced in the
+GUI error banner, and the empty state now exposes an explicit
+`Open Explorer...` action.
+
 When the host cannot install GTK/WebKit Tauri development packages globally,
 `prepare_linux_deps_local.sh` can download the Ubuntu packages into
 `tools/map_asset_relinker_gui/.cache/`, extract them as a local pkg-config

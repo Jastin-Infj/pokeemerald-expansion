@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use tauri_plugin_dialog::DialogExt;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +35,36 @@ struct DryRunResult {
 #[tauri::command]
 fn scan_project(root: Option<String>) -> Result<ProjectSummary, String> {
     scan_project_core(root.map(PathBuf::from))
+}
+
+#[tauri::command]
+fn choose_project_root(
+    window: tauri::Window,
+    current_root: Option<String>,
+) -> Result<Option<String>, String> {
+    let mut dialog = window
+        .dialog()
+        .file()
+        .set_title("Select pokeemerald-expansion Project");
+    #[cfg(any(windows, target_os = "macos"))]
+    {
+        dialog = dialog.set_parent(&window);
+    }
+    if let Some(starting_directory) = current_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|root| !root.is_empty())
+        .and_then(existing_directory_for_dialog)
+    {
+        dialog = dialog.set_directory(starting_directory);
+    }
+    let Some(folder) = dialog.blocking_pick_folder() else {
+        return Ok(None);
+    };
+    folder
+        .into_path()
+        .map(|path| Some(path.display().to_string()))
+        .map_err(|err| format!("failed to read selected folder path: {err}"))
 }
 
 #[tauri::command]
@@ -145,6 +176,16 @@ fn non_empty(value: String) -> Option<String> {
     (!value.is_empty()).then_some(value)
 }
 
+fn existing_directory_for_dialog(root: &str) -> Option<PathBuf> {
+    let path = PathBuf::from(root);
+    if path.is_dir() {
+        return Some(path);
+    }
+    path.parent()
+        .filter(|parent| parent.is_dir())
+        .map(Path::to_path_buf)
+}
+
 fn core_plan_command(root: &Path, request: &PlanRequest, out: &Path) -> String {
     let mut args = vec![
         "tools/map_asset_relinker_core".to_string(),
@@ -244,6 +285,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             scan_project,
+            choose_project_root,
             run_plan_dry_run,
             run_plan_apply
         ])

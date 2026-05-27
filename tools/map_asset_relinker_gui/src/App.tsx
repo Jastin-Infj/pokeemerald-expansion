@@ -87,23 +87,40 @@ function App() {
     if (didPromptForRoot.current) {
       return;
     }
-    didPromptForRoot.current = true;
     if (!isDesktopApp()) {
+      didPromptForRoot.current = true;
       void scan();
       return;
     }
-    void (async () => {
-      setStatus("Choose a project root to scan");
-      const selectedRoot = await chooseProjectRoot(root.trim());
-      if (selectedRoot) {
-        await scan(undefined, selectedRoot);
+    const timer = window.setTimeout(() => {
+      if (didPromptForRoot.current) {
+        return;
       }
-    })();
+      didPromptForRoot.current = true;
+      void (async () => {
+        setStatus("Choose a project root to scan");
+        const selectedRoot = await chooseProjectRoot(root.trim());
+        if (selectedRoot) {
+          await scan(undefined, selectedRoot);
+        }
+      })().catch((err) => {
+        setStatus("Folder picker failed");
+        setError(err instanceof Error ? err.message : String(err));
+      });
+    }, 350);
+    return () => window.clearTimeout(timer);
   }, [root, scan]);
 
   const openProjectRoot = useCallback(async () => {
     setError(null);
-    const selectedRoot = await chooseProjectRoot(root.trim());
+    let selectedRoot: string | null;
+    try {
+      selectedRoot = await chooseProjectRoot(root.trim());
+    } catch (err) {
+      setStatus("Folder picker failed");
+      setError(err instanceof Error ? err.message : String(err));
+      return;
+    }
     if (!selectedRoot) {
       setStatus(root ? "Project root unchanged" : "Choose a project root to scan");
       return;
@@ -143,7 +160,7 @@ function App() {
             onChange={(event) => setRoot(event.target.value)}
             spellCheck={false}
           />
-          <button onClick={() => void openProjectRoot()}>Open...</button>
+          <button onClick={() => void openProjectRoot()}>Explorer...</button>
           <button onClick={() => void scan()}>Scan</button>
         </div>
       </header>
@@ -200,7 +217,7 @@ function App() {
               onApplied={handleApplied}
             />
           ) : (
-            <EmptyState />
+            <EmptyState onOpenRoot={() => void openProjectRoot()} />
           )}
         </section>
 
@@ -803,11 +820,12 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ onOpenRoot }: { onOpenRoot: () => void }) {
   return (
     <div className="emptyState">
       <h2>No map selected</h2>
       <p>Scan a project to load map linkage data.</p>
+      <button onClick={onOpenRoot}>Open Explorer...</button>
     </div>
   );
 }

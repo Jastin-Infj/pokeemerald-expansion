@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { DryRunResult, PlanOptions, ProjectSummary } from "./types";
 
 declare global {
@@ -29,17 +30,23 @@ export function isDesktopApp() {
 
 export async function chooseProjectRoot(currentRoot: string): Promise<string | null> {
   if (window.__TAURI_INTERNALS__) {
-    const { open } = await import("@tauri-apps/plugin-dialog");
-    const selected = await open({
-      title: "Select pokeemerald-expansion Project",
-      directory: true,
-      multiple: false,
-      defaultPath: currentRoot || undefined,
-    });
-    if (Array.isArray(selected)) {
-      return selected[0] ?? null;
+    try {
+      return await invoke<string | null>("choose_project_root", {
+        currentRoot: currentRoot.trim() || null,
+      });
+    } catch (nativeError) {
+      console.warn("native folder picker command failed", nativeError);
+      const selected = await open({
+        title: "Select pokeemerald-expansion Project",
+        directory: true,
+        multiple: false,
+        defaultPath: currentRoot.trim() || undefined,
+      });
+      if (Array.isArray(selected)) {
+        return selected[0] ?? null;
+      }
+      return selected;
     }
-    return selected;
   }
 
   const selected = window.prompt("Project root", currentRoot);

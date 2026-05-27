@@ -623,6 +623,8 @@ h3 {
 .emptyState {
   display: grid;
   place-content: center;
+  justify-items: center;
+  gap: 10px;
   min-height: 360px;
   text-align: center;
   color: #687268;
