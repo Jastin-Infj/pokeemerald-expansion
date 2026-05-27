@@ -43,10 +43,10 @@ The packaged desktop UX no longer assumes the executable is launched from a
 repository checkout. On first launch, the Tauri dialog plugin opens a native
 directory picker for the pokeemerald-expansion project root; after the user
 selects a folder, the GUI stores that root and immediately scans it. The top
-bar also keeps an `Open...` action beside `Scan`, so switching target projects
-does not require typing a path into the root field. Browser-only development
-keeps the previous automatic local scan path and uses a prompt fallback for the
-open action.
+bar also keeps an `Explorer...` action beside `Scan`, so switching target
+projects does not require typing a path into the root field. Browser-only
+development keeps the previous automatic local scan path and uses a prompt
+fallback for the open action.
 
 After Windows manual feedback showed that typing a path worked but Explorer did
 not appear, folder selection was moved behind a first-party Rust/Tauri command
@@ -87,8 +87,8 @@ the direct GUI `.exe`, NSIS installer `.exe`, and `.msi` bundle. The
 can be downloaded from GitHub Actions without manually setting up a local
 Windows toolchain. The first Windows run built the direct GUI exe but failed at
 MSI icon lookup; registering `icons/icon.ico` in `tauri.conf.json` fixed that.
-After adding the native project-root picker, run `26489037790` uploaded
-artifact id `7231364106` for commit `af3026b746`.
+After adding the native project-root picker and diagnostics log, run `26489437641` uploaded
+artifact id `7231498686` for commit `fb2d0fc3b9`.
 
 Expected Windows output paths:
 
