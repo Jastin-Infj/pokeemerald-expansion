@@ -17,6 +17,9 @@ opening a browser or remembering a localhost URL.
   project folders from the executable without typing a path. The packaged app
   asks the Rust/Tauri backend to open the native dialog first, then falls back
   to the JavaScript dialog plugin if needed.
+- Keep a `Diagnostics` button in the top bar. It reads the app's JSONL
+  diagnostic log so folder-picker, scan, and apply failures can be inspected
+  from the executable without attaching a debugger.
 - Read `data/maps/map_groups.json`, `data/maps/*/map.json`,
   `data/layouts/layouts.json`, and
   `src/data/region_map/region_map_sections.json`.
@@ -179,6 +182,13 @@ and installer bundles.
 
 - The Rust backend searches upward from the current working directory for
   `data/maps/map_groups.json` when no project root is provided.
+- The packaged app writes JSONL diagnostics under the user data directory:
+  `%APPDATA%\Map Asset Relinker\logs\diagnostics.jsonl` on Windows,
+  `~/Library/Application Support/Map Asset Relinker/logs/diagnostics.jsonl`
+  on macOS, and
+  `$XDG_DATA_HOME/Map Asset Relinker/logs/diagnostics.jsonl` or
+  `~/.local/share/Map Asset Relinker/logs/diagnostics.jsonl` on Linux. The GUI
+  `Diagnostics` button displays the same file path and recent lines.
 - `npm run build` validates the React/Vite frontend only. `cargo check`,
   `npm run tauri dev`, and `npm run tauri build` also require the Tauri system
   libraries above.

@@ -56,6 +56,13 @@ is delayed until after the window has rendered, failures are surfaced in the
 GUI error banner, and the empty state now exposes an explicit
 `Open Explorer...` action.
 
+The packaged app also writes JSONL diagnostics so native exe behavior can be
+debugged without a desktop automation MCP. The log records app start,
+folder-picker request / selected / cancelled / error, scan start / complete /
+failure, and diagnostics panel access. On Windows the path is
+`%APPDATA%\Map Asset Relinker\logs\diagnostics.jsonl`; the GUI `Diagnostics`
+button reads and displays the same recent log lines.
+
 When the host cannot install GTK/WebKit Tauri development packages globally,
 `prepare_linux_deps_local.sh` can download the Ubuntu packages into
 `tools/map_asset_relinker_gui/.cache/`, extract them as a local pkg-config

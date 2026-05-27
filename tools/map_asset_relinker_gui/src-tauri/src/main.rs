@@ -4,6 +4,8 @@ use map_asset_relinker_core::{
 };
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri_plugin_dialog::DialogExt;
@@ -32,9 +34,68 @@ struct DryRunResult {
     command: String,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DiagnosticEvent {
+    event: String,
+    details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DiagnosticLogSnapshot {
+    path: String,
+    lines: Vec<String>,
+}
+
 #[tauri::command]
 fn scan_project(root: Option<String>) -> Result<ProjectSummary, String> {
     scan_project_core(root.map(PathBuf::from))
+}
+
+#[tauri::command]
+fn write_diagnostic_event(event: DiagnosticEvent) -> Result<String, String> {
+    let path = diagnostic_log_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|err| format!("failed to create diagnostics directory: {err}"))?;
+    }
+    let record = serde_json::json!({
+        "unixMs": chrono_like_timestamp(),
+        "pid": std::process::id(),
+        "version": env!("CARGO_PKG_VERSION"),
+        "event": event.event,
+        "details": event.details.unwrap_or_else(|| serde_json::json!({})),
+    });
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .map_err(|err| format!("failed to open diagnostics log: {err}"))?;
+    writeln!(file, "{record}").map_err(|err| format!("failed to write diagnostics log: {err}"))?;
+    Ok(path.display().to_string())
+}
+
+#[tauri::command]
+fn read_diagnostic_log(line_count: Option<usize>) -> Result<DiagnosticLogSnapshot, String> {
+    let path = diagnostic_log_path();
+    let limit = line_count.unwrap_or(120).clamp(1, 500);
+    let lines = match File::open(&path) {
+        Ok(file) => {
+            let all_lines = BufReader::new(file)
+                .lines()
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|err| format!("failed to read diagnostics log: {err}"))?;
+            let start = all_lines.len().saturating_sub(limit);
+            all_lines[start..].to_vec()
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(err) => return Err(format!("failed to open diagnostics log: {err}")),
+    };
+    Ok(DiagnosticLogSnapshot {
+        path: path.display().to_string(),
+        lines,
+    })
 }
 
 #[tauri::command]
@@ -186,6 +247,40 @@ fn existing_directory_for_dialog(root: &str) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
+fn diagnostic_log_path() -> PathBuf {
+    diagnostic_base_dir()
+        .join("Map Asset Relinker")
+        .join("logs")
+        .join("diagnostics.jsonl")
+}
+
+#[cfg(windows)]
+fn diagnostic_base_dir() -> PathBuf {
+    env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(env::temp_dir)
+}
+
+#[cfg(target_os = "macos")]
+fn diagnostic_base_dir() -> PathBuf {
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .map(|home| home.join("Library").join("Application Support"))
+        .unwrap_or_else(env::temp_dir)
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn diagnostic_base_dir() -> PathBuf {
+    env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            env::var_os("HOME")
+                .map(PathBuf::from)
+                .map(|home| home.join(".local").join("share"))
+        })
+        .unwrap_or_else(env::temp_dir)
+}
+
 fn core_plan_command(root: &Path, request: &PlanRequest, out: &Path) -> String {
     let mut args = vec![
         "tools/map_asset_relinker_core".to_string(),
@@ -285,6 +380,8 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             scan_project,
+            write_diagnostic_event,
+            read_diagnostic_log,
             choose_project_root,
             run_plan_dry_run,
             run_plan_apply

@@ -2,11 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   chooseProjectRoot,
   isDesktopApp,
+  readDiagnosticLog,
   runApplyPlan,
   runDryRunPlan,
   scanProject,
+  writeDiagnosticEvent,
 } from "./backend";
-import type { DryRunResult, MapSummary, ProjectSummary } from "./types";
+import type {
+  DiagnosticLogSnapshot,
+  DryRunResult,
+  MapSummary,
+  ProjectSummary,
+} from "./types";
 
 const emptySummary: ProjectSummary = {
   root: "",
@@ -27,6 +34,8 @@ function App() {
   const [status, setStatus] = useState("Idle");
   const [error, setError] = useState<string | null>(null);
   const [lastApplyNotice, setLastApplyNotice] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticLogSnapshot | null>(null);
+  const didLogAppStart = useRef(false);
   const didPromptForRoot = useRef(false);
 
   const selected = useMemo(() => {
@@ -62,7 +71,12 @@ function App() {
     setError(null);
     try {
       const targetRoot = rootOverride ?? root.trim();
+      await writeDiagnosticEvent("scan_started", {
+        root: targetRoot || null,
+        preferredName: preferredName ?? null,
+      });
       if (!targetRoot && isDesktopApp()) {
+        await writeDiagnosticEvent("scan_missing_root");
         setStatus("Choose a project root to scan");
         return;
       }
@@ -76,12 +90,31 @@ function App() {
         }
         return next.maps[0]?.name ?? "";
       });
+      await writeDiagnosticEvent("scan_completed", {
+        root: next.root,
+        mapCount: next.mapCount,
+        warningCount: next.warningCount,
+      });
       setStatus(`Loaded ${next.mapCount} maps`);
     } catch (err) {
+      await writeDiagnosticEvent("scan_failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
       setStatus("Scan failed");
       setError(err instanceof Error ? err.message : String(err));
     }
   }, [root]);
+
+  useEffect(() => {
+    if (didLogAppStart.current) {
+      return;
+    }
+    didLogAppStart.current = true;
+    void writeDiagnosticEvent("app_start", {
+      desktop: isDesktopApp(),
+      userAgent: window.navigator.userAgent,
+    });
+  }, []);
 
   useEffect(() => {
     if (didPromptForRoot.current) {
@@ -99,11 +132,17 @@ function App() {
       didPromptForRoot.current = true;
       void (async () => {
         setStatus("Choose a project root to scan");
+        await writeDiagnosticEvent("startup_folder_picker_opening");
         const selectedRoot = await chooseProjectRoot(root.trim());
         if (selectedRoot) {
           await scan(undefined, selectedRoot);
+        } else {
+          await writeDiagnosticEvent("startup_folder_picker_no_selection");
         }
       })().catch((err) => {
+        void writeDiagnosticEvent("startup_folder_picker_failed", {
+          message: err instanceof Error ? err.message : String(err),
+        });
         setStatus("Folder picker failed");
         setError(err instanceof Error ? err.message : String(err));
       });
@@ -115,13 +154,18 @@ function App() {
     setError(null);
     let selectedRoot: string | null;
     try {
+      await writeDiagnosticEvent("manual_folder_picker_opening");
       selectedRoot = await chooseProjectRoot(root.trim());
     } catch (err) {
+      await writeDiagnosticEvent("manual_folder_picker_failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
       setStatus("Folder picker failed");
       setError(err instanceof Error ? err.message : String(err));
       return;
     }
     if (!selectedRoot) {
+      await writeDiagnosticEvent("manual_folder_picker_no_selection");
       setStatus(root ? "Project root unchanged" : "Choose a project root to scan");
       return;
     }
@@ -141,6 +185,17 @@ function App() {
     },
     [scan],
   );
+
+  const openDiagnostics = useCallback(async () => {
+    setError(null);
+    try {
+      await writeDiagnosticEvent("diagnostics_opened");
+      setDiagnostics(await readDiagnosticLog());
+    } catch (err) {
+      setStatus("Diagnostics failed");
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
 
   return (
     <main className="appShell">
@@ -162,11 +217,26 @@ function App() {
           />
           <button onClick={() => void openProjectRoot()}>Explorer...</button>
           <button onClick={() => void scan()}>Scan</button>
+          <button onClick={() => void openDiagnostics()}>Diagnostics</button>
         </div>
       </header>
 
       {error ? <div className="errorBanner">{error}</div> : null}
       {lastApplyNotice ? <div className="successBanner">{lastApplyNotice}</div> : null}
+      {diagnostics ? (
+        <section className="diagnosticsPanel" aria-label="Diagnostics log">
+          <div>
+            <strong>Diagnostics</strong>
+            <span>{diagnostics.path}</span>
+          </div>
+          <button onClick={() => setDiagnostics(null)}>Close</button>
+          <pre>
+            {diagnostics.lines.length > 0
+              ? diagnostics.lines.join("\n")
+              : "No diagnostics have been written yet."}
+          </pre>
+        </section>
+      ) : null}
 
       <section className="metrics" aria-label="Project metrics">
         <Metric label="Maps" value={summary.mapCount} tone="teal" />

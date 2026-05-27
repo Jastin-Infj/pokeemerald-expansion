@@ -44,3 +44,8 @@ export type DryRunResult = {
   stderr: string;
   command: string;
 };
+
+export type DiagnosticLogSnapshot = {
+  path: string;
+  lines: string[];
+};

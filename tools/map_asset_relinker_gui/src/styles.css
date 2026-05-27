@@ -136,7 +136,7 @@ h3 {
 
 .rootControls {
   display: grid;
-  grid-template-columns: auto minmax(360px, 1fr) auto auto;
+  grid-template-columns: auto minmax(320px, 1fr) auto auto auto;
   align-items: center;
   gap: 10px;
   flex: 1;
@@ -164,6 +164,44 @@ h3 {
   color: #265a3d;
   padding: 10px 12px;
   font-weight: 700;
+}
+
+.diagnosticsPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  border: 1px solid #b9c6ba;
+  border-radius: 8px;
+  background: #fbfffd;
+  padding: 12px;
+}
+
+.diagnosticsPanel div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.diagnosticsPanel span {
+  color: #58645b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.diagnosticsPanel pre {
+  grid-column: 1 / -1;
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid #d7dfd8;
+  border-radius: 6px;
+  background: #f5f8f6;
+  padding: 10px;
+  color: #23312d;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
 }
 
 .metrics {
