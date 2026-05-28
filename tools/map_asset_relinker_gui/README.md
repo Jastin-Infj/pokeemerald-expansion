@@ -1,0 +1,208 @@
+# Map Asset Relinker GUI
+
+Tauri + React desktop shell for the map asset relinker.
+
+This is intentionally a desktop app, not a browser-only localhost workflow.
+During development, Tauri starts the Vite dev server at `127.0.0.1:1420`.
+Production builds embed the compiled frontend in the Tauri bundle, so normal
+use is an executable / AppImage / platform bundle and does not require manually
+opening a browser or remembering a localhost URL.
+
+## Current Scope
+
+- Scan a pokeemerald-expansion project root.
+- In the packaged desktop app, start without scanning when no root is selected,
+  keeping launch lightweight.
+- Keep an `Explorer...` button beside the root field so the user can switch
+  project folders from the executable without typing a path. The packaged app
+  asks the Rust/Tauri backend to open the native dialog asynchronously, then
+  scans the selected root.
+- Keep a `Diagnostics` button in the top bar. It reads the app's JSONL
+  diagnostic log so folder-picker, scan, and apply failures can be inspected
+  from the executable without attaching a debugger.
+- Read `data/maps/map_groups.json`, `data/maps/*/map.json`,
+  `data/layouts/layouts.json`, and
+  `src/data/region_map/region_map_sections.json`.
+- Show map, group, layout, mapsec, map type, popup, and audit warning state.
+- Flag temporary-looking map names such as `test1` and mixed-case mapsec ids
+  such as `MAPSEC_Jongle`.
+- Let map-linked audit warnings in the right pane select the affected map.
+- Show the selected map's `Map -> Group -> Layout -> Mapsec` relationship as a
+  compact graph before the raw field grid.
+- Filter maps and generate a reviewable CLI plan command for a selected map.
+- Suggest a production map name, target map group, normalized mapsec id, and
+  mapsec display name when a temporary map is anchored to a mapsec.
+- Include `--rename-mapsec` / `--new-mapsec-name` in the generated dry-run
+  command when the normalized mapsec id differs from the selected mapsec.
+- Enable script-label rewrite by default for temporary-looking map names, so
+  the GUI plan matches the CLI `plan-temp-mapsec` shortcut.
+- Run Rust-core plan generation plus Rust-core `apply --dry-run` and display
+  the planned moves/edits plus move/edit/review counts without changing source
+  files.
+- After a successful dry-run, enable `Apply With Backup`. The GUI requires an
+  explicit confirmation, runs the same CLI real `apply --allow-dirty` path,
+  creates the normal `.map_asset_relinker_backups/*.bak.tar` archive before
+  editing files, then rescans the project and shows the backup path.
+- Keep layout rename included by default for rename plans. The UI shows it as a
+  locked checked option because map rename repair normally needs layout id/name
+  and layout directory updates too.
+- Keep the shared core / CLI as the source of truth for relink behavior; the
+  GUI only orchestrates plan, dry-run, real apply, backup reporting, and rescan.
+- Project scan / warning summaries and Tauri plan generation now use the shared
+  Rust core crate under `tools/map_asset_relinker_core/`. Tauri dry-run also
+  uses Rust core `apply --dry-run`. Real apply / backup still use the Python
+  CLI until the Rust core reaches write parity.
+
+## Development
+
+```bash
+cd tools/map_asset_relinker_gui
+npm install
+npm run tauri dev
+```
+
+The development command opens a native Tauri window. The localhost dev server
+is an implementation detail of hot reload.
+
+For browser-only validation, open `http://127.0.0.1:1420/` while the Vite
+server is running. The dev server exposes `/api/scan`, `/api/dry-run`, and
+`/api/apply` endpoints that use Node filesystem access and the Python CLI.
+Production Tauri builds use the Rust commands instead. The packaged desktop
+app uses a Rust-side non-blocking Tauri command for native project-folder
+selection; the browser-only dev view falls back to manual path entry / prompt.
+
+On Linux, Tauri also needs the platform webview / GTK development packages.
+For Debian/Ubuntu-like systems, install the Tauri prerequisites including
+`libwebkit2gtk-4.1-dev`, `libjavascriptcoregtk-4.1-dev`,
+`libsoup-3.0-dev`, `libgtk-3-dev`, `libayatana-appindicator3-dev`,
+`librsvg2-dev`, `libxdo-dev`, `libssl-dev`, `build-essential`, and
+`pkg-config`.
+
+The error names from `pkg-config`, such as `gdk-3.0`, `gtk+-3.0`,
+`javascriptcoregtk-4.1`, `libsoup-3.0`, and `webkit2gtk-4.1`, are not apt
+package names. Use the `lib...-dev` package names above.
+
+This repo includes a helper for Ubuntu:
+
+```bash
+tools/map_asset_relinker_gui/scripts/install_ubuntu_deps.sh
+```
+
+Equivalent apt command:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential curl file libayatana-appindicator3-dev libgtk-3-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libsoup-3.0-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf pkg-config wget
+```
+
+If sudo is not available but apt package downloads are allowed, prepare a
+project-local Linux dependency sysroot instead:
+
+```bash
+tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh
+```
+
+## Build
+
+Build the Rust core executable only:
+
+```bash
+tools/map_asset_relinker_gui/scripts/build_core_release.sh
+```
+
+Output:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core
+```
+
+On Windows, the equivalent output is:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
+```
+
+Build the native desktop GUI plus the Rust core executable:
+
+```bash
+tools/map_asset_relinker_gui/scripts/build_native.sh
+```
+
+The packaged output is written under `src-tauri/target/release/bundle/`.
+On Linux, the direct executable is also built under
+`tools/map_asset_relinker_gui/src-tauri/target/release/`.
+The script builds the Rust core executable first, so a missing Linux webview
+package does not hide whether the CUI executable was produced.
+The Linux helper intentionally builds host-dependent Linux output only:
+direct executable, `.deb`, and `.rpm`. It skips AppImage because that path is a
+portable bundle with stricter icon/runtime bundling requirements.
+The direct executable expects the host runtime libraries such as
+`libwebkit2gtk-4.1-0` and `libgtk-3-0`; the `.deb` bundle declares those
+runtime dependencies.
+
+Known Linux output paths:
+
+```text
+tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm
+```
+
+On Windows PowerShell:
+
+```powershell
+tools/map_asset_relinker_gui/scripts/build_windows.ps1
+```
+
+This produces `map-asset-relinker-core.exe`, runs the Tauri desktop build for
+the direct GUI `.exe` and NSIS installer `.exe`, then copies the direct GUI
+and CUI executables into a simple portable folder. Use `-CoreOnly` to build
+only the CUI executable.
+
+Known Windows output paths:
+
+```text
+tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe
+tools/map_asset_relinker_gui/src-tauri/target/release/bundle/nsis/Map Asset Relinker_0.1.0_x64-setup.exe
+tools/map_asset_relinker_gui/dist-windows/portable/map-asset-relinker-gui.exe
+tools/map_asset_relinker_gui/dist-windows/portable/map-asset-relinker-core.exe
+tools/map_asset_relinker_gui/dist-windows/portable/README.txt
+```
+
+The repository also includes a Windows artifact workflow:
+
+```text
+.github/workflows/map-asset-relinker-desktop.yml
+```
+
+It runs on a Windows GitHub Actions runner and uploads two artifacts:
+`map-asset-relinker-portable-windows` for normal use and
+`map-asset-relinker-windows` for the full build output. Prefer the portable
+artifact and run `map-asset-relinker-gui.exe` directly; MSI is not the primary
+distribution path for this tool.
+
+## Notes
+
+- The Rust backend searches upward from the current working directory for
+  `data/maps/map_groups.json` when no project root is provided.
+- The packaged app writes JSONL diagnostics under the user data directory:
+  `%APPDATA%\Map Asset Relinker\logs\diagnostics.jsonl` on Windows,
+  `~/Library/Application Support/Map Asset Relinker/logs/diagnostics.jsonl`
+  on macOS, and
+  `$XDG_DATA_HOME/Map Asset Relinker/logs/diagnostics.jsonl` or
+  `~/.local/share/Map Asset Relinker/logs/diagnostics.jsonl` on Linux. The GUI
+  `Diagnostics` button displays the same file path and recent lines.
+- `npm run build` validates the React/Vite frontend only. `cargo check`,
+  `npm run tauri dev`, and `npm run tauri build` also require the Tauri system
+  libraries above.
+- The Vite-only API endpoints exist only for local development and Playwright
+  checks. They are not part of the packaged app.
+- Real apply is intentionally behind dry-run success and an explicit
+  confirmation dialog. A backup archive is created before source files are
+  edited or moved.
+- Keep the CLI as the source of truth for relink behavior; the GUI should
+  orchestrate it rather than fork the rules.
+- The Rust core migration now covers scan/audit data and the main GUI plan
+  path. Keep any new GUI-only relink rule out of React/Tauri; promote it into
+  the core or Python CLI first.
