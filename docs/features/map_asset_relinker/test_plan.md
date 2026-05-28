@@ -38,7 +38,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | GUI Linux native build helper | `TAURI_LOCAL_DEPS=/tmp/tauri-linux-deps tools/map_asset_relinker_gui/scripts/build_native.sh` | Builds the core release executable first, then builds host-dependent Linux GUI output without AppImage: `src-tauri/target/release/map-asset-relinker-gui`, `bundle/deb/Map Asset Relinker_0.1.0_amd64.deb`, and `bundle/rpm/Map Asset Relinker-0.1.0-1.x86_64.rpm`. The local dependency sysroot was prepared from downloaded Ubuntu GTK/WebKit packages because `install_ubuntu_deps.sh` is blocked by the sandbox sudo password prompt. |
 | GUI Linux runtime dependency check | `dpkg-deb -I "tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb"`; `LD_LIBRARY_PATH=/tmp/tauri-linux-deps/usr/lib/x86_64-linux-gnu:/tmp/tauri-linux-deps/usr/lib ldd tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui \| rg "not found"` | The `.deb` declares `libwebkit2gtk-4.1-0` and `libgtk-3-0`. With the local sysroot on `LD_LIBRARY_PATH`, `ldd` reports no missing libraries. Without system runtime packages, the direct executable remains host-dependent and may report missing WebKit/JavascriptCore libraries. |
 | GUI Windows native build helper | On Windows: `tools/map_asset_relinker_gui/scripts/build_windows.ps1` | Builds `map-asset-relinker-core.exe`, then Tauri builds the direct GUI `.exe` and NSIS setup `.exe`. The helper also creates `dist-windows/portable/` with the GUI exe, CUI exe, and README. On Linux this is covered by the GitHub Actions Windows runner because local Windows WebView/Tauri packaging is not available. |
-| GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-portable-windows` for normal direct-exe use plus `map-asset-relinker-windows` for full build output. MSI is intentionally not the primary path because local Windows testing showed `.msi` opening can fail. |
+| GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-portable-windows` for normal direct-exe use plus `map-asset-relinker-windows` for full build output. MSI is intentionally not the primary path because local Windows testing showed `.msi` opening can fail. Run `26553513425` passed for commit `95f19ffc0f` and uploaded portable artifact id `7257355989`. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
 | GUI layout rename default | Open the Route301 plan panel | `Rename layout with map` is checked and locked. The generated plan does not include `--no-layout-rename`, so layout id/name/path remain part of the default rename plan. |
@@ -127,9 +127,13 @@ GUI real apply:
   direct GUI exe, CUI exe, and README into `dist-windows/portable/`.
   Local Linux validation cannot execute that PowerShell/Tauri Windows packaging
   path, so `.github/workflows/map-asset-relinker-desktop.yml` runs the same
-  helper on `windows-latest`. The next Windows run should upload
-  `map-asset-relinker-portable-windows` for direct-exe use and
-  `map-asset-relinker-windows` for the full output.
+  helper on `windows-latest`. Run `26553513425` passed for commit `95f19ffc0f`
+  and uploaded `map-asset-relinker-portable-windows` artifact id
+  `7257355989`, plus `map-asset-relinker-windows` artifact id `7257355656`.
+- Downloading `map-asset-relinker-portable-windows` to
+  `/tmp/map-asset-relinker-portable-windows-26553513425` confirmed the
+  artifact root contains `map-asset-relinker-gui.exe`,
+  `map-asset-relinker-core.exe`, and `README.txt`.
 - Playwright verified GUI dry-run plus `Apply With Backup` on
   `/tmp/map-relink-gui-apply-root-4`: the GUI confirmed the write, created
   `.map_asset_relinker_backups/map_relink_20260526_132228_346167.bak.tar`,

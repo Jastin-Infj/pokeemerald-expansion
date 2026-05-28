@@ -89,8 +89,10 @@ the direct GUI `.exe` and NSIS installer `.exe`, then prepares
 GitHub Actions without manually setting up a local Windows toolchain. MSI is
 not the primary distribution path because local Windows testing showed that
 opening the `.msi` can fail depending on Windows Installer policy / context.
-After adding the portable output, the next Windows run should upload the
-portable artifact for direct `.exe` use.
+After adding the portable output, run `26553513425` uploaded
+`map-asset-relinker-portable-windows` artifact id `7257355989` for commit
+`95f19ffc0f`; the portable artifact contains `map-asset-relinker-gui.exe`,
+`map-asset-relinker-core.exe`, and `README.txt` at its root.
 
 Expected Windows output paths:
 
