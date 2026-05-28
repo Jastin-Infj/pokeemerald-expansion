@@ -57,7 +57,15 @@ jobs:
           name: map-asset-relinker-windows
           if-no-files-found: error
           path: |
+            tools/map_asset_relinker_gui/dist-windows/portable/**
             tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
             tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe
             tools/map_asset_relinker_gui/src-tauri/target/release/bundle/**/*.exe
             tools/map_asset_relinker_gui/src-tauri/target/release/bundle/**/*.msi
+
+      - name: Upload portable Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-asset-relinker-portable-windows
+          if-no-files-found: error
+          path: tools/map_asset_relinker_gui/dist-windows/portable/**

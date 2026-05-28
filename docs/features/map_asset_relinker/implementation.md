@@ -81,14 +81,16 @@ tools/map_asset_relinker_gui/src-tauri/target/release/bundle/rpm/Map Asset Relin
 
 Windows is the primary day-to-day GUI target. `build_windows.ps1` runs on a
 Windows host, builds `map-asset-relinker-core.exe`, then asks Tauri to build
-the direct GUI `.exe`, NSIS installer `.exe`, and `.msi` bundle. The
+the direct GUI `.exe` and NSIS installer `.exe`, then prepares
+`dist-windows/portable/` as the primary handoff shape. The
 `map-asset-relinker-desktop.yml` workflow runs that same script on
-`windows-latest` and uploads a `map-asset-relinker-windows` artifact so the exe
-can be downloaded from GitHub Actions without manually setting up a local
-Windows toolchain. The first Windows run built the direct GUI exe but failed at
-MSI icon lookup; registering `icons/icon.ico` in `tauri.conf.json` fixed that.
-After adding the native project-root picker, diagnostics log, and non-blocking Explorer fix, run `26553094568` uploaded
-artifact id `7257231765` for commit `fedc3c302f`.
+`windows-latest` and uploads both `map-asset-relinker-portable-windows` and
+`map-asset-relinker-windows` artifacts so the exe can be downloaded from
+GitHub Actions without manually setting up a local Windows toolchain. MSI is
+not the primary distribution path because local Windows testing showed that
+opening the `.msi` can fail depending on Windows Installer policy / context.
+After adding the portable output, the next Windows run should upload the
+portable artifact for direct `.exe` use.
 
 Expected Windows output paths:
 
@@ -96,7 +98,9 @@ Expected Windows output paths:
 tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
 tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe
 tools/map_asset_relinker_gui/src-tauri/target/release/bundle/nsis/Map Asset Relinker_0.1.0_x64-setup.exe
-tools/map_asset_relinker_gui/src-tauri/target/release/bundle/msi/Map Asset Relinker_0.1.0_x64_en-US.msi
+tools/map_asset_relinker_gui/dist-windows/portable/map-asset-relinker-gui.exe
+tools/map_asset_relinker_gui/dist-windows/portable/map-asset-relinker-core.exe
+tools/map_asset_relinker_gui/dist-windows/portable/README.txt
 ```
 
 ## Wrapper
