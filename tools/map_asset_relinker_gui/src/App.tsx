@@ -35,6 +35,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastApplyNotice, setLastApplyNotice] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticLogSnapshot | null>(null);
+  const [isPickingRoot, setIsPickingRoot] = useState(false);
   const didLogAppStart = useRef(false);
   const didPromptForRoot = useRef(false);
 
@@ -120,38 +121,21 @@ function App() {
     if (didPromptForRoot.current) {
       return;
     }
+    didPromptForRoot.current = true;
     if (!isDesktopApp()) {
-      didPromptForRoot.current = true;
       void scan();
       return;
     }
-    const timer = window.setTimeout(() => {
-      if (didPromptForRoot.current) {
-        return;
-      }
-      didPromptForRoot.current = true;
-      void (async () => {
-        setStatus("Choose a project root to scan");
-        await writeDiagnosticEvent("startup_folder_picker_opening");
-        const selectedRoot = await chooseProjectRoot(root.trim());
-        if (selectedRoot) {
-          await scan(undefined, selectedRoot);
-        } else {
-          await writeDiagnosticEvent("startup_folder_picker_no_selection");
-        }
-      })().catch((err) => {
-        void writeDiagnosticEvent("startup_folder_picker_failed", {
-          message: err instanceof Error ? err.message : String(err),
-        });
-        setStatus("Folder picker failed");
-        setError(err instanceof Error ? err.message : String(err));
-      });
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [root, scan]);
+    setStatus("Choose a project root to scan");
+    void writeDiagnosticEvent("startup_folder_picker_deferred", {
+      reason: "manual Explorer button avoids blocking startup",
+    });
+  }, [scan]);
 
   const openProjectRoot = useCallback(async () => {
     setError(null);
+    setIsPickingRoot(true);
+    setStatus("Opening Explorer");
     let selectedRoot: string | null;
     try {
       await writeDiagnosticEvent("manual_folder_picker_opening");
@@ -162,8 +146,10 @@ function App() {
       });
       setStatus("Folder picker failed");
       setError(err instanceof Error ? err.message : String(err));
+      setIsPickingRoot(false);
       return;
     }
+    setIsPickingRoot(false);
     if (!selectedRoot) {
       await writeDiagnosticEvent("manual_folder_picker_no_selection");
       setStatus(root ? "Project root unchanged" : "Choose a project root to scan");
@@ -215,7 +201,12 @@ function App() {
             onChange={(event) => setRoot(event.target.value)}
             spellCheck={false}
           />
-          <button onClick={() => void openProjectRoot()}>Explorer...</button>
+          <button
+            disabled={isPickingRoot}
+            onClick={() => void openProjectRoot()}
+          >
+            {isPickingRoot ? "Opening..." : "Explorer..."}
+          </button>
           <button onClick={() => void scan()}>Scan</button>
           <button onClick={() => void openDiagnostics()}>Diagnostics</button>
         </div>
@@ -287,7 +278,10 @@ function App() {
               onApplied={handleApplied}
             />
           ) : (
-            <EmptyState onOpenRoot={() => void openProjectRoot()} />
+            <EmptyState
+              isOpening={isPickingRoot}
+              onOpenRoot={() => void openProjectRoot()}
+            />
           )}
         </section>
 
@@ -890,12 +884,20 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EmptyState({ onOpenRoot }: { onOpenRoot: () => void }) {
+function EmptyState({
+  isOpening,
+  onOpenRoot,
+}: {
+  isOpening: boolean;
+  onOpenRoot: () => void;
+}) {
   return (
     <div className="emptyState">
       <h2>No map selected</h2>
       <p>Scan a project to load map linkage data.</p>
-      <button onClick={onOpenRoot}>Open Explorer...</button>
+      <button disabled={isOpening} onClick={onOpenRoot}>
+        {isOpening ? "Opening..." : "Open Explorer..."}
+      </button>
     </div>
   );
 }

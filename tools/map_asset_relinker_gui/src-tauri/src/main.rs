@@ -8,6 +8,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::mpsc;
+use std::time::Duration;
 use tauri_plugin_dialog::DialogExt;
 
 #[derive(Debug, Deserialize)]
@@ -99,7 +101,7 @@ fn read_diagnostic_log(line_count: Option<usize>) -> Result<DiagnosticLogSnapsho
 }
 
 #[tauri::command]
-fn choose_project_root(
+async fn choose_project_root(
     window: tauri::Window,
     current_root: Option<String>,
 ) -> Result<Option<String>, String> {
@@ -111,21 +113,38 @@ fn choose_project_root(
     {
         dialog = dialog.set_parent(&window);
     }
-    if let Some(starting_directory) = current_root
+    let starting_directory = current_root
         .as_deref()
         .map(str::trim)
         .filter(|root| !root.is_empty())
-        .and_then(existing_directory_for_dialog)
-    {
+        .and_then(existing_directory_for_dialog);
+    if let Some(starting_directory) = &starting_directory {
         dialog = dialog.set_directory(starting_directory);
     }
-    let Some(folder) = dialog.blocking_pick_folder() else {
-        return Ok(None);
-    };
-    folder
-        .into_path()
-        .map(|path| Some(path.display().to_string()))
-        .map_err(|err| format!("failed to read selected folder path: {err}"))
+    let (sender, receiver) = mpsc::channel();
+    dialog.pick_folder(move |folder| {
+        let result = match folder {
+            Some(folder) => folder
+                .into_path()
+                .map(|path| Some(path.display().to_string()))
+                .map_err(|err| format!("failed to read selected folder path: {err}")),
+            None => Ok(None),
+        };
+        let _ = sender.send(result);
+    });
+    tauri::async_runtime::spawn_blocking(move || {
+        receiver
+            .recv_timeout(Duration::from_secs(180))
+            .map_err(|err| {
+                let directory_note = starting_directory
+                    .as_ref()
+                    .map(|path| format!(" from {}", path.display()))
+                    .unwrap_or_default();
+                format!("folder picker did not return{directory_note}: {err}")
+            })?
+    })
+    .await
+    .map_err(|err| format!("folder picker task failed: {err}"))?
 }
 
 #[tauri::command]

@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import type {
   DiagnosticLogSnapshot,
   DryRunResult,
@@ -80,37 +79,7 @@ export async function chooseProjectRoot(currentRoot: string): Promise<string | n
       await writeDiagnosticEvent("folder_picker_native_error", {
         message: nativeError instanceof Error ? nativeError.message : String(nativeError),
       });
-      console.warn("native folder picker command failed", nativeError);
-      await writeDiagnosticEvent("folder_picker_requested", {
-        provider: "plugin",
-        currentRoot,
-      });
-      try {
-        const selected = await open({
-          title: "Select pokeemerald-expansion Project",
-          directory: true,
-          multiple: false,
-          defaultPath: currentRoot.trim() || undefined,
-        });
-        if (Array.isArray(selected)) {
-          const selectedRoot = selected[0] ?? null;
-          await writeDiagnosticEvent(
-            selectedRoot ? "folder_picker_selected" : "folder_picker_cancelled",
-            { provider: "plugin", selectedRoot },
-          );
-          return selectedRoot;
-        }
-        await writeDiagnosticEvent(
-          selected ? "folder_picker_selected" : "folder_picker_cancelled",
-          { provider: "plugin", selectedRoot: selected },
-        );
-        return selected;
-      } catch (pluginError) {
-        await writeDiagnosticEvent("folder_picker_plugin_error", {
-          message: pluginError instanceof Error ? pluginError.message : String(pluginError),
-        });
-        throw pluginError;
-      }
+      throw nativeError;
     }
   }
 

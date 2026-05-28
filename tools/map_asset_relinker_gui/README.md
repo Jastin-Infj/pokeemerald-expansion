@@ -11,12 +11,12 @@ opening a browser or remembering a localhost URL.
 ## Current Scope
 
 - Scan a pokeemerald-expansion project root.
-- In the packaged desktop app, open a native project-folder picker on first
-  launch, then automatically scan the selected root.
+- In the packaged desktop app, start without scanning when no root is selected,
+  keeping launch lightweight.
 - Keep an `Explorer...` button beside the root field so the user can switch
   project folders from the executable without typing a path. The packaged app
-  asks the Rust/Tauri backend to open the native dialog first, then falls back
-  to the JavaScript dialog plugin if needed.
+  asks the Rust/Tauri backend to open the native dialog asynchronously, then
+  scans the selected root.
 - Keep a `Diagnostics` button in the top bar. It reads the app's JSONL
   diagnostic log so folder-picker, scan, and apply failures can be inspected
   from the executable without attaching a debugger.
@@ -68,9 +68,8 @@ For browser-only validation, open `http://127.0.0.1:1420/` while the Vite
 server is running. The dev server exposes `/api/scan`, `/api/dry-run`, and
 `/api/apply` endpoints that use Node filesystem access and the Python CLI.
 Production Tauri builds use the Rust commands instead. The packaged desktop
-app uses a Rust-side Tauri command for native project-folder selection, with
-the Tauri dialog plugin as a fallback; the browser-only dev view falls back to
-manual path entry / prompt.
+app uses a Rust-side non-blocking Tauri command for native project-folder
+selection; the browser-only dev view falls back to manual path entry / prompt.
 
 On Linux, Tauri also needs the platform webview / GTK development packages.
 For Debian/Ubuntu-like systems, install the Tauri prerequisites including

@@ -40,20 +40,20 @@ The direct executable still depends on host runtime libraries such as
 dependencies.
 
 The packaged desktop UX no longer assumes the executable is launched from a
-repository checkout. On first launch, the Tauri dialog plugin opens a native
-directory picker for the pokeemerald-expansion project root; after the user
-selects a folder, the GUI stores that root and immediately scans it. The top
-bar also keeps an `Explorer...` action beside `Scan`, so switching target
-projects does not require typing a path into the root field. Browser-only
-development keeps the previous automatic local scan path and uses a prompt
-fallback for the open action.
+repository checkout. When no root is selected, it now launches into an idle
+`Choose a project root to scan` state instead of opening the picker
+immediately. The top bar keeps an `Explorer...` action beside `Scan`; selecting
+a folder stores that root and immediately scans it. Browser-only development
+keeps the previous automatic local scan path and uses a prompt fallback for the
+open action.
 
 After Windows manual feedback showed that typing a path worked but Explorer did
 not appear, folder selection was moved behind a first-party Rust/Tauri command
 that opens the native folder dialog from the backend with the main window as
-the parent. The JavaScript dialog plugin remains as a fallback, startup opening
-is delayed until after the window has rendered, failures are surfaced in the
-GUI error banner, and the empty state now exposes an explicit
+the parent. After later feedback that startup became heavy and the
+`Explorer...` button did not respond, the command was changed to use the
+non-blocking `pick_folder` API and startup auto-open was removed. Failures are
+surfaced in the GUI error banner, and the empty state exposes an explicit
 `Open Explorer...` action.
 
 The packaged app also writes JSONL diagnostics so native exe behavior can be
