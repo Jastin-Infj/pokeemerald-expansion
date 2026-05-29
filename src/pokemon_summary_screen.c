@@ -33,6 +33,7 @@
 #include "pokemon_sprite_visualizer.h"
 #include "pokemon_storage_system.h"
 #include "pokemon_summary_screen.h"
+#include "pokemon_vendor.h"
 #include "pokerus.h"
 #include "region_map.h"
 #include "scanline_effect.h"
@@ -137,7 +138,10 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u16 species2; // 0x2
         u8 isEgg:1; // 0x4
         u8 isShiny:1;
-        u8 padding:6;
+        u8 isVendorSealedOrigin:1;
+        u8 isLockedSealedRecruit:1;
+        u8 isConcealedSealedRecruit:1;
+        u8 padding:3;
         u8 level; // 0x5
         u8 ribbonCount; // 0x6
         u8 ailment; // 0x7
@@ -1526,13 +1530,16 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
     {
     case 0:
         sum->species = GetMonData(mon, MON_DATA_SPECIES);
-        sum->species2 = GetMonData(mon, MON_DATA_SPECIES_OR_EGG);
         sum->exp = GetMonData(mon, MON_DATA_EXP);
         sum->level = GetMonData(mon, MON_DATA_LEVEL);
         sum->abilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM);
         sum->item = GetMonData(mon, MON_DATA_HELD_ITEM);
         sum->pid = GetMonData(mon, MON_DATA_PERSONALITY);
         sum->sanity = GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG);
+        sum->isVendorSealedOrigin = PokemonVendor_IsSealedOriginMon(mon);
+        sum->isLockedSealedRecruit = PokemonVendor_IsLockedSealedRecruit(mon);
+        sum->isConcealedSealedRecruit = PokemonVendor_IsConcealedSealedRecruit(mon);
+        sum->species2 = (sum->isLockedSealedRecruit && !sum->isConcealedSealedRecruit) ? sum->species : GetMonData(mon, MON_DATA_SPECIES_OR_EGG);
 
         if (sum->sanity)
             sum->isEgg = TRUE;
@@ -3341,11 +3348,36 @@ static void PrintNotEggInfo(void)
 
 static void PrintEggInfo(void)
 {
+    struct PokeSummary *summary = &sMonSummaryScreen->summary;
+
     GetMonNickname(&sMonSummaryScreen->currentMon, gStringVar1);
     PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME, gStringVar1, 0, 1, 0, 1);
     PutWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME);
     ClearWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_DEX_NUMBER);
-    ClearWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_SPECIES);
+
+    if (summary->isVendorSealedOrigin)
+    {
+        PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_DEX_NUMBER, gText_PokemonVendorLocked, 0, 1, 0, 1);
+        PutWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_DEX_NUMBER);
+        if (!summary->isConcealedSealedRecruit)
+        {
+            StringCopy(gStringVar1, gText_LevelSymbol);
+            ConvertIntToDecimalStringN(gStringVar2, summary->level, STR_CONV_MODE_LEFT_ALIGN, 3);
+            StringAppend(gStringVar1, gStringVar2);
+            PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, gStringVar1, 24, 17, 0, 1);
+            PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, gText_Slash, 0, 1, 0, 1);
+            PrintTextOnWindowToFitPx(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, GetSpeciesName(summary->species), 6, 1, 0, 1, WindowWidthPx(PSS_LABEL_WINDOW_PORTRAIT_SPECIES) - 9);
+            PutWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_SPECIES);
+        }
+        else
+        {
+            ClearWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_SPECIES);
+        }
+    }
+    else
+    {
+        ClearWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_SPECIES);
+    }
 }
 
 static void PrintGenderSymbol(struct Pokemon *mon, u16 species)
@@ -3704,6 +3736,9 @@ static void BufferMonTrainerMemo(void)
         Free(metLevelString);
         Free(metLocationString);
     }
+
+    if (sum->isVendorSealedOrigin)
+        StringCopy(gStringVar4, gText_PokemonVendorOriginMemo);
 }
 
 static void PrintMonTrainerMemo(void)
@@ -3801,6 +3836,15 @@ static void PrintEggState(void)
     const u8 *text;
     struct PokeSummary *sum = &sMonSummaryScreen->summary;
 
+    if (sum->isVendorSealedOrigin)
+    {
+        ConvertIntToDecimalStringN(gStringVar1, PokemonVendor_GetSealedRecruitBondProgress(&sMonSummaryScreen->currentMon), STR_CONV_MODE_LEFT_ALIGN, 3);
+        ConvertIntToDecimalStringN(gStringVar2, PokemonVendor_GetSealedRecruitBondThreshold(&sMonSummaryScreen->currentMon), STR_CONV_MODE_LEFT_ALIGN, 3);
+        StringExpandPlaceholders(gStringVar4, gText_PokemonVendorSealedBond);
+        PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gStringVar4, 0, 1, 0, 0);
+        return;
+    }
+
     if (sMonSummaryScreen->summary.sanity == TRUE)
         text = gText_EggWillTakeALongTime;
     else if (sum->friendship <= 5)
@@ -3820,7 +3864,11 @@ static void PrintEggMemo(void)
     const u8 *text;
     struct PokeSummary *sum = &sMonSummaryScreen->summary;
 
-    if (sMonSummaryScreen->summary.sanity != 1)
+    if (sum->isVendorSealedOrigin)
+    {
+        text = gText_PokemonVendorSealedMemo;
+    }
+    else if (sMonSummaryScreen->summary.sanity != 1)
     {
         if (sum->metLocation == METLOC_FATEFUL_ENCOUNTER)
             text = gText_PeculiarEggNicePlace;
@@ -4447,7 +4495,7 @@ void SetTypeSpritePosAndPal(enum Type typeId, u8 x, u8 y, u8 spriteArrayId)
 static void SetMonTypeIcons(void)
 {
     struct PokeSummary *summary = &sMonSummaryScreen->summary;
-    if (summary->isEgg)
+    if (summary->isEgg && (!summary->isLockedSealedRecruit || summary->isConcealedSealedRecruit))
     {
         SetTypeSpritePosAndPal(TYPE_MYSTERY, 120, 48, SPRITE_ARR_ID_TYPE);
         SetSpriteInvisibility(SPRITE_ARR_ID_TYPE + 1, TRUE);
@@ -4561,6 +4609,8 @@ static void SwapMovesTypeSprites(u8 moveIndex1, u8 moveIndex2)
 static u8 LoadMonGfxAndSprite(struct Pokemon *mon, s16 *state)
 {
     struct PokeSummary *summary = &sMonSummaryScreen->summary;
+    bool32 displayAsEgg = summary->isEgg && (!summary->isLockedSealedRecruit || summary->isConcealedSealedRecruit);
+    u16 displaySpecies = summary->isConcealedSealedRecruit ? SPECIES_EGG : summary->species;
 
     switch (*state)
     {
@@ -4571,9 +4621,9 @@ static u8 LoadMonGfxAndSprite(struct Pokemon *mon, s16 *state)
         {
             HandleLoadSpecialPokePicIsEgg(TRUE,
                                      gMonSpritesGfxPtr->spritesGfx[B_POSITION_OPPONENT_LEFT],
-                                     summary->species,
+                                     displaySpecies,
                                      summary->pid,
-                                     summary->isEgg);
+                                     displayAsEgg);
         }
         else
         {
@@ -4581,23 +4631,23 @@ static u8 LoadMonGfxAndSprite(struct Pokemon *mon, s16 *state)
             {
                 HandleLoadSpecialPokePicIsEgg(TRUE,
                                          gMonSpritesGfxPtr->spritesGfx[B_POSITION_OPPONENT_LEFT],
-                                         summary->species,
+                                         displaySpecies,
                                          summary->pid,
-                                         summary->isEgg);
+                                         displayAsEgg);
             }
             else
             {
                 HandleLoadSpecialPokePicIsEgg(TRUE,
                                          MonSpritesGfxManager_GetSpritePtr(MON_SPR_GFX_MANAGER_A, B_POSITION_OPPONENT_LEFT),
-                                         summary->species,
+                                         displaySpecies,
                                          summary->pid,
-                                         summary->isEgg);
+                                         displayAsEgg);
             }
         }
         (*state)++;
         return 0xFF;
     case 1:
-        LoadSpritePaletteWithTag(GetMonSpritePalFromSpeciesAndPersonalityIsEgg(summary->species, summary->isShiny, summary->pid, summary->isEgg), summary->species2);
+        LoadSpritePaletteWithTag(GetMonSpritePalFromSpeciesAndPersonalityIsEgg(displaySpecies, summary->isShiny, summary->pid, displayAsEgg), summary->species2);
         SetMultiuseSpriteTemplateToPokemon(summary->species2, B_POSITION_OPPONENT_LEFT);
         (*state)++;
         return 0xFF;
@@ -4643,7 +4693,7 @@ static void SpriteCB_Pokemon(struct Sprite *sprite)
     {
         sprite->data[1] = IsMonSpriteNotFlipped(sprite->data[0]);
         PlayMonCry();
-        PokemonSummaryDoMonAnimation(sprite, sprite->data[0], summary->isEgg);
+        PokemonSummaryDoMonAnimation(sprite, sprite->data[0], summary->isEgg && (!summary->isLockedSealedRecruit || summary->isConcealedSealedRecruit));
     }
 }
 

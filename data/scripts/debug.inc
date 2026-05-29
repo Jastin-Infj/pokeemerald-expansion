@@ -203,7 +203,12 @@ Debug_EventScript_Text_DefensiveIVs:
 	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
-	release
+	lockall
+	message Debug_PokemonVendor_Text_Welcome
+	waitmessage
+	pokemonvendor Debug_PokemonVendor_Products
+	msgbox Debug_PokemonVendor_Text_Thanks, MSGBOX_DEFAULT
+	releaseall
 	end
 
 Debug_EventScript_Script_2::
@@ -222,9 +227,39 @@ Debug_EventScript_Script_2::
 	releaseall
 	end
 
+	.align 2
+Debug_PokemonVendor_Products:
+	pokemonvendorproduct 1, SPECIES_PIKACHU, 50, 3000, POKEMON_VENDOR_PRODUCT_NORMAL, POKEMON_VENDOR_PURCHASE_REPEAT
+	pokemonvendorproduct 2, SPECIES_DRAGONITE, 50, 12000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_ONCE, FLAG_UNUSED_0x020, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 120, 40, POKEMON_VENDOR_EDIT_ALWAYS
+	pokemonvendorproduct 3, SPECIES_MEW, 50, 3000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 180, 40, POKEMON_VENDOR_EDIT_ALWAYS, POKEMON_VENDOR_REVEAL_HIDDEN, USE_RANDOM_IVS, MOVE_NONE, MOVE_NONE, MOVE_NONE, MOVE_NONE, SPECIES_MEWTWO, SPECIES_CELEBI, SPECIES_JIRACHI, SPECIES_DEOXYS
+	pokemonvendorproduct 4, SPECIES_EEVEE, 50, 2500, POKEMON_VENDOR_PRODUCT_NORMAL, POKEMON_VENDOR_PURCHASE_REPEAT
+	pokemonvendorproduct 5, SPECIES_GENGAR, 50, 8000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 100, 30, POKEMON_VENDOR_EDIT_ALWAYS
+	pokemonvendorproduct 6, SPECIES_LUCARIO, 50, 9000, POKEMON_VENDOR_PRODUCT_NORMAL, POKEMON_VENDOR_PURCHASE_REPEAT
+	pokemonvendorproduct 7, SPECIES_GARDEVOIR, 50, 8500, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 100, 30, POKEMON_VENDOR_EDIT_ALWAYS
+	pokemonvendorproduct 8, SPECIES_SNORLAX, 50, 7000, POKEMON_VENDOR_PRODUCT_NORMAL, POKEMON_VENDOR_PURCHASE_REPEAT
+	pokemonvendorproduct 9, SPECIES_TYRANITAR, 50, 11000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 120, 40, POKEMON_VENDOR_EDIT_ALWAYS
+	pokemonvendorproduct 10, SPECIES_METAGROSS, 50, 11000, POKEMON_VENDOR_PRODUCT_SEALED, POKEMON_VENDOR_PURCHASE_REPEAT, POKEMON_VENDOR_NO_FLAG, POKEMON_VENDOR_NO_FLAG, ITEM_NONE, 27, 120, 40, POKEMON_VENDOR_EDIT_ALWAYS
+	pokemonvendorlistend
+
+Debug_PokemonVendor_Text_Welcome:
+	.string "Friendly Shop Pokemon Vendor$"
+
+Debug_PokemonVendor_Text_Thanks:
+	.string "Please come again.$"
+
 Debug_EventScript_Script_3::
-	release
+	lockall
+	msgbox Debug_PokemonVendor_Text_BondTrainer, MSGBOX_DEFAULT
+	pokemonvendorqueuebattlebond 20
+	special PokemonVendor_StartDebugBondTrainerBattle
+	waitstate
+	releaseall
 	end
+
+Debug_PokemonVendor_Text_BondTrainer:
+	.string "Starting a normal trainer battle.\p"
+	.string "Winning awards 20 sealed bond EXP\p"
+	.string "inside the battle win text.$"
 
 Debug_EventScript_Script_4::
 	release

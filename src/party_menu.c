@@ -53,6 +53,7 @@
 #include "pokemon_jump.h"
 #include "pokemon_storage_system.h"
 #include "pokemon_summary_screen.h"
+#include "pokemon_vendor.h"
 #include "pokerus.h"
 #include "region_map.h"
 #include "reshow_battle_screen.h"
@@ -1060,7 +1061,13 @@ static void RenderPartyMenuBox(u8 slot)
 
 static void DisplayPartyPokemonData(u8 slot)
 {
-    if (GetMonData(&gPlayerParty[slot], MON_DATA_IS_EGG))
+    if (PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[slot]))
+    {
+        sPartyMenuBoxes[slot].infoRects->blitFunc(sPartyMenuBoxes[slot].windowId, 0, 0, 0, 0, TRUE);
+        DisplayPartyPokemonNickname(&gPlayerParty[slot], &sPartyMenuBoxes[slot], 0);
+        DisplayPartyPokemonDescriptionText(PARTYBOX_DESC_LOCKED, &sPartyMenuBoxes[slot], 0);
+    }
+    else if (GetMonData(&gPlayerParty[slot], MON_DATA_IS_EGG))
     {
         sPartyMenuBoxes[slot].infoRects->blitFunc(sPartyMenuBoxes[slot].windowId, 0, 0, 0, 0, TRUE);
         DisplayPartyPokemonNickname(&gPlayerParty[slot], &sPartyMenuBoxes[slot], 0);
@@ -4637,7 +4644,7 @@ bool32 SetUpFieldMove_Dive(void)
 static void CreatePartyMonIconSprite(struct Pokemon *mon, struct PartyMenuBox *menuBox, u32 slot)
 {
     u32 species = GetMonData(mon, MON_DATA_SPECIES);
-    bool32 isEgg = GetMonData(mon, MON_DATA_IS_EGG);
+    bool32 isEgg = PokemonVendor_ShouldDisplayMonAsEgg(mon);
     CreatePartyMonIconSpriteParameterized(species, GetMonData(mon, MON_DATA_PERSONALITY), isEgg, menuBox, 1);
     UpdatePartyMonHPBar(menuBox->monSpriteId, mon);
 }

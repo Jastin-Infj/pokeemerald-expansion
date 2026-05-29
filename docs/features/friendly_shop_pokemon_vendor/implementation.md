@@ -4,14 +4,21 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-05-23 |
-| Branch | `feature/global-no-evolution-20260523` |
+| Last updated | 2026-05-29 |
+| Branch | `integration/runtime-dev-20260529`; source shelf `feature/global-no-evolution-20260523` / PR #57 |
 | Scope | Runtime implementation: fixed-species rule, Pokemon vendor, sealed recruit lock / unlock |
 
 ## Summary
 
 This branch now contains the first full runtime slice for the Friendly Shop
 Pokemon Vendor.
+
+2026-05-29 integration note: the #57 source slice has been re-applied onto
+`integration/runtime-dev-20260529` after #47 Battle Item Restore, #48 Held Item
+Catalog, #54 Party / Status UI, and #51 Scout Selection. The integration keeps
+the Scout debug routes and assigns vendor validation routes as:
+`Scripts... -> Script 1` for the vendor, `Script 2` for Scout Selection pick-6,
+and `Script 3` for the vendor queued trainer-battle bond reward.
 
 - Global evolution is disabled through `P_EVOLUTIONS_ENABLED FALSE`.
 - A new `pokemonvendor products` script command opens a Pokemon-product shop
@@ -22,9 +29,11 @@ Pokemon Vendor.
   four optional random-species candidates for mystery products.
 - Debug `Script 1` opens a 10-product sample vendor with normal products,
   named sealed recruits, and a purchasable mystery sealed recruit.
-- Debug `Script 2` uses the shared `pokemonvendorawardbond 40` macro to award
-  sealed bond progress to carried locked recruits and show progress / unlock
-  messages.
+- On the original #57 shelf, debug `Script 2` used the shared
+  `pokemonvendorawardbond 40` macro to award sealed bond progress to carried
+  locked recruits. In the integration branch, `Script 2` remains the Scout
+  Selection six-pick route, so standalone vendor bond-award checks should use a
+  feature-local test script or the queued `Script 3` trainer route.
 - Debug `Script 3` queues 20 sealed bond EXP before starting a normal trainer
   battle. The queued reward is paid and displayed by the trainer victory battle
   script after the money message, before returning to the field.
@@ -210,6 +219,27 @@ prints the unlock message only if one or more recruits unlocked.
 | 2026-05-23 | mGBA Live vendor selected-product icon route | Pass | Booted the debug ROM, continued the existing save, opened debug `Scripts... -> Script 1`, and confirmed the detail pane shows Pikachu's icon for the Pikachu product, Dragonite's icon for the Dragonite product, a generic Egg icon for the concealed `?????` product, and no stale icon on Cancel. Screenshots: `/tmp/pokemon-vendor-icon-pikachu-20260523.png`, `/tmp/pokemon-vendor-icon-dragonite-20260523.png`, `/tmp/pokemon-vendor-icon-mystery-20260523.png`, `/tmp/pokemon-vendor-icon-cancel-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Vendor long-list build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after keeping the normal shop font / row spacing, adding scroll arrows, and expanding the debug sample table to 10 products. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
 | 2026-05-23 | mGBA Live vendor long-list route | Pass | Booted the debug ROM, continued the existing save, opened debug `Scripts... -> Script 1`, and confirmed the normal-size four-row list with a visible down arrow, scrolling to later products and Cancel, up / down arrow visibility updates, detail icon / price updates, and Cancel icon clearing. Screenshots: `/tmp/pokemon-vendor-arrow-list-open-20260523.png`, `/tmp/pokemon-vendor-arrow-list-scrolled-20260523.png`, `/tmp/pokemon-vendor-arrow-list-cancel-20260523.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-29 | Runtime integration apply | Pass | Re-applied #57 source / tests onto `integration/runtime-dev-20260529` after #47/#48/#54/#51. `data/scripts/debug.inc` was manually resolved so vendor remains `Script 1`, Scout pick-6 remains `Script 2`, and vendor queued trainer reward remains `Script 3`. |
+| 2026-05-29 | `rtk git diff --check` / `--cached --check` | Pass | No whitespace issues after resolving the debug route overlap. |
+| 2026-05-29 | `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` | Pass | Vendor ABI, locked display, concealed Egg visuals, and sealed unlock helpers passed on the integration stack. |
+| 2026-05-29 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning only. |
+| 2026-05-29 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only; debug route merge compiled. |
+| 2026-05-29 | `rtk make -j16 -O check TESTS=test/random.c` | Pass | Rechecked after full-suite jitter. Random tests passed when isolated. |
+| 2026-05-29 | `rtk make -j16 -O check` | Not clean | Full suite reached runtime tests but failed the existing timing-sensitive `test/random.c` RandomUniform faster-than-mod benchmarks in hydra parallel context. The same file passed focused immediately after; no vendor / Pokemon failure was reported. This is recorded as accepted non-feature validation risk for this adoption. |
+| 2026-05-29 | mGBA Live `integration-pokemon-vendor-smoke` | Pass | Booted `pokeemerald.gba`, continued the local save, opened `Debug Menu > Scripts... > Script 1`, confirmed the vendor list / detail icon pane, opened the Pikachu purchase prompt, bought Pikachu, and saw `Here you go! Take good care of it.` Screenshots: `/tmp/integration-pokemon-vendor-open.png`, `/tmp/integration-pokemon-vendor-buy-prompt.png`, `/tmp/integration-pokemon-vendor-after-buy.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
+
+## Integration Handoff
+
+- Integration commit target: `integration/runtime-dev-20260529`.
+- Source shelf retained for history: PR #57 / `feature/global-no-evolution-20260523`.
+- This adoption depends on the already-applied item and party baseline:
+  #47 Battle Item Restore, #48 Held Item Catalog, #54 Party / Status UI, and
+  #51 Scout Selection.
+- Do not merge this runtime source into `master`. For `master`, cherry-pick or
+  re-apply docs / Lua-only handoff content only.
+- Next likely conflict is #60 All Ability Slots because it also touches
+  `src/party_menu.c`, `src/pokemon_summary_screen.c`, `include/pokemon.h`,
+  `src/pokemon.c`, and `test/pokemon.c`.

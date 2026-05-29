@@ -4,14 +4,15 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-23 |
-| Baseline | `master` `33932f1c30`; upstream `expansion/1.15.2-86-g2bb16c85b3` |
-| Code status | Runtime implementation active on feature branch; vendor / sealed recruit first slice implemented |
+| Last reviewed | 2026-05-29 |
+| Baseline | `integration/runtime-dev-20260529`; source shelf `feature/global-no-evolution-20260523` / PR #57 |
+| Code status | Runtime implementation adopted in integration branch; master remains docs / Lua-only |
 | Provenance | Local project overlay |
 
 ## Status
 
-Status: First runtime slice implemented on `feature/global-no-evolution-20260523`.
+Status: First runtime slice implemented on `feature/global-no-evolution-20260523`
+and adopted into `integration/runtime-dev-20260529` on 2026-05-29.
 
 The branch now includes the global no-evolution rule, a new script-facing
 Pokemon vendor, normal Pokemon purchase delivery, Egg-like sealed recruit
@@ -58,6 +59,9 @@ one-time only.
 - Debug `Scripts... -> Script 3` is the current normal-trainer validation
   route: it queues 20 sealed bond EXP, starts a regular trainer battle, and
   displays the reward inside the win-message sequence after the money message.
+- In the runtime integration branch, debug `Scripts... -> Script 2` is reserved
+  for Scout Selection pick-6, so vendor-specific checks use `Script 1` or
+  `Script 3`.
 - For the first runtime slice, prefer battle-win or challenge-clear based
   sealed progress while the locked recruit is in the party. Step-based progress
   is possible for literal Eggs, but it collides more directly with the existing

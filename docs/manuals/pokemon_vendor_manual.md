@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-23 |
-| Baseline | `feature/global-no-evolution-20260523`; implementation PR #57 |
-| Code status | Runtime implementation lives on feature branch; master handoff is docs-only |
+| Last reviewed | 2026-05-29 |
+| Baseline | `integration/runtime-dev-20260529`; source shelf `feature/global-no-evolution-20260523` / PR #57 |
+| Code status | Runtime implementation is adopted in the integration branch; master handoff remains docs / Lua-only |
 | Provenance | Local project overlay |
 
 This manual explains how to add a Friendly Shop style Pokemon vendor once the
@@ -183,6 +183,8 @@ rtk mdbook build docs
 Then use mGBA Live or manual play to confirm:
 
 - debug `Scripts... -> Script 1` opens the vendor,
+- in the runtime integration branch, debug `Script 2` is reserved for Scout
+  Selection pick-6 and `Script 3` is the vendor queued trainer reward route,
 - named products show real icons,
 - concealed products show Egg icon,
 - long lists show scroll arrows and reach Cancel,
