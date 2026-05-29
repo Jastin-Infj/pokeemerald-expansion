@@ -161,6 +161,9 @@ gSpecials::
 	def_special MauvilleGymPressSwitch
 	def_special ShowFieldMessageStringVar4
 	def_special DrawWholeMapView
+	def_special InitScoutSelection
+	def_special OpenScoutSelection
+	def_special GiveSelectedScoutMons
 	def_special StorePlayerCoordsInVars
 	def_special MauvilleGymDeactivatePuzzle
 	def_special PetalburgGymSlideOpenRoomDoors
