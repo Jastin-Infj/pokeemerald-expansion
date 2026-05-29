@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-20 |
-| Baseline | `master` `e927b612b3`; `feature/scout-selection-runtime-20260520` |
-| Code status | Runtime MVP implemented; focused mGBA validation passed |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Code status | Runtime MVP adopted into integration branch; focused mGBA validation passed |
 | Provenance | Project runtime validation policy and related feature test plans |
 
 ## Build / Lint
@@ -59,6 +59,13 @@ gap here before handoff.
 
 | Date | Command / check | Result | Notes |
 |---|---|---|---|
+| 2026-05-29 | `rtk make generated` | Pass | Generated ignored `src/data/scout_selection_pools.h` from `hoenn_demo.json` and `elite_four.json`; first 12 unique species are Metang, Skarmory, Aggron, Mightyena, Wobbuffet, Geodude, Zigzagoon, Shiftry, Cacturne, Crawdaunt, Absol, and Sharpedo. |
+| 2026-05-29 | `rtk git diff --cached --check` | Pass | No whitespace errors. |
+| 2026-05-29 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning only. The first parallel all/debug attempt also exited 0 but produced transient objcopy string-table warnings from shared output contention; validation evidence uses the clean sequential rerun. |
+| 2026-05-29 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only; clean sequential rerun. |
+| 2026-05-29 | `rtk make -j16 -O check` | Pass | Suite exits 0 with existing `EXPECTED_FAIL` / `KNOWN_FAILING` markers and the existing RWX linker warning. |
+| 2026-05-29 | mGBA Live `integration-scout-selection-smoke` | Pass | Booted normal ROM, continued the local save, opened `Debug Menu > Scripts... > Scout Selection`, confirmed visible partygen-derived candidates and icons, opened Metang Summary and returned, selected Metang, confirmed, saw `Scout Pokemon received.`, then opened Start menu > Party and confirmed Metang Lv.50 in the new 2x3 Party menu. Screenshots: `integration-scout-selection-open.png`, `integration-scout-selection-summary.png`, `integration-scout-selection-summary-return.png`, `integration-scout-selection-selected.png`, `integration-scout-selection-confirm.png`, `integration-scout-selection-party-after-gift.png`. |
+| 2026-05-29 | mGBA cleanup | Pass | `mgba-live-cli stop` stopped `integration-scout-selection-smoke`; `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-19 | Docs-only investigation | Not run | No runtime source exists on this docs branch. |
 | 2026-05-20 | `rtk make -j16 -O debug` | Pass | Debug ROM builds with existing RWX linker warning. |
 | 2026-05-20 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning. Earlier parallel build collision hit unrelated `link_rfu_2.o`; clean rerun passed. |

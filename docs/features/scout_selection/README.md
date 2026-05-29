@@ -4,13 +4,14 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-20 |
-| Baseline | `master` `e927b612b3`; `feature/scout-selection-runtime-20260520` |
-| Code status | Runtime MVP implemented on feature branch |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Code status | Runtime MVP adopted into integration branch; not present in `master` source |
 | Provenance | Local source inspection, existing feature branch docs, public GitHub / official Pokemon Champions reference check |
 
-Status: Runtime MVP implemented on feature branch
-Code status: source changes are intentionally not on `master`
+Status: Runtime MVP adopted into `integration/runtime-dev-20260529` after #47
+Battle Item Restore, #48 Held Item Catalog, and #54 Party / Status UI.
+Code status: source changes are intentionally not on `master`.
 
 ## Goal
 
@@ -34,7 +35,7 @@ MVP は「script で pool と pick count を指定し、最大 12 候補から 6
 | Summary | Standard Summary opens for the highlighted candidate and returns to the scout screen with cursor, scroll, and selected order preserved. |
 | Gift result | Confirmed candidates are given through `GiveScriptedMonToPlayer`; scripts receive `MON_GIVEN_TO_PARTY`, `MON_GIVEN_TO_PC`, or `MON_CANT_GIVE`. |
 | Debug route | Debug menu `Scripts... > Scout Selection` opens the 12-candidate pool with pick count 1. `Scripts... > Script 2` opens the same pool with pick count 6 for multi-pick testing. |
-| Validation | mGBA Live confirmed open, partygen-derived candidates, scroll, Summary return, confirm, and party gift on `feature/scout-selection-runtime-20260520`. |
+| Validation | mGBA Live confirmed open, partygen-derived candidates, Summary return, confirm, gift message, and 2x3 Party menu gift visibility on `integration/runtime-dev-20260529`. Historical branch validation also covered scroll and 6-pick `Script 2`. |
 
 ## Current Decision
 

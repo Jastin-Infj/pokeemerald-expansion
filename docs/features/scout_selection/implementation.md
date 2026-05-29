@@ -4,12 +4,19 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-20 |
-| Baseline | `master` `e927b612b3`; implementation branch `feature/scout-selection-runtime-20260520` |
-| Code status | Runtime MVP implemented on feature branch |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Code status | Runtime MVP adopted into integration branch; not present in `master` source |
 | Provenance | Local implementation and validation |
 
 ## Summary
+
+2026-05-29 integration note: Scout Selection has been adopted into
+`integration/runtime-dev-20260529` after #47 Battle Item Restore, #48 Held Item
+Catalog, and #54 Party / Status UI. The source shelf remains
+`feature/scout-selection-runtime-20260520` / PR #51. The integration route was
+validated through debug menu open, Summary return, one-pick confirm, gift
+message, and the new 2x3 Party menu showing the gifted Metang.
 
 Scout Selection is implemented as a new runtime module instead of extending
 `starter_choose.c`. The MVP is a script-driven 12-candidate Pokemon selection
@@ -100,6 +107,40 @@ same party / PC result values used by scripted gift Pokemon.
   script-owned / future work.
 
 ## Validation
+
+2026-05-29 integration validation on `integration/runtime-dev-20260529`
+(`master` baseline `4e48ff993f`):
+
+- `rtk make generated`: passed and generated ignored
+  `src/data/scout_selection_pools.h` from `hoenn_demo.json` and
+  `elite_four.json`.
+- `rtk git diff --cached --check`: passed.
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O check`: passed with the existing RWX linker warning and
+  expected existing test markers.
+- mGBA Live CLI session `integration-scout-selection-smoke`:
+  - booted `pokeemerald.gba`, used Continue, and reached the field;
+  - opened `Debug Menu > Scripts... > Scout Selection`;
+  - confirmed the Scout screen rendered the partygen-derived 12-candidate pool
+    with visible Metang / Skarmory / Aggron / Mightyena / Wobbuffet / Geodude
+    icons;
+  - opened Summary for Metang with `SELECT` and returned with `B`;
+  - selected Metang, confirmed with `START`, and saw
+    `Scout Pokemon received.`;
+  - opened the Start menu and the 2x3 Party menu, confirming Metang Lv.50 was
+    visible in slot 2 after the gift;
+  - screenshots:
+    `/tmp/integration-scout-selection-open.png`,
+    `/tmp/integration-scout-selection-summary.png`,
+    `/tmp/integration-scout-selection-summary-return.png`,
+    `/tmp/integration-scout-selection-selected.png`,
+    `/tmp/integration-scout-selection-confirm.png`,
+    `/tmp/integration-scout-selection-party-after-gift.png`;
+  - `mgba-live-cli stop` returned `stopped: true`;
+  - `mgba-live-cli status --all` returned `[]`.
+
+Historical source-shelf validation:
 
 | Date | Check | Result | Notes |
 |---|---|---|---|
