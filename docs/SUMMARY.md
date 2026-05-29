@@ -138,6 +138,8 @@
       - [Test Plan](features/map_asset_relinker/test_plan.md)
     - [Party / Status UI Overhaul](features/party_status_ui_overhaul/README.md)
       - [External References](features/party_status_ui_overhaul/external_references.md)
+      - [Implementation](features/party_status_ui_overhaul/implementation.md)
+      - [Test Plan](features/party_status_ui_overhaul/test_plan.md)
     - [Champions Partygen Impact And Next Steps](features/champions_challenge/partygen_impact_and_next_steps.md)
     - [Champions Partygen Validation Report](features/champions_challenge/partygen_validation_report.md)
     - [Champions Partygen Lint Spec](features/champions_challenge/partygen_lint_spec.md)
