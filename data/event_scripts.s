@@ -54,6 +54,7 @@
 #include "constants/pokedex.h"
 #include "constants/pokemon.h"
 #include "constants/pokemon_size_record.h"
+#include "constants/pokemon_vendor.h"
 #include "constants/random_mon_generation.h"
 #include "constants/rtc.h"
 #include "constants/roulette.h"
@@ -1513,6 +1514,14 @@ gText_PlayerFoundOneTMHM::
 gText_PlayerFoundTMHMs::
 	.string "{PLAYER} found {STR_VAR_3} {STR_VAR_1}\n"
 	.string "{STR_VAR_2}!$"
+
+PokemonVendor_Text_BondExpGained::
+	.string "Sealed bond EXP increased\n"
+	.string "by {STR_VAR_1}.$"
+
+PokemonVendor_Text_RecruitsUnlocked::
+	.string "{STR_VAR_1} sealed recruit(s)\n"
+	.string "were unlocked.$"
 
 gText_Sudowoodo_Attacked::
 	.string "The weird tree doesn't like the\n"

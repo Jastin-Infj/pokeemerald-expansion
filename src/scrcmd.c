@@ -43,6 +43,7 @@
 #include "party_menu.h"
 #include "pokedex.h"
 #include "pokemon_storage_system.h"
+#include "pokemon_vendor.h"
 #include "random.h"
 #include "overworld.h"
 #include "rotating_tile_puzzle.h"
@@ -2584,6 +2585,17 @@ bool8 ScrCmd_pokemartdecoration2(struct ScriptContext *ctx)
     Script_RequestEffects(SCREFF_V1 | SCREFF_HARDWARE);
 
     CreateDecorationShop2Menu(ptr);
+    ScriptContext_Stop();
+    return TRUE;
+}
+
+bool8 ScrCmd_pokemonvendor(struct ScriptContext *ctx)
+{
+    const void *ptr = (void *)ScriptReadWord(ctx);
+
+    Script_RequestEffects(SCREFF_V1 | SCREFF_HARDWARE | SCREFF_SAVE);
+
+    CreatePokemonVendorMenu(ptr);
     ScriptContext_Stop();
     return TRUE;
 }

@@ -2878,6 +2878,13 @@ BattleScript_LocalBattleWonReward::
 	getmoneyreward
 	printstring STRINGID_PLAYERGOTMONEY
 	waitmessage B_WAIT_TIME_LONG
+	callnative BS_PokemonVendorAwardQueuedBattleBondExp
+	jumpifbyte CMP_EQUAL, gBattleCommunication, 0, BattleScript_PayDayMoneyAndPickUpItems
+	printstring STRINGID_POKEMONVENDORBONDEXPGAINED
+	waitmessage B_WAIT_TIME_LONG
+	jumpifbyte CMP_EQUAL, gBattleCommunication + 1, 0, BattleScript_PayDayMoneyAndPickUpItems
+	printstring STRINGID_POKEMONVENDORRECRUITSUNLOCKED
+	waitmessage B_WAIT_TIME_LONG
 BattleScript_PayDayMoneyAndPickUpItems::
 	givepaydaymoney
 	pickup

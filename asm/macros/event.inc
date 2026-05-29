@@ -1313,6 +1313,69 @@
 	.4byte \products
 	.endm
 
+	@ Opens the Pokemon Vendor system, offering a list of PokemonVendorProduct records.
+	@ Product lists should be preceded by an .align 2 and terminated with pokemonvendorlistend.
+	.macro pokemonvendor products:req
+	.byte SCR_OP_POKEMONVENDOR
+	.4byte \products
+	.endm
+
+	.macro pokemonvendorproduct productId:req, species:req, level:req, price:req, kind:req, purchaseMode:req, oneTimeFlag=POKEMON_VENDOR_NO_FLAG, unlockFlag=POKEMON_VENDOR_NO_FLAG, heldItem=ITEM_NONE, ball=1, bondThreshold=POKEMON_VENDOR_DEFAULT_BOND_THRESHOLD, bondYield=0, editPolicy=POKEMON_VENDOR_EDIT_NORMAL, revealPolicy=POKEMON_VENDOR_REVEAL_SPECIES, ivs=USE_RANDOM_IVS, move1=MOVE_NONE, move2=MOVE_NONE, move3=MOVE_NONE, move4=MOVE_NONE, randomSpecies1=SPECIES_NONE, randomSpecies2=SPECIES_NONE, randomSpecies3=SPECIES_NONE, randomSpecies4=SPECIES_NONE
+	.2byte \productId
+	.2byte \species
+	.4byte \price
+	.2byte \oneTimeFlag
+	.2byte \unlockFlag
+	.2byte \heldItem
+	.2byte \ball
+	.2byte \bondThreshold
+	.2byte \bondYield
+	.2byte \move1, \move2, \move3, \move4
+	.byte \level
+	.byte \kind
+	.byte \purchaseMode
+	.byte \editPolicy
+	.byte \revealPolicy
+	.byte \ivs
+	.2byte \randomSpecies1, \randomSpecies2, \randomSpecies3, \randomSpecies4
+	.endm
+
+	.macro pokemonvendorlistend
+	.2byte POKEMON_VENDOR_NO_PRODUCT_ID
+	.2byte SPECIES_NONE
+	.4byte 0
+	.2byte 0, 0, 0, 0, 0, 0
+	.2byte 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0
+	.2byte 0, 0, 0, 0
+	release
+	end
+	.endm
+
+	@ Adds vendor bond EXP to locked sealed recruits in party.
+	@ VAR_RESULT receives the number of recruits unlocked.
+	@ VAR_0x8005 receives the number of locked recruits that gained progress.
+	.macro pokemonvendorawardbond amount:req, showMessage=TRUE
+	setvar VAR_0x8004, \amount
+	special PokemonVendor_AddBondExpToParty
+	.if \showMessage
+	goto_if_eq VAR_0x8005, 0, 1f
+	buffernumberstring STR_VAR_1, VAR_0x8004
+	msgbox PokemonVendor_Text_BondExpGained, MSGBOX_DEFAULT
+	goto_if_eq VAR_RESULT, 0, 1f
+	buffernumberstring STR_VAR_1, VAR_RESULT
+	msgbox PokemonVendor_Text_RecruitsUnlocked, MSGBOX_DEFAULT
+1:
+	.endif
+	.endm
+
+	@ Queues vendor bond EXP so a trainer battle can award and print it from
+	@ the battle victory script instead of after returning to the field.
+	.macro pokemonvendorqueuebattlebond amount:req
+	setvar VAR_0x8004, \amount
+	special PokemonVendor_SetBattleBondExpReward
+	.endm
+
 	@ Starts up the slot machine minigame. id is a SLOT_MACHINE_* value that influences probabilities of certain reel outcomes.
 	.macro playslotmachine id:req
 	.byte SCR_OP_PLAYSLOTMACHINE

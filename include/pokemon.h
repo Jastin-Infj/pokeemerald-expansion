@@ -125,6 +125,8 @@ enum MonData {
     MON_DATA_GIGANTAMAX_FACTOR,
     MON_DATA_TERA_TYPE,
     MON_DATA_EVOLUTION_TRACKER,
+    MON_DATA_VENDOR_SEALED_ORIGIN,
+    MON_DATA_VENDOR_SEALED_CONCEALED,
 };
 
 struct PokemonSubstruct0
@@ -265,7 +267,7 @@ struct BoxPokemon
     u8 isEgg:1;
     u8 blockBoxRS:1; // Unused, but Pokémon Box Ruby & Sapphire will refuse to deposit a Pokémon with this flag set.
     u8 daysSinceFormChange:3; // 7 days.
-    u8 unused_13:1;
+    u8 vendorSealedConcealed:1;
     u8 otName[PLAYER_NAME_LENGTH];
     u8 markings:4;
     u8 compressedStatus:4;
@@ -852,6 +854,8 @@ u8 GetNature(struct Pokemon *mon);
 u8 GetNatureFromPersonality(u32 personality);
 enum Species GetGMaxTargetSpecies(enum Species species);
 bool32 DoesMonMeetAdditionalConditions(struct Pokemon *mon, const struct EvolutionParam *params, struct Pokemon *tradePartner, u32 partyId, bool32 *canStopEvo, enum EvoState evoState);
+bool32 AreRuntimeEvolutionsDisabled(void);
+bool32 CanPokemonEvolveInThisRuntime(struct Pokemon *mon);
 enum Species GetEvolutionTargetSpecies(struct Pokemon *mon, enum EvolutionMode mode, u16 evolutionItem, struct Pokemon *tradePartner, bool32 *canStopEvo, enum EvoState evoState);
 bool8 IsMonPastEvolutionLevel(struct Pokemon *mon);
 enum Species NationalPokedexNumToSpecies(enum NationalDexOrder nationalNum);

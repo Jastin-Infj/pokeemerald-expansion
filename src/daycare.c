@@ -5,6 +5,7 @@
 #include "string_util.h"
 #include "caps.h"
 #include "mail.h"
+#include "pokemon_vendor.h"
 #include "pokemon_storage_system.h"
 #include "event_data.h"
 #include "random.h"
@@ -1187,12 +1188,16 @@ static bool8 TryProduceOrHatchEgg(struct DayCare *daycare)
 
         for (i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
         {
-            if (!GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_IS_EGG))
+            struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][i];
+
+            if (!GetMonData(mon, MON_DATA_IS_EGG))
                 continue;
-            if (GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SANITY_IS_BAD_EGG))
+            if (PokemonVendor_IsLockedSealedRecruit(mon))
+                continue;
+            if (GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG))
                 continue;
 
-            eggCycles = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_FRIENDSHIP);
+            eggCycles = GetMonData(mon, MON_DATA_FRIENDSHIP);
             if (eggCycles != 0)
             {
                 if (eggCycles >= toSub)
@@ -1200,7 +1205,7 @@ static bool8 TryProduceOrHatchEgg(struct DayCare *daycare)
                 else
                     eggCycles -= 1;
 
-                SetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_FRIENDSHIP, &eggCycles);
+                SetMonData(mon, MON_DATA_FRIENDSHIP, &eggCycles);
             }
             else
             {

@@ -116,6 +116,7 @@
     - [Friendly Shop Pokemon Vendor](features/friendly_shop_pokemon_vendor/README.md)
       - [Investigation](features/friendly_shop_pokemon_vendor/investigation.md)
       - [Implementation](features/friendly_shop_pokemon_vendor/implementation.md)
+      - [Handoff](features/friendly_shop_pokemon_vendor/handoff.md)
       - [MVP Plan](features/friendly_shop_pokemon_vendor/mvp_plan.md)
       - [Risks](features/friendly_shop_pokemon_vendor/risks.md)
       - [Test Plan](features/friendly_shop_pokemon_vendor/test_plan.md)

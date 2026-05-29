@@ -89,6 +89,14 @@
 | 2026-05-23 | mGBA Live vendor selected-product icon route | Pass | Opened debug `Scripts... -> Script 1` and confirmed Pikachu shows Pikachu icon, Dragonite shows Dragonite icon, concealed `?????` shows the generic Egg icon, and Cancel clears the sprite without stale art. Screenshots: `/tmp/pokemon-vendor-icon-pikachu-20260523.png`, `/tmp/pokemon-vendor-icon-dragonite-20260523.png`, `/tmp/pokemon-vendor-icon-mystery-20260523.png`, `/tmp/pokemon-vendor-icon-cancel-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-23 | Vendor long-list build pass | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed after keeping the normal shop font / row spacing, adding scroll arrows, and expanding debug `Script 1` to 10 products. Existing RWX linker warning, expected test markers, and existing mdbook warnings only. |
 | 2026-05-23 | mGBA Live vendor long-list route | Pass | Opened debug `Scripts... -> Script 1`, confirmed the normal-size four-row list with a visible down arrow, scrolled to later products and Cancel, and confirmed up / down arrow visibility, detail icon / price updates, and Cancel icon clearing. Screenshots: `/tmp/pokemon-vendor-arrow-list-open-20260523.png`, `/tmp/pokemon-vendor-arrow-list-scrolled-20260523.png`, `/tmp/pokemon-vendor-arrow-list-cancel-20260523.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-29 | Runtime integration conflict pass | Pass | #57 was re-applied onto `integration/runtime-dev-20260529` after #47/#48/#54/#51. Debug route ownership is now `Script 1` vendor, `Script 2` Scout Selection pick-6, and `Script 3` vendor queued trainer reward. |
+| 2026-05-29 | `rtk git diff --check` / `rtk git diff --cached --check` | Pass | No whitespace issues after the debug route merge. |
+| 2026-05-29 | `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` | Pass | Focused vendor runtime tests pass on the integration stack. |
+| 2026-05-29 | `rtk make -j16 -O all` | Pass | Existing RWX linker warning only. |
+| 2026-05-29 | `rtk make -j16 -O debug` | Pass | Existing RWX linker warning only. |
+| 2026-05-29 | `rtk make -j16 -O check TESTS=test/random.c` | Pass | Focused random test file passed after full-suite timing failures. |
+| 2026-05-29 | `rtk make -j16 -O check` | Not clean | Full hydra suite failed only the timing-sensitive `test/random.c` RandomUniform faster-than-mod benchmark pair. Vendor tests passed in the same run, and focused `test/random.c` passed immediately after. Treat as non-feature validation risk unless it reproduces outside the full parallel suite. |
+| 2026-05-29 | mGBA Live vendor smoke | Pass | Booted, continued local save, opened `Debug Menu > Scripts... > Script 1`, confirmed vendor list / detail icon pane, purchase prompt, and Pikachu purchase success. Screenshots: `/tmp/integration-pokemon-vendor-open.png`, `/tmp/integration-pokemon-vendor-buy-prompt.png`, `/tmp/integration-pokemon-vendor-after-buy.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 
 ## Feature Complete Gate
 
@@ -105,6 +113,9 @@
   messages, and trainer setup scripts can queue tuned battle-win rewards.
 - Debug `Script 3` validates the normal-trainer battle-win reward route with
   `pokemonvendorqueuebattlebond 20`.
+- In the runtime integration branch, debug `Script 2` belongs to Scout
+  Selection pick-6. Use `Script 3` or a temporary local script for vendor bond
+  award checks.
 - Mystery sealed products can be purchased while species-hidden and can resolve
   to a random configured species at purchase time.
 - Sealed products can fall back to PC when the party is full and storage has
