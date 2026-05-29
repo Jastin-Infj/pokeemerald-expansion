@@ -1,7 +1,9 @@
 #include "global.h"
 #include "battle.h"
 #include "event_data.h"
+#include "item.h"
 #include "item_menu.h"
+#include "mail.h"
 #include "pokemon.h"
 #include "test/overworld_script.h"
 #include "test/test.h"
@@ -162,4 +164,85 @@ TEST("Items are correctly sorted and compacted in the bag")
     EXPECT_EQ(pocket->itemSlots[4].itemId, ITEM_NONE);
     EXPECT_EQ(pocket->itemSlots[5].itemId, ITEM_NONE);
     EXPECT_EQ(pocket->itemSlots[6].itemId, ITEM_NONE);
+}
+
+TEST("Held item catalog assignment keeps one non-mail Bag copy when giving")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+    AddBagItem(ITEM_LEFTOVERS, 1);
+
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_LEFTOVERS));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog ownership stores only one non-mail Bag token")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+
+    EXPECT(AddBagItem(ITEM_LEFTOVERS, 1));
+    EXPECT(AddBagItem(ITEM_LEFTOVERS, 99));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog ownership normalizes existing duplicate Bag tokens")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+    BagPocket_SetSlotItemIdAndCount(&gBagPockets[POCKET_ITEMS], 0, ITEM_LEFTOVERS, 5);
+
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_LEFTOVERS));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog ownership leaves ordinary consumables physical")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+    ASSUME(GetItemHoldEffect(ITEM_POTION) == HOLD_EFFECT_NONE);
+
+    ClearBag();
+
+    EXPECT(AddBagItem(ITEM_POTION, 3));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), 3);
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_POTION));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), 2);
+}
+
+TEST("Held item catalog assignment does not create another Bag copy when taking")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+    AddBagItem(ITEM_LEFTOVERS, 1);
+
+    EXPECT(ReturnHeldItemToBag(ITEM_LEFTOVERS));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog assignment preserves first obtained held item copy")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+
+    ClearBag();
+
+    EXPECT(ReturnHeldItemToBag(ITEM_LEFTOVERS));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_LEFTOVERS), 1);
+}
+
+TEST("Held item catalog assignment keeps Mail physical")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+    ASSUME(ItemIsMail(ITEM_ORANGE_MAIL));
+
+    ClearBag();
+    AddBagItem(ITEM_ORANGE_MAIL, 1);
+
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_ORANGE_MAIL));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_ORANGE_MAIL), 0);
+    EXPECT(ReturnHeldItemToBag(ITEM_ORANGE_MAIL));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_ORANGE_MAIL), 1);
 }

@@ -3141,7 +3141,7 @@ static void Task_ItemToBag(u8 taskId)
     switch (sStorage->state)
     {
     case 0:
-        if (!AddBagItem(sStorage->displayMonItemId, 1))
+        if (!ReturnHeldItemToBag(sStorage->displayMonItemId))
         {
             PlaySE(SE_FAILURE);
             PrintMessage(MSG_BAG_FULL);
@@ -3290,7 +3290,7 @@ static void Task_CloseBoxWhileHoldingItem(u8 taskId)
             SetPokeStorageTask(Task_PokeStorageMain);
             break;
         case 0:// Yes
-            if (AddBagItem(sStorage->movingItemId, 1) == TRUE)
+            if (ReturnHeldItemToBag(sStorage->movingItemId) == TRUE)
             {
                 ClearBottomWindow();
                 sStorage->state = 3;
@@ -3811,7 +3811,7 @@ static void GiveChosenBagItem(void)
             SetMonFormPSS_ItemHold(&gPokemonStoragePtr->boxes[StorageGetCurrentBox()][pos]);
         }
 
-        RemoveBagItem(itemId, 1);
+        RemoveBagItemForHeldItemAssignment(itemId);
     }
 }
 
@@ -6545,7 +6545,7 @@ static void ReleaseMon(void)
 
         PurgeMonOrBoxMon(boxId, sCursorPosition);
         if (item != ITEM_NONE)
-            AddBagItem(item, 1);
+            ReturnHeldItemToBag(item);
     }
     TryRefreshDisplayMon();
 }

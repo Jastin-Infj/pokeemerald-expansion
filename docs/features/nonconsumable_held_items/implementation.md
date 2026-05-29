@@ -4,15 +4,16 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-19 |
-| Baseline | `master` `25731e81a0`; implementation branch `feature/held-item-catalog-current-master-20260519` |
-| Code status | Implemented and locally validated on feature branch; not present in `master` source |
-| Provenance | Runtime feature handoff |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Code status | Adopted into runtime integration branch; not present in `master` source |
+| Provenance | Runtime feature handoff plus integration adoption |
 
 ## Status
 
-Status: Implemented on `feature/held-item-catalog-current-master-20260519`;
-not present in `master` source. Current runtime PR: #48.
+Status: Adopted into `integration/runtime-dev-20260529` as of 2026-05-29.
+`master` remains docs / Lua-only, so this runtime source is intentionally not
+present in `master` source. Source shelf PR: #48.
 User-confirmed on 2026-05-19 after checking the Bag token marker behavior.
 
 This branch implements the catalog / unique ownership token assignment slice.
@@ -66,6 +67,34 @@ When the catalog policy applies:
 
 ## Validation
 
+2026-05-29 integration adoption on `integration/runtime-dev-20260529`
+(`master` baseline `4e48ff993f`):
+
+- `rtk make -j16 -O check TESTS=test/bag.c`: passed with the existing RWX
+  linker warning.
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning.
+- `rtk mdbook build docs`: passed with existing warnings: missing root
+  `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, and large
+  search index.
+- mGBA Live CLI smoke:
+  - session `integration-held-item-catalog-smoke`;
+  - booted `pokeemerald.gba` through `mgba-qt` with `DISPLAY=:0`;
+  - captured `/tmp/integration-held-item-catalog-smoke.png`;
+  - accepted `START` input;
+  - captured `/tmp/integration-held-item-catalog-after-start.png`;
+  - `mgba-live-cli stop` returned `stopped: true`;
+  - `mgba-live-cli status --all` returned `[]`.
+
+The integration branch already contains #47 Battle Item Restore, so this #48
+adoption was checked as the second item-policy layer. No direct source conflict
+with #47 was found; the likely next conflict surface is #54 Party / Status UI
+because both #48 and #54 touch `src/party_menu.c`. The #48 integration pass
+did not re-run the older Bag token marker UI route; re-check the visible marker
+after the party UI baseline lands.
+
+Historical feature-branch validation:
+
 Confirmed on 2026-05-19:
 
 ```sh
@@ -106,9 +135,10 @@ quantity policy.
 
 ## Merge Handoff
 
-This branch contains runtime source changes. Do not merge it into `master` under
-the docs-only master policy. Use a runtime PR as a staging shelf, then create a
-docs-only handoff separately if the feature is user-confirmed.
+This implementation contains runtime source changes. Do not merge it into
+`master` under the docs-only master policy. Keep it on
+`integration/runtime-dev-20260529` or another runtime branch, and use a
+separate docs-only handoff if `master` needs documentation updates.
 
 Current runtime PR: #48
 `feature/held-item-catalog-current-master-20260519` -> `master`.
