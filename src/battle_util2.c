@@ -2,6 +2,7 @@
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_controllers.h"
+#include "battle_util.h"
 #include "malloc.h"
 #include "pokemon.h"
 #include "trainer_hill.h"
@@ -189,7 +190,7 @@ u32 BattlePalace_TryEscapeStatus(enum BattlerId battler)
                 {
                     u32 toSub;
 
-                    if (GetBattlerAbility(battler) == ABILITY_EARLY_BIRD)
+                    if (BattlerHasAbility(battler, ABILITY_EARLY_BIRD))
                         toSub = 2;
                     else
                         toSub = 1;

@@ -321,6 +321,7 @@ static void PartyMenuDisplayYesNoMenu(void);
 static void Task_HandleCancelChooseMonYesNoInput(u8);
 static void Task_ReturnToChooseMonAfterText(u8);
 static void UpdateCurrentPartySelection(s8 *, s8);
+static void UpdatePartySelectionSingleLayout(s8 *, s8);
 static void UpdatePartySelectionDoubleLayout(s8 *, s8);
 static void UpdatePartySelectionGridLayout(s8 *, s8);
 static s8 GetNewSlotDoubleLayout(s8, s8);
@@ -5378,7 +5379,8 @@ void Task_AbilityCapsule(u8 taskId)
     {
     case 0:
         // Can't use.
-        if (GetSpeciesAbility(tSpecies, 0) == GetSpeciesAbility(tSpecies, 1)
+        if (GetConfig(B_ALL_ABILITY_SLOTS)
+            || GetSpeciesAbility(tSpecies, 0) == GetSpeciesAbility(tSpecies, 1)
             || GetSpeciesAbility(tSpecies, 1) == 0
             || tAbilityNum > 1
             || !tSpecies)
@@ -5464,7 +5466,8 @@ void Task_AbilityPatch(u8 taskId)
     {
     case 0:
         // Can't use.
-        if (GetSpeciesAbility(tSpecies, tAbilityNum) == 0
+        if (GetConfig(B_ALL_ABILITY_SLOTS)
+            || GetSpeciesAbility(tSpecies, tAbilityNum) == 0
             || !tSpecies
             )
         {

@@ -4,20 +4,20 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-24 |
-| Branch | `feature/all-ability-slots-runtime-20260523` |
-| Baseline | `master` `0407f6daf7` |
-| Code status | Runtime implementation validated locally |
+| Last reviewed | 2026-05-29 |
+| Branch | `feature/all-ability-slots-runtime-20260523`; adopted into `integration/runtime-dev-20260529` |
+| Baseline | `master` `4e48ff993f` |
+| Code status | Runtime implementation adopted into integration; source remains off `master` |
 | Provenance | Local project overlay |
 
 ## Dependency / Merge Notes
 
-There is no known runtime blocker left for this branch after the 2026-05-24
-ability audit. The remaining risk is merge ordering with other staged feature
-branches, not an unmet all-ability requirement.
+There is no known runtime blocker left for this branch after the 2026-05-29
+integration pass. #47, #48, #54, #51, and #57 were adopted first on
+`integration/runtime-dev-20260529`, then #60 was applied and revalidated.
 
-Open PR file-level conflicts rechecked on 2026-05-24 after PR #60 commit
-`21deeb594a`:
+Original open PR file-level conflicts rechecked on 2026-05-24 after PR #60
+commit `21deeb594a`, then resolved during the 2026-05-29 integration pass:
 
 - #47 battle item restore overlaps `include/config/battle.h`,
   `src/battle_main.c`, and `src/battle_util.c`.
@@ -29,18 +29,20 @@ Open PR file-level conflicts rechecked on 2026-05-24 after PR #60 commit
   `include/pokemon.h`, `src/party_menu.c`, `src/pokemon.c`,
   `src/pokemon_summary_screen.c`, and `test/pokemon.c`.
 
-The safest integration path is to keep this branch as the implementation
-candidate, then create a separate docs-only branch from current `master` for
-master-facing status / handoff. Do not merge this implementation branch into
-`master` while the project policy keeps master docs-only.
+Do not merge this implementation branch into `master` while the project policy
+keeps master docs / Lua-only. Use the integration branch for source staging and
+a separate docs-only branch from current `master` for master-facing status /
+handoff.
 
 ## Implementation Summary
 
 This branch adds a guarded battle runtime mode behind `B_ALL_ABILITY_SLOTS`.
-The implementation branch currently sets the config to `TRUE`, so the feature
-PR build uses all ability slots by default. The focused tests still include a
-`B_ALL_ABILITY_SLOTS FALSE` regression to prove upstream single-ability
-behavior can be restored by config.
+The implementation shelf used `TRUE` for broad feature validation, but
+`integration/runtime-dev-20260529` defaults the config to `FALSE` so normal ROM
+behavior and full `check` stay single-ability until the mode is explicitly
+enabled. The focused tests still force `TRUE`, and include a
+`B_ALL_ABILITY_SLOTS FALSE` regression to prove upstream single-ability behavior
+can be restored by config.
 
 A debug-menu override exists only for validation: `Party` -> `All Ability...`
 contains one direct trainer-battle entry per Pattern A-T. Each entry forces
@@ -639,6 +641,42 @@ Builds pass with the existing linker warning:
 
 mGBA Live boot validation, debug-route validation, and docs build are recorded in
 [Test Plan](test_plan.md).
+
+## Runtime Integration Adoption 2026-05-29
+
+#60 was adopted into `integration/runtime-dev-20260529` after the item / party /
+Scout / Vendor stack was already present. The cherry-pick applied cleanly, with
+the integration branch preserving the existing debug command assignments:
+Pokemon Vendor on `Script 1`, Scout pick-6 on `Script 2`, and vendor trainer
+reward on `Script 3`. All Ability validation remains under
+`Party` -> `All Ability...`.
+
+One integration-specific policy change was made after validation: the feature
+branch defaulted `B_ALL_ABILITY_SLOTS` to `TRUE`, but the integration branch
+defaults it to `FALSE`. The generated config maximum in
+`include/constants/generational_changes.h` stays `TRUE`, because that value is
+used for bit-field width / clamping rather than the runtime default. This keeps
+the normal ROM and full upstream-style test suite on single-ability behavior
+while retaining the opt-in config and debug override.
+
+Integration validation passed:
+
+- `rtk git diff --check`
+- `rtk git diff --cached --check`
+- `rtk make -j16 -O check TESTS='All Ability Slots'`
+- `rtk make -j16 -O check TESTS='AI thinking time'`
+- `rtk make -j16 -O check TESTS='Battle item restore'`
+- `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`
+- `rtk make -j16 -O all`
+- `rtk make -j16 -O debug`
+- `rtk make -j16 -O check`
+- mGBA Live `integration-all-ability-optin-smoke`: with the default-`FALSE`
+  integration build, `Party` -> `All Ability...` -> `A Recoil Battle` still
+  forced the all-slot mode; Clefable used `Double-Edge` and stayed at
+  `317/317`, proving non-representative `Magic Guard` was active.
+
+The mGBA session stopped cleanly, and `mgba-live-cli status --all` returned
+`[]`.
 
 ## Remaining Risks
 

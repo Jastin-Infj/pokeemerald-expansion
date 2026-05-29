@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-23 |
-| Baseline | `master` `de310ef9eb`; upstream `expansion/1.15.2-96-gde310ef9eb` |
-| Code status | Docs-only MVP plan |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f` |
+| Code status | MVP implemented on source shelf #60 and adopted into `integration/runtime-dev-20260529` |
 | Provenance | Local project overlay |
 
 ## MVP
@@ -38,7 +38,7 @@ The first runtime branch should prove the rule without changing save layout:
 
 | Step | Files | Notes |
 |---|---|---|
-| 1 | `include/config/battle.h` or local runtime rule owner | Add a default-off guard such as `B_ALL_ABILITY_SLOTS_ACTIVE`. A runtime option can wrap this later. |
+| 1 | `include/config/battle.h` or local runtime rule owner | Add a guarded config such as `B_ALL_ABILITY_SLOTS_ACTIVE`. A runtime option can wrap this later, and the implementation branch can choose whether the feature PR build defaults on or off. |
 | 2 | `include/pokemon.h`, `src/pokemon.c`, `include/battle_util.h`, `src/battle_util.c` | Add small ability-set structs and helpers. Use direct `GetSpeciesAbility()` slots, skip `ABILITY_NONE`, dedupe, preserve order. |
 | 3 | `src/battle_util.c` | Add `BattlerHasAbility`, `IsAbilityOnField` set-aware variants, and a per-ability suppression / Mold Breaker check. Keep `GetBattlerAbility()` as a primary compatibility function. |
 | 4 | `src/battle_script_commands.c`, `data/battle_scripts_1.s` | Convert `jumpifability` to set-aware behavior and implement slot-local copy / swap / overwrite commands behind the guard. |
@@ -120,6 +120,15 @@ Deferred UI:
 - Better AI scoring for three-ability combinations.
 - Ability Capsule / Patch redesign.
 - Multi-ability popup grouping if sequential popups become too noisy.
+
+## Integration Note 2026-05-29
+
+The runtime integration branch adopted the MVP source after #47 / #48 / #54 /
+#51 / #57. Unlike the feature shelf's final `TRUE` build, integration defaults
+`B_ALL_ABILITY_SLOTS` to `FALSE` so normal ROM and full `check` behavior remain
+single-ability until a later Champions facility or config explicitly enables the
+mode. The focused All Ability tests still force `TRUE`, and the debug menu
+`Party` -> `All Ability...` routes force the mode for manual validation.
 
 ## Open Questions
 

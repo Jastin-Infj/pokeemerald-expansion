@@ -10,6 +10,7 @@
 #include "item.h"
 #include "palette.h"
 #include "pokemon.h"
+#include "battle_util.h"
 #include "safari_zone.h"
 #include "sprite.h"
 #include "util.h"
@@ -134,10 +135,14 @@ bool32 IsTypeStellarBoosted(enum BattlerId battler, enum Type type)
 uq4_12_t GetTeraMultiplier(struct DamageContext *ctx)
 {
     enum Type teraType = GetBattlerTeraType(ctx->battlerAtk);
+    bool32 hasAdaptability;
 
     // Safety check.
     if (GetActiveGimmick(ctx->battlerAtk) != GIMMICK_TERA)
         return UQ_4_12(1.0);
+
+    hasAdaptability = ctx->abilities[ctx->battlerAtk] == ABILITY_ADAPTABILITY
+                   || (gAllAbilitySlotsBattle && BattlerHasAbility(ctx->battlerAtk, ABILITY_ADAPTABILITY));
 
     // Stellar-type checks.
     if (teraType == TYPE_STELLAR)
@@ -158,7 +163,7 @@ uq4_12_t GetTeraMultiplier(struct DamageContext *ctx)
     // Base and Tera type.
     if (ctx->moveType == teraType && IS_BATTLER_OF_BASE_TYPE(ctx->battlerAtk, ctx->moveType))
     {
-        if (ctx->abilities[ctx->battlerAtk] == ABILITY_ADAPTABILITY)
+        if (hasAdaptability)
             return UQ_4_12(2.25);
         else
             return UQ_4_12(2.0);
@@ -166,7 +171,7 @@ uq4_12_t GetTeraMultiplier(struct DamageContext *ctx)
     // Tera type only (Adaptability applies).
     else if (ctx->moveType == teraType && !IS_BATTLER_OF_BASE_TYPE(ctx->battlerAtk, ctx->moveType))
     {
-        if (ctx->abilities[ctx->battlerAtk] == ABILITY_ADAPTABILITY)
+        if (hasAdaptability)
             return UQ_4_12(2.0);
         else
             return UQ_4_12(1.5);

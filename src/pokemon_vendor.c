@@ -749,14 +749,14 @@ static bool32 PokemonVendorTryDeliverProduct(const struct PokemonVendorProduct *
 
     if (product->kind == POKEMON_VENDOR_PRODUCT_SEALED)
     {
-        if (gPlayerPartyCount >= PARTY_SIZE)
+        if (gPartiesCount[B_TRAINER_PLAYER] >= PARTY_SIZE)
         {
             result = CopyMonToPC(&mon);
         }
         else
         {
-            CopyMon(&gPlayerParty[gPlayerPartyCount], &mon, sizeof(mon));
-            gPlayerPartyCount++;
+            CopyMon(&gParties[B_TRAINER_PLAYER][gPartiesCount[B_TRAINER_PLAYER]], &mon, sizeof(mon));
+            gPartiesCount[B_TRAINER_PLAYER]++;
             result = MON_GIVEN_TO_PARTY;
         }
 
@@ -1025,12 +1025,12 @@ static void PokemonVendorAddBondExpToPartyInternal(u8 amount, u16 *affectedCount
     *affectedCount = 0;
     *unlockedCount = 0;
 
-    for (i = 0; i < gPlayerPartyCount; i++)
+    for (i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
     {
-        if (PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[i]))
+        if (PokemonVendor_IsLockedSealedRecruit(&gParties[B_TRAINER_PLAYER][i]))
         {
             (*affectedCount)++;
-            if (PokemonVendor_AddBondExp(&gPlayerParty[i], amount))
+            if (PokemonVendor_AddBondExp(&gParties[B_TRAINER_PLAYER][i], amount))
                 (*unlockedCount)++;
         }
     }
@@ -1055,12 +1055,12 @@ void PokemonVendor_IsSelectedMonSealedOrigin(void)
 {
     gSpecialVar_Result = FALSE;
     if (gSpecialVar_0x8004 < PARTY_SIZE)
-        gSpecialVar_Result = PokemonVendor_IsSealedOriginMon(&gPlayerParty[gSpecialVar_0x8004]);
+        gSpecialVar_Result = PokemonVendor_IsSealedOriginMon(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004]);
 }
 
 void PokemonVendor_IsSelectedMonLockedSealed(void)
 {
     gSpecialVar_Result = FALSE;
     if (gSpecialVar_0x8004 < PARTY_SIZE)
-        gSpecialVar_Result = PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[gSpecialVar_0x8004]);
+        gSpecialVar_Result = PokemonVendor_IsLockedSealedRecruit(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004]);
 }

@@ -66,3 +66,826 @@ EVs: 252 Atk / 252 SpA / 6 SpD
 - Protect
 - Solar Beam
 - Dragon Claw
+
+=== DEBUG_TRAINER_ALL_ABILITY_A_PLAYER ===
+Name: A-Recoil
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+RecoilA (Clefable)
+Calm Nature
+Level: 80
+Ability: Cute Charm
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Double-Edge
+- Moonblast
+- Thunder Wave
+- Soft-Boiled
+
+=== DEBUG_TRAINER_ALL_ABILITY_A_AI ===
+Name: A-Audit
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+Blissey
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_B_PLAYER ===
+Name: B-Flare
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+FlareB (Arcanine)
+Timid Nature
+Level: 80
+Ability: Intimidate
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 SpA
+- Flamethrower
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_B_AI ===
+Name: B-Flash
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+FlashB (Houndoom)
+Calm Nature
+Level: 80
+Ability: Early Bird
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpD / 6 Spe
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_C_PLAYER ===
+Name: C-Voice
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+VoiceC (Exploud)
+Modest Nature
+Level: 80
+Ability: Scrappy
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 SpA
+- Hyper Voice
+- Boomburst
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_C_AI ===
+Name: C-Sound
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+SoundC (Kommo-o)
+Calm Nature
+Level: 80
+Ability: Bulletproof
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpD / 6 Spe
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_D_PLAYER ===
+Name: D-Sun
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+SunD (Ninetales)
+Timid Nature
+Level: 80
+Ability: Flash Fire
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Flamethrower
+- Solar Beam
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_D_AI ===
+Name: D-Dummy
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DummyD (Blissey)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_E_PLAYER ===
+Name: E-Swap
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+SwapE (Clefable)
+Calm Nature
+Level: 80
+Ability: Cute Charm
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Skill Swap
+- Double-Edge
+- Moonblast
+- Soft-Boiled
+
+=== DEBUG_TRAINER_ALL_ABILITY_E_AI ===
+Name: E-Audit
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+AuditE (Blissey)
+Calm Nature
+Level: 80
+Ability: Natural Cure
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_F_PLAYER ===
+Name: F-Intim
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+IntimF (Luxray)
+Jolly Nature
+Level: 80
+Ability: Rivalry
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 Atk / 6 Def / 252 Spe
+- Wild Charge
+- Crunch
+- Thunder Wave
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_F_AI ===
+Name: F-Dummy
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DummyF (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpD / 6 Def
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_G_PLAYER ===
+Name: G-Ground
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+GroundG (Garchomp)
+Jolly Nature
+Level: 80
+Ability: Sand Veil
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 Atk / 6 Def / 252 Spe
+- Earthquake
+- Dragon Claw
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_G_AI ===
+Name: G-Levi
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+LeviG (Bronzong)
+Relaxed Nature
+Level: 80
+Ability: Heatproof
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_H_PLAYER ===
+Name: H-Water
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+WaterH (Blastoise)
+Modest Nature
+Level: 80
+Ability: Torrent
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpA / 6 Spe
+- Water Gun
+- Surf
+- Ice Beam
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_H_AI ===
+Name: H-Drain
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DrainH (Gastrodon)
+Calm Nature
+Level: 80
+Ability: Sticky Hold
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpD / 6 Def
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_I_PLAYER ===
+Name: I-Knock
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+KnockI (Weavile)
+Jolly Nature
+Level: 80
+Ability: Pressure
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 Atk / 6 Def / 252 Spe
+- Knock Off
+- Ice Punch
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_I_AI ===
+Name: I-Sticky
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+StickyI (Muk) @ Leftovers
+Careful Nature
+Level: 80
+Ability: Stench
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpD / 6 Def
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_J_PLAYER ===
+Name: J-Quick
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+
+QuickJ (Wobbuffet)
+Jolly Nature
+Level: 80
+Ability: Shadow Tag
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 Atk / 6 Def / 252 Spe
+- Quick Attack
+- Tackle
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_J_AI ===
+Name: J-Majesty
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+MajestyJ (Tsareena)
+Impish Nature
+Level: 80
+Ability: Leaf Guard
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_K_PLAYER ===
+Name: K-Cmdr
+Class: Pkmn Trainer 1
+Battle Type: Doubles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+CmdrK (Tatsugiri)
+Timid Nature
+Level: 80
+Ability: Storm Drain
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Muddy Water
+- Icy Wind
+- Celebrate
+- Celebrate
+
+OrderK (Dondozo)
+Adamant Nature
+Level: 80
+Ability: Unaware
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Order Up
+- Wave Crash
+- Protect
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_K_AI ===
+Name: K-Dummy
+Class: Rival
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DummyK1 (Blissey)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+DummyK2 (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_L_PLAYER ===
+Name: L-Chloro
+Class: Pkmn Trainer 1
+Battle Type: Singles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+ChloroL (Bulbasaur)
+Timid Nature
+Level: 80
+Ability: Overgrow
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Sunny Day
+- Energy Ball
+- Sleep Powder
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_L_AI ===
+Name: L-Speed
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+SpeedL (Houndoom)
+Timid Nature
+Level: 80
+Ability: Early Bird
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_M_PLAYER ===
+Name: M-Trace
+Class: Pkmn Trainer 1
+Battle Type: Singles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+TraceM (Gardevoir)
+Timid Nature
+Level: 80
+Ability: Synchronize
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Psychic
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_M_AI ===
+Name: M-Shadow
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+ShadowM (Wobbuffet)
+Calm Nature
+Level: 80
+Ability: Shadow Tag
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_N_PLAYER ===
+Name: N-Stack
+Class: Pkmn Trainer 1
+Battle Type: Singles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+StackN (Conkeldurr) @ Flame Orb
+Adamant Nature
+Level: 80
+Ability: Guts
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Thunder Punch
+- Drain Punch
+- Mach Punch
+- Protect
+
+=== DEBUG_TRAINER_ALL_ABILITY_N_AI ===
+Name: N-Dummy
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DummyN (Blissey)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_O_PLAYER ===
+Name: O-Hustle
+Class: Pkmn Trainer 1
+Battle Type: Singles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+HustleO (Durant)
+Jolly Nature
+Level: 80
+Ability: Swarm
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Spe
+- Aerial Ace
+- Iron Head
+- X-Scissor
+- Scratch
+
+=== DEBUG_TRAINER_ALL_ABILITY_O_AI ===
+Name: O-Dummy
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DummyO (Blissey)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_P_PLAYER ===
+Name: P-Rod
+Class: Pkmn Trainer 1
+Battle Type: Doubles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+RodP1 (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Thunderbolt
+- Celebrate
+- Celebrate
+- Celebrate
+
+RodP2 (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_P_AI ===
+Name: P-Rod
+Class: Rival
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Male
+
+FastRodP (Raichu)
+Timid Nature
+Level: 80
+Ability: Static
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+SlowRodP (Raichu)
+Quiet Nature
+Level: 80
+Ability: Static
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_Q_PLAYER ===
+Name: Q-Drain
+Class: Pkmn Trainer 1
+Battle Type: Doubles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+DrainQ1 (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Water Gun
+- Celebrate
+- Celebrate
+- Celebrate
+
+DrainQ2 (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_Q_AI ===
+Name: Q-Drain
+Class: Rival
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Male
+
+FastDrnQ (Gastrodon)
+Timid Nature
+Level: 80
+Ability: Sticky Hold
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 Spe
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+SlowDrnQ (Gastrodon)
+Quiet Nature
+Level: 80
+Ability: Sticky Hold
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_R_PLAYER ===
+Name: R-Mods
+Class: Pkmn Trainer 1
+Battle Type: Singles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+ModR (Toxtricity)
+Timid Nature
+Level: 80
+Ability: Plus
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 SpA
+- Snarl
+- Thunderbolt
+- Round
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_R_AI ===
+Name: R-Dummy
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+DummyR (Blissey)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_S_PLAYER ===
+Name: S-Guard
+Class: Pkmn Trainer 1
+Battle Type: Singles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+GuardS (Glalie)
+Timid Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 SpA
+- Ice Beam
+- Water Gun
+- Shadow Ball
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_S_AI ===
+Name: S-Guard
+Class: Rival
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Male
+
+ScaleS (Dragonite)
+Careful Nature
+Level: 80
+Ability: Inner Focus
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_T_PLAYER ===
+Name: T-Partner
+Class: Pkmn Trainer 1
+Battle Type: Doubles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+PlusT (Toxtricity)
+Timid Nature
+Level: 80
+Ability: Punk Rock
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 SpA
+- Thunderbolt
+- Snarl
+- Celebrate
+- Celebrate
+
+MinusT (Toxtricity-Low-Key)
+Timid Nature
+Level: 80
+Ability: Punk Rock
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 6 Def / 252 SpA
+- Thunderbolt
+- Celebrate
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_T_AI ===
+Name: T-Partner
+Class: Rival
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Male
+
+TargetT (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+DummyT (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate

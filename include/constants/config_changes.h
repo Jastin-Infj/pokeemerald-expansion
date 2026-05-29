@@ -72,7 +72,10 @@
     F(B_EXTRAPOLATED_MOVE_FLAGS,   extrapolatedMoveFlags,   (u32, GEN_COUNT - 1)) /* TODO: use in tests */ \
     F(B_MODERN_TRICK_CHOICE_LOCK,  modernTrickChoiceLock,   (u32, GEN_COUNT - 1)) \
     /* Ability data settings */ \
-    F(B_UPDATED_ABILITY_DATA,      updatedAbilityData,      (u32, GEN_COUNT - 1)) /* TODO: use in tests */ \
+    F(B_UPDATED_ABILITY_DATA,              updatedAbilityData,              (u32, GEN_COUNT - 1)) /* TODO: use in tests */ \
+    F(B_ALL_ABILITY_SLOTS,                 allAbilitySlots,                 (u32, TRUE)) \
+    F(B_ALL_ABILITY_SLOTS_MOLD_BREAKER,    allAbilitySlotsMoldBreaker,      (u32, TRUE)) \
+    F(B_ALL_ABILITY_SLOTS_NEUTRALIZING_GAS, allAbilitySlotsNeutralizingGas, (u32, TRUE)) \
     /* Move accuracy settings */ \
     F(B_TOXIC_NEVER_MISS,          toxicNeverMiss,          (u32, GEN_COUNT - 1)) \
     F(B_MINIMIZE_DMG_ACC,          minimizeDmgAcc,          (u32, GEN_COUNT - 1)) /* TODO: use in tests */ \

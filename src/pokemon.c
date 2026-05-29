@@ -3175,6 +3175,39 @@ enum Ability GetMonAbility(struct Pokemon *mon)
     return GetAbilityBySpecies(species, abilityNum);
 }
 
+u32 GetSpeciesAbilitySet(u16 species, enum Ability *abilities, u32 capacity)
+{
+    u32 count = 0;
+
+    for (u32 slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
+    {
+        enum Ability ability = GetSpeciesAbility(species, slot);
+        bool32 duplicate = FALSE;
+
+        if (ability == ABILITY_NONE)
+            continue;
+
+        for (u32 i = 0; i < count; i++)
+        {
+            if (abilities[i] == ability)
+            {
+                duplicate = TRUE;
+                break;
+            }
+        }
+
+        if (!duplicate && count < capacity)
+            abilities[count++] = ability;
+    }
+
+    return count;
+}
+
+u32 GetMonAbilitySet(struct Pokemon *mon, enum Ability *abilities, u32 capacity)
+{
+    return GetSpeciesAbilitySet(GetMonData(mon, MON_DATA_SPECIES), abilities, capacity);
+}
+
 void CreateSecretBaseEnemyParty(struct SecretBase *secretBaseRecord)
 {
     s32 i, j;

@@ -711,6 +711,7 @@ struct BattleStruct
     u8 hazardsCounter:4; // Counter for applying hazard on switch in
     enum SubmoveState submoveAnnouncement:2;
     u8 padding:2;
+    enum Ability abilitySlotOverrides[MAX_BATTLERS_COUNT][NUM_ABILITY_SLOTS];
     u32 incrementEchoedVoice:1;
     u32 echoedVoiceCounter:3;
     u32 attackAnimPlayed:1;

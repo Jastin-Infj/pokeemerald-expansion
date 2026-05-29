@@ -4,12 +4,13 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-24 |
+| Last reviewed | 2026-05-29 |
 | Implementation PR | #60 `[codex] Implement all ability slots runtime` |
 | Implementation branch | `feature/all-ability-slots-runtime-20260523` |
-| Baseline | `master` `0407f6daf7` |
-| Code status | Runtime implementation validated locally; keep source off `master` |
-| Master policy | Docs-only handoff branch only |
+| Integration branch | `integration/runtime-dev-20260529` |
+| Baseline | `master` `4e48ff993f` |
+| Code status | Adopted into runtime integration; keep source off `master` |
+| Master policy | Docs / Lua-only handoff branch only |
 
 ## Handoff Summary
 
@@ -17,8 +18,10 @@ PR #60 is the implementation shelf for the All Ability Slots Runtime. It enables
 Pokemon to use all non-empty species ability slots in battle while keeping
 `abilityNum` as the saved representative / operation slot. The branch is guarded
 by `B_ALL_ABILITY_SLOTS`, with separate balance toggles for non-representative
-Mold Breaker-family bypass and Neutralizing Gas suppression. The feature branch
-currently defaults `B_ALL_ABILITY_SLOTS` to `TRUE`.
+Mold Breaker-family bypass and Neutralizing Gas suppression. The original
+feature branch defaults `B_ALL_ABILITY_SLOTS` to `TRUE`; the runtime integration
+branch intentionally defaults it to `FALSE` so normal ROM behavior and the full
+test suite remain single-ability unless the mode is explicitly enabled.
 
 Summary UI now shows the selected active slot label plus ability name on the
 Info page, and the lower ability area shows that slot's description. `L` / `R`
@@ -28,9 +31,9 @@ species use the same flow. This cycling is separately guarded by
 can disable the UI selector without disabling the battle rule.
 
 Do not merge the implementation branch into `master` while the project keeps
-`master` docs-only. Use a docs-only branch from current `master` for this file
-and the related All Ability Slots docs, then keep source / tests / config on
-PR #60 or a later integration branch.
+`master` docs / Lua-only. Keep source / tests / config on PR #60 or the runtime
+integration branch, and use a docs-only branch from current `master` for this
+file and the related All Ability Slots docs.
 
 ## Implementation Diff Areas
 
@@ -55,50 +58,56 @@ The runtime branch touches these source-like areas:
 
 ## Current Dependencies
 
-Checked against open PRs on 2026-05-24:
+Checked against the runtime integration order on 2026-05-29:
 
 | PR | Branch | Overlap / action |
 |---|---|---|
-| #47 Battle Item Restore | `feature/battle-item-restore-current-master-20260519` | Direct battle-core overlap in `include/config/battle.h`, `src/battle_main.c`, and `src/battle_util.c`. Resolve before treating either branch as integration-ready. Re-run item restore tests plus All Ability Slots focused tests after conflict resolution. |
-| #48 Held Item Ownership Tokens | `feature/held-item-catalog-current-master-20260519` | Direct overlap in `src/party_menu.c`; docs/manual ledger also overlap. Recheck Ability Capsule / Patch failure text and held item assignment menus after merge. |
-| #51 Scout Selection Runtime | `feature/scout-selection-runtime-20260520` | Direct overlap in `src/debug.c` and docs registry. Runtime systems are mostly separate, but debug menus and generated party/scout Pokemon should be rechecked because All Ability Slots activates all species slots without changing `abilityNum`. |
-| #54 Party / Status UI Overhaul | `feature/party-status-ui-overhaul-20260521` | Direct overlap in `src/party_menu.c` and party UI docs. Recheck Summary entry / return and party item callbacks after adopting both. |
-| #57 Friendly Shop Pokemon Vendor | `feature/global-no-evolution-20260523` | Direct overlap in `include/pokemon.h`, `src/pokemon.c`, `src/party_menu.c`, `src/pokemon_summary_screen.c`, and `test/pokemon.c`. This is the largest non-battle conflict because both branches alter Summary / locked Pokemon display and Pokemon metadata helpers. |
+| #47 Battle Item Restore | `feature/battle-item-restore-current-master-20260519` | Resolved before #60 adoption. Rechecked `TESTS='Battle item restore'` after #60 and after switching the integration default to `B_ALL_ABILITY_SLOTS FALSE`. |
+| #48 Held Item Ownership Tokens | `feature/held-item-catalog-current-master-20260519` | Resolved before #60 adoption. `src/party_menu.c` retains held-item catalog assignment hooks; future Ability Capsule / Patch UX changes should still recheck Give / Take paths. |
+| #51 Scout Selection Runtime | `feature/scout-selection-runtime-20260520` | Resolved before #60 adoption. `src/debug.c` menu entries coexist; Scout remains `Script 2` and All Ability debug battles live under `Party` -> `All Ability...`. |
+| #54 Party / Status UI Overhaul | `feature/party-status-ui-overhaul-20260521` | Resolved before #60 adoption. Summary entry / return remains the key manual UI regression point. |
+| #57 Friendly Shop Pokemon Vendor | `feature/global-no-evolution-20260523` | Resolved before #60 adoption. Pokemon metadata helpers, locked / sealed Summary display, and vendor tests still pass after #60. |
 
 ## Validation Snapshot
 
-Latest local validation on the implementation branch:
+Latest local validation on `integration/runtime-dev-20260529`:
 
 - `rtk git diff --check`
+- `rtk git diff --cached --check`
 - `rtk make -j16 -O check TESTS='All Ability Slots'`
+- `rtk make -j16 -O check TESTS='AI thinking time'`
+- `rtk make -j16 -O check TESTS='Battle item restore'`
+- `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`
 - `rtk make -j16 -O all`
 - `rtk make -j16 -O debug`
-- temporary `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH FALSE`:
-  `rtk make -j16 -O debug`
+- `rtk make -j16 -O check`
 - `rtk mdbook build docs`
-- mGBA Live `all-ability-final-true-20260524`: final `TRUE` build,
-  Pattern A Recoil route, `Magic Guard` prevented recoil.
-- mGBA Live `all-ability-unified-selector-20260524`: Nidoqueen `1/2/3` and
-  Bastiodon `1/3` Summary selector behavior confirmed; cleanup returned `[]`.
+- mGBA Live `integration-all-ability-optin-smoke`: default-`FALSE` integration
+  build, `Party` -> `All Ability...` -> `A Recoil Battle`, `Double-Edge`;
+  Clefable stayed at `317/317`, confirming the debug override still enables
+  non-representative `Magic Guard`. Screenshots:
+  `/tmp/integration-all-ability-optin-submenu.png`,
+  `/tmp/integration-all-ability-optin-move-menu.png`, and
+  `/tmp/integration-all-ability-optin-after-double-edge.png`. Cleanup returned
+  `[]`.
 
 Known warning / caveat:
 
 - `arm-none-eabi-ld` reports the existing RWX segment warning.
 - `mdbook` reports existing warnings for missing root `CHANGELOG.md`, existing
   `CREDITS.md` `</img>`, and large search index.
-- Full `rtk make -j16 -O check` is not a green gate while
-  `B_ALL_ABILITY_SLOTS` defaults to `TRUE`, because upstream tests still assert
-  single-ability default behavior. The focused All Ability Slots suite is the
-  green logic gate for this branch.
+- The feature branch's global `TRUE` build remains useful for focused feature
+  validation, but the integration default is `FALSE` to keep full `check` green.
 
 ## Integration Checklist
 
 Before a future source integration:
 
-- decide whether `B_ALL_ABILITY_SLOTS` remains global `TRUE`, becomes opt-in, or
-  is wrapped by a Champions facility runtime rule;
-- decide merge order with #47 and #57 first, because they overlap the highest-risk
-  battle / Pokemon / Summary files;
+- if Champions needs the rule globally during a facility run, add a later
+  runtime toggle around the current config/default rather than widening Pokemon
+  save data;
+- preserve the #47 / #48 / #54 / #51 / #57 conflict resolutions when rebasing
+  or refreshing the integration branch;
 - preserve `abilityNum` as the saved representative slot unless a separate save
   migration is explicitly approved;
 - re-run `All Ability Slots`, AI thinking-time, `all`, `debug`, and a focused

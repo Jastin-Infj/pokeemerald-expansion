@@ -361,7 +361,7 @@ static void ScoutSelection_CreateMon(struct Pokemon *mon, const struct ScoutMonS
 
     SetMonData(mon, MON_DATA_POKEBALL, &spec->ball);
     SetMonData(mon, MON_DATA_HELD_ITEM, &spec->item);
-    TryFormChange(mon, FORM_CHANGE_ITEM_HOLD);
+    TryFormChange(mon, FORM_CHANGE_ITEM_HOLD, B_TRAINER_PLAYER);
     CalculateMonStats(mon);
 }
 
@@ -879,7 +879,7 @@ static u16 ScoutSelection_CountAvailableStorageSlots(void)
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) == SPECIES_NONE)
+        if (GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIES) == SPECIES_NONE)
             count++;
     }
 

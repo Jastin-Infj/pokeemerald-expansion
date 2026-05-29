@@ -9,6 +9,7 @@
 #include "battle_message.h"
 #include "battle_setup.h"
 #include "battle_tv.h"
+#include "battle_util.h"
 #include "cable_club.h"
 #include "event_data.h"
 #include "event_object_movement.h"
@@ -54,6 +55,21 @@ static void SpriteCB_FreeOpponentSprite(struct Sprite *sprite);
 static u32 ReturnAnimIdForBattler(bool32 isPlayerSide, u32 specificBattler);
 static void LaunchKOAnimation(enum BattlerId battlerId, u16 animId, bool32 isFront);
 static void AnimateMonAfterKnockout(enum BattlerId battler);
+
+static enum Ability GetBattleMessageAbility(enum BattlerId battler)
+{
+    enum Ability ability = gBattleMons[battler].ability;
+
+    if (gBattleScripting.battler == battler)
+    {
+        if (gBattleScripting.abilityPopupOverwrite != ABILITY_NONE)
+            ability = gBattleScripting.abilityPopupOverwrite;
+        else if (gAllAbilitySlotsBattle && BattlerHasAbility(battler, gLastUsedAbility))
+            ability = gLastUsedAbility;
+    }
+
+    return ability;
+}
 
 bool32 IsAiVsAiBattle(void)
 {
@@ -1019,7 +1035,7 @@ void BtlController_EmitPrintString(enum BattlerId battler, u32 bufferId, enum St
     stringInfo->moveType = GetMoveType(gCurrentMove);
 
     for (i = 0; i < MAX_BATTLERS_COUNT; i++)
-        stringInfo->abilities[i] = gBattleMons[i].ability;
+        stringInfo->abilities[i] = GetBattleMessageAbility(i);
     for (i = 0; i < TEXT_BUFF_ARRAY_COUNT; i++)
     {
         stringInfo->textBuffs[0][i] = gBattleTextBuff1[i];
@@ -1048,7 +1064,7 @@ void BtlController_EmitPrintSelectionString(enum BattlerId battler, u32 bufferId
     stringInfo->bakScriptPartyIdx = gBattleStruct->scriptPartyIdx;
 
     for (i = 0; i < MAX_BATTLERS_COUNT; i++)
-        stringInfo->abilities[i] = gBattleMons[i].ability;
+        stringInfo->abilities[i] = GetBattleMessageAbility(i);
     for (i = 0; i < TEXT_BUFF_ARRAY_COUNT; i++)
     {
         stringInfo->textBuffs[0][i] = gBattleTextBuff1[i];

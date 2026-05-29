@@ -442,6 +442,39 @@ TEST("givemon [all]")
     EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_DYNAMAX_LEVEL), 7);
 }
 
+TEST("GetSpeciesAbilitySet returns unique ability slots in slot order")
+{
+    enum Ability abilities[NUM_ABILITY_SLOTS];
+    u32 count;
+
+    ASSUME(GetSpeciesAbility(SPECIES_EKANS, 0) == ABILITY_INTIMIDATE);
+    ASSUME(GetSpeciesAbility(SPECIES_EKANS, 1) == ABILITY_SHED_SKIN);
+    ASSUME(GetSpeciesAbility(SPECIES_EKANS, 2) == ABILITY_UNNERVE);
+
+    count = GetSpeciesAbilitySet(SPECIES_EKANS, abilities, ARRAY_COUNT(abilities));
+
+    EXPECT_EQ(count, 3);
+    EXPECT_EQ(abilities[0], ABILITY_INTIMIDATE);
+    EXPECT_EQ(abilities[1], ABILITY_SHED_SKIN);
+    EXPECT_EQ(abilities[2], ABILITY_UNNERVE);
+}
+
+TEST("GetSpeciesAbilitySet deduplicates repeated ability slots")
+{
+    enum Ability abilities[NUM_ABILITY_SLOTS];
+    u32 count;
+
+    ASSUME(GetSpeciesAbility(SPECIES_VAPOREON, 0) == ABILITY_WATER_ABSORB);
+    ASSUME(GetSpeciesAbility(SPECIES_VAPOREON, 1) == ABILITY_WATER_ABSORB);
+    ASSUME(GetSpeciesAbility(SPECIES_VAPOREON, 2) == ABILITY_HYDRATION);
+
+    count = GetSpeciesAbilitySet(SPECIES_VAPOREON, abilities, ARRAY_COUNT(abilities));
+
+    EXPECT_EQ(count, 2);
+    EXPECT_EQ(abilities[0], ABILITY_WATER_ABSORB);
+    EXPECT_EQ(abilities[1], ABILITY_HYDRATION);
+}
+
 TEST("givemon [vars]")
 {
     ZeroPlayerPartyMons();
