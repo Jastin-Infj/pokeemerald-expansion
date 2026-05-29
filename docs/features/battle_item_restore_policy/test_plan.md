@@ -48,6 +48,29 @@ Re-check if this area changes again:
 
 ## Validation Log
 
+2026-05-29 (`integration/runtime-dev-20260529`, baseline `master`
+`4e48ff993f`):
+
+- `rtk git diff --check`: passed.
+- `rtk make -j16 -O check TESTS=battle_item_restore`: passed.
+- `rtk make -j16 -O all`: passed. Existing linker warning about a LOAD segment
+  with RWX permissions was observed.
+- `rtk make -j16 -O debug`: passed. Existing linker warning about a LOAD
+  segment with RWX permissions was observed.
+- mGBA Live CLI boot / input smoke:
+  - `rtk env DISPLAY=:0 mgba-live-cli start --rom pokeemerald.gba --session-id
+    integration-battle-item-restore-smoke --mgba-path mgba-qt`: passed.
+  - Screenshot before input:
+    `/tmp/integration-battle-item-restore-smoke.png`.
+  - `input-tap --key START --frames 5`: passed.
+  - Screenshot after input:
+    `/tmp/integration-battle-item-restore-after-start.png`.
+  - `stop --session integration-battle-item-restore-smoke`: passed with
+    `stopped: true`.
+  - `status --all`: returned `[]`.
+- This integration pass did not wait for long GitHub Actions runs. Local make,
+  focused battle tests, and mGBA Live smoke are the current handoff basis.
+
 2026-05-09 (`feature/battle-item-restore-policy`, baseline `master`
 `f5a3b7b6c2`):
 

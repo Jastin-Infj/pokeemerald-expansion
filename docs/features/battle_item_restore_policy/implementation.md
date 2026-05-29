@@ -4,15 +4,16 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `f5a3b7b6c2`; implementation branch `feature/battle-item-restore-policy` |
-| Code status | Implemented and locally validated on feature branch; not present in `master` source |
-| Provenance | Feature handoff |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Code status | Adopted into runtime integration branch; not present in `master` source |
+| Provenance | Feature handoff plus runtime integration adoption |
 
 ## Status
 
-Status: Implemented on `feature/battle-item-restore-policy`; not yet present in
-`master` source as of 2026-05-09 (`master` `f5a3b7b6c2`)
+Status: Adopted into `integration/runtime-dev-20260529` as of 2026-05-29.
+`master` remains docs / Lua-only, so this runtime source is intentionally not
+present in `master` source.
 
 The berry-inclusive battle-end restore path is implemented, locally tested, and
 verified through mGBA headless battle tests plus an mGBA Live MCP boot/input
@@ -52,6 +53,28 @@ coverage areas, not as battle-time behavior changes in this slice.
 | `test/battle/hold_effect/battle_item_restore.c` | Full battle test that consumes an Oran Berry and checks party held item restoration after battle end. |
 
 ## Validation
+
+2026-05-29 integration adoption on `integration/runtime-dev-20260529`
+(`master` baseline `4e48ff993f`):
+
+- `rtk git diff --check`: passed.
+- `rtk make -j16 -O check TESTS=battle_item_restore`: passed.
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning.
+- mGBA Live CLI smoke:
+  - session `integration-battle-item-restore-smoke`;
+  - booted `pokeemerald.gba` through `mgba-qt` with `DISPLAY=:0`;
+  - captured `/tmp/integration-battle-item-restore-smoke.png`;
+  - accepted `START` input;
+  - captured `/tmp/integration-battle-item-restore-after-start.png`;
+  - `mgba-live-cli stop` returned `stopped: true`;
+  - `mgba-live-cli status --all` returned `[]`.
+
+The smoke confirms the integrated ROM boots and accepts input after the source
+adoption. The feature behavior is covered by the focused battle restore tests
+above; no new in-game manual berry battle was run during this integration slice.
+
+Historical feature-branch validation:
 
 Confirmed commands:
 
@@ -105,9 +128,10 @@ in the confirmed environment.
 
 ## Merge Handoff Notes
 
-This implementation branch contains source and test changes. Do not merge it
-into `master` as part of the docs-only upstream intake lane. When this feature
-is intentionally adopted, review and merge the feature PR explicitly.
+This implementation contains source and test changes. Do not merge the runtime
+integration branch into `master` as part of the docs-only upstream intake lane.
+When this feature is intentionally adopted into a runtime line, keep it on
+`integration/runtime-dev-20260529` or another runtime feature branch.
 
 Draft PR: #14 `feature/battle-item-restore-policy` -> `master`.
 
