@@ -136,6 +136,7 @@ enum {
 enum {
     PARTY_BOX_LEFT_COLUMN,
     PARTY_BOX_RIGHT_COLUMN,
+    PARTY_BOX_GRID,
 };
 
 enum {
@@ -319,9 +320,12 @@ static void PartyMenuDisplayYesNoMenu(void);
 static void Task_HandleCancelChooseMonYesNoInput(u8);
 static void Task_ReturnToChooseMonAfterText(u8);
 static void UpdateCurrentPartySelection(s8 *, s8);
-static void UpdatePartySelectionSingleLayout(s8 *, s8);
 static void UpdatePartySelectionDoubleLayout(s8 *, s8);
+static void UpdatePartySelectionGridLayout(s8 *, s8);
 static s8 GetNewSlotDoubleLayout(s8, s8);
+static s8 GetNewSlotGridLayout(s8, s8);
+static u8 ResolvePartyMenuLayout(u8);
+static bool8 IsPartyGridLayout(u8);
 static void PrintMessage(const u8 *);
 static void Task_PrintAndWaitForText(u8);
 static bool16 IsMonAllowedInPokemonJump(struct Pokemon *);
@@ -329,6 +333,13 @@ static bool16 IsMonAllowedInDodrioBerryPicking(struct Pokemon *);
 static void Task_CancelParticipationYesNo(u8);
 static void Task_HandleCancelParticipationYesNoInput(u8);
 static bool8 ShouldUseChooseMonText(void);
+static bool8 ShouldUseGridCommandBar(u8);
+static bool8 IsGridCommandBarActive(void);
+static void SetGridCommandBarActive(bool8, u8);
+static void DisplaySelectionPromptMessage(u32);
+static u8 DisplayGridCommandBar(u8);
+static void DrawGridCommandBar(u8);
+static void Task_HandleGridCommandBarInput(u8);
 static void SetPartyMonFieldSelectionActions(struct Pokemon *, u8);
 static u8 GetPartyMenuActionsTypeInBattle(struct Pokemon *);
 static u8 GetPartySlotEntryStatus(s8);
@@ -454,6 +465,7 @@ static void Task_BattlePyramidChooseMonHeldItems(u8);
 static void ShiftMoveSlot(struct BoxPokemon *, u8, u8);
 static void BlitBitmapToPartyWindow_LeftColumn(u8, u8, u8, u8, u8, bool8);
 static void BlitBitmapToPartyWindow_RightColumn(u8, u8, u8, u8, u8, bool8);
+static void BlitBitmapToPartyWindow_Grid(u8, u8, u8, u8, u8, bool8);
 static void CursorCb_Summary(u8);
 static void CursorCb_Switch(u8);
 static void CursorCb_Cancel1(u8);
@@ -543,7 +555,7 @@ static void InitPartyMenu(enum PartyMenuType menuType, enum PartyMenuLayout layo
             sPartyMenuInternal->chooseHalf = FALSE;
 
         if (layout != KEEP_PARTY_LAYOUT)
-            gPartyMenu.layout = layout;
+            gPartyMenu.layout = ResolvePartyMenuLayout(layout);
 
         for (i = 0; i < ARRAY_COUNT(sPartyMenuInternal->data); i++)
             sPartyMenuInternal->data[i] = 0;
@@ -594,6 +606,18 @@ static void RefreshPartyMenu(void) //Refreshes the party menu without restarting
     CalculatePlayerPartyCount();
     gMain.state = 0;
     SetMainCallback2(CB2_ReloadPartyMenu);
+}
+
+static u8 ResolvePartyMenuLayout(u8 layout)
+{
+    if (layout == PARTY_LAYOUT_SINGLE)
+        return PARTY_LAYOUT_GRID_2X3;
+    return layout;
+}
+
+static bool8 IsPartyGridLayout(u8 layout)
+{
+    return layout == PARTY_LAYOUT_SINGLE || layout == PARTY_LAYOUT_GRID_2X3;
 }
 
 static void CB2_UpdatePartyMenu(void)
@@ -979,7 +1003,10 @@ static void LoadPartyMenuBoxes(enum PartyMenuLayout layout)
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        sPartyMenuBoxes[i].infoRects = &sPartyBoxInfoRects[PARTY_BOX_RIGHT_COLUMN];
+        if (IsPartyGridLayout(layout))
+            sPartyMenuBoxes[i].infoRects = &sPartyBoxInfoRects[PARTY_BOX_GRID];
+        else
+            sPartyMenuBoxes[i].infoRects = &sPartyBoxInfoRects[PARTY_BOX_RIGHT_COLUMN];
         sPartyMenuBoxes[i].spriteCoords = sPartyMenuSpriteCoords[layout][i];
         sPartyMenuBoxes[i].windowId = i;
         sPartyMenuBoxes[i].monSpriteId = SPRITE_NONE;
@@ -987,6 +1014,8 @@ static void LoadPartyMenuBoxes(enum PartyMenuLayout layout)
         sPartyMenuBoxes[i].pokeballSpriteId = SPRITE_NONE;
         sPartyMenuBoxes[i].statusSpriteId = SPRITE_NONE;
     }
+    if (IsPartyGridLayout(layout))
+        return;
 
     // The first party mon goes in the left column
     sPartyMenuBoxes[0].infoRects = &sPartyBoxInfoRects[PARTY_BOX_LEFT_COLUMN];
@@ -1811,16 +1840,13 @@ static void UpdateCurrentPartySelection(s8 *slotPtr, s8 movementDir)
     s8 newSlotId = *slotPtr;
     enum PartyMenuLayout layout = gPartyMenu.layout;
 
-    if (layout == PARTY_LAYOUT_SINGLE
-     || layout == PARTY_LAYOUT_MULTI_FULL
+    if (IsPartyGridLayout(layout))
+        UpdatePartySelectionGridLayout(slotPtr, movementDir);
+    else if (layout == PARTY_LAYOUT_MULTI_FULL
      || layout == PARTY_LAYOUT_MULTI_FULL_PARTNER)
-    {
         UpdatePartySelectionSingleLayout(slotPtr, movementDir);
-    }
     else
-    {
         UpdatePartySelectionDoubleLayout(slotPtr, movementDir);
-    }
 
     if (*slotPtr != newSlotId)
     {
@@ -1987,6 +2013,59 @@ static void UpdatePartySelectionDoubleLayout(s8 *slotPtr, s8 movementDir)
     }
 }
 
+static bool8 IsSelectableGridPartySlot(s8 slotId)
+{
+    if (slotId < 0 || slotId >= PARTY_SIZE)
+        return FALSE;
+    return GetMonData(&gPlayerParty[slotId], MON_DATA_SPECIES) != SPECIES_NONE;
+}
+
+static s8 GetFirstSelectableGridPartySlot(void)
+{
+    s8 i;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        if (IsSelectableGridPartySlot(i))
+            return i;
+    }
+    return -1;
+}
+
+static s8 GetLastSelectableGridPartySlot(void)
+{
+    s8 i;
+
+    for (i = PARTY_SIZE - 1; i >= 0; i--)
+    {
+        if (IsSelectableGridPartySlot(i))
+            return i;
+    }
+    return -1;
+}
+
+static s8 GetSelectableGridPartySlotInRow(s8 row, s8 preferredColumn)
+{
+    s8 slotId = row * 2 + preferredColumn;
+
+    if (IsSelectableGridPartySlot(slotId))
+        return slotId;
+
+    slotId = row * 2 + (preferredColumn ^ 1);
+    if (IsSelectableGridPartySlot(slotId))
+        return slotId;
+
+    return -1;
+}
+
+static void UpdatePartySelectionGridLayout(s8 *slotPtr, s8 movementDir)
+{
+    s8 newSlot = GetNewSlotGridLayout(*slotPtr, movementDir);
+
+    if (newSlot != -1)
+        *slotPtr = newSlot;
+}
+
 static s8 GetNewSlotDoubleLayout(s8 slotId, s8 movementDir)
 {
     while (TRUE)
@@ -1998,6 +2077,73 @@ static s8 GetNewSlotDoubleLayout(s8 slotId, s8 movementDir)
         if (GetMonData(GetPartyMonFromPartyMenuId(slotId), MON_DATA_SPECIES) != SPECIES_NONE)
             return slotId;
     }
+}
+
+static s8 GetNewSlotGridLayout(s8 slotId, s8 movementDir)
+{
+    s8 row;
+    s8 column;
+    s8 newSlot;
+
+    // PARTY_SIZE + 1 is Cancel, PARTY_SIZE is Confirm
+    if (slotId == PARTY_SIZE)
+    {
+        if (movementDir == MENU_DIR_DOWN)
+            return PARTY_SIZE + 1;
+        if (movementDir == MENU_DIR_UP)
+            return GetLastSelectableGridPartySlot();
+        return -1;
+    }
+
+    if (slotId == PARTY_SIZE + 1)
+    {
+        if (movementDir == MENU_DIR_DOWN)
+            return GetFirstSelectableGridPartySlot();
+        if (movementDir == MENU_DIR_UP)
+        {
+            if (sPartyMenuInternal->chooseHalf)
+                return PARTY_SIZE;
+            return GetLastSelectableGridPartySlot();
+        }
+        return -1;
+    }
+
+    row = slotId / 2;
+    column = slotId % 2;
+
+    switch (movementDir)
+    {
+    case MENU_DIR_UP:
+        if (row == 0)
+            return PARTY_SIZE + 1;
+        for (row--; row >= 0; row--)
+        {
+            newSlot = GetSelectableGridPartySlotInRow(row, column);
+            if (newSlot != -1)
+                return newSlot;
+        }
+        return PARTY_SIZE + 1;
+    case MENU_DIR_DOWN:
+        for (row++; row < PARTY_SIZE / 2; row++)
+        {
+            newSlot = GetSelectableGridPartySlotInRow(row, column);
+            if (newSlot != -1)
+                return newSlot;
+        }
+        if (sPartyMenuInternal->chooseHalf)
+            return PARTY_SIZE;
+        return PARTY_SIZE + 1;
+    case MENU_DIR_RIGHT:
+        if (column == 0 && IsSelectableGridPartySlot(slotId + 1))
+            return slotId + 1;
+        return -1;
+    case MENU_DIR_LEFT:
+        if (column == 1 && IsSelectableGridPartySlot(slotId - 1))
+            return slotId - 1;
+        return -1;
+    }
+
+    return -1;
 }
 
 u8 *GetMonNickname(struct Pokemon *mon, u8 *dest)
@@ -2362,8 +2508,9 @@ static void InitPartyMenuWindows(enum PartyMenuLayout layout)
 {
     switch (layout)
     {
-    case PARTY_LAYOUT_MULTI_SHOWCASE:
-        InitWindows(sShowcaseMultiPartyMenuWindowTemplate);
+    case PARTY_LAYOUT_SINGLE:
+    case PARTY_LAYOUT_GRID_2X3:
+        InitWindows(sGrid2x3PartyMenuWindowTemplate);
         break;
     case PARTY_LAYOUT_DOUBLE:
         InitWindows(sDoublePartyMenuWindowTemplate);
@@ -2371,7 +2518,14 @@ static void InitPartyMenuWindows(enum PartyMenuLayout layout)
     case PARTY_LAYOUT_MULTI:
         InitWindows(sMultiPartyMenuWindowTemplate);
         break;
-    default: // Singles and full-party multibattle menus
+    case PARTY_LAYOUT_MULTI_SHOWCASE:
+        InitWindows(sShowcaseMultiPartyMenuWindowTemplate);
+        break;
+    case PARTY_LAYOUT_MULTI_FULL_SHOWCASE:
+    case PARTY_LAYOUT_MULTI_FULL_SHOWCASE_PARTNER:
+        InitWindows(sShowcaseMultiFullPartyMenuWindowTemplate);
+        break;
+    default: // Full-party multibattle menus
         InitWindows(sSinglePartyMenuWindowTemplate);
         break;
     }
@@ -2401,18 +2555,27 @@ static void CreateCancelConfirmWindows(bool8 chooseHalf)
     {
         if (chooseHalf == TRUE)
         {
-            confirmWindowId = AddWindow(&sConfirmButtonWindowTemplate);
+            if (IsPartyGridLayout(gPartyMenu.layout))
+                confirmWindowId = AddWindow(&sGridConfirmButtonWindowTemplate);
+            else
+                confirmWindowId = AddWindow(&sConfirmButtonWindowTemplate);
             FillWindowPixelBuffer(confirmWindowId, PIXEL_FILL(0));
             mainOffset = GetStringCenterAlignXOffset(FONT_SMALL, gMenuText_Confirm, 48);
             AddTextPrinterParameterized4(confirmWindowId, FONT_SMALL, mainOffset, 1, 0, 0, sFontColorTable[0], TEXT_SKIP_DRAW, gMenuText_Confirm);
             PutWindowTilemap(confirmWindowId);
             CopyWindowToVram(confirmWindowId, COPYWIN_GFX);
-            cancelWindowId = AddWindow(&sMultiCancelButtonWindowTemplate);
+            if (IsPartyGridLayout(gPartyMenu.layout))
+                cancelWindowId = AddWindow(&sGridMultiCancelButtonWindowTemplate);
+            else
+                cancelWindowId = AddWindow(&sMultiCancelButtonWindowTemplate);
             offset = 0;
         }
         else
         {
-            cancelWindowId = AddWindow(&sCancelButtonWindowTemplate);
+            if (IsPartyGridLayout(gPartyMenu.layout))
+                cancelWindowId = AddWindow(&sGridCancelButtonWindowTemplate);
+            else
+                cancelWindowId = AddWindow(&sCancelButtonWindowTemplate);
             offset = 3;
         }
         FillWindowPixelBuffer(cancelWindowId, PIXEL_FILL(0));
@@ -2482,9 +2645,25 @@ static void BlitBitmapToPartyWindow_RightColumn(u8 windowId, u8 x, u8 y, u8 widt
         BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideNoHP, 18, x, y, width, height);
 }
 
+static void BlitBitmapToPartyWindow_Grid(u8 windowId, u8 x, u8 y, u8 width, u8 height, bool8 hideHP)
+{
+    if (width == 0 && height == 0)
+    {
+        width = 14;
+        height = 5;
+    }
+    if (hideHP == FALSE)
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_Grid, 14, x, y, width, height);
+    else
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_GridNoHP, 14, x, y, width, height);
+}
+
 static void DrawEmptySlot(u8 windowId)
 {
-    BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideEmpty, 18, 0, 0, 18, 3);
+    if (IsPartyGridLayout(gPartyMenu.layout))
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_GridEmpty, 14, 0, 0, 14, 5);
+    else
+        BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideEmpty, 18, 0, 0, 18, 3);
 }
 
 #define LOAD_PARTY_BOX_PAL(paletteIds, paletteOffsets)                                                    \
@@ -2584,13 +2763,16 @@ static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 col
 static void DisplayPartyPokemonNickname(struct Pokemon *mon, struct PartyMenuBox *menuBox, u8 c)
 {
     u8 nickname[POKEMON_NAME_LENGTH + 1];
+    u32 fitWidth = 50;
 
     if (GetMonData(mon, MON_DATA_SPECIES) != SPECIES_NONE)
     {
         if (c == 1)
             menuBox->infoRects->blitFunc(menuBox->windowId, menuBox->infoRects->dimensions[0] >> 3, menuBox->infoRects->dimensions[1] >> 3, menuBox->infoRects->dimensions[2] >> 3, menuBox->infoRects->dimensions[3] >> 3, FALSE);
         GetMonNickname(mon, nickname);
-        DisplayPartyPokemonBarDetailToFit(menuBox->windowId, nickname, 0, menuBox->infoRects->dimensions, 50);
+        if (IsPartyGridLayout(gPartyMenu.layout))
+            fitWidth = menuBox->infoRects->dimensions[2];
+        DisplayPartyPokemonBarDetailToFit(menuBox->windowId, nickname, 0, menuBox->infoRects->dimensions, fitWidth);
     }
 }
 
@@ -2843,23 +3025,186 @@ static bool8 ShouldUseChooseMonText(void)
     return FALSE;
 }
 
+#define GRID_COMMAND_BAR_WIDTH 23
+#define GRID_COMMAND_BAR_TEXT_RIGHT ((GRID_COMMAND_BAR_WIDTH * 8) - 4)
+#define GRID_COMMAND_BAR_ACTIVE sPartyMenuInternal->data[15]
+#define GRID_COMMAND_BAR_TYPE sPartyMenuInternal->data[14]
+
+static const u8 sGridCommandBarTextX[5][4] =
+{
+    {  0,   0,   0,   0 },
+    { 84,   0,   0,   0 },
+    { 48, 128,   0,   0 },
+    { 16,  84, 140,   0 },
+    { 12,  58, 104, 140 },
+};
+
+static const u8 *GetSelectionActionText(u8 action)
+{
+    if (action >= MENU_FIELD_MOVES)
+        return GetMoveName(FieldMove_GetMoveId(action - MENU_FIELD_MOVES));
+    else
+        return sCursorOptions[action].text;
+}
+
+static u8 GetSelectionActionFontColorsId(u8 action)
+{
+    if (action >= MENU_FIELD_MOVES)
+        return 4;
+    return 3;
+}
+
+static u32 GetGridCommandBarMessageId(u8 windowType)
+{
+    switch (windowType)
+    {
+    case SELECTWINDOW_ITEM:
+        return PARTY_MSG_DO_WHAT_WITH_ITEM;
+    case SELECTWINDOW_MAIL:
+        return PARTY_MSG_DO_WHAT_WITH_MAIL;
+    default:
+        return PARTY_MSG_DO_WHAT_WITH_MON;
+    }
+}
+
+static bool8 IsGridCommandBarActive(void)
+{
+    return GRID_COMMAND_BAR_ACTIVE != FALSE;
+}
+
+static void SetGridCommandBarActive(bool8 active, u8 windowType)
+{
+    GRID_COMMAND_BAR_ACTIVE = active;
+    GRID_COMMAND_BAR_TYPE = windowType;
+}
+
+static bool8 ShouldUseGridCommandBar(u8 windowType)
+{
+    u8 i;
+    u8 count = sPartyMenuInternal->numActions;
+    u8 letterSpacing = GetFontAttribute(FONT_NORMAL, FONTATTR_LETTER_SPACING);
+
+    if (!IsPartyGridLayout(gPartyMenu.layout))
+        return FALSE;
+    if (windowType != SELECTWINDOW_ACTIONS && windowType != SELECTWINDOW_ITEM && windowType != SELECTWINDOW_MAIL)
+        return FALSE;
+    if (count == 0 || count > 4)
+        return FALSE;
+
+    for (i = 0; i < count; i++)
+    {
+        u8 action = sPartyMenuInternal->actions[i];
+        const u8 *text;
+        s32 right = (i + 1 < count) ? sGridCommandBarTextX[count][i + 1] - 4 : GRID_COMMAND_BAR_TEXT_RIGHT;
+
+        if (action >= MENU_FIELD_MOVES)
+            return FALSE;
+
+        text = GetSelectionActionText(action);
+        if (sGridCommandBarTextX[count][i] + GetStringWidth(FONT_NORMAL, text, letterSpacing) > right)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+static void DisplaySelectionPromptMessage(u32 stringId)
+{
+    if (!IsGridCommandBarActive())
+        DisplayPartyMenuStdMessage(stringId);
+}
+
+static u8 DisplayGridCommandBar(u8 windowType)
+{
+    struct WindowTemplate window;
+
+    SetGridCommandBarActive(TRUE, windowType);
+    SetWindowTemplateFields(&window, 2, 1, 15, GRID_COMMAND_BAR_WIDTH, 4, 14, 0x299);
+    sPartyMenuInternal->windowId[0] = AddWindow(&window);
+    DrawGridCommandBar(0);
+    return sPartyMenuInternal->windowId[0];
+}
+
+static void DrawGridCommandBar(u8 selectedIndex)
+{
+    u8 i;
+    u8 windowId = sPartyMenuInternal->windowId[0];
+    u8 count = sPartyMenuInternal->numActions;
+    u8 letterSpacing = GetFontAttribute(FONT_NORMAL, FONTATTR_LETTER_SPACING);
+    u32 messageId = GetGridCommandBarMessageId(GRID_COMMAND_BAR_TYPE);
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    DrawStdFrameWithCustomTileAndPalette(windowId, FALSE, 0x4F, 13);
+    StringExpandPlaceholders(gStringVar4, sActionStringTable[messageId]);
+    AddTextPrinterParameterized4(windowId, FONT_NORMAL, 8, 1, letterSpacing, 0, sFontColorTable[3], 0, gStringVar4);
+
+    for (i = 0; i < count; i++)
+    {
+        u8 x = sGridCommandBarTextX[count][i];
+        u8 action = sPartyMenuInternal->actions[i];
+
+        if (i == selectedIndex)
+            AddTextPrinterParameterized4(windowId, FONT_NORMAL, x - 8, 17, letterSpacing, 0, sFontColorTable[3], 0, gText_SelectorArrow2);
+        AddTextPrinterParameterized4(windowId, FONT_NORMAL, x, 17, letterSpacing, 0, sFontColorTable[GetSelectionActionFontColorsId(action)], 0, GetSelectionActionText(action));
+    }
+
+    CopyWindowToVram(windowId, COPYWIN_FULL);
+    ScheduleBgCopyTilemapToVram(2);
+}
+
+static void SetGridSelectionWindowTemplate(struct WindowTemplate *window)
+{
+    u8 left = 17;
+    u8 width = 12;
+    u8 height = sPartyMenuInternal->numActions * 2;
+    u8 top;
+
+    if (height < 8)
+        height = 8;
+
+    if (height >= 15)
+        top = 0;
+    else
+        top = 15 - height;
+
+    SetWindowTemplateFields(window, 2, left, top, width, height, 14, 0x2E9);
+}
+
 static u8 DisplaySelectionWindow(u8 windowType)
 {
     struct WindowTemplate window;
     u8 cursorDimension;
     u8 letterSpacing;
     u8 i;
+    u8 actionWindowLeft = 19;
+    u8 actionWindowTop = 19 - (sPartyMenuInternal->numActions * 2);
+    u8 actionWindowWidth = 10;
+    u8 actionWindowHeight = sPartyMenuInternal->numActions * 2;
+
+    if (ShouldUseGridCommandBar(windowType))
+        return DisplayGridCommandBar(windowType);
+
+    SetGridCommandBarActive(FALSE, windowType);
 
     switch (windowType)
     {
     case SELECTWINDOW_ACTIONS:
-        SetWindowTemplateFields(&window, 2, 19, 19 - (sPartyMenuInternal->numActions * 2), 10, sPartyMenuInternal->numActions * 2, 14, 0x2E9);
+        if (IsPartyGridLayout(gPartyMenu.layout))
+            SetGridSelectionWindowTemplate(&window);
+        else
+            SetWindowTemplateFields(&window, 2, actionWindowLeft, actionWindowTop, actionWindowWidth, actionWindowHeight, 14, 0x2E9);
         break;
     case SELECTWINDOW_ITEM:
-        window = sItemGiveTakeWindowTemplate;
+        if (IsPartyGridLayout(gPartyMenu.layout))
+            SetGridSelectionWindowTemplate(&window);
+        else
+            window = sItemGiveTakeWindowTemplate;
         break;
     case SELECTWINDOW_MAIL:
-        window = sMailReadTakeWindowTemplate;
+        if (IsPartyGridLayout(gPartyMenu.layout))
+            SetGridSelectionWindowTemplate(&window);
+        else
+            window = sMailReadTakeWindowTemplate;
         break;
     case SELECTWINDOW_CATALOG:
         window = sCatalogSelectWindowTemplate;
@@ -2881,18 +3226,18 @@ static u8 DisplaySelectionWindow(u8 windowType)
 
     for (i = 0; i < sPartyMenuInternal->numActions; i++)
     {
-        const u8 *text;
-        u8 fontColorsId = 3;
+        u8 action = sPartyMenuInternal->actions[i];
 
-        if (sPartyMenuInternal->actions[i] >= MENU_FIELD_MOVES)
-            fontColorsId = 4;
-
-        if (sPartyMenuInternal->actions[i] >= MENU_FIELD_MOVES)
-            text = GetMoveName(FieldMove_GetMoveId(sPartyMenuInternal->actions[i] - MENU_FIELD_MOVES));
-        else
-            text = sCursorOptions[sPartyMenuInternal->actions[i]].text;
-
-        AddTextPrinterParameterized4(sPartyMenuInternal->windowId[0], FONT_NORMAL, cursorDimension, (i * 16) + 1, letterSpacing, 0, sFontColorTable[fontColorsId], 0, text);
+        AddTextPrinterParameterized4(
+            sPartyMenuInternal->windowId[0],
+            FONT_NORMAL,
+            cursorDimension,
+            (i * 16) + 1,
+            letterSpacing,
+            0,
+            sFontColorTable[GetSelectionActionFontColorsId(action)],
+            0,
+            GetSelectionActionText(action));
     }
 
     InitMenuInUpperLeftCorner(sPartyMenuInternal->windowId[0], sPartyMenuInternal->numActions, 0, TRUE);
@@ -3046,7 +3391,7 @@ static bool8 CreateSelectionWindow(u8 taskId)
     {
         SetPartyMonSelectionActions(party, gPartyMenu.slotId, GetPartyMenuActionsType(mon));
         DisplaySelectionWindow(SELECTWINDOW_ACTIONS);
-        DisplayPartyMenuStdMessage(PARTY_MSG_DO_WHAT_WITH_MON);
+        DisplaySelectionPromptMessage(PARTY_MSG_DO_WHAT_WITH_MON);
     }
     else
     {
@@ -3056,7 +3401,7 @@ static bool8 CreateSelectionWindow(u8 taskId)
             SetPartyMonSelectionActions(gParties[B_TRAINER_PLAYER], gPartyMenu.slotId, GetPartyMenuActionsType(mon));
             DisplaySelectionWindow(SELECTWINDOW_ITEM);
             CopyItemName(item, gStringVar2);
-            DisplayPartyMenuStdMessage(PARTY_MSG_ALREADY_HOLDING_ONE);
+            DisplaySelectionPromptMessage(PARTY_MSG_ALREADY_HOLDING_ONE);
         }
         else
         {
@@ -3079,12 +3424,61 @@ static void Task_TryCreateSelectionWindow(u8 taskId)
     }
 }
 
+static void Task_HandleGridCommandBarInput(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 input;
+    u8 cursorPos = (data[0] == 0xFF) ? 0 : data[0];
+
+    if ((gMain.newAndRepeatedKeys & (DPAD_LEFT | DPAD_UP)) && cursorPos > 0)
+    {
+        cursorPos--;
+        PlaySE(SE_SELECT);
+        DrawGridCommandBar(cursorPos);
+    }
+    else if ((gMain.newAndRepeatedKeys & (DPAD_RIGHT | DPAD_DOWN)) && cursorPos + 1 < sPartyMenuInternal->numActions)
+    {
+        cursorPos++;
+        PlaySE(SE_SELECT);
+        DrawGridCommandBar(cursorPos);
+    }
+
+    data[0] = cursorPos;
+
+    if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        input = sPartyMenuInternal->numActions - 1;
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        input = cursorPos;
+    }
+    else
+    {
+        return;
+    }
+
+    PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[2]);
+    if (sPartyMenuInternal->actions[input] >= MENU_FIELD_MOVES)
+        CursorCb_FieldMove(taskId);
+    else
+        sCursorOptions[sPartyMenuInternal->actions[input]].func(taskId);
+}
+
 static void Task_HandleSelectionMenuInput(u8 taskId)
 {
     if (!gPaletteFade.active && MenuHelpers_ShouldWaitForLinkRecv() != TRUE)
     {
         s8 input;
         s16 *data = gTasks[taskId].data;
+
+        if (IsGridCommandBarActive())
+        {
+            Task_HandleGridCommandBarInput(taskId);
+            return;
+        }
 
         if (sPartyMenuInternal->numActions <= 3)
             input = Menu_ProcessInputNoWrapAround_other();
@@ -3198,6 +3592,17 @@ static void SwitchSelectedMons(u8 taskId)
 
     if (gPartyMenu.slotId2 == gPartyMenu.slotId)
     {
+        FinishTwoMonAction(taskId);
+    }
+    else if (IsPartyGridLayout(gPartyMenu.layout))
+    {
+        // The legacy slide path crosses occupied grid columns and can erase unrelated slots.
+        SwitchPartyMon();
+        DisplayPartyPokemonData(gPartyMenu.slotId);
+        DisplayPartyPokemonData(gPartyMenu.slotId2);
+        CopyWindowToVram(sPartyMenuBoxes[gPartyMenu.slotId].windowId, COPYWIN_GFX);
+        CopyWindowToVram(sPartyMenuBoxes[gPartyMenu.slotId2].windowId, COPYWIN_GFX);
+        ScheduleBgCopyTilemapToVram(0);
         FinishTwoMonAction(taskId);
     }
     else
@@ -3450,7 +3855,7 @@ static void CursorCb_Item(u8 taskId)
     PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[1]);
     SetPartyMonSelectionActions(gParties[B_TRAINER_PLAYER], gPartyMenu.slotId, ACTIONS_ITEM);
     DisplaySelectionWindow(SELECTWINDOW_ITEM);
-    DisplayPartyMenuStdMessage(PARTY_MSG_DO_WHAT_WITH_ITEM);
+    DisplaySelectionPromptMessage(PARTY_MSG_DO_WHAT_WITH_ITEM);
     gTasks[taskId].data[0] = 0xFF;
     gTasks[taskId].func = Task_HandleSelectionMenuInput;
 }
@@ -3745,7 +4150,7 @@ static void CursorCb_Mail(u8 taskId)
     PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[1]);
     SetPartyMonSelectionActions(gParties[B_TRAINER_PLAYER], gPartyMenu.slotId, ACTIONS_MAIL);
     DisplaySelectionWindow(SELECTWINDOW_MAIL);
-    DisplayPartyMenuStdMessage(PARTY_MSG_DO_WHAT_WITH_MAIL);
+    DisplaySelectionPromptMessage(PARTY_MSG_DO_WHAT_WITH_MAIL);
     gTasks[taskId].data[0] = 0xFF;
     gTasks[taskId].func = Task_HandleSelectionMenuInput;
 }
@@ -3862,13 +4267,13 @@ static void CursorCb_Cancel2(u8 taskId)
     if (gPartyMenu.menuType != PARTY_MENU_TYPE_STORE_PYRAMID_HELD_ITEMS)
     {
         DisplaySelectionWindow(SELECTWINDOW_ACTIONS);
-        DisplayPartyMenuStdMessage(PARTY_MSG_DO_WHAT_WITH_MON);
+        DisplaySelectionPromptMessage(PARTY_MSG_DO_WHAT_WITH_MON);
     }
     else
     {
         DisplaySelectionWindow(SELECTWINDOW_ITEM);
         CopyItemName(GetMonData(mon, MON_DATA_HELD_ITEM), gStringVar2);
-        DisplayPartyMenuStdMessage(PARTY_MSG_ALREADY_HOLDING_ONE);
+        DisplaySelectionPromptMessage(PARTY_MSG_ALREADY_HOLDING_ONE);
     }
     gTasks[taskId].data[0] = 0xFF;
     gTasks[taskId].func = Task_HandleSelectionMenuInput;
@@ -4421,6 +4826,14 @@ static void UpdatePartyMonHPBar(u8 spriteId, struct Pokemon *mon)
 static void AnimateSelectedPartyIcon(u8 spriteId, u8 animNum)
 {
     gSprites[spriteId].data[0] = 0;
+    if (IsPartyGridLayout(gPartyMenu.layout))
+    {
+        gSprites[spriteId].x2 = 0;
+        gSprites[spriteId].y2 = 0;
+        gSprites[spriteId].callback = SpriteCB_UpdatePartyMonIcon;
+        return;
+    }
+
     if (animNum == 0)
     {
         if (gSprites[spriteId].x == 16)
