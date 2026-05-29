@@ -36,7 +36,7 @@ integration lane.
 | PR | Branch | Current role | Recommended action |
 |---|---|---|---|
 | #47 | `feature/battle-item-restore-current-master-20260519` | Runtime shelf for berry-inclusive battle-end held item restore. | Adopted into `integration/runtime-dev-20260529` on 2026-05-29. Keep PR open as source evidence until the integration PR supersedes or closes it. |
-| #48 | `feature/held-item-catalog-current-master-20260519` | Runtime shelf for held-item ownership token / catalog assignment. | Keep open. Adopt after #47 or with the item-policy stack. |
+| #48 | `feature/held-item-catalog-current-master-20260519` | Runtime shelf for held-item ownership token / catalog assignment. | Adopted into `integration/runtime-dev-20260529` on 2026-05-29 after #47. Keep PR open as source evidence until the integration PR supersedes or closes it. |
 | #51 | `feature/scout-selection-runtime-20260520` | Runtime shelf for Pokemon Champions-style scout selection. | Keep open. Adopt after the party / item baseline is stable enough to test gifts and Summary return. |
 | #54 | `feature/party-status-ui-overhaul-20260521` | Runtime shelf for 2x3 party menu layout. | Keep open. Adopt early enough to set the `party_menu.c` layout baseline before vendor / ability / Champions work piles on. |
 | #57 | `feature/global-no-evolution-20260523` | Runtime shelf for Friendly Shop Pokemon Vendor plus global no-evolution policy. | Keep open. Adopt after #48 and #54 because it touches Bag / Storage / Summary / party UI. |
@@ -126,6 +126,7 @@ These are the files most likely to define the integration order.
 | Date | Runtime branch | Adopted feature | Evidence | Next likely target |
 |---|---|---|---|---|
 | 2026-05-29 | `integration/runtime-dev-20260529` | #47 Battle Item Restore | Source / tests re-applied from `feature/battle-item-restore-current-master-20260519`; `rtk git diff --check`, focused `TESTS=battle_item_restore`, `all`, `debug`, and mGBA Live boot/input smoke passed. | #48 Held Item Catalog, then #54 Party / Status UI if item ownership remains the first lane. |
+| 2026-05-29 | `integration/runtime-dev-20260529` | #48 Held Item Catalog | Source / tests re-applied from `feature/held-item-catalog-current-master-20260519`; focused `TESTS=test/bag.c`, `all`, `debug`, mdBook, and mGBA Live boot/input smoke passed. | #54 Party / Status UI, because #48 now owns item-assignment hooks in `src/party_menu.c`. |
 
 ### Item Policy Stack
 

@@ -2125,7 +2125,7 @@ static u8 TryTakeMonItem(struct Pokemon *mon)
 
     if (item == ITEM_NONE)
         return 0;
-    if (AddBagItem(item, 1) == FALSE)
+    if (ReturnHeldItemToBag(item) == FALSE)
         return 1;
 
     item = ITEM_NONE;
@@ -3509,7 +3509,7 @@ static void Task_GiveHoldItem(u8 taskId)
         item = gSpecialVar_ItemId;
         DisplayGaveHeldItemMessage(&gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], item, FALSE, 0);
         GiveItemToMon(&gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], item);
-        RemoveBagItem(item, 1);
+        RemoveBagItemForHeldItemAssignment(item);
         gTasks[taskId].func = Task_UpdateHeldItemSprite;
     }
 }
@@ -3537,12 +3537,12 @@ static void Task_HandleSwitchItemsYesNoInput(u8 taskId)
     switch (Menu_ProcessInputNoWrapClearOnChoose())
     {
     case 0: // Yes, switch items
-        RemoveBagItem(gSpecialVar_ItemId, 1);
+        RemoveBagItemForHeldItemAssignment(gSpecialVar_ItemId);
 
         // No room to return held item to bag
-        if (AddBagItem(sPartyMenuItemId, 1) == FALSE)
+        if (ReturnHeldItemToBag(sPartyMenuItemId) == FALSE)
         {
-            AddBagItem(gSpecialVar_ItemId, 1);
+            ReturnHeldItemToBag(gSpecialVar_ItemId);
             BufferBagFullCantTakeItemMessage(sPartyMenuItemId);
             DisplayPartyMenuMessage(gStringVar4, FALSE);
             gTasks[taskId].func = Task_ReturnToChooseMonAfterText;
@@ -3600,8 +3600,8 @@ static void CB2_ReturnToPartyMenuFromWritingMail(void)
     {
         TakeMailFromMon(mon);
         SetMonData(mon, MON_DATA_HELD_ITEM, &sPartyMenuItemId);
-        RemoveBagItem(sPartyMenuItemId, 1);
-        AddBagItem(item, 1);
+        RemoveBagItemForHeldItemAssignment(sPartyMenuItemId);
+        ReturnHeldItemToBag(item);
         InitPartyMenu(gPartyMenu.menuType, KEEP_PARTY_LAYOUT, gPartyMenu.action, TRUE, PARTY_MSG_CHOOSE_MON, Task_TryCreateSelectionWindow, gPartyMenu.exitCallback);
     }
     // Wrote mail
@@ -7119,7 +7119,7 @@ static void GiveItemToSelectedMon(u8 taskId)
         item = gPartyMenu.bagItem;
         DisplayGaveHeldItemMessage(&gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], item, FALSE, 1);
         GiveItemToMon(&gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], item);
-        RemoveBagItem(item, 1);
+        RemoveBagItemForHeldItemAssignment(item);
         gTasks[taskId].func = Task_UpdateHeldItemSpriteAndClosePartyMenu;
     }
 }
@@ -7158,7 +7158,7 @@ static void CB2_ReturnToPartyOrBagMenuFromWritingMail(void)
     {
         TakeMailFromMon(mon);
         SetMonData(mon, MON_DATA_HELD_ITEM, &sPartyMenuItemId);
-        RemoveBagItem(sPartyMenuItemId, 1);
+        RemoveBagItemForHeldItemAssignment(sPartyMenuItemId);
         ReturnGiveItemToBagOrPC(item);
         SetMainCallback2(gPartyMenu.exitCallback);
     }
@@ -7198,8 +7198,8 @@ static void Task_HandleSwitchItemsFromBagYesNoInput(u8 taskId)
     {
     case 0: // Yes, switch items
         item = gPartyMenu.bagItem;
-        RemoveBagItem(item, 1);
-        if (AddBagItem(sPartyMenuItemId, 1) == FALSE)
+        RemoveBagItemForHeldItemAssignment(item);
+        if (ReturnHeldItemToBag(sPartyMenuItemId) == FALSE)
         {
             ReturnGiveItemToBagOrPC(item);
             BufferBagFullCantTakeItemMessage(sPartyMenuItemId);
@@ -7239,7 +7239,11 @@ static void DisplayItemMustBeRemovedFirstMessage(u8 taskId)
 static bool8 ReturnGiveItemToBagOrPC(enum Item item)
 {
     if (gPartyMenu.action == PARTY_ACTION_GIVE_ITEM)
+    {
+        if (IsHeldItemCatalogActiveForItem(item))
+            return TRUE;
         return AddBagItem(item, 1);
+    }
     else
         return AddPCItem(item, 1);
 }

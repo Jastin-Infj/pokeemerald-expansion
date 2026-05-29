@@ -4,12 +4,39 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-19 |
-| Baseline | `master` `25731e81a0`; implementation branch `feature/held-item-catalog-current-master-20260519` |
-| Code status | Catalog assignment implemented on feature branch |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Code status | Catalog assignment adopted into runtime integration branch |
 | Provenance | Local source read and feature planning |
 
 ## Validation Log
+
+2026-05-29 (`integration/runtime-dev-20260529`, baseline `master`
+`4e48ff993f`):
+
+- `rtk make -j16 -O check TESTS=test/bag.c`: passed. Existing linker warning
+  about a LOAD segment with RWX permissions was observed.
+- `rtk make -j16 -O all`: passed. Existing linker warning about a LOAD segment
+  with RWX permissions was observed.
+- `rtk make -j16 -O debug`: passed. Existing linker warning about a LOAD
+  segment with RWX permissions was observed.
+- `rtk mdbook build docs`: passed with existing warnings: missing root
+  `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, and large
+  search index.
+- mGBA Live CLI boot / input smoke:
+  - `rtk env DISPLAY=:0 mgba-live-cli start --rom pokeemerald.gba --session-id
+    integration-held-item-catalog-smoke --mgba-path mgba-qt`: passed.
+  - Screenshot before input:
+    `/tmp/integration-held-item-catalog-smoke.png`.
+  - `input-tap --key START --frames 5`: passed.
+  - Screenshot after input:
+    `/tmp/integration-held-item-catalog-after-start.png`.
+  - `stop --session integration-held-item-catalog-smoke`: passed with
+    `stopped: true`.
+  - `status --all`: returned `[]`.
+- Feature-specific quantity behavior remains covered by the focused
+  `test/bag.c` route. Manual Bag / Party / Storage UI validation remains
+  useful after the next party UI baseline is adopted.
 
 2026-05-19 (`feature/held-item-catalog-current-master-20260519`, baseline
 `master` `25731e81a0`):
