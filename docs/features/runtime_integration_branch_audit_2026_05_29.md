@@ -119,6 +119,128 @@ These are the files most likely to define the integration order.
 | `src/battle_setup.c` | #57, #62, battle selection / Team Viewer | Trainer battle rewards, party selection, and Champions loss policy overlap. |
 | `src/battle_script_commands.c` | #60, #62 | Ability slot behavior and Champions battle outcome hooks both touch battle script logic. |
 
+## Dependency Findings
+
+### Item Policy Stack
+
+| Feature | Depends on | Notes |
+|---|---|---|
+| #47 Battle Item Restore | `include/config/battle.h`, `src/battle_main.c`, `src/battle_util.c` | This is the smallest item-policy foundation. It should be adopted before any feature assumes battle-consumed Berries return after battle. |
+| #48 Held Item Catalog | Bag / Party / Storage item assignment paths | This changes physical held-item quantity semantics. It can exist without #47, but testing is clearer after #47 because battle-end restoration and catalog ownership are separate but adjacent policies. |
+| #57 Pokemon Vendor | Held item catalog, party menu, storage display | Vendor sealed recruits need item-edit entitlement hooks and PC / party visibility. Adopt after #48 if vendor-held-item editing is enabled. |
+| #62 Champions Run Session | Bag snapshot / restore, held item carryover policy | Champions clear can strip, keep, or carry held items. It should consume the already-decided item policy rather than define one itself. |
+
+Open decision before runtime-dev adoption:
+
+- whether #47 `B_RESTORE_HELD_BATTLE_BERRIES` defaults `TRUE` in integration;
+- whether #48 catalog mode applies only to held-effect items or a broader item
+  list;
+- whether Champions clear carryover merges held items into the normal bag,
+  leaves them on deposited Pokemon, or discards them for the first integration
+  pass.
+
+### Party And Summary UI Stack
+
+| Feature | Depends on | Notes |
+|---|---|---|
+| #54 Party / Status UI | `include/constants/party_menu.h`, `src/data/party_menu.h`, `src/party_menu.c` | Should set the baseline for all later party-menu changes. |
+| #48 Held Item Catalog | `src/party_menu.c`, `src/item_menu.c`, `src/shop.c`, `src/pokemon_storage_system.c` | Item give/take behavior must be rechecked after the 2x3 party layout is adopted. |
+| #57 Pokemon Vendor | `src/party_menu.c`, `src/pokemon_summary_screen.c`, `src/pokemon_storage_system.c` | Needs locked / sealed-origin labels in party, Summary, and PC. |
+| #60 All Ability Slots | `src/party_menu.c`, `src/pokemon_summary_screen.c` | Ability Capsule / Patch path and Summary ability display overlap with vendor / editor / relearner UI. |
+| State Editor | `src/pokemon_summary_screen.c` | Summary-launched editor should not add a party-menu action. It should wait until Summary ownership is settled. |
+| Unified Move Relearner | `src/pokemon_summary_screen.c`, `src/party_menu.c` | Existing docs prefer Summary-first integration. Direct party action can remain optional or debug/fallback. |
+| Summary Tera Badge | `src/pokemon_summary_screen.c`, graphics | Small display shelf, but it competes for Summary visual space. |
+| Team Viewer Phase 2 | `src/party_menu.c`, `src/pokemon_summary_screen.c` | Uses Summary return and selection state. It should be tested after party layout changes. |
+
+Open decision before runtime-dev adoption:
+
+- adopt #54 before #48 / #57 / #60 / #62, or intentionally preserve the old
+  party layout for the first integration pass;
+- keep Summary as the canonical entry for Move Relearner and State Editor;
+- defer full BW Summary replacement until after the first integration branch is
+  stable.
+
+### Battle Flow Stack
+
+| Feature | Depends on | Notes |
+|---|---|---|
+| #47 Battle Item Restore | Battle end restore path | Runs at battle shutdown and must not fight party-restore hooks. |
+| Battle Selection MVP | `src/battle_setup.c`, `src/party_menu.c` | Compresses selected Pokemon for battle, then restores state. |
+| Team Viewer Phase 2 | Battle Selection MVP, `src/battle_main.c`, `src/battle_controller_player.c` | Owns pre-battle preview, in-battle read-only viewer, and cached opponent party. |
+| #57 Pokemon Vendor | Trainer win bond EXP queue in battle victory text | Needs battle-after text flow but should not own generic reward tables. |
+| #60 All Ability Slots | Battle utility predicates and battle script commands | High battle-core blast radius. Adopt after smaller battle-end and selection hooks are stable. |
+| #62 Champions Run Session | Battle outcome interception, EXP suppression, loss restore | Should be late because it changes loss / draw / forfeit semantics and save behavior. |
+| Trainer Aftercare | Normal trainer win post-battle hook | Needs exclusion tests and ordering relative to #47, #57 reward text, and #62 Champions outcome. |
+
+Open decision before runtime-dev adoption:
+
+- whether Team Viewer Phase 2 replaces the separate Battle Selection MVP, or
+  whether both are adopted as separate entry points;
+- whether Pokemon Vendor bond EXP remains product-specific script reward first,
+  trainer-win queued reward second;
+- whether Trainer Aftercare is included in the first runtime-dev pass or left
+  as a later post-battle policy lane.
+
+### Save, PC, And Run-State Stack
+
+| Feature | Save / storage dependency | Notes |
+|---|---|---|
+| #51 Scout Selection | No SaveBlock field in MVP | Candidate selection is script-driven and can remain stateless. |
+| #57 Pokemon Vendor | Per-mon sealed marker bits, PC display, optional progress | The current branch uses Pokemon data / helper policy rather than a broad SaveBlock product table for every state. |
+| #62 Champions Run Session | Adds `struct ChampionsRunSession` to `SaveBlock1` | Highest save-risk feature in the current queue. It snapshots normal party / bag / money / location and blocks PC during active run. |
+| Partygen Catalog | Tool/data only unless generated trainer data is adopted | Do not make ROM build depend on partygen until generated drift checks are accepted. |
+| Runtime Rule Options | SaveBlock2 / option UI candidate | Keep out of the first integration unless a concrete option owner exists. |
+
+Open decision before runtime-dev adoption:
+
+- verify #62 SaveBlock1 budget again after any branch that changes
+  `include/global.h` or save structs;
+- decide whether vendor sealed progress is allowed while the Pokemon is in PC;
+- keep normal PC access blocked during active Champions runs until a run-only
+  storage design exists.
+
+### Script, Special, And Debug Namespace Stack
+
+The current queue has many debug and special registrations:
+
+- #51 Scout Selection: `data/event_scripts.s`, `data/scripts/debug.inc`,
+  `data/specials.inc`, `src/debug.c`.
+- #57 Pokemon Vendor: `asm/macros/event.inc`, `data/event_scripts.s`,
+  `data/script_cmd_table.inc`, `data/scripts/debug.inc`,
+  `data/specials.inc`, `src/debug.c`, `src/scrcmd.c`.
+- #62 Champions Run Session: `data/scripts/debug.inc`, `data/scripts/pc.inc`,
+  `data/specials.inc`, `src/debug.c`.
+- #65 Map Asset Relinker: debug map / Fly validation changes, but this is a
+  tooling lane and should not be mixed into runtime-dev by default.
+
+Integration rule:
+
+- rename generic debug entries before combining branches;
+- keep feature-specific debug labels such as `Scout Selection`, `Pokemon
+  Vendor`, and `Champs: ...`;
+- re-run `make debug` after each branch that changes `data/event_scripts.s`,
+  `data/specials.inc`, `data/script_cmd_table.inc`, or `asm/macros/event.inc`.
+
+### Generated Data And Tool Stack
+
+| Branch | Role | Runtime-dev guidance |
+|---|---|---|
+| `feature/trainer-partygen-catalog-expansion` | Rust CLI / catalog / generated trainer data shelf | Review generated trainer data separately. Useful for Champions and Scout pools, but not required for the first save/session integration. |
+| #51 Scout Selection | Consumes a generated partygen JSON pool for the demo pool | Can be adopted without turning partygen into a ROM build dependency. |
+| `feature/unified-move-relearner` | Generates learnset candidate headers from porymoves JSON | Re-run generator after TM/HM policy changes. Do not mix with partygen generation. |
+| #65 Map Asset Relinker | Tooling lane with Rust core / Tauri GUI / Python compatibility | Keep outside ROM runtime-dev. Its generated/fixture map data should not be adopted into gameplay integration. |
+
+## Hard Gates Before First Runtime-Dev Merge
+
+1. Choose whether #54 Party UI is the first UI baseline.
+2. Choose whether the first runtime-dev pass includes Team Viewer Phase 2 or
+   only Scout Selection / Vendor debug routes.
+3. Choose #47 and #48 item-policy defaults.
+4. Decide whether #62 Champions Run Session is included in the first pass or
+   waits until item / party / scout / vendor integration is green.
+5. Keep #65 Map Asset Relinker out of the ROM runtime integration lane.
+6. Close #64 only after recording that #66 superseded it.
+
 ## Proposed Runtime-Dev Order
 
 This is a starting point, not a merge command list.
