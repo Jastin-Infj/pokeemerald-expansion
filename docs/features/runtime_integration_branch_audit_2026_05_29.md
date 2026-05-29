@@ -35,7 +35,7 @@ integration lane.
 
 | PR | Branch | Current role | Recommended action |
 |---|---|---|---|
-| #47 | `feature/battle-item-restore-current-master-20260519` | Runtime shelf for berry-inclusive battle-end held item restore. | Keep open as a source shelf. First or near-first runtime-dev adoption candidate. |
+| #47 | `feature/battle-item-restore-current-master-20260519` | Runtime shelf for berry-inclusive battle-end held item restore. | Adopted into `integration/runtime-dev-20260529` on 2026-05-29. Keep PR open as source evidence until the integration PR supersedes or closes it. |
 | #48 | `feature/held-item-catalog-current-master-20260519` | Runtime shelf for held-item ownership token / catalog assignment. | Keep open. Adopt after #47 or with the item-policy stack. |
 | #51 | `feature/scout-selection-runtime-20260520` | Runtime shelf for Pokemon Champions-style scout selection. | Keep open. Adopt after the party / item baseline is stable enough to test gifts and Summary return. |
 | #54 | `feature/party-status-ui-overhaul-20260521` | Runtime shelf for 2x3 party menu layout. | Keep open. Adopt early enough to set the `party_menu.c` layout baseline before vendor / ability / Champions work piles on. |
@@ -120,6 +120,12 @@ These are the files most likely to define the integration order.
 | `src/battle_script_commands.c` | #60, #62 | Ability slot behavior and Champions battle outcome hooks both touch battle script logic. |
 
 ## Dependency Findings
+
+## Integration Progress
+
+| Date | Runtime branch | Adopted feature | Evidence | Next likely target |
+|---|---|---|---|---|
+| 2026-05-29 | `integration/runtime-dev-20260529` | #47 Battle Item Restore | Source / tests re-applied from `feature/battle-item-restore-current-master-20260519`; `rtk git diff --check`, focused `TESTS=battle_item_restore`, `all`, `debug`, and mGBA Live boot/input smoke passed. | #48 Held Item Catalog, then #54 Party / Status UI if item ownership remains the first lane. |
 
 ### Item Policy Stack
 
