@@ -2,6 +2,8 @@
 #define GUARD_BATTLE_UTIL_H
 
 #include "move.h"
+#include "config/battle.h"
+#include "config/debug.h"
 #include "constants/battle_string_ids.h"
 #include "constants/hold_effects.h"
 
@@ -233,6 +235,28 @@ enum Ability GetBattlerAbilityIgnoreMoldBreaker(enum BattlerId battler);
 enum Ability GetBattlerAbilityNoAbilityShield(enum BattlerId battler);
 enum Ability GetBattlerAbilityInternal(enum BattlerId battler, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
 enum Ability GetBattlerAbility(enum BattlerId battler);
+enum Ability GetBattlerAbilitySlot(enum BattlerId battler, u32 slot);
+enum Ability GetBattlerAbilitySlotIgnoreSuppression(enum BattlerId battler, u32 slot);
+u32 GetBattlerAbilitySet(enum BattlerId battler, enum Ability *abilities, u32 capacity);
+u32 GetBattlerAbilitySetInternal(enum BattlerId battler, enum Ability *abilities, u32 capacity, bool32 ignoreMoldBreaker, bool32 noAbilityShield);
+bool32 BattlerHasAbilityAllSlots(enum BattlerId battler, enum Ability ability);
+extern bool8 gAllAbilitySlotsBattle;
+static inline bool32 BattlerHasAbility(enum BattlerId battler, enum Ability ability)
+{
+    if (ability == ABILITY_NONE)
+        return FALSE;
+#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+    return GetBattlerAbility(battler) == ability;
+#else
+    if (!gAllAbilitySlotsBattle)
+        return GetBattlerAbility(battler) == ability;
+    return BattlerHasAbilityAllSlots(battler, ability);
+#endif
+}
+bool32 IsBattlerAbilityActive(enum BattlerId battler, enum Ability ability);
+void ClearBattlerAbilitySlotOverrides(enum BattlerId battler);
+void SetBattlerAbilitySlotOverride(enum BattlerId battler, u32 slot, enum Ability ability);
+u32 GetBattlerAbilityOperationSlot(enum BattlerId battler);
 u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnOpposingSide(enum BattlerId battler, enum Ability ability);
 u32 IsAbilityOnField(enum Ability ability);
@@ -306,6 +330,7 @@ enum DamageCategory GetCategoryBasedOnStats(enum BattlerId battler);
 void SetShellSideArmCategory(void);
 bool32 MoveIsAffectedBySheerForce(enum Move move);
 bool32 IsSheerForceAffected(enum Move move, enum Ability ability);
+bool32 IsBattlerSheerForceAffected(enum BattlerId battler, enum Move move, enum Ability ability);
 void TryRestoreHeldItems(void);
 bool32 CanStealItem(enum BattlerId battlerStealing, enum BattlerId battlerItem, enum Item item);
 void TrySaveExchangedItem(enum BattlerId battler, enum Item stolenItem);

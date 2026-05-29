@@ -4,14 +4,15 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-24 |
-| Baseline | `master` `0407f6daf7` |
-| Code status | Runtime implementation validated locally on feature branch |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f` |
+| Code status | Adopted into `integration/runtime-dev-20260529`; source remains off `master` |
 | Provenance | Local project overlay, source read on current `master` |
 
 ## Status
 
-Status: Implementing on `feature/all-ability-slots-runtime-20260523`.
+Status: Adopted into `integration/runtime-dev-20260529` from source shelf
+PR #60 / `feature/all-ability-slots-runtime-20260523`.
 
 This feature is the proposed runtime rule where every legal species ability slot
 is active at once: slot 0, slot 1, and the hidden slot. The current engine stores
@@ -50,6 +51,10 @@ refactor rather than a data-only change.
   offensive stacking, Durant Hustle, and Lightning Rod / Storm Drain
   redirection routes, plus modifier-stack / defensive-modifier / partner-
   modifier routes.
+- The integration branch keeps `B_ALL_ABILITY_SLOTS` default `FALSE` so the
+  normal ROM and full upstream-style test suite preserve single-ability
+  semantics. The feature remains opt-in through the config system, and the debug
+  All Ability battle routes force the mode on for validation.
 - Enumerate species slots with `GetSpeciesAbility()`, not repeated
   `GetAbilityBySpecies()`, because `GetAbilityBySpecies()` intentionally falls
   back from empty slots to another valid ability.
@@ -83,6 +88,11 @@ refactor rather than a data-only change.
   selector. If it is disabled, Summary still shows the representative / initial
   active slot in all-slot mode, but the player cannot cycle descriptions from the
   Info page.
+- The 2026-05-29 runtime integration pass adopted this after #47 battle item
+  restore, #48 held item catalog, #54 Party / Status UI, #51 Scout Selection,
+  and #57 Pokemon Vendor. Those earlier overlaps are now resolved on the
+  integration branch, but future Summary / editor / move-relearner branches still
+  need a UI recheck.
 - The current implementation covers a broad battle-modifier pass: base-power,
   Attack / Defense, final damage, STAB / Tera STAB, accuracy, priority,
   multi-hit, contact, powder-block, and partner modifier helpers now use
@@ -123,8 +133,8 @@ refactor rather than a data-only change.
 
 ## Open Questions
 
-- Should `B_ALL_ABILITY_SLOTS` stay as a compile-time config only, or should a
-  later Champions runtime rule toggle it per facility?
+- Should a later Champions runtime rule toggle `B_ALL_ABILITY_SLOTS` per
+  facility instead of relying on the compile-time default?
 - Should Ability Capsule / Patch stay disabled in all-slot mode, or should a
   later UI pass repurpose them to choose the representative display slot?
 - For Trace, should the default copied slot always be the tracer's representative

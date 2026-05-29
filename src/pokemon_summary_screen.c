@@ -16,6 +16,7 @@
 #include "event_data.h"
 #include "gpu_regs.h"
 #include "graphics.h"
+#include "generational_changes.h"
 #include "international_string_util.h"
 #include "item.h"
 #include "link.h"
@@ -180,6 +181,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
     u8 currPageIndex;
     u8 minPageIndex;
     u8 maxPageIndex;
+    u8 abilityDisplaySlot;
     bool8 lockMonFlag; // This is used to prevent the player from changing Pokémon in the move deleter select, etc, but it is not needed because the input is handled differently there
     u16 newMove;
     u8 firstMoveIndex;
@@ -264,6 +266,9 @@ static void PrintMonOTName(void);
 static void PrintMonOTID(void);
 static void PrintMonAbilityName(void);
 static void PrintMonAbilityDescription(void);
+static u32 GetSummaryAbilityDisplaySlot(void);
+static bool32 TryChangeSummaryAbilityDisplaySlot(s8 delta);
+static void RefreshSummaryAbilityWindow(void);
 static void BufferMonTrainerMemo(void);
 static void PrintMonTrainerMemo(void);
 static void BufferNatureString(void);
@@ -746,6 +751,12 @@ static const u8 sTextColors[][3] =
     {0, 3, 4},
     {0, 5, 6},
     {0, 7, 8}
+};
+static const u8 *const sAbilitySlotLabels[NUM_ABILITY_SLOTS] =
+{
+    COMPOUND_STRING("1 "),
+    COMPOUND_STRING("2 "),
+    COMPOUND_STRING("3 "),
 };
 
 static const u8 sButtons_Gfx[][4 * TILE_SIZE_4BPP] = {
@@ -1533,6 +1544,7 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
         sum->exp = GetMonData(mon, MON_DATA_EXP);
         sum->level = GetMonData(mon, MON_DATA_LEVEL);
         sum->abilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM);
+        sMonSummaryScreen->abilityDisplaySlot = min(sum->abilityNum, NUM_ABILITY_SLOTS - 1);
         sum->item = GetMonData(mon, MON_DATA_HELD_ITEM);
         sum->pid = GetMonData(mon, MON_DATA_PERSONALITY);
         sum->sanity = GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG);
@@ -1817,7 +1829,12 @@ static void Task_HandleInput(u8 taskId)
         }
         else if (JOY_NEW(R_BUTTON)) // R means increase. Level -> Egg -> TM -> Tutor
         {
-            if (P_SUMMARY_SCREEN_MOVE_RELEARNER && (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES) && !gMain.inBattle)
+            if (TryChangeSummaryAbilityDisplaySlot(1))
+            {
+                PlaySE(SE_SELECT);
+                RefreshSummaryAbilityWindow();
+            }
+            else if (P_SUMMARY_SCREEN_MOVE_RELEARNER && (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES) && !gMain.inBattle)
             {
                 TryUpdateRelearnType(TRY_INCREMENT);
                 PlaySE(SE_SELECT);
@@ -1826,7 +1843,12 @@ static void Task_HandleInput(u8 taskId)
         }
         else if (JOY_NEW(L_BUTTON)) // L means decrease. Level <- Egg <- TM <- Tutor
         {
-            if (P_SUMMARY_SCREEN_MOVE_RELEARNER && (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES) && !gMain.inBattle)
+            if (TryChangeSummaryAbilityDisplaySlot(-1))
+            {
+                PlaySE(SE_SELECT);
+                RefreshSummaryAbilityWindow();
+            }
+            else if (P_SUMMARY_SCREEN_MOVE_RELEARNER && (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES) && !gMain.inBattle)
             {
                 TryUpdateRelearnType(TRY_DECREMENT);
                 PlaySE(SE_SELECT);
@@ -3674,15 +3696,113 @@ static void PrintMonOTID(void)
     }
 }
 
+static u32 GetSummaryAbilityDisplaySlot(void)
+{
+    u32 slot = sMonSummaryScreen->abilityDisplaySlot;
+    u32 representativeSlot = sMonSummaryScreen->summary.abilityNum < NUM_ABILITY_SLOTS ? sMonSummaryScreen->summary.abilityNum : 0;
+
+    if (slot < NUM_ABILITY_SLOTS && GetSpeciesAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
+        return slot;
+
+    if (GetSpeciesAbility(sMonSummaryScreen->summary.species, representativeSlot) != ABILITY_NONE)
+    {
+        sMonSummaryScreen->abilityDisplaySlot = representativeSlot;
+        return representativeSlot;
+    }
+
+    for (slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
+    {
+        if (GetSpeciesAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
+        {
+            sMonSummaryScreen->abilityDisplaySlot = slot;
+            return slot;
+        }
+    }
+
+    sMonSummaryScreen->abilityDisplaySlot = 0;
+    return 0;
+}
+
+static bool32 TryChangeSummaryAbilityDisplaySlot(s8 delta)
+{
+    s32 slot;
+    u32 i;
+
+    if (!P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH
+        || !GetConfig(B_ALL_ABILITY_SLOTS)
+        || sMonSummaryScreen->summary.isEgg
+        || sMonSummaryScreen->currPageIndex != PSS_PAGE_INFO)
+        return FALSE;
+
+    slot = GetSummaryAbilityDisplaySlot();
+    for (i = 0; i < NUM_ABILITY_SLOTS; i++)
+    {
+        slot += delta;
+        if (slot < 0)
+            slot = NUM_ABILITY_SLOTS - 1;
+        else if (slot >= NUM_ABILITY_SLOTS)
+            slot = 0;
+
+        if (GetSpeciesAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
+        {
+            if (slot == sMonSummaryScreen->abilityDisplaySlot)
+                return FALSE;
+
+            sMonSummaryScreen->abilityDisplaySlot = slot;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static void RefreshSummaryAbilityWindow(void)
+{
+    u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    PrintMonAbilityName();
+    PrintMonAbilityDescription();
+    PutWindowTilemap(windowId);
+    CopyWindowToVram(windowId, COPYWIN_GFX);
+    ScheduleBgCopyTilemapToVram(0);
+}
+
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+    u32 selectedSlot = GetSummaryAbilityDisplaySlot();
+    enum Ability selectedAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, selectedSlot);
+    u32 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+    u8 topText[(ABILITY_NAME_LENGTH + 5) * NUM_ABILITY_SLOTS];
+    u32 topFontId = FONT_NORMAL;
+
+    if (!GetConfig(B_ALL_ABILITY_SLOTS))
+    {
+        PrintTextOnWindow(windowId, gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+        return;
+    }
+
+    topText[0] = EOS;
+    StringAppend(topText, COMPOUND_STRING("{RIGHT_ARROW}"));
+    StringAppend(topText, sAbilitySlotLabels[selectedSlot]);
+    StringAppend(topText, gAbilitiesInfo[selectedAbility].name);
+    if (GetStringWidth(FONT_NORMAL, topText, 0) > WindowWidthPx(windowId))
+        topFontId = FONT_SMALL;
+    PrintTextOnWindowWithFont(windowId, topText, 0, 1, 0, 0, topFontId);
 }
 
 static void PrintMonAbilityDescription(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
+
+    if (GetConfig(B_ALL_ABILITY_SLOTS))
+    {
+        ability = GetSpeciesAbility(sMonSummaryScreen->summary.species, GetSummaryAbilityDisplaySlot());
+        PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+        return;
+    }
+
     PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].description, 0, 17, 0, 0);
 }
 

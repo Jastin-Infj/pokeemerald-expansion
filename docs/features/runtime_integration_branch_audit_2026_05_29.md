@@ -130,6 +130,7 @@ These are the files most likely to define the integration order.
 | 2026-05-29 | `integration/runtime-dev-20260529` | #54 Party / Status UI | Source re-applied from `feature/party-status-ui-overhaul-20260521`; `party_menu.c` applied cleanly after #48 and retained the held-item catalog helpers; `all`, `debug`, full `check`, and mGBA Live boot/input smoke passed. | #51 Scout Selection or #57 Pokemon Vendor, with manual Party / item UI recheck first. |
 | 2026-05-29 | `integration/runtime-dev-20260529` | #51 Scout Selection | Source / tools / docs re-applied from `feature/scout-selection-runtime-20260520`; `make generated`, `all`, `debug`, full `check`, and mGBA Live Scout route validation passed. | #57 Pokemon Vendor, because Scout gift + 2x3 Party menu now prove the party baseline can accept new Pokemon gifts. |
 | 2026-05-29 | `integration/runtime-dev-20260529` | #57 Friendly Shop Pokemon Vendor | Source / tests re-applied from `feature/global-no-evolution-20260523`; `data/scripts/debug.inc` conflict was resolved as vendor `Script 1`, Scout pick-6 `Script 2`, and vendor trainer reward `Script 3`; focused vendor check, `all`, `debug`, and mGBA Live vendor purchase smoke passed. Full hydra `check` is not green due only to timing-sensitive `test/random.c` benchmark jitter that passed when focused. | #60 All Ability Slots, because the item / party / Summary / vendor stack is now present. |
+| 2026-05-29 | `integration/runtime-dev-20260529` | #60 All Ability Slots | Source / tests re-applied from `feature/all-ability-slots-runtime-20260523`; integration default changed to `B_ALL_ABILITY_SLOTS FALSE` while keeping the config max `TRUE`, so normal ROM behavior remains opt-in. Focused All Ability, AI thinking-time, battle item restore, vendor, `all`, `debug`, full `check`, and mGBA Live Pattern A recoil smoke passed. | #62 Champions Run Session, because battle / item / party / Summary / vendor policy is now present. |
 
 ### Item Policy Stack
 
@@ -263,7 +264,8 @@ This is a starting point, not a merge command list.
 6. Adopt #51 Scout Selection after the party baseline can be tested.
 7. Adopt #57 Friendly Shop Pokemon Vendor after held-item and party UI policy.
 8. Adopt #60 All Ability Slots after battle core and Summary ownership are
-   less volatile.
+   less volatile. Adopted on `integration/runtime-dev-20260529` with
+   `B_ALL_ABILITY_SLOTS` default `FALSE`.
 9. Adopt #62 Champions Run Session after roster, item, party, and battle policy
    are present.
 10. Add real Champions facility connection work after #62, not before.

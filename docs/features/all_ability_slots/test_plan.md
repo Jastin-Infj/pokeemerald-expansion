@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-24 |
-| Baseline | `master` `0407f6daf7` |
-| Code status | Runtime implementation validated locally |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f` |
+| Code status | Adopted into `integration/runtime-dev-20260529`; source remains off `master` |
 | Provenance | Local project overlay |
 
 ## Runtime Validation Gate
@@ -15,10 +15,11 @@ When implementation starts on a feature branch, run:
 
 - `rtk make -j16 -O all`
 - `rtk make -j16 -O debug`
-- `rtk make -j16 -O check` under the earlier single-ability default build;
-  with the final `B_ALL_ABILITY_SLOTS TRUE` build, use the focused all-ability
-  suite plus `all` / `debug` as the green gate because the upstream full suite
-  still asserts old single-ability default semantics.
+- `rtk make -j16 -O check` under the integration default. The runtime
+  integration branch defaults `B_ALL_ABILITY_SLOTS` to `FALSE`; if a feature
+  shelf flips it to `TRUE`, use the focused all-ability suite plus `all` /
+  `debug` as the green gate because upstream tests still assert old
+  single-ability default semantics.
 - focused `TESTS=...` checks for new all-active ability tests
 - one focused mGBA Live validation route when available
 
@@ -569,6 +570,44 @@ Additional debug-route validation added on 2026-05-24:
   `mgba-live-cli stop --session all-ability-k-commander-20260524` reported
   `alive_after:false` / `stopped:true`, and `mgba-live-cli status --all`
   returned `[]`.
+
+## Runtime Integration Validation 2026-05-29
+
+#60 was adopted into `integration/runtime-dev-20260529` after #47 Battle Item
+Restore, #48 Held Item Catalog, #54 Party / Status UI, #51 Scout Selection, and
+#57 Friendly Shop Pokemon Vendor. The integration branch keeps
+`B_ALL_ABILITY_SLOTS` default `FALSE`; tests and debug routes explicitly enable
+the mode where needed.
+
+Local validation passed:
+
+- `rtk git diff --check`
+- `rtk git diff --cached --check`
+- `rtk make -j16 -O check TESTS='All Ability Slots'`
+- `rtk make -j16 -O check TESTS='AI thinking time'`
+- `rtk make -j16 -O check TESTS='Battle item restore'`
+- `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`
+- `rtk make -j16 -O all`
+- `rtk make -j16 -O debug`
+- `rtk make -j16 -O check`
+
+Builds still report the existing RWX linker warning. Full `check` passed with
+the existing expected / known-failing markers.
+
+mGBA Live validation:
+
+- Session `integration-all-ability-optin-smoke` used the default-`FALSE`
+  integration debug ROM, continued the local save, opened
+  `Party` -> `All Ability...`, selected `A Recoil Battle`, used Clefable's
+  `Double-Edge`, and returned to the move menu with Clefable still at
+  `317/317`. This confirms the debug override enables all-slot behavior even
+  though the normal integration default remains opt-in.
+- Screenshots:
+  `/tmp/integration-all-ability-optin-submenu.png`,
+  `/tmp/integration-all-ability-optin-move-menu.png`, and
+  `/tmp/integration-all-ability-optin-after-double-edge.png`.
+- Cleanup was clean: `mgba_live_stop` reported `alive_after:false` and
+  `mgba-live-cli status --all` returned `[]`.
 
 ## Required Focused Tests
 
