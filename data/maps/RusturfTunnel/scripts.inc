@@ -56,6 +56,9 @@ RusturfTunnel_EventScript_ClearTunnelScene::
 	msgbox RusturfTunnel_Text_YouShatteredBoulderTakeHM, MSGBOX_DEFAULT
 	call_if_eq VAR_TEMP_1, 2, RusturfTunnel_EventScript_WandasBoyfriendApproachPlayer
 	call_if_eq VAR_TEMP_1, 3, RusturfTunnel_EventScript_WandasBoyfriendApproachPlayer
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_HM_STRENGTH
 	msgbox RusturfTunnel_Text_ExplainStrength, MSGBOX_DEFAULT
 	closemessage
 	call_if_eq VAR_TEMP_1, 1, RusturfTunnel_EventScript_BoyfriendApproachWanda1
@@ -486,11 +489,13 @@ RusturfTunnel_Text_YouShatteredBoulderTakeHM:
 	.string "Wow! You shattered that boulder\n"
 	.string "blocking the way.\p"
 	.string "To show you how much I appreciate it,\n"
-	.string "I'd like to tell you about STRENGTH.$"
+	.string "I'd like you to have this\n"
+	.string "FIELD KIT upgrade.$"
 
 RusturfTunnel_Text_ExplainStrength:
-	.string "A muscular POKéMON that knows\n"
-	.string "STRENGTH can move even\l"
+	.string "Your FIELD KIT can now use\n"
+	.string "STRENGTH.\p"
+	.string "You'll be able to move even\n"
 	.string "large boulders.$"
 
 RusturfTunnel_Text_WandaReunion:

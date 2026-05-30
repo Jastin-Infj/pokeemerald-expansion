@@ -92,6 +92,7 @@ Route119_EventScript_BattleMayMudkip::
 
 Route119_EventScript_DefeatedMay::
 	msgbox Route119_Text_MayPresentForYou, MSGBOX_DEFAULT
+	call Route119_EventScript_GiveFlyHM
 	msgbox Route119_Text_MayExplainFly, MSGBOX_DEFAULT
 	goto Route119_EventScript_RivalExitScottArrive
 	end
@@ -121,9 +122,16 @@ Route119_EventScript_BattleBrendanMudkip::
 
 Route119_EventScript_DefeatedBrendan::
 	msgbox Route119_Text_BrendanIllGiveYouThis, MSGBOX_DEFAULT
+	call Route119_EventScript_GiveFlyHM
 	msgbox Route119_Text_BrendanExplainFly, MSGBOX_DEFAULT
 	goto Route119_EventScript_RivalExitScottArrive
 	end
+
+Route119_EventScript_GiveFlyHM::
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_HM_FLY
+	return
 
 Route119_EventScript_RivalExitScottArrive::
 	closemessage
@@ -489,8 +497,8 @@ Route119_Text_MayPresentForYou:
 	.string "for you.$"
 
 Route119_Text_MayExplainFly:
-	.string "MAY: Use FLY, and your POKéMON will\n"
-	.string "instantly carry you to any town you've\l"
+	.string "MAY: Your FIELD KIT can now FLY\n"
+	.string "instantly to any town you've\l"
 	.string "already visited.\p"
 	.string "But, to use FLY, you have to get\n"
 	.string "the GYM BADGE from FORTREE CITY.\l"
@@ -520,8 +528,8 @@ Route119_Text_BrendanIllGiveYouThis:
 	.string "Try it out when you can.$"
 
 Route119_Text_BrendanExplainFly:
-	.string "BRENDAN: Use FLY, and your POKéMON\n"
-	.string "instantly carries you to any town\l"
+	.string "BRENDAN: Your FIELD KIT can now\n"
+	.string "FLY instantly to any town\l"
 	.string "you've already visited.\p"
 	.string "But you need the FORTREE GYM BADGE \n"
 	.string "to do that.\p"
@@ -571,8 +579,8 @@ Route119_Text_ThoughtFlyByCatchingBirdMons:
 	.string "I thought you FLY by catching a whole\n"
 	.string "flock of BIRD POKéMON, and then\l"
 	.string "hanging on to them somehow.\p"
-	.string "But it turns out there's a field\n"
-	.string "technique called FLY!\p"
+	.string "But it turns out there's a FIELD KIT\n"
+	.string "upgrade called FLY!\p"
 	.string "I wish I'd known about that a long\n"
 	.string "time ago…$"
 

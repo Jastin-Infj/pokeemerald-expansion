@@ -4,64 +4,131 @@
 #include "field_move.h"
 #include "fldeff.h"
 #include "fldeff_misc.h"
+#include "item.h"
 #include "party_menu.h"
 #include "constants/field_move.h"
+#include "constants/items.h"
 #include "constants/moves.h"
 #include "constants/party_menu.h"
 
+static bool32 FieldMove_HasToolkitCapability(enum FieldMove fieldMove)
+{
+    if (!OW_FIELD_MOVE_MODERNIZATION || !OW_FIELD_MOVE_TOOLKIT_REQUIRED || IS_FRLG)
+        return TRUE;
+
+    if (!CheckBagHasItem(ITEM_FIELD_KIT, 1))
+        return FALSE;
+
+    switch (fieldMove)
+    {
+    case FIELD_MOVE_CUT:
+        return FlagGet(FLAG_RECEIVED_HM_CUT);
+    case FIELD_MOVE_FLASH:
+        return FlagGet(FLAG_RECEIVED_HM_FLASH);
+    case FIELD_MOVE_ROCK_SMASH:
+        return FlagGet(FLAG_RECEIVED_HM_ROCK_SMASH);
+    case FIELD_MOVE_STRENGTH:
+        return FlagGet(FLAG_RECEIVED_HM_STRENGTH);
+    case FIELD_MOVE_SURF:
+        return FlagGet(FLAG_RECEIVED_HM_SURF);
+    case FIELD_MOVE_FLY:
+        return FlagGet(FLAG_RECEIVED_HM_FLY);
+    case FIELD_MOVE_DIVE:
+        return FlagGet(FLAG_RECEIVED_HM_DIVE);
+    case FIELD_MOVE_WATERFALL:
+        return FlagGet(FLAG_RECEIVED_HM_WATERFALL);
+    default:
+        return TRUE;
+    }
+}
+
+static bool32 FieldMove_CheckModernUnlock(enum FieldMove fieldMove, bool32 badgeUnlocked)
+{
+    if (!FieldMove_UsesModernUnlock(fieldMove))
+        return badgeUnlocked;
+
+    if (!FieldMove_HasToolkitCapability(fieldMove))
+        return FALSE;
+
+    if (OW_FIELD_MOVE_TOOLKIT_BADGES)
+        return badgeUnlocked;
+
+    return TRUE;
+}
+
 static bool32 IsFieldMoveUnlocked_Cut(void)
 {
-    if (IS_FRLG)
-        return FlagGet(FLAG_BADGE02_GET);
+    bool32 badgeUnlocked;
 
-    return FlagGet(FLAG_BADGE01_GET);
+    if (IS_FRLG)
+        badgeUnlocked = FlagGet(FLAG_BADGE02_GET);
+    else
+        badgeUnlocked = FlagGet(FLAG_BADGE01_GET);
+
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_CUT, badgeUnlocked);
 }
 
 static bool32 IsFieldMoveUnlocked_Flash(void)
 {
-    if (IS_FRLG)
-        return FlagGet(FLAG_BADGE01_GET);
+    bool32 badgeUnlocked;
 
-    return FlagGet(FLAG_BADGE02_GET);
+    if (IS_FRLG)
+        badgeUnlocked = FlagGet(FLAG_BADGE01_GET);
+    else
+        badgeUnlocked = FlagGet(FLAG_BADGE02_GET);
+
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_FLASH, badgeUnlocked);
 }
 
 static bool32 IsFieldMoveUnlocked_RockSmash(void)
 {
-    if (IS_FRLG)
-        return FlagGet(FLAG_BADGE06_GET);
+    bool32 badgeUnlocked;
 
-    return FlagGet(FLAG_BADGE03_GET);
+    if (IS_FRLG)
+        badgeUnlocked = FlagGet(FLAG_BADGE06_GET);
+    else
+        badgeUnlocked = FlagGet(FLAG_BADGE03_GET);
+
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_ROCK_SMASH, badgeUnlocked);
 }
 
 static bool32 IsFieldMoveUnlocked_Strength(void)
 {
-    return FlagGet(FLAG_BADGE04_GET);
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_STRENGTH, FlagGet(FLAG_BADGE04_GET));
 }
 
 static bool32 IsFieldMoveUnlocked_Surf(void)
 {
-    return FlagGet(FLAG_BADGE05_GET);
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_SURF, FlagGet(FLAG_BADGE05_GET));
 }
 
 static bool32 IsFieldMoveUnlocked_Fly(void)
 {
-    if (IS_FRLG)
-        return FlagGet(FLAG_BADGE03_GET);
+    bool32 badgeUnlocked;
 
-    return FlagGet(FLAG_BADGE06_GET);
+    if (IS_FRLG)
+        badgeUnlocked = FlagGet(FLAG_BADGE03_GET);
+    else
+        badgeUnlocked = FlagGet(FLAG_BADGE06_GET);
+
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_FLY, badgeUnlocked);
 }
 
 static bool32 IsFieldMoveUnlocked_Dive(void)
 {
-    return FlagGet(FLAG_BADGE07_GET);
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_DIVE, FlagGet(FLAG_BADGE07_GET));
 }
 
 static bool32 IsFieldMoveUnlocked_Waterfall(void)
 {
-    if (IS_FRLG)
-        return FlagGet(FLAG_BADGE07_GET);
+    bool32 badgeUnlocked;
 
-    return FlagGet(FLAG_BADGE08_GET);
+    if (IS_FRLG)
+        badgeUnlocked = FlagGet(FLAG_BADGE07_GET);
+    else
+        badgeUnlocked = FlagGet(FLAG_BADGE08_GET);
+
+    return FieldMove_CheckModernUnlock(FIELD_MOVE_WATERFALL, badgeUnlocked);
 }
 
 #if OW_ROCK_CLIMB_FIELD_MOVE == TRUE
