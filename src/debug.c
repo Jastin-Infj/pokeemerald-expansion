@@ -417,6 +417,10 @@ extern const u8 Debug_EventScript_ChampionsRunCheckpoint[];
 extern const u8 Debug_EventScript_ChampionsRunRetire[];
 extern const u8 Debug_EventScript_ChampionsRunLoseTest[];
 extern const u8 Debug_EventScript_ChampionsRunClear[];
+extern const u8 Debug_EventScript_FieldKitFull[];
+extern const u8 Debug_EventScript_FieldKitItem[];
+extern const u8 Debug_EventScript_FieldKitFlags[];
+extern const u8 Debug_EventScript_FieldKitClear[];
 extern const u8 DebugScript_DaycareMonsNotCompatible[];
 extern const u8 DebugScript_OneDaycareMons[];
 extern const u8 DebugScript_ZeroDaycareMons[];
@@ -722,6 +726,10 @@ static const struct DebugMenuOption sDebugMenu_Actions_Scripts[] =
     { COMPOUND_STRING("Champs: Retire"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunRetire },
     { COMPOUND_STRING("Champs: Lose Test"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunLoseTest },
     { COMPOUND_STRING("Champs: Clear"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunClear },
+    { COMPOUND_STRING("Field Kit Full"), DebugAction_ExecuteScript, Debug_EventScript_FieldKitFull },
+    { COMPOUND_STRING("Field Kit Item"), DebugAction_ExecuteScript, Debug_EventScript_FieldKitItem },
+    { COMPOUND_STRING("Field Kit Flags"), DebugAction_ExecuteScript, Debug_EventScript_FieldKitFlags },
+    { COMPOUND_STRING("Field Kit Clear"), DebugAction_ExecuteScript, Debug_EventScript_FieldKitClear },
     { COMPOUND_STRING("Script 4"), DebugAction_ExecuteScript, Debug_EventScript_Script_4 },
     { COMPOUND_STRING("Script 5"), DebugAction_ExecuteScript, Debug_EventScript_Script_5 },
     { COMPOUND_STRING("Script 6"), DebugAction_ExecuteScript, Debug_EventScript_Script_6 },
