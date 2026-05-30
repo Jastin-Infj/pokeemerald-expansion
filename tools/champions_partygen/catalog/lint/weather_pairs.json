@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "weathers": {
+    "sun": {
+      "setterMoves": ["MOVE_SUNNY_DAY"],
+      "setterAbilities": ["ABILITY_DROUGHT", "ABILITY_ORICHALCUM_PULSE"],
+      "abuserMoves": ["MOVE_SOLAR_BEAM", "MOVE_WEATHER_BALL"],
+      "abuserAbilities": ["ABILITY_CHLOROPHYLL", "ABILITY_SOLAR_POWER", "ABILITY_FLOWER_GIFT", "ABILITY_HARVEST", "ABILITY_LEAF_GUARD", "ABILITY_PROTOSYNTHESIS"]
+    },
+    "rain": {
+      "setterMoves": ["MOVE_RAIN_DANCE"],
+      "setterAbilities": ["ABILITY_DRIZZLE"],
+      "abuserMoves": ["MOVE_THUNDER", "MOVE_HURRICANE", "MOVE_WEATHER_BALL"],
+      "abuserAbilities": ["ABILITY_SWIFT_SWIM", "ABILITY_RAIN_DISH", "ABILITY_HYDRATION", "ABILITY_DRY_SKIN"]
+    },
+    "sand": {
+      "setterMoves": ["MOVE_SANDSTORM"],
+      "setterAbilities": ["ABILITY_SAND_STREAM", "ABILITY_SAND_SPIT"],
+      "abuserMoves": ["MOVE_WEATHER_BALL"],
+      "abuserAbilities": ["ABILITY_SAND_RUSH", "ABILITY_SAND_FORCE", "ABILITY_SAND_VEIL"]
+    },
+    "hail": {
+      "setterMoves": ["MOVE_HAIL", "MOVE_SNOWSCAPE", "MOVE_CHILLY_RECEPTION"],
+      "setterAbilities": ["ABILITY_SNOW_WARNING"],
+      "abuserMoves": ["MOVE_BLIZZARD", "MOVE_AURORA_VEIL", "MOVE_WEATHER_BALL"],
+      "abuserAbilities": ["ABILITY_SLUSH_RUSH", "ABILITY_ICE_BODY", "ABILITY_SNOW_CLOAK", "ABILITY_FORECAST"]
+    }
+  }
+}

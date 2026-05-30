@@ -2,9 +2,19 @@
 
 Date: 2026-05-06
 
-Branch: `feature/trainer-party-generator`
+Branch: `feature/trainer-partygen-catalog-expansion`
 
 Status: partially implemented in `tools/champions_partygen`
+
+2026-05-09 update:
+
+- `RNK002` now runs with catalog set `bst` overrides and defaults to
+  species-info-derived BST values.
+- `RNK003` warns when a mid-rank pool contains more than one fully evolved
+  BST >= 600 set.
+- `RNK004` warns when a mid-rank set level is more than +5 above the source
+  trainer block's top level.
+- `RNK005` notes late / champion pools with zero fully evolved species.
 
 ## Purpose
 
@@ -291,6 +301,7 @@ Implemented now:
 - severity model and audit log schema;
 - `DBL001`-`DBL005`;
 - rank-band hard filtering through `minRank` / `maxRank`;
+- `RNK002`-`RNK005`;
 - `WTH001` / `WTH002` and configured `BFL001` / `BFL002`;
 - `ITM001` / `ITM003`;
 - `SLT001` / `SLT002` / `SLT004`;
@@ -302,7 +313,6 @@ Implemented now:
 
 Still planned:
 
-- BST budget checks (`RNK002`-`RNK005`);
 - weather / terrain compatibility beyond the basic configured setter-abuser
   pair;
 - `DBL006`, `ITM002`, `SLT003`, `CVR002`, and `XTR003`.

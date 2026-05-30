@@ -14,6 +14,24 @@ Validated generated `TRAINER_SIDNEY`, `TRAINER_PHOEBE`, `TRAINER_GLACIA`,
 
 ## Static Checks
 
+2026-05-09 `RNK002` explicit BST budget slice:
+
+- `rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml`: passed
+  with 15 tests after `RNK002`-`RNK005` implementation.
+- `rtk cargo clippy --manifest-path tools/champions_partygen/Cargo.toml -- -D warnings`:
+  passed.
+- `rtk tools/champions_partygen/partygen.sh doctor`: passed; catalog found 5
+  journey trainers, 5 blueprints, 31 sets, 1317 species info entries, and 855
+  source trainer blocks.
+- `rtk tools/champions_partygen/partygen.sh generate --seed 1 --out /tmp/partygen-rnk345.party --audit-out /tmp/partygen-rnk345.audit.json`:
+  passed with 0 errors, 1 existing warning, and 0 notes.
+- `rtk tools/champions_partygen/partygen.sh validate --input /tmp/partygen-rnk345.party`:
+  passed.
+- `rtk tools/champions_partygen/partygen.sh diff --input /tmp/partygen-rnk345.party`:
+  reported generated changes for Sidney, Phoebe, Glacia, Drake, and Wallace.
+- `rtk tools/champions_partygen/partygen.sh generate --seed 1 --lint-only --audit-out /tmp/partygen-rnk345-lint.audit.json`:
+  passed with 0 errors, 1 existing warning, and 0 notes.
+
 Commands run:
 
 ```sh
