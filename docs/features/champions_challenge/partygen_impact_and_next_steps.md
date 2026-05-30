@@ -138,6 +138,19 @@ The next implementation phase is now tracked by two design documents. The
 current branch implements their first code pass; each doc now marks what is
 implemented and what is still planned.
 
+2026-05-09 implementation update:
+
+- `RNK002`-`RNK005` rank / power lints are implemented on
+  `feature/trainer-partygen-catalog-expansion`.
+- The slice loads `src/data/pokemon/species_info/` once at startup to derive
+  BST and fully evolved state, while still allowing catalog set `bst`
+  overrides.
+- Validation: `rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml`,
+  `rtk cargo clippy --manifest-path tools/champions_partygen/Cargo.toml -- -D warnings`,
+  `rtk tools/champions_partygen/partygen.sh doctor`, generate, validate, diff,
+  and lint-only all passed. The current sample catalog still reports the
+  documented single warning during generation.
+
 - Lint and audit log: [partygen_lint_spec.md](partygen_lint_spec.md).
   Covers doubles vs singles consistency, rank band / power budget, weather
   setter / abuser pairing, item duplication, required slot health, light

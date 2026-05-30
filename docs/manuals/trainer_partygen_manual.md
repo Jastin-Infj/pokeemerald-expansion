@@ -2,10 +2,6 @@
 
 This manual covers day-to-day use of `tools/champions_partygen` and how it relates to `src/data/trainers.party`.
 
-For trainer battle prize money, encounter music, battle BGM, victory BGM,
-mugshot transition, and battle background routing, read
-[Trainer Battle Reward and Audio Flow](../flows/trainer_battle_reward_audio_flow_v15.md).
-
 ## When To Use
 
 Use partygen when a trainer's party should be generated from curated catalog data and materialized into the existing `trainers.party` DSL.
@@ -121,6 +117,9 @@ Blueprints define:
 - required slots such as lead or ace;
 - preferred roles;
 - pool size constraints.
+- optional `bstBudget`: explicit catalog power budget. The current
+  implementation checks `mean` with optional `tolerance` using set `bst`
+  overrides or species-info-derived BST values.
 
 Sets define:
 
@@ -137,6 +136,8 @@ Sets define:
 - `lintTags`: catalog-only tags for lint concepts such as `Weather Setter:
   Snow` or `Terrain Abuser: Electric`;
 - `minRank` and `maxRank` for rank-band filtering;
+- optional `bst`: explicit base stat total used by the current `RNK002` budget
+  lint when a set needs to override the species_info value.
 - final `Tags` that trainerproc understands.
 
 Only these final pool tags are emitted to `trainers.party`:
@@ -146,9 +147,11 @@ Only these final pool tags are emitted to `trainers.party`:
 - `Weather Setter`
 - `Weather Abuser`
 - `Support`
-- `Tag 5`
-- `Tag 6`
-- `Tag 7`
+- `Tag6`
+- `Tag7`
+- `Tag8`
+
+Use the compact `Tag6` / `Tag7` / `Tag8` spellings when numbered tags are needed. The spaced forms `Tag 5` / `Tag 6` / `Tag 7` are not trainerproc-safe because they expand to undefined C macros.
 
 Do not dump every role, archetype, weather, or terrain concept into `Tags`.
 Roles, archetypes, and `lintTags` are tool vocabulary; `Tags` are ROM pool
@@ -242,11 +245,6 @@ secret base: 20 * firstSecretBaseMonLevel * moneyMultiplier
 `trainerClassMoney` is defined in `gTrainerClasses` in `src/battle_main.c`; missing class money falls back to 5.
 
 Partygen can change the reward indirectly because it can change the last materialized party mon level. If reward stability matters, keep pool member levels consistent or add an expected money report to partygen before changing many major trainers.
-
-For the full source map, including `gTrainerClasses`, encounter music, battle
-BGM, victory BGM, mugshot color, and Leader / Champion battle background
-effects, see
-[Trainer Battle Reward and Audio Flow](../flows/trainer_battle_reward_audio_flow_v15.md).
 
 ## EXP
 
