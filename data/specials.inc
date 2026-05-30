@@ -59,6 +59,14 @@ gSpecials::
 	def_special SpawnLinkPartnerObjectEvent
 	def_special SavePlayerParty
 	def_special LoadPlayerParty
+	def_special ChampionsRun_CanUseNormalPc
+	def_special ChampionsRun_ReloadMapAfterRestore
+	def_special ChampionsRun_DebugBegin
+	def_special ChampionsRun_DebugGiveRunMon
+	def_special ChampionsRun_DebugSaveCheckpoint
+	def_special ChampionsRun_DebugRestoreNormal
+	def_special ChampionsRun_DebugPrepareLoseTest
+	def_special ChampionsRun_DebugClear
 	def_special ChooseHalfPartyForBattle, waitstate=1
 	def_special Script_ShowLinkTrainerCard, waitstate=1
 	def_special ObjectEventInteractionGetBerryTreeData

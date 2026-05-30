@@ -34,8 +34,15 @@ EventScript_AccessPokemonStorage::
 	playse SE_PC_LOGIN
 	call_if_unset FLAG_SYS_PC_LANETTE, EventScript_AccessSomeonesPC
 	call_if_set FLAG_SYS_PC_LANETTE, EventScript_AccessLanettesPC
+	special ChampionsRun_CanUseNormalPc
+	goto_if_eq VAR_RESULT, FALSE, EventScript_ChampionsRunPCBlocked
 	msgbox gText_StorageSystemOpened, MSGBOX_DEFAULT
 	special ShowPokemonStorageSystemPC
+	goto EventScript_PCMainMenu
+	end
+
+EventScript_ChampionsRunPCBlocked::
+	msgbox Text_ChampionsRunPCBlocked, MSGBOX_DEFAULT
 	goto EventScript_PCMainMenu
 	end
 
@@ -67,7 +74,17 @@ EventScript_AccessHallOfFame::
 
 EventScript_AccessPokemonBoxLink::
 	playse SE_PC_LOGIN
+	special ChampionsRun_CanUseNormalPc
+	goto_if_eq VAR_RESULT, FALSE, EventScript_ChampionsRunBoxLinkBlocked
 	msgbox gText_StorageSystemOpened, MSGBOX_DEFAULT
 	special ShowPokemonStorageSystemPC
 	goto EventScript_TurnOffPC
 	end
+
+EventScript_ChampionsRunBoxLinkBlocked::
+	msgbox Text_ChampionsRunPCBlocked, MSGBOX_DEFAULT
+	goto EventScript_TurnOffPC
+	end
+
+Text_ChampionsRunPCBlocked:
+	.string "This PC cannot access Pokemon Storage\nwhile a Champions run is active.$"

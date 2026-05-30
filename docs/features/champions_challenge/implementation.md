@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Branch | `feature/champions-run-session-runtime-20260524` |
-| Status | Source implementation on feature branch; not for direct `master` merge |
+| Branch | `feature/champions-run-session-runtime-20260524`; adopted into `integration/runtime-dev-20260529` |
+| Status | Source implementation adopted into runtime integration; not for direct `master` merge |
 | Primary files | `src/champions_run_session.c`, `include/champions_run_session.h`, `include/global.h`, `src/save.c`, `data/scripts/debug.inc`, `data/scripts/pc.inc`, `data/specials.inc` |
-| Last updated | 2026-05-25 |
+| Last updated | 2026-05-29 |
 
 ## Implemented Contract
 
@@ -80,7 +80,10 @@ four-sector SaveBlock1 capacity of `15872` bytes.
 
 ## Debug Route
 
-The generic debug script slots are used as the first manual route:
+The original feature branch used the generic debug script slots as the first
+manual route. In `integration/runtime-dev-20260529`, existing Script 1-3 usage
+from Pokemon Vendor and Scout Selection is preserved, and the Champions routes
+are exposed as named entries in `Scripts...`:
 
 | Debug menu label | Behavior |
 |---|---|
@@ -90,6 +93,9 @@ The generic debug script slots are used as the first manual route:
 | `Champs: Retire` | Retire the active run, return to the run-start point, restore normal state, and save. |
 | `Champs: Lose Test` | Start a run, give Lv.1 Magikarp, checkpoint, and start a Steven battle for loss/restore validation. |
 | `Champs: Clear` | Complete the current run, deposit the live party into PC storage, restore normal state, and autosave. |
+
+Legacy generic entries `Script 4` through `Script 8` remain as no-op fallback
+scripts in the integration branch.
 
 ## Validation Evidence
 
@@ -157,6 +163,37 @@ The generic debug script slots are used as the first manual route:
     `champs-start-retire-loss-fix` session still showed the known stale /
     zombie cleanup condition after repeated stop attempts (`[mgba-qt]
     <defunct>`), but no current validation depends on that session.
+
+## Runtime Integration Adoption 2026-05-29
+
+#62 was adopted into `integration/runtime-dev-20260529` after #47, #48, #54,
+#51, #57, and #60. The only source conflicts were `data/scripts/debug.inc` and
+`src/debug.c`; both were resolved by preserving the existing Vendor / Scout
+debug routes and adding named Champions entries instead of reusing `Script 1-6`.
+
+Integration validation passed:
+
+- `rtk git diff --check`
+- `rtk git diff --cached --check`
+- `rtk make -j16 -O check TESTS=Champions`
+- `rtk make -j16 -O check TESTS=SaveBlock`
+- `rtk make -j16 -O check TESTS='All Ability Slots'`
+- `rtk make -j16 -O check TESTS='Battle item restore'`
+- `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`
+- `rtk make -j16 -O all`
+- `rtk make -j16 -O debug`
+- `rtk make -j16 -O check`
+- mGBA Live `integration-champions-run-smoke`: opened
+  `Debug Menu` -> `Scripts...`, confirmed the named Champions entries, ran
+  `Champs: Start`, `Champs: Give Mon`, and `Champs: Retire`, then confirmed
+  the field returned to a stable map view. Screenshots:
+  `/tmp/integration-champions-run-scripts-menu.png`,
+  `/tmp/integration-champions-run-start.png`,
+  `/tmp/integration-champions-run-give-mon.png`, and
+  `/tmp/integration-champions-run-retire-map.png`.
+
+The mGBA session stopped cleanly, and `mgba-live-cli status --all` returned
+`[]`.
 
 ## Remaining Runtime Work
 

@@ -48,7 +48,8 @@
 
 ## Current Automated Coverage
 
-Implemented on `feature/champions-run-session-runtime-20260524`:
+Implemented on `feature/champions-run-session-runtime-20260524` and adopted
+into `integration/runtime-dev-20260529`:
 
 | Test | Evidence |
 |---|---|
@@ -106,6 +107,29 @@ Latest local evidence:
   after repeated stop attempts, and `pgrep` showed `[mgba-qt] <defunct>`.
   This is recorded as the known stale / zombie cleanup state rather than a
   feature failure.
+
+Integration evidence on `integration/runtime-dev-20260529`:
+
+- `rtk git diff --check`
+- `rtk git diff --cached --check`
+- `rtk make -j16 -O check TESTS=Champions`
+- `rtk make -j16 -O check TESTS=SaveBlock`
+- `rtk make -j16 -O check TESTS='All Ability Slots'`
+- `rtk make -j16 -O check TESTS='Battle item restore'`
+- `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`
+- `rtk make -j16 -O all`
+- `rtk make -j16 -O debug`
+- `rtk make -j16 -O check`
+- mGBA Live `integration-champions-run-smoke` confirmed
+  `Scripts...` contains the named Champions entries after preserving Vendor /
+  Scout script slots, and confirmed `Champs: Start`, `Champs: Give Mon`, and
+  `Champs: Retire` return to a stable field map. Screenshots:
+  `/tmp/integration-champions-run-scripts-menu.png`,
+  `/tmp/integration-champions-run-start.png`,
+  `/tmp/integration-champions-run-give-mon.png`, and
+  `/tmp/integration-champions-run-retire-map.png`.
+- Cleanup was clean: `mgba_live_stop` reported `alive_after:false`, and
+  `mgba-live-cli status --all` returned `[]`.
 
 ## Regression Tests
 

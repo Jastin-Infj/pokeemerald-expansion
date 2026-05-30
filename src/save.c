@@ -1,5 +1,6 @@
 #include "global.h"
 #include "agb_flash.h"
+#include "champions_run_session.h"
 #include "gba/flash_internal.h"
 #include "fieldmap.h"
 #include "save.h"
@@ -715,6 +716,9 @@ u8 HandleSavingData(u8 saveType)
     u8 i;
     u32 *backupVar = gTrainerHillVBlankCounter;
 
+    if (ChampionsRun_ShouldUseTemporarySave(saveType))
+        saveType = SAVE_LINK;
+
     gTrainerHillVBlankCounter = NULL;
     UpdateSaveAddresses();
     switch (saveType)
@@ -893,6 +897,7 @@ u8 LoadGameSave(u8 saveType)
     default:
         status = TryLoadSaveSlot(FULL_SAVE_SLOT, gRamSaveSectorLocations);
         CopyPartyAndObjectsFromSave();
+        ChampionsRun_HandleBootRecovery();
         gSaveFileStatus = status;
         gGameContinueCallback = NULL;
         break;

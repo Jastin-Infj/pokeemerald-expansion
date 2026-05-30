@@ -4,13 +4,16 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-25 |
-| Baseline | `master` `5b8ced1883`; partygen implementation exists on `feature/trainer-partygen-catalog-expansion` |
-| Code status | Runtime not on `master`; run session restore MVP is implemented on `feature/champions-run-session-runtime-20260524` |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; partygen implementation exists on `feature/trainer-partygen-catalog-expansion` |
+| Code status | Run session restore MVP adopted into `integration/runtime-dev-20260529`; runtime remains off `master` |
 | Provenance | Local project feature docs |
 
-Status: Run session restore MVP implemented on feature branch
-Code status: runtime not on `master`; run session restore MVP exists on `feature/champions-run-session-runtime-20260524`; partygen CLI / catalog implementation exists on `feature/trainer-partygen-catalog-expansion`
+Status: Run session restore MVP adopted into the runtime integration branch.
+Code status: runtime not on `master`; run session restore MVP exists on
+`integration/runtime-dev-20260529` from source shelf
+`feature/champions-run-session-runtime-20260524`; partygen CLI / catalog
+implementation exists on `feature/trainer-partygen-catalog-expansion`.
 
 ## Goal
 
@@ -120,9 +123,12 @@ Champions trainer ID の固定リストを増やさずに済む。
 
 ## Current Priority
 
-`feature/champions-run-session-runtime-20260524` で run session restore の
-MVP は debug route まで実装済み。次の優先は **実施設 script への接続** と
-**active checkpoint resume の実機検証**。
+`integration/runtime-dev-20260529` で run session restore の MVP は debug
+route まで採用済み。#62 integration では existing `Script 1-3` を維持し、
+Scripts menu に `Champs: Start` / `Champs: Give Mon` /
+`Champs: Checkpoint` / `Champs: Retire` / `Champs: Lose Test` /
+`Champs: Clear` の名前付き entry を追加した。次の優先は
+**実施設 script への接続** と **active checkpoint resume の実機検証**。
 
 実装順の推奨:
 
