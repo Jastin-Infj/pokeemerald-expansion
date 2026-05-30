@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-29 |
+| Last reviewed | 2026-05-30 |
 | Baseline | `master` `4e48ff993f` |
 | Code status | Docs-only ledger |
 | Provenance | Local source read and feature docs |
@@ -16,7 +16,7 @@ capability flag、save state の索引。`master` の値と branch-only の値�
 
 | Token / state | Type | Owner | Current `master` | Branch / integration note |
 |---|---|---|---|---|
-| `OW_FLAG_NO_ENCOUNTER` | Event flag id config | `docs/features/no_random_encounters/` | `include/config/overworld.h` で `0`。未割り当て。 | bool ではない。`TRUE` / `1` ではなく明示 flag id を割り当てる。step-only adoption candidate は `FLAG_UNUSED_0x8E5` を `FLAG_NO_ENCOUNTER` (`SYSTEM_FLAGS + 0x85`) に rename して使う。 |
+| `OW_FLAG_NO_ENCOUNTER` | Event flag id config | `docs/features/no_random_encounters/` | `include/config/overworld.h` で `0`。未割り当て。 | Adopted on `integration/runtime-dev-20260529`: `FLAG_UNUSED_0x8E5` is renamed to `FLAG_NO_ENCOUNTER` (`SYSTEM_FLAGS + 0x85`) and assigned to `OW_FLAG_NO_ENCOUNTER`. bool ではない。`TRUE` / `1` は使わない。 |
 | `I_REUSABLE_TMS` | Item config | `docs/features/tm_shop_migration/` | `include/config/item.h` で `FALSE`。 | PR #31 branch では `TRUE`。既存 50 TM を持っている場合だけ reusable になる。 |
 | `P_SHOW_TERA_TYPE` | Pokemon / Summary config | `docs/features/summary_tera_type_icon/` | `include/config/pokemon.h` で `GEN_8`。Summary Tera表示は既定で無効。 | PR #26 branch では Summary Tera badge 用に有効化する前提。 |
 | `P_SUMMARY_SCREEN_MOVE_RELEARNER` | Summary config | `docs/features/unified_move_relearner/` | `TRUE`。Move page の `START RELEARN` 表示に使う。 | Unified mode では prompt copy / L-R category cycling の扱いを確認する。2x3 party grid 統合時は Summary route を正規入口にする。 |

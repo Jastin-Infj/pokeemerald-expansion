@@ -3,7 +3,8 @@
 ## Status
 
 Implemented and locally validated on `feature/no-random-encounters-step-only-runtime-20260517`.
-Source changes are still not on `master`.
+The same three-file source slice is adopted on `integration/runtime-dev-20260529`
+as of 2026-05-30. Source changes are still not on `master`.
 
 ## MVP Scope
 

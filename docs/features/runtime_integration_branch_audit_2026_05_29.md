@@ -62,7 +62,7 @@ a current PR.
 | `feature/summary-tera-type-badge` | Closed PR #26. | Implemented display-only Summary Tera icon. | Small UI shelf; adopt only after asset credit and Summary layout ownership are settled. |
 | `feature/unified-move-relearner` | Closed PR #28. | Implemented unified level / egg / TM / tutor / special move candidate list. | Completed shelf. Prefer after TM Shop Migration; teach / overwrite runtime proof remains recommended before final adoption. |
 | `feature/tm-shop-migration` | Closed PR #31. | Implemented TM/HM acquisition retirement and reusable TM config. | Clean adoption shelf, but not a missing implementation. Prefer before Unified Move Relearner if the TM/HM lane resumes. |
-| `feature/no-random-encounters-step-only-runtime-20260517` | Closed PR #41. | Implemented and user-confirmed step-only random encounter suppression. | Completed shelf. Re-apply only if runtime-dev wants the no-random flag now. |
+| `feature/no-random-encounters-step-only-runtime-20260517` | Closed PR #41. | Implemented and user-confirmed step-only random encounter suppression. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Keep PR #41 closed as source evidence. |
 | `feature/battle-bgm-selector-mvp-20260517` | Closed PR #39. | Implemented battle BGM selector plus large imported audio set. | Separate audio lane. Do not mix into the first runtime-dev pass unless audio becomes the selected focus. |
 | `feature/trainer-battle-aftercare-heal` | Closed PR #10. | Implemented default-off trainer battle win heal hook. | Completed shelf needing focused exclusion tests before adoption. |
 | `feature/trainer-partygen-catalog-expansion` | Closed PR #7. | Implemented partygen CLI / catalog / Elite Four and Wallace trainer pool data. | Tool/data shelf for Champions integration. Review generated data before adopting into runtime-dev. |
@@ -132,6 +132,7 @@ These are the files most likely to define the integration order.
 | 2026-05-29 | `integration/runtime-dev-20260529` | #57 Friendly Shop Pokemon Vendor | Source / tests re-applied from `feature/global-no-evolution-20260523`; `data/scripts/debug.inc` conflict was resolved as vendor `Script 1`, Scout pick-6 `Script 2`, and vendor trainer reward `Script 3`; focused vendor check, `all`, `debug`, and mGBA Live vendor purchase smoke passed. Full hydra `check` is not green due only to timing-sensitive `test/random.c` benchmark jitter that passed when focused. | #60 All Ability Slots, because the item / party / Summary / vendor stack is now present. |
 | 2026-05-29 | `integration/runtime-dev-20260529` | #60 All Ability Slots | Source / tests re-applied from `feature/all-ability-slots-runtime-20260523`; integration default changed to `B_ALL_ABILITY_SLOTS FALSE` while keeping the config max `TRUE`, so normal ROM behavior remains opt-in. Focused All Ability, AI thinking-time, battle item restore, vendor, `all`, `debug`, full `check`, and mGBA Live Pattern A recoil smoke passed. | #62 Champions Run Session, because battle / item / party / Summary / vendor policy is now present. |
 | 2026-05-29 | `integration/runtime-dev-20260529` | #62 Champions Run Session | Source / tests re-applied from `feature/champions-run-session-runtime-20260524`; debug conflicts resolved by preserving Vendor / Scout script slots and adding named `Champs:*` script entries. Focused Champions, SaveBlock, All Ability, battle item restore, vendor, `all`, `debug`, full `check`, and mGBA Live Start / Give Mon / Retire smoke passed. | Real Champions facility connection work, because the save/session layer is now present. |
+| 2026-05-30 | `integration/runtime-dev-20260529` | #41 No Random Encounters step-only | Source re-applied from `feature/no-random-encounters-step-only-runtime-20260517` commit `3d4522f6e9`; diff is limited to `include/config/overworld.h`, `include/constants/flags.h`, and `include/constants/flags_frlg.h`. `all`, `debug`, full `check`, and mGBA Live boot / field / SaveBlock flag set-clear smoke passed. | Team preview lane dependency review, because the low-risk no-random flag is now staged and the next remaining user-confirmed runtime shelf has party / battle-flow overlap. |
 
 ### Item Policy Stack
 
@@ -224,6 +225,9 @@ The current queue has many debug and special registrations:
   `data/specials.inc`, `src/debug.c`.
 - #65 Map Asset Relinker: debug map / Fly validation changes, but this is a
   tooling lane and should not be mixed into runtime-dev by default.
+- #41 No Random Encounters: no new debug script entry; it enables the existing
+  `Flags & Vars... > Toggle Encounter OFF` path by assigning
+  `OW_FLAG_NO_ENCOUNTER` to `FLAG_NO_ENCOUNTER`.
 
 Integration rule:
 
