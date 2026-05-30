@@ -4,13 +4,13 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Baseline | `master` `6d0578c188`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
-| Code status | Not on `master`; branch implementation exists |
+| Last reviewed | 2026-05-30 |
+| Baseline | `integration/runtime-dev-20260529`; branch implementation exists on `feature/trainer-battle-aftercare-heal` |
+| Code status | Adopted as a default-off heal hook on runtime integration; not on `master` |
 | Provenance | Local project feature docs / feature handoff |
 
-Status: Planned / branch implementation exists
-Code status: not on `master`; heal-only MVP exists on `feature/trainer-battle-aftercare-heal` behind `B_TRAINER_BATTLE_AFTERCARE`
+Status: Adopted heal-only runtime hook / follow-up policy remains planned
+Code status: not on `master`; heal-only MVP is staged on `integration/runtime-dev-20260529` behind `B_TRAINER_BATTLE_AFTERCARE`
 
 ## Goal
 
@@ -39,9 +39,10 @@ Code status: not on `master`; heal-only MVP exists on `feature/trainer-battle-af
 
 ## Branch MVP Shape (`feature/trainer-battle-aftercare-heal`)
 
-2026-05-09 `master` baseline note: the code described below is not present on
-`master` yet. Treat it as the validated branch shape to re-apply or cherry-pick
-when this feature becomes the active implementation branch.
+2026-05-30 runtime integration note: the code described below is not present on
+`master`, but the heal-only hook has been re-applied to
+`integration/runtime-dev-20260529`. Treat the old branch as provenance, not a
+branch to merge directly.
 
 `include/config/battle.h` に `B_TRAINER_BATTLE_AFTERCARE` を追加した。
 default は `FALSE` なので既存 ROM 挙動は変わらない。
@@ -58,10 +59,9 @@ default は `FALSE` なので既存 ROM 挙動は変わらない。
 - Frontier / Pyramid / Trainer Hill / link / recorded link / secret base /
   early rival / follower partner / forfeit は除外する。
 
-Adoption note: this slice should not be merged with battle item restore by
-default. Re-apply it on a fresh feature / integration branch only after the item
-restore policy is settled and after adding a focused config-off / normal-win /
-excluded-branch test gate.
+Adoption note: this slice was kept separate from battle item restore. The
+integration default remains `FALSE`, so config-on normal-win and excluded-branch
+tests are still required before enabling aftercare by default.
 
 ## Cross-Feature Guard Contract
 
