@@ -4,12 +4,7 @@ LilycoveCity_House2_MapScripts::
 LilycoveCity_House2_EventScript_FatMan::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_REST, LilycoveCity_House2_EventScript_ReceivedRest
 	msgbox LilycoveCity_House2_Text_NotAwakeYetHaveThis, MSGBOX_DEFAULT
-	giveitem ITEM_TM_REST
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_REST
-	msgbox LilycoveCity_House2_Text_SleepIsEssential, MSGBOX_DEFAULT
 	release
 	end
 
@@ -21,7 +16,7 @@ LilycoveCity_House2_EventScript_ReceivedRest::
 LilycoveCity_House2_Text_NotAwakeYetHaveThis:
 	.string "Huh? What? What's that?\p"
 	.string "I'm not near awake yet…\n"
-	.string "You can have this…$"
+	.string "Maybe I'll remember after a nap…$"
 
 LilycoveCity_House2_Text_SleepIsEssential:
 	.string "Yawn…\p"

@@ -223,12 +223,7 @@ VerdanturfTown_BattleTentLobby_Movement_PlayerEnterDoor:
 VerdanturfTown_BattleTentLobby_EventScript_AttractGiver::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_ATTRACT, VerdanturfTown_BattleTentLobby_EventScript_ReceivedAttract
 	msgbox VerdanturfTown_BattleTentLobby_Text_AttractionRunsDeep, MSGBOX_DEFAULT
-	giveitem ITEM_TM_ATTRACT
-	goto_if_eq VAR_RESULT, 0, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_ATTRACT
-	msgbox VerdanturfTown_BattleTentLobby_Text_AttractionMutual, MSGBOX_DEFAULT
 	release
 	end
 
@@ -349,8 +344,8 @@ VerdanturfTown_BattleTentLobby_Text_AttractionRunsDeep:
 	.string "The attraction runs deep…\p"
 	.string "Oh, hi, you didn't see that, did you?\n"
 	.string "Well, it doesn't matter.\p"
-	.string "How would you like this TM for\n"
-	.string "your POKéMON?$"
+	.string "A strong bond makes battling feel\n"
+	.string "more natural, doesn't it?$"
 
 VerdanturfTown_BattleTentLobby_Text_AttractionMutual:
 	.string "My feelings toward my POKéMON…\n"

@@ -197,17 +197,12 @@ SlateportCity_BattleTentLobby_Movement_UnusedEnterDoor::
 SlateportCity_BattleTentLobby_EventScript_TormentGiver::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_TORMENT, SlateportCity_BattleTentLobby_EventScript_ReceivedTorment
 	msgbox SlateportCity_BattleTentLobby_Text_CouldntFindMonForMe, MSGBOX_DEFAULT
-	giveitem ITEM_TM_TORMENT
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_TORMENT
-	msgbox SlateportCity_BattleTentLobby_Text_ExplainTorment, MSGBOX_DEFAULT
 	release
 	end
 
 SlateportCity_BattleTentLobby_EventScript_ReceivedTorment::
-	msgbox SlateportCity_BattleTentLobby_Text_ExplainTorment, MSGBOX_DEFAULT
+	msgbox SlateportCity_BattleTentLobby_Text_CouldntFindMonForMe, MSGBOX_DEFAULT
 	release
 	end
 
@@ -280,7 +275,7 @@ SlateportCity_BattleTentLobby_Text_CouldntFindMonForMe:
 	.string "And he wouldn't hear me out, like, hey!\n"
 	.string "So, like, total bummer, man!\p"
 	.string "Hey, like, you! Zip it, you know?\n"
-	.string "Just, you know, take this!$"
+	.string "You get it, right?$"
 
 SlateportCity_BattleTentLobby_Text_ExplainTorment:
 	.string "That's, like, TM41, you know?\n"
@@ -304,4 +299,3 @@ SlateportCity_BattleTentLobby_Text_BattleEvenWithoutToughMons:
 SlateportCity_BattleTentLobby_Text_NiceIfMoreSelection:
 	.string "Wouldn't it be nice if they had more of\n"
 	.string "a selection?$"
-

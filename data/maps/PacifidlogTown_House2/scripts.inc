@@ -5,8 +5,6 @@ PacifidlogTown_House2_EventScript_FanClubYoungerBrother::
 	lock
 	faceplayer
 	dotimebasedevents
-	call PacifidlogTown_House2_EventScript_UpdateFanClubTMFlag
-	goto_if_set FLAG_RECEIVED_FANCLUB_TM_THIS_WEEK, PacifidlogTown_House2_EventScript_ComeBackInXDays
 	call_if_set FLAG_MET_FANCLUB_YOUNGER_BROTHER, PacifidlogTown_House2_EventScript_MonAssessment
 	call_if_unset FLAG_MET_FANCLUB_YOUNGER_BROTHER, PacifidlogTown_House2_EventScript_FirstMonAssessment
 	setflag FLAG_MET_FANCLUB_YOUNGER_BROTHER
@@ -18,9 +16,6 @@ PacifidlogTown_House2_EventScript_FanClubYoungerBrother::
 	end
 
 PacifidlogTown_House2_EventScript_UpdateFanClubTMFlag::
-	goto_if_unset FLAG_RECEIVED_FANCLUB_TM_THIS_WEEK, Common_EventScript_NopReturn
-	specialvar VAR_RESULT, GetDaysUntilPacifidlogTMAvailable
-	call_if_eq VAR_RESULT, 0, PacifidlogTown_House2_EventScript_ClearReceivedFanClubTM
 	return
 
 PacifidlogTown_House2_EventScript_MonAssessment::
@@ -33,16 +28,10 @@ PacifidlogTown_House2_EventScript_FirstMonAssessment::
 	return
 
 PacifidlogTown_House2_EventScript_ClearReceivedFanClubTM::
-	clearflag FLAG_RECEIVED_FANCLUB_TM_THIS_WEEK
 	return
 
 PacifidlogTown_House2_EventScript_GiveReturn::
 	msgbox PacifidlogTown_House2_Text_AdoringPokemonTakeThis, MSGBOX_DEFAULT
-	giveitem ITEM_TM_RETURN
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_FANCLUB_TM_THIS_WEEK
-	special SetPacifidlogTMReceivedDay
-	msgbox PacifidlogTown_House2_Text_ExplainReturnFrustration, MSGBOX_DEFAULT
 	release
 	end
 
@@ -53,11 +42,6 @@ PacifidlogTown_House2_EventScript_PutInEffort::
 
 PacifidlogTown_House2_EventScript_GiveFrustration::
 	msgbox PacifidlogTown_House2_Text_ViciousPokemonTakeThis, MSGBOX_DEFAULT
-	giveitem ITEM_TM_FRUSTRATION
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_FANCLUB_TM_THIS_WEEK
-	special SetPacifidlogTMReceivedDay
-	msgbox PacifidlogTown_House2_Text_ExplainReturnFrustration, MSGBOX_DEFAULT
 	release
 	end
 
@@ -105,7 +89,7 @@ PacifidlogTown_House2_Text_AhYourPokemon:
 PacifidlogTown_House2_Text_AdoringPokemonTakeThis:
 	.string "It clearly likes you very much.\p"
 	.string "A POKéMON that adoring and adorable\n"
-	.string "deserves a TM like this, no?$"
+	.string "must be treasured, no?$"
 
 PacifidlogTown_House2_Text_PutInSomeMoreEffort:
 	.string "Hmm…\n"
@@ -115,8 +99,8 @@ PacifidlogTown_House2_Text_PutInSomeMoreEffort:
 
 PacifidlogTown_House2_Text_ViciousPokemonTakeThis:
 	.string "It has a vicious look to it.\p"
-	.string "A frightening POKéMON like that\n"
-	.string "deserves a TM like this.$"
+	.string "A frightening POKéMON like that can\n"
+	.string "still become a fine partner.$"
 
 PacifidlogTown_House2_Text_ExplainReturnFrustration:
 	.string "If a POKéMON likes you a lot, RETURN's\n"
@@ -126,9 +110,8 @@ PacifidlogTown_House2_Text_ExplainReturnFrustration:
 
 PacifidlogTown_House2_Text_GetGoodTMInXDays:
 	.string "Oh, yes. In about {STR_VAR_1} or so days,\n"
-	.string "I should be getting a good TM or two.\p"
-	.string "You should come see me then.\n"
-	.string "I'll give you a TM that's suitable for\l"
+	.string "I should have another thought or two.\p"
+	.string "You should come see me then with\n"
 	.string "your POKéMON.$"
 
 PacifidlogTown_House2_Text_Rurii:
@@ -144,4 +127,3 @@ PacifidlogTown_House2_Text_Rururi:
 PacifidlogTown_House2_Text_DoesntLikeTrainerVeryMuch:
 	.string "It doesn't appear to like the TRAINER\n"
 	.string "very much.$"
-

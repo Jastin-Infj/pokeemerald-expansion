@@ -2,11 +2,11 @@ LilycoveCity_DepartmentStore_4F_MapScripts::
 	.byte 0
 
 LilycoveCity_DepartmentStore_4F_EventScript_Gentleman::
-	msgbox LilycoveCity_DepartmentStore_4F_Text_AttackOrDefenseTM, MSGBOX_NPC
+	msgbox LilycoveCity_DepartmentStore_4F_Text_MoveCountersClosed, MSGBOX_NPC
 	end
 
 LilycoveCity_DepartmentStore_4F_EventScript_Woman::
-	msgbox LilycoveCity_DepartmentStore_4F_Text_FiftyDifferentTMs, MSGBOX_NPC
+	msgbox LilycoveCity_DepartmentStore_4F_Text_MoveCountersClosed, MSGBOX_NPC
 	end
 
 LilycoveCity_DepartmentStore_4F_EventScript_Youngster::
@@ -16,38 +16,20 @@ LilycoveCity_DepartmentStore_4F_EventScript_Youngster::
 LilycoveCity_DepartmentStore_4F_EventScript_ClerkLeft::
 	lock
 	faceplayer
-	message gText_HowMayIServeYou
-	waitmessage
-	pokemart LilycoveCity_DepartmentStore_4F_Pokemart_AttackTMs
-	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	msgbox LilycoveCity_DepartmentStore_4F_Text_MoveCountersClosed, MSGBOX_DEFAULT
 	release
 	end
-
-	.align 2
-LilycoveCity_DepartmentStore_4F_Pokemart_AttackTMs:
-	.2byte ITEM_TM_FIRE_BLAST
-	.2byte ITEM_TM_THUNDER
-	.2byte ITEM_TM_BLIZZARD
-	.2byte ITEM_TM_HYPER_BEAM
-	pokemartlistend
 
 LilycoveCity_DepartmentStore_4F_EventScript_ClerkRight::
 	lock
 	faceplayer
-	message gText_HowMayIServeYou
-	waitmessage
-	pokemart LilycoveCity_DepartmentStore_4F_Pokemart_DefenseTMs
-	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	msgbox LilycoveCity_DepartmentStore_4F_Text_MoveCountersClosed, MSGBOX_DEFAULT
 	release
 	end
 
-	.align 2
-LilycoveCity_DepartmentStore_4F_Pokemart_DefenseTMs:
-	.2byte ITEM_TM_PROTECT
-	.2byte ITEM_TM_SAFEGUARD
-	.2byte ITEM_TM_REFLECT
-	.2byte ITEM_TM_LIGHT_SCREEN
-	pokemartlistend
+LilycoveCity_DepartmentStore_4F_Text_MoveCountersClosed:
+	.string "The move-machine counters are closed\n"
+	.string "while the stock is reorganized.$"
 
 LilycoveCity_DepartmentStore_4F_Text_AttackOrDefenseTM:
 	.string "Hmm…\p"
@@ -65,4 +47,3 @@ LilycoveCity_DepartmentStore_4F_Text_FiftyDifferentTMs:
 LilycoveCity_DepartmentStore_4F_Text_PokemonOnlyHaveFourMoves:
 	.string "I'd like to get all the different TMs,\n"
 	.string "but a POKéMON learns only four moves.$"
-

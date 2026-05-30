@@ -447,14 +447,6 @@
     },
     {
       "type": "hidden_item",
-      "x": 22,
-      "y": 5,
-      "elevation": 3,
-      "item": "ITEM_TM_DOUBLE_TEAM",
-      "flag": "FLAG_HIDDEN_ITEM_ROUTE_113_TM_DOUBLE_TEAM"
-    },
-    {
-      "type": "hidden_item",
       "x": 73,
       "y": 3,
       "elevation": 3,

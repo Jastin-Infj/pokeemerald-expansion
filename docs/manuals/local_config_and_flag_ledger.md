@@ -17,7 +17,7 @@ capability flag、save state の索引。`master` の値と branch-only の値�
 | Token / state | Type | Owner | Current `master` | Branch / integration note |
 |---|---|---|---|---|
 | `OW_FLAG_NO_ENCOUNTER` | Event flag id config | `docs/features/no_random_encounters/` | `include/config/overworld.h` で `0`。未割り当て。 | Adopted on `integration/runtime-dev-20260529`: `FLAG_UNUSED_0x8E5` is renamed to `FLAG_NO_ENCOUNTER` (`SYSTEM_FLAGS + 0x85`) and assigned to `OW_FLAG_NO_ENCOUNTER`. bool ではない。`TRUE` / `1` は使わない。 |
-| `I_REUSABLE_TMS` | Item config | `docs/features/tm_shop_migration/` | `include/config/item.h` で `FALSE`。 | PR #31 branch では `TRUE`。既存 50 TM を持っている場合だけ reusable になる。 |
+| `I_REUSABLE_TMS` | Item config | `docs/features/tm_shop_migration/` | `include/config/item.h` で `FALSE`。 | Adopted on `integration/runtime-dev-20260529`: `TRUE`. Existing physical TM items become reusable; this does not create a new 200+ TM physical item set. |
 | `P_SHOW_TERA_TYPE` | Pokemon / Summary config | `docs/features/summary_tera_type_icon/` | `include/config/pokemon.h` で `GEN_8`。Summary Tera表示は既定で無効。 | PR #26 branch では Summary Tera badge 用に有効化する前提。 |
 | `P_SUMMARY_SCREEN_MOVE_RELEARNER` | Summary config | `docs/features/unified_move_relearner/` | `TRUE`。Move page の `START RELEARN` 表示に使う。 | Unified mode では prompt copy / L-R category cycling の扱いを確認する。2x3 party grid 統合時は Summary route を正規入口にする。 |
 | `B_ALL_ABILITY_SLOTS` | Branch-only battle config | `docs/features/all_ability_slots/` | Not present on `master`。 | PR #60 feature shelf defaulted `TRUE`; `integration/runtime-dev-20260529` defaults `FALSE` so normal ROM and full `check` stay single-ability unless explicitly enabled. The generated config max remains `TRUE` for bit-field width / clamping. |
@@ -41,7 +41,7 @@ capability flag、save state の索引。`master` の値と branch-only の値�
 | `CHAMPIONS_RUN_CLEAR_*` | Branch-only save / reward config | `docs/features/champions_challenge/` | Not present on `master`。 | Controls clear-party deposit, held-item carryover mode, which bag pockets merge back into the restored normal bag, and clear autosave. Current integration carries Items and TM/HM rewards, strips held items, and autosaves on clear. |
 | `B_TRAINER_BATTLE_AFTERCARE` | Branch-only battle config | `docs/features/trainer_battle_aftercare/` | Not present on `master`。 | Heal-only branch default is `FALSE`; forced release / no-whiteout are future work. |
 | Field Kit capability flags | Branch-only event/capability flags | `docs/features/field_move_modernization/` | Not present on `master` as final capability model. | Field Kit branch owns capability flags; TM Shop Migration only retires old HM receive flags. |
-| Old HM receive flags | Legacy event flags | `docs/features/tm_shop_migration/` | Still present in current `master` source as legacy Emerald/FRLG routes. | PR #31 retires Emerald normal-progression refs and returns old values to `FLAG_UNUSED_0x...`; FRLG routes are follow-up. |
+| Old TM/HM receive and pickup flags | Legacy event flags | `docs/features/tm_shop_migration/` | Still present in current `master` source as legacy Emerald/FRLG routes. | Adopted on `integration/runtime-dev-20260529`: Emerald normal-progression refs are retired and old values are renamed to `FLAG_UNUSED_0x...`; FRLG routes remain follow-up. |
 | Virtual TM unlock state | Future save / flag state | `docs/features/unified_move_relearner/` | Not present. | If story/rank unlocks are needed, use compact bitset or explicit flags; see `save_data_flow_v15.md`. |
 
 ## Save State Notes

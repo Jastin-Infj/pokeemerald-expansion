@@ -211,6 +211,24 @@ Debug_EventScript_Script_1::
 	releaseall
 	end
 
+Debug_EventScript_TmShopTest::
+	lockall
+	message gText_HowMayIServeYou
+	waitmessage
+	pokemart Debug_EventScript_TmShopTestItems
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	releaseall
+	end
+
+	.align 2
+Debug_EventScript_TmShopTestItems:
+	.2byte ITEM_TM_THUNDERBOLT
+	.2byte ITEM_TM_ICE_BEAM
+	.2byte ITEM_TM_FLAMETHROWER
+	.2byte ITEM_TM_EARTHQUAKE
+	.2byte ITEM_TM_SECRET_POWER
+	pokemartlistend
+
 Debug_EventScript_Script_2::
 	lockall
 	setvar VAR_0x8004, SCOUT_POOL_PARTYGEN_DEMO
