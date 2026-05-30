@@ -9962,7 +9962,9 @@ static bool32 ShouldRestoreHeldBattleItem(u16 originalItem, u16 currentItem, boo
     if (originalItemIsBerry && B_RESTORE_HELD_BATTLE_BERRIES == FALSE && currentItem != originalItem)
         *itemToRestore = ITEM_NONE;
 
-    if (returnNPCItems)
+    // Trainer NPC item return may clear a stolen opponent item, but should not
+    // turn berry-only restore into non-berry restore.
+    if (returnNPCItems && currentItem != originalItem && (wasStolen || originalItem == ITEM_NONE))
         return TRUE;
     if (*itemToRestore == ITEM_NONE)
         return FALSE;
