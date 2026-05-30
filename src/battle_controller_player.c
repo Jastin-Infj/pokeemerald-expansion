@@ -21,10 +21,12 @@
 #include "party_menu.h"
 #include "pokeball.h"
 #include "pokemon.h"
+#include "prebattle_team_viewer.h"
 #include "random.h"
 #include "recorded_battle.h"
 #include "reshow_battle_screen.h"
 #include "sound.h"
+#include "sprite.h"
 #include "string_util.h"
 #include "task.h"
 #include "test_runner.h"
@@ -84,6 +86,13 @@ static void TryMoveSelectionDisplayMoveDescription(enum BattlerId battler);
 static void MoveSelectionDisplayMoveDescription(enum BattlerId battler);
 static void WaitForMonSelection(enum BattlerId battler);
 static void CompleteWhenChoseItem(enum BattlerId battler);
+static bool8 TryFinishChooseActionAfterDma3(enum BattlerId battler);
+static void HandleChooseActionAfterTeamViewerInputRelease(enum BattlerId battler);
+static void ShowTeamViewerActionHint(void);
+static void HideTeamViewerActionHint(void);
+static void DestroyTeamViewerActionHint(void);
+static void DestroyTeamViewerActionHintGfx(struct Sprite *sprite);
+static void SpriteCB_TeamViewerActionHint(struct Sprite *sprite);
 static void Task_LaunchLvlUpAnim(u8);
 static void Task_PrepareToGiveExpWithExpBar(u8);
 static void Task_SetControllerToWaitForString(u8);
@@ -95,6 +104,60 @@ static void ReloadMoveNames(enum BattlerId battler);
 static u32 CheckTypeEffectiveness(enum BattlerId battlerAtk, enum BattlerId battlerDef);
 static u32 CheckTargetTypeEffectiveness(enum BattlerId battler);
 static void MoveSelectionDisplayMoveEffectiveness(u32 foeEffectiveness, enum BattlerId battler);
+
+static bool8 sRedrawChooseActionFromTeamViewer;
+static bool8 sTeamViewerActionHintSpriteActive;
+static u8 sTeamViewerActionHintSpriteId;
+
+#define TEAM_VIEWER_ACTION_HINT_TAG          0xE723
+#define TEAM_VIEWER_ACTION_HINT_PAL_TAG      0xE724
+#define TEAM_VIEWER_ACTION_HINT_X_F          14
+#define TEAM_VIEWER_ACTION_HINT_X_0          -14
+#define TEAM_VIEWER_ACTION_HINT_Y_SINGLE     92
+#define TEAM_VIEWER_ACTION_HINT_Y_DOUBLE     102
+#define tHideTeamViewerActionHint            data[0]
+
+#if B_TEAM_VIEWER_BUTTON == L_BUTTON
+static const u8 sTeamViewerActionHintGfx[] = INCGFX_U8("graphics/battle_interface/team_info_window_l.png", ".4bpp");
+#else
+static const u8 sTeamViewerActionHintGfx[] = INCGFX_U8("graphics/battle_interface/team_info_window_r.png", ".4bpp");
+#endif
+static const u16 sTeamViewerActionHintPal[] = INCGFX_U16("graphics/battle_interface/ability_pop_up.pal", ".gbapal");
+
+static const struct OamData sOamData_TeamViewerActionHint =
+{
+    .y = 0,
+    .affineMode = 0,
+    .objMode = 0,
+    .mosaic = 0,
+    .bpp = 0,
+    .shape = SPRITE_SHAPE(32x32),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(32x32),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_TeamViewerActionHint =
+{
+    .tileTag = TEAM_VIEWER_ACTION_HINT_TAG,
+    .paletteTag = TEAM_VIEWER_ACTION_HINT_PAL_TAG,
+    .oam = &sOamData_TeamViewerActionHint,
+    .callback = SpriteCB_TeamViewerActionHint,
+};
+
+static const struct SpriteSheet sSpriteSheet_TeamViewerActionHint =
+{
+    sTeamViewerActionHintGfx, sizeof(sTeamViewerActionHintGfx), TEAM_VIEWER_ACTION_HINT_TAG
+};
+
+static const struct SpritePalette sSpritePalette_TeamViewerActionHint =
+{
+    sTeamViewerActionHintPal, TEAM_VIEWER_ACTION_HINT_PAL_TAG
+};
 
 static void (*const sPlayerBufferCommands[CONTROLLER_CMDS_COUNT])(enum BattlerId battler) =
 {
@@ -229,17 +292,103 @@ static u32 GetNextBall(u32 ballId)
     return ballId;
 }
 
+static void ShowTeamViewerActionHint(void)
+{
+#if B_IN_BATTLE_TEAM_VIEWER
+    if (sTeamViewerActionHintSpriteActive && GetSpriteTileStartByTag(TEAM_VIEWER_ACTION_HINT_TAG) == 0xFFFF)
+        sTeamViewerActionHintSpriteActive = FALSE;
+
+    if (!sTeamViewerActionHintSpriteActive)
+    {
+        u8 spriteId;
+        s16 y = IsDoubleBattle() ? TEAM_VIEWER_ACTION_HINT_Y_DOUBLE : TEAM_VIEWER_ACTION_HINT_Y_SINGLE;
+
+        LoadSpritePalette(&sSpritePalette_TeamViewerActionHint);
+        if (GetSpriteTileStartByTag(TEAM_VIEWER_ACTION_HINT_TAG) == 0xFFFF)
+            LoadSpriteSheet(&sSpriteSheet_TeamViewerActionHint);
+
+        spriteId = CreateSprite(&sSpriteTemplate_TeamViewerActionHint,
+                                TEAM_VIEWER_ACTION_HINT_X_0,
+                                y,
+                                6);
+        if (spriteId != MAX_SPRITES)
+        {
+            sTeamViewerActionHintSpriteId = spriteId;
+            sTeamViewerActionHintSpriteActive = TRUE;
+            gSprites[sTeamViewerActionHintSpriteId].tHideTeamViewerActionHint = FALSE;
+        }
+        else
+        {
+            FreeSpriteTilesByTag(TEAM_VIEWER_ACTION_HINT_TAG);
+            FreeSpritePaletteByTag(TEAM_VIEWER_ACTION_HINT_PAL_TAG);
+        }
+    }
+    else
+    {
+        gSprites[sTeamViewerActionHintSpriteId].tHideTeamViewerActionHint = FALSE;
+    }
+#endif
+}
+
+static void HideTeamViewerActionHint(void)
+{
+#if B_IN_BATTLE_TEAM_VIEWER
+    if (sTeamViewerActionHintSpriteActive)
+        gSprites[sTeamViewerActionHintSpriteId].tHideTeamViewerActionHint = TRUE;
+#endif
+}
+
+static void DestroyTeamViewerActionHint(void)
+{
+#if B_IN_BATTLE_TEAM_VIEWER
+    if (sTeamViewerActionHintSpriteActive)
+        DestroyTeamViewerActionHintGfx(&gSprites[sTeamViewerActionHintSpriteId]);
+#endif
+}
+
+static void DestroyTeamViewerActionHintGfx(struct Sprite *sprite)
+{
+    FreeSpriteTilesByTag(TEAM_VIEWER_ACTION_HINT_TAG);
+    FreeSpritePaletteByTag(TEAM_VIEWER_ACTION_HINT_PAL_TAG);
+    DestroySprite(sprite);
+    sTeamViewerActionHintSpriteActive = FALSE;
+}
+
+static void SpriteCB_TeamViewerActionHint(struct Sprite *sprite)
+{
+    if (sprite->tHideTeamViewerActionHint)
+    {
+        if (sprite->x != TEAM_VIEWER_ACTION_HINT_X_0)
+            sprite->x--;
+
+        if (sprite->x == TEAM_VIEWER_ACTION_HINT_X_0)
+            DestroyTeamViewerActionHintGfx(sprite);
+    }
+    else
+    {
+        if (sprite->x != TEAM_VIEWER_ACTION_HINT_X_F)
+            sprite->x++;
+    }
+}
+
 static void HandleInputChooseAction(enum BattlerId battler)
 {
     enum Item itemId = gBattleResources->bufferA[battler][2] | (gBattleResources->bufferA[battler][3] << 8);
 
     DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
     DoBounceEffect(battler, BOUNCE_MON, 7, 1);
+    ShowTeamViewerActionHint();
 
     if (JOY_REPEAT(DPAD_ANY) && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A)
         gPlayerDpadHoldFrames++;
     else
         gPlayerDpadHoldFrames = 0;
+
+    if (JOY_NEW(B_TEAM_VIEWER_BUTTON) && PreBattleTeamViewer_TryOpenInBattle(battler))
+    {
+        DestroyTeamViewerActionHint();
+        return;
+    }
 
     if (B_LAST_USED_BALL == TRUE && B_LAST_USED_BALL_CYCLE == TRUE
     && !(B_LAST_USED_BALL_BUTTON == L_BUTTON && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A))
@@ -293,6 +442,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
                 PlaySE(SE_SELECT);
                 ArrowsChangeColorLastBallCycle(FALSE);
                 TryHideLastUsedBall();
+                HideTeamViewerActionHint();
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_THROW_BALL, 0);
                 BtlController_Complete(battler);
             }
@@ -304,6 +454,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
     {
         PlaySE(SE_SELECT);
         TryHideLastUsedBall();
+        HideTeamViewerActionHint();
 
         switch (gActionSelectionCursor[battler])
         {
@@ -375,6 +526,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
                 AddBagItem(itemId, 1);
             }
             PlaySE(SE_SELECT);
+            HideTeamViewerActionHint();
             BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_CANCEL_PARTNER, 0);
             BtlController_Complete(battler);
         }
@@ -395,6 +547,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
     }
     else if (DEBUG_BATTLE_MENU == TRUE && JOY_NEW(SELECT_BUTTON))
     {
+        HideTeamViewerActionHint();
         BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_DEBUG, 0);
         BtlController_Complete(battler);
     }
@@ -403,6 +556,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
     {
         PlaySE(SE_SELECT);
         TryHideLastUsedBall();
+        HideTeamViewerActionHint();
         BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_THROW_BALL, 0);
         BtlController_Complete(battler);
     }
@@ -1862,6 +2016,28 @@ void CB2_SetUpReshowBattleScreenAfterMenu2(void)
     SetMainCallback2(ReshowBattleScreenAfterMenu);
 }
 
+void CB2_ReturnToChooseActionFromTeamViewer(void)
+{
+    sRedrawChooseActionFromTeamViewer = TRUE;
+    SetMainCallback2(ReshowBattleScreenAfterMenu);
+}
+
+void TryRedrawChooseActionFromTeamViewer(void)
+{
+    if (!sRedrawChooseActionFromTeamViewer)
+        return;
+
+    sRedrawChooseActionFromTeamViewer = FALSE;
+    PreBattleTeamViewer_RestoreBattleCallback1();
+    PlayerHandleChooseAction(gBattlerInMenuId);
+    gBattlerControllerFuncs[gBattlerInMenuId] = HandleChooseActionAfterTeamViewerInputRelease;
+}
+
+void TryShowTeamViewerActionHint(void)
+{
+    ShowTeamViewerActionHint();
+}
+
 static void PrintLinkStandbyMsg(void)
 {
     if (gBattleTypeFlags & BATTLE_TYPE_LINK)
@@ -1995,31 +2171,51 @@ static void PlayerHandlePause(enum BattlerId battler)
     BtlController_Complete(battler);
 }
 
+static bool8 TryFinishChooseActionAfterDma3(enum BattlerId battler)
+{
+    if (IsDma3ManagerBusyWithBgCopy())
+        return FALSE;
+
+    gBattle_BG0_X = 0;
+    gBattle_BG0_Y = DISPLAY_HEIGHT;
+    if (gBattleStruct->aiDelayTimer != 0)
+    {
+        if (DEBUG_AI_DELAY_TIMER)
+        {
+            static const u8 sFramesText[] = _(" frames thinking\n");
+            static const u8 sCyclesText[] = _(" cycles");
+            ConvertIntToDecimalStringN(gDisplayedStringBattle, gBattleStruct->aiDelayFrames, STR_CONV_MODE_RIGHT_ALIGN, 3);
+            u8* end = StringAppend(gDisplayedStringBattle, sFramesText);
+            ConvertIntToDecimalStringN(end, gBattleStruct->aiDelayCycles, STR_CONV_MODE_RIGHT_ALIGN, 8);
+            // Clear old result once read out
+            gBattleStruct->aiDelayCycles = 0;
+            StringAppend(gDisplayedStringBattle, sCyclesText);
+            BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_ACTION_PROMPT);
+        }
+        gBattleStruct->aiDelayTimer = 0;
+        gBattleStruct->aiDelayFrames = 0;
+    }
+
+    return TRUE;
+}
+
 static void HandleChooseActionAfterDma3(enum BattlerId battler)
 {
-    if (!IsDma3ManagerBusyWithBgCopy())
-    {
-        gBattle_BG0_X = 0;
-        gBattle_BG0_Y = DISPLAY_HEIGHT;
-        if (gBattleStruct->aiDelayTimer != 0)
-        {
-            if (DEBUG_AI_DELAY_TIMER)
-            {
-                static const u8 sFramesText[] = _(" frames thinking\n");
-                static const u8 sCyclesText[] = _(" cycles");
-                ConvertIntToDecimalStringN(gDisplayedStringBattle, gBattleStruct->aiDelayFrames, STR_CONV_MODE_RIGHT_ALIGN, 3);
-                u8* end = StringAppend(gDisplayedStringBattle, sFramesText);
-                ConvertIntToDecimalStringN(end, gBattleStruct->aiDelayCycles, STR_CONV_MODE_RIGHT_ALIGN, 8);
-                // Clear old result once read out
-                gBattleStruct->aiDelayCycles = 0;
-                StringAppend(gDisplayedStringBattle, sCyclesText);
-                BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_ACTION_PROMPT);
-            }
-            gBattleStruct->aiDelayTimer = 0;
-            gBattleStruct->aiDelayFrames = 0;
-        }
+    if (TryFinishChooseActionAfterDma3(battler))
         gBattlerControllerFuncs[battler] = HandleInputChooseAction;
-    }
+}
+
+static void HandleChooseActionAfterTeamViewerInputRelease(enum BattlerId battler)
+{
+    if (!TryFinishChooseActionAfterDma3(battler))
+        return;
+    if (gMain.heldKeys != 0 || gMain.heldKeysRaw != 0)
+        return;
+
+    gMain.newKeys = 0;
+    gMain.newKeysRaw = 0;
+    gMain.newAndRepeatedKeys = 0;
+    gBattlerControllerFuncs[battler] = HandleInputChooseAction;
 }
 
 static void PlayerHandleChooseAction(enum BattlerId battler)
@@ -2035,6 +2231,7 @@ static void PlayerHandleChooseAction(enum BattlerId battler)
 
     TryRestoreLastUsedBall();
     ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
+    ShowTeamViewerActionHint();
     PREPARE_MON_NICK_BUFFER(gBattleTextBuff1, battler, gBattlerPartyIndexes[battler]);
     BattleStringExpandPlaceholdersToDisplayedString(gText_WhatWillPkmnDo);
 

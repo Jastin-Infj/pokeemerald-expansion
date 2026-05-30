@@ -167,6 +167,8 @@ static void CB2_ReshowBattleScreenAfterMenu(void)
         gPaletteFade.bufferTransferDisabled = 0;
         SetMainCallback2(BattleMainCB2);
         FillAroundBattleWindows();
+        TryRedrawChooseActionFromTeamViewer();
+        TryShowTeamViewerActionHint();
         break;
     }
 

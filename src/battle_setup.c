@@ -17,6 +17,7 @@
 #include "random.h"
 #include "starter_choose.h"
 #include "script_pokemon_util.h"
+#include "pokemon.h"
 #include "palette.h"
 #include "pokemon_vendor.h"
 #include "window.h"
@@ -25,6 +26,8 @@
 #include "tv.h"
 #include "trainer_see.h"
 #include "field_message_box.h"
+#include "prebattle_team_viewer.h"
+#include "trainer_battle_selection.h"
 #include "sound.h"
 #include "strings.h"
 #include "trainer_hill.h"
@@ -83,6 +86,15 @@ static void SaveChangesToPlayerParty(void);
 static void HandleBattleVariantEndParty(void);
 static void CB2_EndTrainerBattle(void);
 static void SetMainCallback2ToChampionsRunStartLocation(void);
+static bool32 TrainerBattleSelection_ShouldOffer(void);
+static u8 TrainerBattleSelection_GetRequiredCount(void);
+#if B_TRAINER_BATTLE_SELECTION
+static u8 TrainerBattleSelection_CountEligibleMons(void);
+#endif
+static void CB2_StartTrainerBattleSelectionAfterTeamViewer(void);
+static void FieldCB_StartTrainerBattleSelectionAfterTeamViewer(void);
+static void FieldCB_StartTrainerBattleAfterPartySelection(void);
+static void CB2_ReturnToTeamViewerFromPartySelection(void);
 static bool32 IsPlayerDefeated(u32 battleOutcome);
 #if FREE_MATCH_CALL == FALSE
 static u16 GetRematchTrainerId(u16 trainerId);
@@ -451,6 +463,43 @@ static void DoTrainerBattle(void)
     IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
     IncrementGameStat(GAME_STAT_TRAINER_BATTLES);
     TryUpdateGymLeaderRematchFromTrainer();
+}
+
+static void CB2_StartTrainerBattleAfterPartySelection(void)
+{
+    gFieldCallback = FieldCB_StartTrainerBattleAfterPartySelection;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
+static void CB2_StartTrainerBattleSelectionAfterTeamViewer(void)
+{
+    gFieldCallback = FieldCB_StartTrainerBattleSelectionAfterTeamViewer;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
+static void FieldCB_StartTrainerBattleSelectionAfterTeamViewer(void)
+{
+    if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, CB2_ReturnToTeamViewerFromPartySelection))
+        return;
+
+    DoTrainerBattle();
+}
+
+static void FieldCB_StartTrainerBattleAfterPartySelection(void)
+{
+    TrainerBattleSelection_StartBattleFromSelection();
+    DoTrainerBattle();
+}
+
+static void CB2_ReturnToTeamViewerFromPartySelection(void)
+{
+    if (PreBattleTeamViewer_Reopen(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleSelectionAfterTeamViewer))
+        return;
+
+    if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, NULL))
+        return;
+
+    DoTrainerBattle();
 }
 
 static void DoBattlePyramidTrainerHillBattle(void)
@@ -1384,9 +1433,28 @@ void BattleSetup_StartTrainerBattle(void)
     gMain.savedCallback = CB2_EndTrainerBattle;
 
     if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || InTrainerHillChallenge())
+    {
         DoBattlePyramidTrainerHillBattle();
+    }
+    else if (TrainerBattleSelection_ShouldOffer())
+    {
+        if (PreBattleTeamViewer_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleSelectionAfterTeamViewer))
+        {
+            // Viewer returns to the field, then starts the party selection menu.
+        }
+        else if (TrainerBattleSelection_Begin(TrainerBattleSelection_GetRequiredCount(), CB2_StartTrainerBattleAfterPartySelection, CB2_ReturnToTeamViewerFromPartySelection))
+        {
+            // Battle starts from the party menu callback after the player confirms the selected mons.
+        }
+        else
+        {
+            DoTrainerBattle();
+        }
+    }
     else
+    {
         DoTrainerBattle();
+    }
 
     ScriptContext_Stop();
 }
@@ -1442,9 +1510,72 @@ static void HandleBattleVariantEndParty(void)
     FlagClear(B_FLAG_SKY_BATTLE);
 }
 
+static bool32 TrainerBattleSelection_ShouldOffer(void)
+{
+#if B_TRAINER_BATTLE_SELECTION
+    u8 requiredCount;
+
+    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
+        return FALSE;
+
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK
+                          | BATTLE_TYPE_FRONTIER
+                          | BATTLE_TYPE_MULTI
+                          | BATTLE_TYPE_INGAME_PARTNER
+                          | BATTLE_TYPE_TWO_OPPONENTS
+                          | BATTLE_TYPE_PYRAMID
+                          | BATTLE_TYPE_TRAINER_HILL
+                          | BATTLE_TYPE_SECRET_BASE
+                          | BATTLE_TYPE_RECORDED
+                          | BATTLE_TYPE_RECORDED_LINK))
+        return FALSE;
+
+    if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+        return FALSE;
+
+    requiredCount = TrainerBattleSelection_GetRequiredCount();
+    if (CalculatePlayerPartyCount() <= requiredCount)
+        return FALSE;
+
+    if (TrainerBattleSelection_CountEligibleMons() < requiredCount)
+        return FALSE;
+
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+static u8 TrainerBattleSelection_GetRequiredCount(void)
+{
+    if (gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
+        return FRONTIER_DOUBLES_PARTY_SIZE;
+    return FRONTIER_PARTY_SIZE;
+}
+
+#if B_TRAINER_BATTLE_SELECTION
+static u8 TrainerBattleSelection_CountEligibleMons(void)
+{
+    u8 i;
+    u8 count = 0;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) != SPECIES_NONE
+         && !GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG)
+         && GetMonData(&gPlayerParty[i], MON_DATA_HP) != 0)
+            count++;
+    }
+
+    return count;
+}
+#endif
+
 static void CB2_EndTrainerBattle(void)
 {
     HandleBattleVariantEndParty();
+    TrainerBattleSelection_RestoreIfActive();
+    PreBattleTeamViewer_Clear();
     PokemonVendor_ClearBattleBondExpReward();
 
     gIsDebugBattle = FALSE;
