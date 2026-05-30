@@ -1,5 +1,7 @@
 const u32 gItemIcon_QuestionMark[] = INCGFX_U32("graphics/items/icons/question_mark.png", ".4bpp.smol");
 const u16 gItemIconPalette_QuestionMark[] = INCGFX_U16("graphics/items/icon_palettes/question_mark.pal", ".gbapal");
+const u32 gItemIcon_FieldStyler[] = INCGFX_U32("graphics/items/icons/field_styler.png", ".4bpp.smol");
+const u16 gItemIconPalette_FieldStyler[] = INCGFX_U16("graphics/items/icon_palettes/field_styler.pal", ".gbapal");
 
 const u32 gItemIcon_ReturnToFieldArrow[] = INCGFX_U32("graphics/items/icons/return_to_field_arrow.png", ".4bpp.smol");
 const u16 gItemIconPalette_ReturnToFieldArrow[] = INCGFX_U16("graphics/items/icon_palettes/return_to_field_arrow.pal", ".gbapal");
