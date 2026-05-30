@@ -602,7 +602,7 @@ static void OpenSelectedMonSummary(void)
     FreeTeamViewerWindows();
     SetVBlankCallback(NULL);
     ShowPokemonSummaryScreenAtPage(TEAM_VIEWER_SUMMARY_MODE,
-                                   gPlayerParty,
+                                   gParties[B_TRAINER_PLAYER],
                                    sTeamViewerState.cursor,
                                    sTeamViewerState.playerCount - 1,
                                    CB2_ReturnToPreBattleTeamViewerFromSummary,
@@ -967,11 +967,11 @@ static bool32 IsPlayerSlotEligible(u8 slot)
     if (slot >= sTeamViewerState.playerCount)
         return FALSE;
 
-    if (GetMonData(&gPlayerParty[slot], MON_DATA_SPECIES) == SPECIES_NONE)
+    if (GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_SPECIES) == SPECIES_NONE)
         return FALSE;
-    if (GetMonData(&gPlayerParty[slot], MON_DATA_IS_EGG))
+    if (GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_IS_EGG))
         return FALSE;
-    if (GetMonData(&gPlayerParty[slot], MON_DATA_HP) == 0)
+    if (GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_HP) == 0)
         return FALSE;
 
     return TRUE;
