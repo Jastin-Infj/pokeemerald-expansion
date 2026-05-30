@@ -7,6 +7,7 @@
 #include "item.h"
 #include "party_menu.h"
 #include "constants/field_move.h"
+#include "constants/flags.h"
 #include "constants/items.h"
 #include "constants/moves.h"
 #include "constants/party_menu.h"
