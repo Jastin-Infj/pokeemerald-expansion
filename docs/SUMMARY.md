@@ -43,6 +43,7 @@
     - [Feature Branch Audit 2026-05-18](features/feature_branch_audit_2026_05_18.md)
     - [Next Runtime Triage 2026-05-18](features/next_runtime_triage_2026_05_18.md)
     - [Runtime Integration Branch Audit 2026-05-29](features/runtime_integration_branch_audit_2026_05_29.md)
+    - [1.15.3 Runtime Integration Checklist JA 2026-05-30](features/runtime_integration_15_3_checklist_ja_2026_05_30.md)
     - [Runtime Integration Gate](manuals/runtime_integration_gate.md)
     - [Local Config And Flag Ledger](manuals/local_config_and_flag_ledger.md)
     - [Validation Evidence Matrix](manuals/validation_evidence_matrix.md)
