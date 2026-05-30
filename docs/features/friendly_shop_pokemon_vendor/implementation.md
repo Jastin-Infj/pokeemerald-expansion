@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-05-29 |
+| Last updated | 2026-05-30 |
 | Branch | `integration/runtime-dev-20260529`; source shelf `feature/global-no-evolution-20260523` / PR #57 |
 | Scope | Runtime implementation: fixed-species rule, Pokemon vendor, sealed recruit lock / unlock |
 
@@ -38,6 +38,11 @@ and `Script 3` for the vendor queued trainer-battle bond reward.
   battle. The queued reward is paid and displayed by the trainer victory battle
   script after the money message, before returning to the field.
 - Normal Pokemon purchases can deliver to party or PC.
+- Integration review follow-up: vendor list row allocation is now checked before
+  the list is populated. If a long product table or fragmented heap prevents
+  allocation, the vendor unwinds to script instead of dereferencing partial
+  row buffers. Purchase-result list rebuild also closes the vendor safely if
+  a rebuild allocation fails.
 - Sealed recruits deliver to party when there is room and fall back to PC when
   the party is full and storage has room.
 - When carried in party, locked sealed recruits use Egg battle restrictions so
@@ -62,6 +67,10 @@ and `Script 3` for the vendor queued trainer-battle bond reward.
   and the bottom message band on separate tile rows. The list and detail areas
   are two framed windows with a one-tile gutter, preserving visual separation
   without reintroducing frame overlap or repeated-open frame dirt.
+- The integration review follow-up clamps the vendor list scroll offset and
+  selected row after one-time purchases rebuild the visible product list. This
+  prevents scrolled long lists from returning to an out-of-range list row after
+  a sold-out product disappears.
 
 ## Changed Files
 
@@ -227,6 +236,8 @@ prints the unlock message only if one or more recruits unlocked.
 | 2026-05-29 | `rtk make -j16 -O check TESTS=test/random.c` | Pass | Rechecked after full-suite jitter. Random tests passed when isolated. |
 | 2026-05-29 | `rtk make -j16 -O check` | Not clean | Full suite reached runtime tests but failed the existing timing-sensitive `test/random.c` RandomUniform faster-than-mod benchmarks in hydra parallel context. The same file passed focused immediately after; no vendor / Pokemon failure was reported. This is recorded as accepted non-feature validation risk for this adoption. |
 | 2026-05-29 | mGBA Live `integration-pokemon-vendor-smoke` | Pass | Booted `pokeemerald.gba`, continued the local save, opened `Debug Menu > Scripts... > Script 1`, confirmed the vendor list / detail icon pane, opened the Pikachu purchase prompt, bought Pikachu, and saw `Here you go! Take good care of it.` Screenshots: `/tmp/integration-pokemon-vendor-open.png`, `/tmp/integration-pokemon-vendor-buy-prompt.png`, `/tmp/integration-pokemon-vendor-after-buy.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-30 | Integration review cursor clamp | Pass | `codex review --base master` found that buying a one-time product from a scrolled long list could rebuild the list with an out-of-range scroll offset. `PokemonVendorClampListCursor()` now clamps scroll offset and selected row before `ListMenuInit()`. `rtk git diff --check` and `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` pass. |
+| 2026-05-30 | Integration review allocation guard | Pass | Second `codex review --base master` reported unchecked row allocations in `PokemonVendorBuildList()`. The build path now validates `items`, `names`, and `productIndexes`, frees partial allocations, and returns to script / closes the vendor instead of crashing. Focused `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`, full `all` / `debug` / `check`, docs build, and final mGBA smoke passed on the integration branch. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.

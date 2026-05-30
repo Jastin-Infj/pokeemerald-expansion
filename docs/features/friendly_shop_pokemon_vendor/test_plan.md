@@ -38,6 +38,7 @@
 | Formula exception override | Add products with absolute threshold overrides for known outliers. | Override wins over tier, usage, and EXP curve formula. |
 | Global evolution block | Try level-up, item, trade/link, friendship, script-trigger, overworld-special, battle-end, and any configured special evolution on ordinary Pokemon and sealed-origin Pokemon. | No Pokemon evolves; separate product species are required for alternate stages/forms. |
 | Stone evolution block | Use Moon Stone on a Clefairy-style fixed-species product. | Evolution is rejected or no-ops with a clear fixed-species message. |
+| Vendor row allocation failure | Force or simulate failure of `items`, `names`, or `productIndexes` allocation while opening or rebuilding a long vendor list. | Partial row buffers are freed and the script resumes / vendor closes without writing through null pointers. |
 | Edit entitlement | Open Status Editor for normal purchased Pokemon, ordinary hatched Pokemon, locked sealed recruit, and sealed-origin Pokemon. | Only non-locked sealed-origin Pokemon can edit anywhere; normal Pokemon and ordinary hatch Pokemon follow area restriction; locked recruits reject editor entry. |
 
 ## mGBA Live Checks
@@ -52,6 +53,7 @@
 | PC icon UX | Send or move named and concealed locked sealed recruits to PC, then open Pokemon Storage. | Named locked recruits show real species icon / front sprite plus `LOCKED`; concealed `?????` recruits show Egg icon / front sprite plus `LOCKED`; Storage restrictions still treat both as Eggs while locked. |
 | Vendor product icon UX | Open debug `Scripts... -> Script 1`, move through Pikachu / Dragonite / concealed `?????` products, then move to Cancel. | The detail pane shows the selected named product's real Pokemon icon, shows a generic Egg icon for concealed `?????`, and clears the icon on Cancel / close without stale sprites. |
 | Vendor long-list UX | Open debug `Scripts... -> Script 1` with the 10-product sample table and scroll past the first visible page. | The vendor keeps the normal shop font / row spacing, shows up / down scroll arrows when more rows exist, scrolls to the remaining products plus Cancel, and keeps the detail icon / price text in sync. |
+| One-time long-list rebuild | Open a vendor list longer than the visible rows, scroll to a lower one-time product, buy it, and dismiss the success message. | The rebuilt list clamps the scroll offset / selected row to the new visible product count plus Cancel; no garbage row, stale detail pane, or menu corruption appears. |
 | Shadow-like tone | Watch progress / release text in Summary or release message. | Text communicates bond deepening / release without reusing real Shadow Pokemon state. |
 
 ## Results
@@ -97,6 +99,8 @@
 | 2026-05-29 | `rtk make -j16 -O check TESTS=test/random.c` | Pass | Focused random test file passed after full-suite timing failures. |
 | 2026-05-29 | `rtk make -j16 -O check` | Not clean | Full hydra suite failed only the timing-sensitive `test/random.c` RandomUniform faster-than-mod benchmark pair. Vendor tests passed in the same run, and focused `test/random.c` passed immediately after. Treat as non-feature validation risk unless it reproduces outside the full parallel suite. |
 | 2026-05-29 | mGBA Live vendor smoke | Pass | Booted, continued local save, opened `Debug Menu > Scripts... > Script 1`, confirmed vendor list / detail icon pane, purchase prompt, and Pikachu purchase success. Screenshots: `/tmp/integration-pokemon-vendor-open.png`, `/tmp/integration-pokemon-vendor-buy-prompt.png`, `/tmp/integration-pokemon-vendor-after-buy.png`; session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
+| 2026-05-30 | Integration review cursor clamp | Pass | `codex review --base master` reported an out-of-range scroll offset risk after one-time long-list purchases. `PokemonVendorClampListCursor()` now clamps the rebuilt list cursor before `ListMenuInit()`. `rtk git diff --check` and `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` pass. |
+| 2026-05-30 | Integration review allocation guard | Pass | `codex review --base master` reported unchecked row allocations in `PokemonVendorBuildList()`. Runtime now checks all three row buffers and unwinds safely on failure. `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`, full `all` / `debug` / `check`, docs build, and final mGBA smoke passed after this fix. |
 
 ## Feature Complete Gate
 

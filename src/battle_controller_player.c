@@ -88,7 +88,7 @@ static void WaitForMonSelection(enum BattlerId battler);
 static void CompleteWhenChoseItem(enum BattlerId battler);
 static bool8 TryFinishChooseActionAfterDma3(enum BattlerId battler);
 static void HandleChooseActionAfterTeamViewerInputRelease(enum BattlerId battler);
-static void ShowTeamViewerActionHint(void);
+static void ShowTeamViewerActionHint(enum BattlerId battler);
 static void HideTeamViewerActionHint(void);
 static void DestroyTeamViewerActionHint(void);
 static void DestroyTeamViewerActionHintGfx(struct Sprite *sprite);
@@ -292,9 +292,15 @@ static u32 GetNextBall(u32 ballId)
     return ballId;
 }
 
-static void ShowTeamViewerActionHint(void)
+static void ShowTeamViewerActionHint(enum BattlerId battler)
 {
 #if B_IN_BATTLE_TEAM_VIEWER
+    if (!PreBattleTeamViewer_CanOpenInBattle(battler))
+    {
+        HideTeamViewerActionHint();
+        return;
+    }
+
     if (sTeamViewerActionHintSpriteActive && GetSpriteTileStartByTag(TEAM_VIEWER_ACTION_HINT_TAG) == 0xFFFF)
         sTeamViewerActionHintSpriteActive = FALSE;
 
@@ -377,7 +383,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
 
     DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
     DoBounceEffect(battler, BOUNCE_MON, 7, 1);
-    ShowTeamViewerActionHint();
+    ShowTeamViewerActionHint(battler);
 
     if (JOY_REPEAT(DPAD_ANY) && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A)
         gPlayerDpadHoldFrames++;
@@ -2035,7 +2041,7 @@ void TryRedrawChooseActionFromTeamViewer(void)
 
 void TryShowTeamViewerActionHint(void)
 {
-    ShowTeamViewerActionHint();
+    ShowTeamViewerActionHint(gBattlerInMenuId);
 }
 
 static void PrintLinkStandbyMsg(void)
@@ -2222,7 +2228,7 @@ static void PlayerHandleChooseAction(enum BattlerId battler)
 
     TryRestoreLastUsedBall();
     ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
-    ShowTeamViewerActionHint();
+    ShowTeamViewerActionHint(battler);
     PREPARE_MON_NICK_BUFFER(gBattleTextBuff1, battler, gBattlerPartyIndexes[battler]);
     BattleStringExpandPlaceholdersToDisplayedString(gText_WhatWillPkmnDo);
 

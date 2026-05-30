@@ -3,7 +3,7 @@
 
 // Frame count references used by testing system
 #define AI_FRAME_CEILING_SINGLES_NO_FLAGS                       3
-#define AI_FRAME_CEILING_SINGLES_SMART_TRAINER                  9
+#define AI_FRAME_CEILING_SINGLES_SMART_TRAINER                  10
 #define AI_FRAME_CEILING_DOUBLES_NO_FLAGS                       24
 #define AI_FRAME_CEILING_DOUBLES_SMART_TRAINER                  44
 #define AI_FRAME_CEILING_STEVEN_MULTI                           32

@@ -97,9 +97,11 @@ static void Task_PokemonVendorWaitForFade(u8 taskId);
 static void Task_PokemonVendorHandleInput(u8 taskId);
 static void Task_PokemonVendorReturnToList(u8 taskId);
 static void Task_PokemonVendorClose(u8 taskId);
-static void PokemonVendorBuildList(void);
+static bool32 PokemonVendorBuildList(void);
+static void PokemonVendorClampListCursor(void);
 static void PokemonVendorFree(void);
 static void PokemonVendorInitWindows(void);
+static void PokemonVendorDestroyWindows(void);
 static void PokemonVendorDrawWindows(void);
 static void PokemonVendorPrintMoney(void);
 static void PokemonVendorPrintProductInfo(s32 item, bool8 onInit, struct ListMenu *list);
@@ -260,7 +262,14 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
     LoadMonIconPalettes();
     HideFieldMessageBox();
     PokemonVendorInitWindows();
-    PokemonVendorBuildList();
+    if (!PokemonVendorBuildList())
+    {
+        PokemonVendorDestroyWindows();
+        Free(sPokemonVendorMenu);
+        sPokemonVendorMenu = NULL;
+        ScriptContext_Enable();
+        return;
+    }
     PokemonVendorDrawWindows();
 
     taskId = CreateTask(Task_PokemonVendorWaitForFade, 8);
@@ -271,7 +280,7 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
     PokemonVendorRestoreListAndInfo();
 }
 
-static void PokemonVendorBuildList(void)
+static bool32 PokemonVendorBuildList(void)
 {
     u16 i;
     u16 visible = 0;
@@ -284,6 +293,13 @@ static void PokemonVendorBuildList(void)
     sPokemonVendorMenu->items = Alloc((count + 1) * sizeof(*sPokemonVendorMenu->items));
     sPokemonVendorMenu->names = Alloc((count + 1) * sizeof(*sPokemonVendorMenu->names));
     sPokemonVendorMenu->productIndexes = Alloc((count + 1) * sizeof(*sPokemonVendorMenu->productIndexes));
+    if (sPokemonVendorMenu->items == NULL
+     || sPokemonVendorMenu->names == NULL
+     || sPokemonVendorMenu->productIndexes == NULL)
+    {
+        PokemonVendorFree();
+        return FALSE;
+    }
 
     for (i = 0; i < count; i++)
     {
@@ -310,6 +326,26 @@ static void PokemonVendorBuildList(void)
     gMultiuseListMenuTemplate.totalItems = visible + 1;
     gMultiuseListMenuTemplate.maxShowed = min(MAX_PRODUCTS_SHOWN, visible + 1);
     gMultiuseListMenuTemplate.windowId = sPokemonVendorMenu->windowIds[WIN_LIST];
+
+    return TRUE;
+}
+
+static void PokemonVendorClampListCursor(void)
+{
+    u16 totalItems = sPokemonVendorMenu->visibleCount + 1;
+    u16 maxShowed = gMultiuseListMenuTemplate.maxShowed;
+    u16 maxScrollOffset = totalItems > maxShowed ? totalItems - maxShowed : 0;
+    u16 maxSelectedRow;
+
+    if (sPokemonVendorMenu->scrollOffset > maxScrollOffset)
+        sPokemonVendorMenu->scrollOffset = maxScrollOffset;
+
+    maxSelectedRow = totalItems - sPokemonVendorMenu->scrollOffset - 1;
+    if (maxSelectedRow >= maxShowed)
+        maxSelectedRow = maxShowed - 1;
+
+    if (sPokemonVendorMenu->selectedRow > maxSelectedRow)
+        sPokemonVendorMenu->selectedRow = maxSelectedRow;
 }
 
 static void PokemonVendorInitWindows(void)
@@ -322,6 +358,19 @@ static void PokemonVendorInitWindows(void)
         sPokemonVendorMenu->windowIds[i] = AddWindow(&sPokemonVendorWindowTemplates[i]);
 
     DeactivateAllTextPrinters();
+}
+
+static void PokemonVendorDestroyWindows(void)
+{
+    u8 i;
+
+    for (i = 0; i < WIN_COUNT; i++)
+    {
+        ClearStdWindowAndFrameToTransparent(sPokemonVendorMenu->windowIds[i], FALSE);
+        ClearWindowTilemap(sPokemonVendorMenu->windowIds[i]);
+        RemoveWindow(sPokemonVendorMenu->windowIds[i]);
+    }
+    ScheduleBgCopyTilemapToVram(0);
 }
 
 static void PokemonVendorDrawWindows(void)
@@ -539,11 +588,16 @@ static void PokemonVendorFinishPurchase(u8 taskId)
     if (JOY_NEW(A_BUTTON | B_BUTTON))
     {
         PokemonVendorFree();
-        PokemonVendorBuildList();
+        if (!PokemonVendorBuildList())
+        {
+            Task_PokemonVendorClose(taskId);
+            return;
+        }
+        PokemonVendorClampListCursor();
         DrawStdWindowFrame(sPokemonVendorMenu->windowIds[WIN_LIST], FALSE);
         PutWindowTilemap(sPokemonVendorMenu->windowIds[WIN_LIST]);
         CopyWindowToVram(sPokemonVendorMenu->windowIds[WIN_LIST], COPYWIN_FULL);
-        sPokemonVendorMenu->listTaskId = ListMenuInit(&gMultiuseListMenuTemplate, sPokemonVendorMenu->scrollOffset, min(sPokemonVendorMenu->selectedRow, sPokemonVendorMenu->visibleCount));
+        sPokemonVendorMenu->listTaskId = ListMenuInit(&gMultiuseListMenuTemplate, sPokemonVendorMenu->scrollOffset, sPokemonVendorMenu->selectedRow);
         PokemonVendorAddScrollIndicatorArrows();
         Task_PokemonVendorReturnToList(taskId);
     }
@@ -559,18 +613,10 @@ static void Task_PokemonVendorReturnToList(u8 taskId)
 
 static void Task_PokemonVendorClose(u8 taskId)
 {
-    u8 i;
-
     if (sPokemonVendorMenu != NULL)
     {
         PokemonVendorFree();
-        for (i = 0; i < WIN_COUNT; i++)
-        {
-            ClearStdWindowAndFrameToTransparent(sPokemonVendorMenu->windowIds[i], FALSE);
-            ClearWindowTilemap(sPokemonVendorMenu->windowIds[i]);
-            RemoveWindow(sPokemonVendorMenu->windowIds[i]);
-        }
-        ScheduleBgCopyTilemapToVram(0);
+        PokemonVendorDestroyWindows();
         Free(sPokemonVendorMenu);
         sPokemonVendorMenu = NULL;
     }

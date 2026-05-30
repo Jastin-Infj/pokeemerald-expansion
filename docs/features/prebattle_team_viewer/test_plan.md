@@ -48,7 +48,9 @@
 | 2026-05-30 integration `rtk make -j16 -O debug` | Pass | Debug ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
 | 2026-05-30 integration `rtk make -j16 -O all` | Pass | Normal ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
 | 2026-05-30 integration `rtk make -j16 -O check` | Pass | Full check target passed on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 review-blocker follow-up | Pass | `TEAM INFO` hint now uses the same `PreBattleTeamViewer_CanOpenInBattle()` eligibility as the actual `R` shortcut, avoiding stale hints in battles without viewer cache. |
 | 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` opened `Party -> Team Viewer Battle`, confirmed pre-battle viewer rendering, player Summary on `SELECT`, 3/3 pick-order selection, trainer battle start, action-menu `R / TEAM / INFO` hint, in-battle viewer on `R`, and action-menu return on `B`. |
+| 2026-05-30 review-blocker mGBA smoke | Pass | Session `integration-review-blocker-smoke` booted the debug ROM, accepted START input, reached the continue menu, captured `/tmp/integration-review-blocker-smoke.png`, and stopped cleanly. |
 | 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
 | 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |
 | mGBA Live focused route | Pass | Session `prebattle-team-viewer-real-route` booted the ROM, entered debug menu, selected `Party -> Team Viewer Battle`, confirmed pre-battle viewer, selected three mons, reached trainer battle, opened in-battle viewer with `R`, and returned with `B` to a visible action menu. |

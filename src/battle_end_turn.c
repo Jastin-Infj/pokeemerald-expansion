@@ -97,35 +97,53 @@ static bool32 HandleEndTurnWeather(enum BattlerId battler)
     return EndOrContinueWeather();
 }
 
-static bool32 TryHandleEndTurnWeatherAbility(enum BattlerId battler, enum Ability ability1, enum Ability ability2, bool32 *effect)
+static void AdvanceEndTurnWeatherBattler(void)
 {
-    enum Ability ability = GetBattlerAbility(battler);
+    gBattleStruct->eventState.endTurnBlock = 0;
+    gBattleStruct->eventState.endTurnBattler++;
+}
 
-    if (ability == ability1 || ability == ability2)
+static bool32 HasPendingEndTurnWeatherAbility(enum BattlerId battler, enum Ability ability1, enum Ability ability2)
+{
+    for (u32 block = gBattleStruct->eventState.endTurnBlock; block < 2; block++)
     {
-        if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
-            *effect = TRUE;
-        return TRUE;
+        enum Ability ability = block == 0 ? ability1 : ability2;
+
+        if (ability != ABILITY_NONE && BattlerHasAbility(battler, ability))
+            return TRUE;
     }
 
-#if B_ALL_ABILITY_SLOTS != FALSE || TESTING || DEBUG_OVERWORLD_MENU
-    if (gAllAbilitySlotsBattle)
-    {
-        if (BattlerHasAbility(battler, ability1))
-        {
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability1, MOVE_NONE, TRUE))
-                *effect = TRUE;
-            return TRUE;
-        }
+    return FALSE;
+}
 
-        if (ability2 != ABILITY_NONE && BattlerHasAbility(battler, ability2))
+static bool32 TryHandleSingleEndTurnWeatherAbility(enum BattlerId battler, enum Ability ability, bool32 *effect)
+{
+    if (ability == ABILITY_NONE || !BattlerHasAbility(battler, ability))
+        return FALSE;
+
+    if (AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
+        *effect = TRUE;
+    return TRUE;
+}
+
+static bool32 TryHandleEndTurnWeatherAbilities(enum BattlerId battler, enum Ability ability1, enum Ability ability2, bool32 *effect, bool32 *hadAbility)
+{
+    while (gBattleStruct->eventState.endTurnBlock < 2)
+    {
+        enum Ability ability = gBattleStruct->eventState.endTurnBlock == 0 ? ability1 : ability2;
+
+        gBattleStruct->eventState.endTurnBlock++;
+        if (TryHandleSingleEndTurnWeatherAbility(battler, ability, effect))
         {
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability2, MOVE_NONE, TRUE))
-                *effect = TRUE;
-            return TRUE;
+            *hadAbility = TRUE;
+            if (*effect)
+            {
+                if (!HasPendingEndTurnWeatherAbility(battler, ability1, ability2))
+                    AdvanceEndTurnWeatherBattler();
+                return TRUE;
+            }
         }
     }
-#endif
 
     return FALSE;
 }
@@ -198,6 +216,7 @@ static bool32 TryHandleThirdEventBlockAbility(enum BattlerId battler)
 static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
 {
     bool32 effect = FALSE;
+    bool32 hadAbility = FALSE;
 
     enum Ability ability = GetBattlerAbility(battler);
     u32 currBattleWeather = GetCurrentBattleWeather();
@@ -206,29 +225,34 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
     {
         // If there is no weather on the field, no need to check other battlers so go to next state
         gBattleStruct->eventState.endTurnBattler = 0;
+        gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurn++;
         return effect;
     }
 
-    gBattleStruct->eventState.endTurnBattler++;
-
-    if (!IsBattlerPresent(battler) || !HasWeatherEffect())
+    if (!IsBattlerAlive(battler) || !HasWeatherEffect())
+    {
+        AdvanceEndTurnWeatherBattler();
         return effect;
+    }
 
 
     switch (currBattleWeather)
     {
     case BATTLE_WEATHER_FOG:
     case BATTLE_WEATHER_STRONG_WINDS:
+        AdvanceEndTurnWeatherBattler();
         break;
     case BATTLE_WEATHER_RAIN:
     case BATTLE_WEATHER_RAIN_PRIMAL:
     case BATTLE_WEATHER_RAIN_DOWNPOUR:
-        TryHandleEndTurnWeatherAbility(battler, ABILITY_DRY_SKIN, ABILITY_RAIN_DISH, &effect);
+        if (!TryHandleEndTurnWeatherAbilities(battler, ABILITY_DRY_SKIN, ABILITY_RAIN_DISH, &effect, &hadAbility))
+            AdvanceEndTurnWeatherBattler();
         break;
     case BATTLE_WEATHER_SUN:
     case BATTLE_WEATHER_SUN_PRIMAL:
-        TryHandleEndTurnWeatherAbility(battler, ABILITY_DRY_SKIN, ABILITY_SOLAR_POWER, &effect);
+        if (!TryHandleEndTurnWeatherAbilities(battler, ABILITY_DRY_SKIN, ABILITY_SOLAR_POWER, &effect, &hadAbility))
+            AdvanceEndTurnWeatherBattler();
         break;
     case BATTLE_WEATHER_SANDSTORM:
         if (!BattlerHasAbility(battler, ABILITY_SAND_VEIL)
@@ -246,11 +270,17 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
             BattleScriptCall(BattleScript_DamagingWeather);
             effect = TRUE;
         }
+        AdvanceEndTurnWeatherBattler();
         break;
     case BATTLE_WEATHER_HAIL:
     case BATTLE_WEATHER_SNOW:
-        if (TryHandleEndTurnWeatherAbility(battler, ABILITY_ICE_BODY, ABILITY_NONE, &effect))
+        if (TryHandleEndTurnWeatherAbilities(battler, ABILITY_ICE_BODY, ABILITY_NONE, &effect, &hadAbility))
             break;
+        if (hadAbility)
+        {
+            AdvanceEndTurnWeatherBattler();
+            break;
+        }
         if (currBattleWeather == BATTLE_WEATHER_HAIL)
         {
             if (!BattlerHasAbility(battler, ABILITY_SNOW_CLOAK)
@@ -267,6 +297,7 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
                 effect = TRUE;
             }
         }
+        AdvanceEndTurnWeatherBattler();
         break;
     }
 

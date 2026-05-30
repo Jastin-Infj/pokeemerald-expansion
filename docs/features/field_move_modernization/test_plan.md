@@ -70,6 +70,18 @@
   - `rtk make -j16 -O check`: PASS on 2026-05-09.
   - mGBA Live boot / input check: PASS on 2026-05-09. Wrapper `/home/jastin/.local/bin/mgba-qt` booted the rebuilt ROM, accepted Start input, and showed the continue menu screenshot at `/tmp/field_kit_icon_wiring_boot.png`; session stopped cleanly. `pgrep` showed only the mGBA Live MCP server processes, not the stopped ROM process.
   - Manual bag visual confirmation after rebuild: pending user check.
+- Mandatory handoff retry follow-up:
+  - Wally's Dad Surf handoff: if Field Kit cannot be added, show the bag-full
+    message, move to Petalburg state 6, and stop the on-frame script. Talking to
+    Wally's Dad after freeing bag space retries the handoff and sets Surf
+    capability only on success.
+  - Steven Dive handoff: if Field Kit cannot be added, show the bag-full
+    message, move to Steven's House state 3, and stop the on-frame script.
+    Talking to Steven after freeing bag space retries the handoff and sets Dive
+    capability only on success.
+  - `rtk make -j16 -O all`: PASS on 2026-05-30.
+  - `rtk make -j16 -O debug`: PASS on 2026-05-30.
+  - `rtk make -j16 -O check`: PASS on 2026-05-30.
 - Capture Styler reference art revision:
   - Expected visual change: reduce the heavy black outer border, make the gray strap read more like a tilted ring / bracelet, and keep the top body closer to the official Capture Styler angle with a red shell, gold ring, and blue lens.
   - Cleanup pass: reduce roughness by removing isolated pixels, simplifying the ring into larger gray clusters, and keeping highlights as small blocks instead of scattered 1px noise.
@@ -152,7 +164,7 @@
 ### Surf
 
 - Wally's Dad gives `ITEM_FIELD_KIT` if missing and sets the Surf capability flag.
-- If Field Kit cannot be added, bag full message is shown and the Surf capability flag is not set.
+- If Field Kit cannot be added, bag full message is shown, the Surf capability flag is not set, and Wally's Dad can retry after bag space is freed without an on-frame loop.
 - A-button water interaction.
 - party menu Surf if enabled.
 - no party mon with Surf under modern mode.
@@ -174,7 +186,7 @@
 ### Dive
 
 - Steven gives `ITEM_FIELD_KIT` if missing and sets the Dive capability flag.
-- If Field Kit cannot be added, bag full message is shown and the Dive capability flag is not set.
+- If Field Kit cannot be added, bag full message is shown, the Dive capability flag is not set, and Steven can retry after bag space is freed without an on-frame loop.
 - A button dive down from a diveable tile.
 - B button opens Surface prompt underwater.
 - party menu Dive works for both Dive down and Surface when `TrySetDiveWarp()` allows it.

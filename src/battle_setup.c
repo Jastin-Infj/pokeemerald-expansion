@@ -1580,7 +1580,12 @@ static void TrainerBattleAftercare_ApplyIfEnabled(void)
 
 static void CB2_EndTrainerBattle(void)
 {
+    bool32 playerDefeated = IsPlayerDefeated(gBattleOutcome);
+    bool32 noAliveMonsBeforeSelectionRestore = FALSE;
+
     HandleBattleVariantEndParty();
+    if (playerDefeated)
+        noAliveMonsBeforeSelectionRestore = NoAliveMonsForPlayer();
     TrainerBattleSelection_RestoreIfActive();
     PreBattleTeamViewer_Clear();
     PokemonVendor_ClearBattleBondExpReward();
@@ -1595,7 +1600,7 @@ static void CB2_EndTrainerBattle(void)
             HealPlayerParty();
     }
 
-    if (IsPlayerDefeated(gBattleOutcome) == TRUE && ChampionsRun_EndByBattleOutcome(gBattleOutcome))
+    if (playerDefeated == TRUE && ChampionsRun_EndByBattleOutcome(gBattleOutcome))
     {
         SetMainCallback2ToChampionsRunStartLocation();
         return;
@@ -1605,7 +1610,7 @@ static void CB2_EndTrainerBattle(void)
 
     if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
     {
-        if (IsPlayerDefeated(gBattleOutcome) == TRUE)
+        if (playerDefeated == TRUE)
         {
             gSpecialVar_Result = TRUE;
             if (GetRivalBattleFlags() & RIVAL_BATTLE_HEAL_AFTER)
@@ -1638,9 +1643,9 @@ static void CB2_EndTrainerBattle(void)
         else
             SetMainCallback2(CB2_WhiteOut);
     }
-    else if (IsPlayerDefeated(gBattleOutcome) == TRUE)
+    else if (playerDefeated == TRUE)
     {
-        if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || InTrainerHillChallenge() || (!NoAliveMonsForPlayer()) || FlagGet(B_FLAG_NO_WHITEOUT))
+        if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || InTrainerHillChallenge() || !noAliveMonsBeforeSelectionRestore || FlagGet(B_FLAG_NO_WHITEOUT))
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         else
             SetMainCallback2(CB2_WhiteOut);
