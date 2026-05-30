@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-18 |
+| Last reviewed | 2026-05-30 |
 | Baseline | `master` `0cdd416376`; `git describe` = `expansion/1.15.2-71-g0cdd416376` |
 | Code status | Docs-only evidence index |
 | Provenance | Feature test plans, current `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup, 2026-05-18 Team Viewer / partygen source audit |
@@ -28,7 +28,7 @@ preserved.
 
 | Feature | Branch / PR | Docs | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
-| No Random Encounters step-only | Closed PR #41 / `feature/no-random-encounters-step-only-runtime-20260517` | [test_plan](../features/no_random_encounters/test_plan.md) | `all`, `debug`, `check`, CI build / release / test / docs_validate passed. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild Wurmple battle, flag ON no-encounter walking for 2400 macro frames, flag OFF-restored Poochyena battle, and user confirmation recorded on 2026-05-17. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; Fishing / Sweet Scent / Rock Smash / scripted wild remain out of MVP scope. |
+| No Random Encounters step-only | Closed PR #41 / `feature/no-random-encounters-step-only-runtime-20260517`; adopted into `integration/runtime-dev-20260529` on 2026-05-30 | [test_plan](../features/no_random_encounters/test_plan.md) | Shelf: `all`, `debug`, `check`, CI build / release / test / docs_validate passed. Integration: `all`, `debug`, full `check` passed. | No separate unit test; implementation is a flag id allocation using the existing `CheckStandardWildEncounter` gate. | Route 101 flag OFF wild Wurmple battle, flag ON no-encounter walking for 2400 macro frames, flag OFF-restored Poochyena battle, and user confirmation recorded on 2026-05-17. Integration smoke confirmed boot / field state and SaveBlock flag set / clear. | Current `master` still has `OW_FLAG_NO_ENCOUNTER 0`; Fishing / Sweet Scent / Rock Smash / scripted wild remain out of MVP scope. |
 | Battle BGM Selector / Sound Archive | Closed PR #39 / `feature/battle-bgm-selector-mvp-20260517` | [test_plan](../features/battle_bgm_selector/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | `test/battle_bgm.c` covers routing and imported song choices. | mGBA selector, preview, debug trainer battle, and song-header evidence recorded. | Large asset/audio shelf; source permission risk remains before adoption. |
 | TM Shop Migration | Closed PR #31 / `feature/tm-shop-migration` | [test_plan](../features/tm_shop_migration/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | Static grep and map JSON parse checks recorded. | Booted, continued save, opened Start menu; HM source route not fully confirmed. | FRLG routes follow-up; debug TM shop screen not confirmed in mGBA. |
 | Unified Move Relearner | Closed PR #28 / `feature/unified-move-relearner` | [test_plan](../features/unified_move_relearner/test_plan.md) | `all`, `debug`, `check`, CI build / release / test passed. | JSON audits, candidate list checks, special/form/LGPE smoke checks. | mGBA evidence covers Mew long list, Arceus special moves, Rotom, Cosplay Pikachu, LGPE partners, NPC cancel. | Actual teach / overwrite pass remains recommended before adoption. |

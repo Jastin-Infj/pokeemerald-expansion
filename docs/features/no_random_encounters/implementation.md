@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
+| Last reviewed | 2026-05-30 |
 | Branch | `feature/no-random-encounters-step-only-runtime-20260517` |
 | Base | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
 | Scope | Step-based random encounter suppression via existing overworld flag gate |
@@ -104,6 +104,47 @@ Docs-only review on 2026-05-17:
 | `rtk gh pr list --state open ...` | Open runtime shelves were rechecked before the fresh runtime PR was opened; later opened and closed as completed shelf #41 after CI success. |
 | Source scope review | Historical branch diff is still limited to `include/config/overworld.h`, `include/constants/flags.h`, and `include/constants/flags_frlg.h`. |
 | Runtime build / mGBA | Superseded by the 2026-05-17 runtime branch validation above. |
+
+## Integration Adoption: 2026-05-30
+
+Runtime branch: `integration/runtime-dev-20260529`
+
+Integration commit: this containing PR #68 commit.
+
+Source shelf: `feature/no-random-encounters-step-only-runtime-20260517`, commit
+`3d4522f6e9 config: enable no random encounters step-only`
+
+Integrated source diff:
+
+- `include/config/overworld.h`
+- `include/constants/flags.h`
+- `include/constants/flags_frlg.h`
+
+Conflict result: no source conflict. The runtime integration branch still keeps
+the feature out of `master`; PR #68 is the staging shelf.
+
+Validation on the integration branch:
+
+| Check | Result |
+|---|---|
+| `rtk git diff --check` | Passed. |
+| `rtk make -j16 -O all` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O check` | Passed with existing EXPECTED_FAIL / KNOWN_FAILING markers. |
+| mGBA Live smoke | Passed. Session `integration-no-random-smoke` booted `pokeemerald.gba`, reached field callback `CB2_Overworld`, read `gSaveBlock1Ptr`, and set / cleared `FLAG_NO_ENCOUNTER` at SaveBlock1 flag byte `0x0201131C` bit `5`. |
+| mGBA Live cleanup | Passed. `mgba-live-cli stop` returned `alive_after:false`; final `status --all` returned `[]`. |
+
+Screenshots:
+
+- `/tmp/integration-no-random-boot.png`
+- `/tmp/integration-no-random-after-continue.png`
+- `/tmp/integration-no-random-field.png`
+
+Integration smoke did not repeat the full Route 101 OFF / ON / OFF-restored
+walking macro. That behavior remains covered by the 2026-05-17 branch evidence
+above and user confirmation. Re-run the Route 101 macro if later changes touch
+`src/field_control_avatar.c`, `src/wild_encounter.c`, map movement, or Debug
+menu flag handling.
 
 ## Remaining Risks
 

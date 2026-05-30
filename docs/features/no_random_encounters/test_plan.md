@@ -218,3 +218,39 @@ Remaining manual checks remain the same as the 2026-05-09 validation: Surf /
 cave step encounters were not separately walked, and Fishing, Sweet Scent, Rock
 Smash, static `setwildbattle` / `dowildbattle`, DexNav, and option UI are out of
 MVP scope.
+
+## Integration Runtime Record: 2026-05-30
+
+Branch checked: `integration/runtime-dev-20260529`
+
+Integration commit: this containing PR #68 commit.
+
+Source shelf adopted: `feature/no-random-encounters-step-only-runtime-20260517`
+commit `3d4522f6e9`.
+
+Implementation diff scope:
+
+- `include/config/overworld.h`
+- `include/constants/flags.h`
+- `include/constants/flags_frlg.h`
+
+Build / static checks:
+
+| Command | Result | Notes |
+|---|---|---|
+| `rtk git diff --check` | passed | No whitespace errors. |
+| `rtk make -j16 -O all` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+| `rtk make -j16 -O debug` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+| `rtk make -j16 -O check` | passed | Existing EXPECTED_FAIL / KNOWN_FAILING markers remain accepted. |
+
+mGBA Live smoke:
+
+| Test | Result | Evidence |
+|---|---|---|
+| Boot / field state | passed | Session `integration-no-random-smoke` booted `pokeemerald.gba`, continued the local save, and reported callback2 `0x081A7165` (`CB2_Overworld`) at map `0/2`, coords `22,6`. Screenshot: `/tmp/integration-no-random-field.png`. |
+| `FLAG_NO_ENCOUNTER` byte set / clear | passed | Lua read `gSaveBlock1Ptr=0x0200FF90`, flag byte `0x0201131C`, bit `5`. Byte changed `16 -> 48` when set and `48 -> 16` when cleared. |
+| Cleanup | passed | `mgba-live-cli stop --session integration-no-random-smoke` returned `alive_after:false`; final `status --all` returned `[]`. |
+
+This integration smoke confirms the current branch uses the real event flag and
+the ROM boots with the flag layout. It intentionally does not replace the
+longer Route 101 encounter macro evidence from 2026-05-17.

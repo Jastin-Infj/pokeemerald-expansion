@@ -4,13 +4,13 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-17 |
+| Last reviewed | 2026-05-30 |
 | Baseline | `master` `788191a7cd`; `git describe` = `expansion/1.15.2-65-g788191a7cd` |
-| Code status | Completed shelf #41 on `feature/no-random-encounters-step-only-runtime-20260517`; not on `master` |
+| Code status | Completed shelf #41; adopted into `integration/runtime-dev-20260529` on 2026-05-30; not on `master` |
 | Provenance | Local project feature docs |
 
 Status: Implemented completed shelf
-Code status: not on `master`; validated 3 file implementation is on `feature/no-random-encounters-step-only-runtime-20260517` / closed PR #41
+Code status: runtime source is now adopted on `integration/runtime-dev-20260529`; validated 3 file implementation source shelf remains `feature/no-random-encounters-step-only-runtime-20260517` / closed PR #41. `master` remains docs / Lua-only and still should not receive this source change directly.
 
 ## Goal
 
@@ -50,6 +50,22 @@ files only:
 この feature は runtime rule options、Champions Challenge、debug / facility rule の土台に
 なるが、option UI や broad wild suppression へ広げるのは別 feature に分ける。
 
+## 2026-05-30 Integration Adoption
+
+`integration/runtime-dev-20260529` adopted the same three-file runtime slice
+from closed PR #41:
+
+- `include/config/overworld.h`
+- `include/constants/flags.h`
+- `include/constants/flags_frlg.h`
+
+Integration commit: this containing PR #68 commit.
+
+No new map script, debug script, encounter table, Fishing / Sweet Scent / Rock
+Smash hook, or option UI was added. The adoption only connects the existing
+`CheckStandardWildEncounter` / Debug menu flag gate to the real event flag
+`FLAG_NO_ENCOUNTER`.
+
 ## Debug Command
 
 No new debug command was added for the runtime branch. The branch enables the
@@ -68,11 +84,12 @@ message instead of toggling a flag.
 
 ## Master Policy Note
 
-As of 2026-05-17, the validated implementation exists on
-`feature/no-random-encounters-step-only-runtime-20260517` / closed PR #41, but
-source changes are intentionally not copied to `master`. `master` remains the
-upstream intake baseline plus docs / workflow overlay. Keep
-`include/config/overworld.h` at `OW_FLAG_NO_ENCOUNTER 0` on `master`.
+As of 2026-05-30, the validated implementation exists on
+`feature/no-random-encounters-step-only-runtime-20260517` / closed PR #41 and
+has been re-applied to `integration/runtime-dev-20260529`, but source changes
+are intentionally not copied to `master`. `master` remains the upstream intake
+baseline plus docs / workflow overlay. Keep `include/config/overworld.h` at
+`OW_FLAG_NO_ENCOUNTER 0` on `master`.
 
 When this feature is needed in a playable build, create a fresh
 `feature/no-random-encounters-*` or `integration/*` branch from current
