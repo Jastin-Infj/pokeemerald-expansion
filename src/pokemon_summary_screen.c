@@ -3355,7 +3355,7 @@ static void RefreshStateEditorSummary(void)
 static void RestoreStateEditorUnderlyingSummary(void)
 {
     PutPageWindowTilemaps(sMonSummaryScreen->currPageIndex);
-    ShowRelearnPrompt();
+    UpdateRelearnPrompt();
     ScheduleBgCopyTilemapToVram(0);
 }
 

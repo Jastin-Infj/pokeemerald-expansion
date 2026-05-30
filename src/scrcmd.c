@@ -2308,6 +2308,22 @@ bool8 ScrCmd_setmonmove(struct ScriptContext *ctx)
     return FALSE;
 }
 
+static u8 GetFieldMoveModernDisplayMonSlot(void)
+{
+    u32 i;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        u16 species = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIES);
+        if (species == SPECIES_NONE)
+            break;
+        if (!GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_IS_EGG))
+            return i;
+    }
+
+    return 0;
+}
+
 bool8 ScrCmd_checkfieldmove(struct ScriptContext *ctx)
 {
     enum FieldMove fieldMove = ScriptReadByte(ctx);
@@ -2321,6 +2337,14 @@ bool8 ScrCmd_checkfieldmove(struct ScriptContext *ctx)
         return FALSE;
 
     move = FieldMove_GetMoveId(fieldMove);
+    if (FieldMove_UsesModernUnlock(fieldMove))
+    {
+        u8 slot = GetFieldMoveModernDisplayMonSlot();
+        gSpecialVar_Result = slot;
+        gSpecialVar_0x8004 = GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_SPECIES);
+        return FALSE;
+    }
+
     for (u32 i = 0; i < PARTY_SIZE; i++)
     {
         enum Species species = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIES);
