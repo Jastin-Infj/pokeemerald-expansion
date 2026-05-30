@@ -1,0 +1,105 @@
+#include "global.h"
+#include "battle_bgm.h"
+#include "test/test.h"
+#include "constants/songs.h"
+
+TEST("Battle BGM defaults keep vanilla song IDs")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_VS_TRAINER);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_WILD), MUS_VS_WILD);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_RG_VS_LEGEND), MUS_RG_VS_LEGEND);
+}
+
+TEST("Battle BGM trainer and wild choices are independent")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_KANTO_TRAINER);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_HOENN_WILD);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_RG_VS_TRAINER);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_GYM_LEADER), MUS_RG_VS_TRAINER);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_RG_VS_WILD), MUS_VS_WILD);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_REGI), MUS_VS_WILD);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+}
+
+TEST("Battle BGM trainer choices can use expanded battle tracks")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_FRONTIER_BRAIN);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_VS_FRONTIER_BRAIN);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_AQUA_MAGMA), MUS_VS_FRONTIER_BRAIN);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_RG_VS_CHAMPION), MUS_VS_FRONTIER_BRAIN);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_WILD), MUS_VS_WILD);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+}
+
+TEST("Battle BGM wild choices can use expanded legendary battle tracks")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_MEWTWO);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_WILD), MUS_RG_VS_MEWTWO);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_RG_VS_WILD), MUS_RG_VS_MEWTWO);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_RAYQUAZA), MUS_RG_VS_MEWTWO);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_VS_TRAINER);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+}
+
+TEST("Battle BGM choices can use imported BW battle tracks")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_BW2_IRIS);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_BW_LEGEND);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_BW_VS_IRIS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_BW_VS_IRIS), MUS_BW_VS_IRIS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_WILD), MUS_BW_VS_LEGEND);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_BW_VS_LEGEND), MUS_BW_VS_LEGEND);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+}
+
+TEST("Battle BGM choices can use imported DPPt and HGSS battle tracks")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DP_CYRUS);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_HGSS_LUGIA);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_DP_VS_GALACTIC_BOSS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_DP_VS_TRAINER), MUS_DP_VS_GALACTIC_BOSS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_DP_VS_GALACTIC_COMMANDER), MUS_DP_VS_GALACTIC_BOSS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_HG_VS_ROCKET), MUS_DP_VS_GALACTIC_BOSS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_WILD), MUS_HG_VS_LUGIA);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_DP_VS_LEGEND), MUS_HG_VS_LUGIA);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_HG_VS_HO_OH), MUS_HG_VS_LUGIA);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+}
+
+TEST("Battle BGM choices can use expanded imported DPPt Platinum and HGSS tracks")
+{
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_PL_FRONTIER_BRAIN);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_HGSS_ARCEUS);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_TRAINER), MUS_PL_VS_FRONTIER_BRAIN);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_HG_VS_TRAINER_KANTO), MUS_PL_VS_FRONTIER_BRAIN);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_VS_WILD), MUS_HG_VS_ARCEUS);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_DP_VS_DIALGA_PALKIA), MUS_HG_VS_ARCEUS);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_HGSS_RIVAL);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DP_UXIE_MESPRIT_AZELF);
+
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_DP_VS_RIVAL), MUS_HG_VS_RIVAL);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_HG_VS_FRONTIER_BRAIN), MUS_HG_VS_RIVAL);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_HG_VS_SUICUNE), MUS_DP_VS_UXIE_MESPRIT_AZELF);
+    EXPECT_EQ(ApplyBattleBgmSelection(MUS_PL_VS_GIRATINA), MUS_DP_VS_UXIE_MESPRIT_AZELF);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+}

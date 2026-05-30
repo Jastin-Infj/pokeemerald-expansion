@@ -2,8 +2,9 @@
 
 ## Status
 
-- Status: Implemented draft
-- Branch: `feature/battle-bgm-selector-mvp-20260517`
+- Status: Adopted into runtime integration
+- Source branch: `feature/battle-bgm-selector-mvp-20260517`
+- Integration branch: `integration/runtime-dev-20260529`
 - Master status: Not merged
 - Runtime scope: Existing BGM plus BW/BW2, DPPt, Platinum, and HGSS battle import slices
 - Save layout: No changes
@@ -48,6 +49,27 @@
   not rely only on `GetBattleBGM()`.
 - Wild BGM choice covers normal wild and legendary/special wild battle songs.
 - Trainer BGM choice covers normal trainer and boss-style trainer songs.
+
+## Integration Notes
+
+The feature branch was older than the current runtime integration stack, so it
+was not merged wholesale. The integration branch restored the audio assets,
+song constants, sound tables, MIDI / voicegroup metadata, `aif2pcm`,
+`mid2agb -Q`, `src/battle_bgm.c`, `include/battle_bgm.h`, and
+`test/battle_bgm.c`, then manually re-applied the `src/pokemon.c` and
+`src/debug.c` hooks so existing Champions / Scout / Vendor / Party UI /
+Field Kit debug entries were preserved.
+
+`codex review --commit a4c6035968ec0fd2890b12c17caad4f2658fa3f6` found one
+tool issue: compressed `.aif` inputs ending on a high nibble could omit the
+final partial delta byte. The integration branch fixes this in
+`tools/aif2pcm/main.c` by counting the final half-byte before ending the block.
+
+`codex review --uncommitted` also caught a stale integration hunk where the
+older BGM branch would have removed current Unified Move Relearner and Scout
+Selection generated-header rules from `Makefile`. The staged integration keeps
+those generator rules intact; the only Makefile change left for this slice is
+adding the `AIF` tool path used by `audio_rules.mk`.
 - `BW2 Iris`, DPPt Trainer/Gym/Elite Four/Champion/Galactic/Cyrus/Rival,
   Platinum Frontier Brain, and HGSS Trainer/Gym/Champion/Rocket/Rival/Kanto
   Trainer/Kanto Gym/Frontier Brain are classified as Trainer/Boss battle BGM
@@ -184,6 +206,9 @@ Controls:
 | mGBA Live HGSS Rocket battle SE-priority pass | Pass on 2026-05-17 after `mid2agb -Q`: booted debug ROM, set Trainer BGM choice to `HGSS Rocket`, started `Party -> Start Debug Battle`, confirmed `gMPlayInfo_BGM.songHeader` pointed to regenerated `mus_hg_vs_rocket` (`0x099E5C68`), and sampled DirectSound channel priorities as `0,0,0,0,0` during the battle opening. MCP cannot hear audio, but this confirms the imported BGM no longer holds `PRIO 64` channels that would prevent lower-priority battle SE from stealing a channel. |
 | Expanded DPPt / Platinum / HGSS import build pass | Pass on 2026-05-17 after adding 17 more imported battle tracks. `debug`, `all`, and `check` passed; generated imported battle `.s` files were scanned and no `PRIO` commands remain in the newly added tracks after `mus_pl_vs_regi` was moved to `-Q`. |
 | mGBA Live expanded import preview pass | Pass on 2026-05-17 booted debug ROM, continued existing save, opened debug `Sound -> Trainer BGM...` / `Wild BGM...`, selected and previewed `Plt Frontier`, `HGSS Arceus`, and `Plt Regi`, and confirmed `gMPlayInfo_BGM.songHeader` pointed to `mus_pl_vs_frontier_brain` (`0x09A24114`), `mus_hg_vs_arceus` (`0x099EBAA0`), and `mus_pl_vs_regi` (`0x09A28880`). |
+| Runtime integration build pass | Pass on 2026-05-30 on `integration/runtime-dev-20260529`: `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. |
+| Runtime integration `aif2pcm --compress` odd-length check | Pass on 2026-05-30: compressed and round-tripped odd-length `sound/direct_sound_samples/dp_016bongo.aif` (`1563` frames); the output AIF preserved `1563` frames after the final half-byte fix. |
+| Runtime integration mGBA Live selector smoke | Pass on 2026-05-30: booted `pokeemerald.gba`, continued the existing save, opened Debug Menu -> `Sound...`, confirmed `Trainer BGM...` / `Wild BGM...` entries, opened `Trainer BGM`, changed the choice from `Default` to `Hoenn Wild`, previewed it, captured screenshots, and stopped cleanly with `alive_after: false`. |
 
 ## mGBA Cleanup Note
 

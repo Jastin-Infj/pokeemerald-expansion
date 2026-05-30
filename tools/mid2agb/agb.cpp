@@ -405,7 +405,8 @@ void PrintControllerOp(const Event& event)
         break;
     case 0x21:
     case 0x27:
-        PrintByte("PRIO  , %u", event.param2);
+        if (!g_suppressTrackPriority)
+            PrintByte("PRIO  , %u", event.param2);
         PrintWait(event.time);
         break;
     default:

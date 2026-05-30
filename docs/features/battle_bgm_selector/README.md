@@ -2,9 +2,9 @@
 
 ## Status
 
-- Status: Implemented draft
-- Code status: Runtime source exists on `feature/battle-bgm-selector-mvp-20260517`
-- Docs status: Updated with implementation evidence
+- Status: Adopted into runtime integration
+- Code status: Runtime source exists on `feature/battle-bgm-selector-mvp-20260517` and was re-applied to `integration/runtime-dev-20260529`
+- Docs status: Updated with implementation and integration evidence
 - Feature type: Fully new local feature candidate
 - Split from: [Jukebox / Sound Archive](../jukebox_sound_archive/README.md)
 
@@ -32,6 +32,9 @@ This feature is separate from the generic Jukebox.
   battle tracks.
 - Trainer / NPC sprite expansion is tracked separately and is not part of this
   runtime branch.
+- `master` remains docs / Lua-only. The audio assets, sound tables, selector
+  runtime, and tool changes live on the runtime integration branch, not on
+  `master`.
 
 ## First Runtime MVP
 

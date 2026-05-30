@@ -89,25 +89,16 @@ adopted through fresh runtime branches.
 
 ## Current Runtime Shelves
 
-2026-05-17 cleanup 後、GitHub 上で open の runtime implementation shelf は
-0 件。成功済み runtime PR は completed shelf として close し、branch は
-preserved のまま残す。
+2026-05-30 時点では、主要 runtime shelf は
+`integration/runtime-dev-20260529` / PR #68 に再適用済み。open PR は
+evidence shelf として残っているものが多く、`master` への merge 許可ではない。
 
-| PR | Feature | Branch | Merge state from `gh pr list` |
+| PR | Feature | Branch | Current handling |
 |---|---|---|---|
-| None | - | - | - |
-
-Completed shelves closed on 2026-05-17:
-
-| PR | Feature | Branch |
-|---|---|---|
-| #41 | No Random Encounters step-only | `feature/no-random-encounters-step-only-runtime-20260517` |
-| #39 | Battle BGM Selector / Sound Archive | `feature/battle-bgm-selector-mvp-20260517` |
-| #31 | TM Shop Migration | `feature/tm-shop-migration` |
-| #28 | Unified Move Relearner | `feature/unified-move-relearner` |
-| #26 | Summary Tera Type Icon | `feature/summary-tera-type-badge` |
-| #23 | Pokemon State Editor | `feature/pokemon-state-editor-expansion` |
-| #20 | Pre-Battle / In-Battle Team Viewer | `feature/prebattle-team-viewer` |
+| #68 | Runtime Integration Staging | `integration/runtime-dev-20260529` | Current runtime integration lane. |
+| #47 / #48 / #51 / #54 / #57 / #60 / #62 | Older runtime shelves | feature branches | Equivalent or newer code is staged in #68; keep as evidence until superseded / closed by user decision. |
+| #65 | Map Asset Relinker | `feature/map-asset-relinker-20260525` | Tooling lane, not ROM runtime integration. |
+| #39 and other closed runtime shelves | Battle BGM, TM/HM, Relearner, Team Viewer, State Editor, Summary Tera, Trainer Aftercare, Partygen | feature branches | Adopted into `integration/runtime-dev-20260529` or recorded as superseded / reference-only in the runtime audit. |
 
 この snapshot は古くなる。実装採用前は必ず `gh pr list --state all` と
-`gh pr view` で再確認する。
+`gh pr view` と branch diff を再確認する。
