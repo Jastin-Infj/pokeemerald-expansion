@@ -6,7 +6,7 @@
 |---|---|
 | Branch | `feature/summary-tera-type-badge` / completed shelf #26 |
 | Baseline | `master` `c13184c0b1`; `git describe` = `expansion/1.15.2-45-gc13184c0b1` |
-| Status | Validated branch; completed shelf #26 closed 2026-05-17 after CI success; not on `master` |
+| Status | Validated branch; completed shelf #26 closed 2026-05-17 after CI success; adopted into `integration/runtime-dev-20260529` on 2026-05-30; not on `master` |
 | Date | 2026-05-15 |
 
 ## Source Changes
@@ -38,6 +38,11 @@ the 16x16 Terastal badge from `graphics/types/tera/*.png`.
 The implementation is display-only. It does not change Tera type data, add Tera
 type editing, or touch the Pokemon State Editor.
 
+Integration note: on `integration/runtime-dev-20260529`, the badge is layered on
+top of the already-staged State Editor and All Ability Summary changes. The
+integration keeps the dedicated 16x16 Tera badge sprite separate from the normal
+type icon sprite array so the Skills-page State Editor prompt remains unchanged.
+
 ## Validation
 
 - `rtk git diff --check`: passed.
@@ -56,6 +61,27 @@ type editing, or touch the Pokemon State Editor.
 
 The mGBA Live validation session `summary-tera-type-x205-check` stopped
 cleanly.
+
+Integration adoption on `integration/runtime-dev-20260529` passed:
+
+- Applied source/graphics changes from `feature/summary-tera-type-badge` commit
+  `bee3f54025`; the branch was not merged wholesale because it would rewind the
+  newer runtime-dev docs/source stack.
+- Conflict resolution retained `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH`,
+  `P_SUMMARY_STATE_EDITOR_*`, and the new `P_SUMMARY_TERA_TYPE_ICON_X/Y`
+  defines together.
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O check`: passed with the existing RWX linker warning.
+- mGBA Live session `integration-summary-tera-smoke` reused an existing save,
+  opened Party -> Wobbuffet Summary -> Info, confirmed the Tera badge appears
+  to the right of the normal type icon area, then moved to Skills and confirmed
+  the State Editor `START EDIT` prompt still renders.
+- Integration screenshots:
+  `/tmp/integration-summary-tera-info.png`,
+  `/tmp/integration-summary-tera-skills.png`.
+- Cleanup: `mgba_live_stop` returned `stopped: true`; `mgba-live-cli status --all`
+  returned `[]`.
 
 ## Remaining Checks
 
