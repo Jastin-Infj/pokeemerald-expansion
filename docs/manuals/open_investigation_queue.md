@@ -23,11 +23,16 @@ selected cherry-pick.
 
 | Topic | Current owner | Why it matters | Next investigation |
 |---|---|---|---|
-| battle item restore adoption defaults | `docs/features/battle_item_restore_policy/` | Closed PR #14 and older branch evidence use `B_RESTORE_HELD_BATTLE_BERRIES TRUE`, while conservative branch policy may prefer default off. | Decide default TRUE/FALSE before source re-apply; keep the decision in `adoption_investigation_2026_05_09.md` and `mvp_plan.md`. |
-| nonconsumable held item catalog policy | `docs/features/nonconsumable_held_items/` | User wants a Champions-style held item policy where battle items do not disappear and one item can be assigned without physical quantity friction. Battle-end restore and catalog assignment touch different code paths. | Implement battle-end restore first if selected. Before catalog runtime, decide global/debug/facility scope and audit Party / Bag / Storage Take/Give/Switch/Toss behavior. |
 | trainer aftercare focused test gate | `docs/features/trainer_battle_aftercare/` | The source hook is small but touches `CB2_EndTrainerBattle`, a central callback for win/loss/facility return. | Add focused config-off, normal-win, and exclusion-path tests before adopting the aftercare slice. |
-| unified move relearner adoption policy | `docs/features/unified_move_relearner/` | Completed shelf #28 implements the candidate builder and long-list handling. Policy decisions still affect runtime semantics. | Resolve conflicts after TM Shop Migration, then decide virtual TM unlock default, special-source labels, and manual teach/overwrite validation coverage. |
-| pokemon state editor adoption polish | `docs/features/pokemon_state_editor/` | Completed shelf #23 implements the party Summary MVP. Remaining questions are box support, redraw artifacts, legality locks, and whether this shelf is still the desired next adoption point. | Confirm box-summary policy and remaining UI/data polish before re-applying or replacing the shelf. |
+
+### Resolved (2026-05-30 Runtime Integration)
+
+| Topic | Resolution |
+|---|---|
+| ~~battle item restore adoption defaults~~ | Runtime restore shelf was adopted into `integration/runtime-dev-20260529`; final release default remains documented on the feature policy docs, but this is no longer an open adoption blocker for PR #68. |
+| ~~nonconsumable held item catalog policy~~ | Held item catalog / unique-token assignment was adopted into `integration/runtime-dev-20260529`; remaining policy tuning belongs to feature validation, not initial branch discovery. |
+| ~~unified move relearner adoption policy~~ | Unified Move Relearner was adopted into `integration/runtime-dev-20260529` after TM Shop Migration. Integration keeps Summary-first behavior and leaves direct party `RELEARN` disabled by config. |
+| ~~pokemon state editor adoption polish~~ | Pokemon State Editor was adopted into `integration/runtime-dev-20260529` after Team Viewer phase2. Integration mGBA smoke confirmed Skills-page `START EDIT`, right-pane editor open, tab switch, and B-button Summary return. |
 
 ### Resolved (2026-05-18)
 
