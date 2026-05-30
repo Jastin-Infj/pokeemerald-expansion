@@ -53,11 +53,11 @@ a current PR.
 
 | Branch | PR status | Runtime status | Recommended action |
 |---|---|---|---|
-| `feature/battle-selection-mvp` | No active PR; docs PR #18 exists. | Implemented trainer battle party selection MVP. | Consider as a supporting shelf if the integration does not take Team Viewer wholesale. It overlaps `src/battle_setup.c`, `src/party_menu.c`, and `include/config/battle.h`. |
+| `feature/battle-selection-mvp` | No active PR; docs PR #18 exists. | Implemented trainer battle party selection MVP. | Supporting source was adopted through Team Viewer phase2 on `integration/runtime-dev-20260529`; keep the older branch as evidence only. |
 | `feature/field-move-modernization-mvp` | No active PR. | Implemented HM-free field move MVP. | Adoption candidate if the next integration lane includes HM / field policy. Otherwise keep as a validated shelf. |
 | `feature/field-move-toolkit-item` | No active PR. | Implemented Field Kit itemization on top of field move modernization. | Adopt only with the field-move lane; includes graphics and item data, so it is not docs-only. |
-| `feature/prebattle-team-viewer` | Closed PR #20. | Implemented pre-battle / in-battle team viewer MVP. | Completed shelf. Consider after party-selection policy is chosen. |
-| `feature/prebattle-team-viewer-phase2` | No active runtime PR; docs PR #22 exists. | Implemented phase 2 selection flow on top of Team Viewer. | Prefer this over the older viewer branch if adopting the integrated viewer path. Recheck against Scout Selection and Party UI. |
+| `feature/prebattle-team-viewer` | Closed PR #20. | Implemented pre-battle / in-battle team viewer MVP. | Superseded by the phase2 adoption into `integration/runtime-dev-20260529` on 2026-05-30; keep PR #20 closed as source evidence. |
+| `feature/prebattle-team-viewer-phase2` | No active runtime PR; docs PR #22 exists. | Implemented phase 2 selection flow on top of Team Viewer. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after Unified Move Relearner. Integration preserved Scout Selection, Party UI, Pokemon Vendor, All Ability, and Champions run-session hooks. |
 | `feature/pokemon-state-editor-expansion` | Closed PR #23. | Implemented Summary-launched Pokemon State Editor MVP. | Completed shelf. Integration depends on Summary / Party UI and vendor edit-entitlement decisions. |
 | `feature/summary-tera-type-badge` | Closed PR #26. | Implemented display-only Summary Tera icon. | Small UI shelf; adopt only after asset credit and Summary layout ownership are settled. |
 | `feature/unified-move-relearner` | Closed PR #28. | Implemented unified level / egg / TM / tutor / special move candidate list. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after TM Shop Migration. Integration keeps Summary-first route and leaves direct party `RELEARN` disabled by config. Actual teach / overwrite proof remains recommended before final merge. |
@@ -135,6 +135,7 @@ These are the files most likely to define the integration order.
 | 2026-05-30 | `integration/runtime-dev-20260529` | #41 No Random Encounters step-only | Source re-applied from `feature/no-random-encounters-step-only-runtime-20260517` commit `3d4522f6e9`; diff is limited to `include/config/overworld.h`, `include/constants/flags.h`, and `include/constants/flags_frlg.h`. `all`, `debug`, full `check`, and mGBA Live boot / field / SaveBlock flag set-clear smoke passed. | Team preview lane dependency review, because the low-risk no-random flag is now staged and the next remaining user-confirmed runtime shelf has party / battle-flow overlap. |
 | 2026-05-30 | `integration/runtime-dev-20260529` | #31 TM Shop Migration | Source / data re-applied from `feature/tm-shop-migration` commit `eb486f6356`; debug conflict resolved by preserving Pokemon Vendor on `Script 1` and adding a named `TM Shop Test` route. JSON parse, static TM/HM grep checks, `all`, `debug`, full `check`, and mGBA Live Debug menu route smoke passed. | Unified Move Relearner, because the TM/HM acquisition policy is now staged. |
 | 2026-05-30 | `integration/runtime-dev-20260529` | #28 Unified Move Relearner | Source / tools / data re-applied from `feature/unified-move-relearner`; full branch merge was rejected because it would rewind newer docs. Conflict resolution preserved the 2x3 Party UI helpers, Scout Selection generated-data rules, All Ability Summary config, and Summary-first relearner route. `all`, `debug`, full `check`, JSON / py_compile checks, and mGBA Live Summary -> unified list smoke passed. | Pre-Battle / In-Battle Team Viewer or Battle Selection, because the Summary / party / item / TM stack is now staged. |
+| 2026-05-30 | `integration/runtime-dev-20260529` | Pre-Battle / In-Battle Team Viewer phase2 | Source re-applied from `feature/prebattle-team-viewer` commit `d597041bf9` and `feature/prebattle-team-viewer-phase2` commit `e5f9f2a7c3`; full branch merge was avoided because the shelf baseline was older than the current runtime stack. Conflict resolution preserved Champions run-session end handling, Pokemon Vendor battle-bond cleanup, and the All Ability debug submenu. `debug`, `all`, full `check`, and mGBA Live `Party -> Team Viewer Battle` smoke passed, including Summary, 3/3 selection, trainer battle start, in-battle `R / TEAM / INFO`, and action-menu return. | Next runtime shelf can be chosen after reviewing remaining unadopted branches; Team Viewer phase2 now covers the separate battle-selection MVP path for normal trainer battles. |
 
 ### Item Policy Stack
 
@@ -187,10 +188,11 @@ Open decision before runtime-dev adoption:
 | #62 Champions Run Session | Battle outcome interception, EXP suppression, loss restore | Should be late because it changes loss / draw / forfeit semantics and save behavior. |
 | Trainer Aftercare | Normal trainer win post-battle hook | Needs exclusion tests and ordering relative to #47, #57 reward text, and #62 Champions outcome. |
 
-Open decision before runtime-dev adoption:
+Resolved / open decisions before runtime-dev adoption:
 
-- whether Team Viewer Phase 2 replaces the separate Battle Selection MVP, or
-  whether both are adopted as separate entry points;
+- Team Viewer Phase 2 now replaces the separate Battle Selection MVP as the
+  normal trainer battle entry point in `integration/runtime-dev-20260529`. The
+  battle-selection compression / restore helper remains the source of truth.
 - whether Pokemon Vendor bond EXP remains product-specific script reward first,
   trainer-win queued reward second;
 - whether Trainer Aftercare is included in the first runtime-dev pass or left
@@ -251,8 +253,8 @@ Integration rule:
 ## Hard Gates Before First Runtime-Dev Merge
 
 1. Choose whether #54 Party UI is the first UI baseline.
-2. Choose whether the first runtime-dev pass includes Team Viewer Phase 2 or
-   only Scout Selection / Vendor debug routes.
+2. Team Viewer Phase 2 is included in the first runtime-dev pass as of
+   2026-05-30.
 3. Choose #47 and #48 item-policy defaults.
 4. Decide whether #62 Champions Run Session is included in the first pass or
    waits until item / party / scout / vendor integration is green.

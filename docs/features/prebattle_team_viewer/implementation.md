@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-18 |
-| Baseline | `feature/prebattle-team-viewer-phase2` from current `master` lineage |
-| Code status | Phase 2 implemented; build/check and focused mGBA routes passed |
-| Provenance | Local project implementation notes; 2026-05-18 source audit from `feature/prebattle-team-viewer` |
+| Last reviewed | 2026-05-30 |
+| Baseline | `feature/prebattle-team-viewer-phase2`, adopted into `integration/runtime-dev-20260529` |
+| Code status | Phase 2 implemented and staged in runtime integration PR #68 |
+| Provenance | Local project implementation notes; 2026-05-18 source audit from `feature/prebattle-team-viewer`; 2026-05-30 integration replay |
 
 ## Summary
 
@@ -48,6 +48,18 @@ This branch implements the Phase 2 runtime slice of the team viewer:
   plus a `Team Viewer W` route for 4-of-6 double battle validation;
 - keeps opponent moves / ability / held item hidden in the detail view;
 - keeps player party restoration owned by the battle selection module.
+
+2026-05-30 runtime integration: the feature was adopted into
+`integration/runtime-dev-20260529` as two integration commits,
+`b082725110` (`integration: adopt prebattle team viewer base`) and
+`07e13e49c5` (`integration: adopt prebattle team viewer phase2`). The branch was
+not merged wholesale because its baseline predates the current runtime stack.
+Conflict resolution preserved the already-integrated Champions run-session
+trainer-end restore, Pokemon Vendor queued battle-bond cleanup, All Ability debug
+submenu, 2x3 Party UI, Scout Selection, and Summary-first Unified Move Relearner.
+The Team Viewer phase2 path supersedes the separate `feature/battle-selection-mvp`
+entry point for normal trainer battles while keeping its compression/restore
+helper as the fallback and battle-party restore source of truth.
 
 The UI is intentionally compact for GBA. It uses two icon grids instead of the full
 Champions-style Switch layout. The Champions `Y`-style strength view is mapped to
@@ -269,6 +281,13 @@ species, type, and level, then explicitly hide private details.
 | `rtk make -j16 -O all` | Pass | Normal ROM built after W debug route and MoveInfo-aligned double hint positioning. Existing linker RWX warning only. |
 | `rtk make -j16 -O debug` | Pass | Debug ROM built after W debug route and MoveInfo-aligned double hint positioning. Existing linker RWX warning only. |
 | `rtk make -j16 -O check` | Pass | Test/check target passed after W debug route and MoveInfo-aligned double hint positioning. Existing linker RWX warning plus existing known learnset KNOWN_FAILING line only. |
+| 2026-05-30 integration `rtk git diff --check` | Pass | No whitespace errors after adopting the base and phase2 runtime slices. |
+| 2026-05-30 integration `rtk make -j16 -O debug` | Pass | Debug ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 integration `rtk make -j16 -O all` | Pass | Normal ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 integration `rtk make -j16 -O check` | Pass | Full check target passed on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` used `Party -> Team Viewer Battle`, opened player Summary with `SELECT`, returned to the viewer, selected 3/3 Pokemon, reached the trainer battle, confirmed the action-menu `R / TEAM / INFO` hint, opened the in-battle read-only viewer with `R`, and returned to the action menu with `B`. |
+| 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
+| 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |
 | mGBA Live full feature route | Pass | Session `prebattle-team-viewer-real-route` used the debug-only `Party -> Team Viewer Battle` route and confirmed viewer -> 3-mon selection -> trainer battle -> action menu -> R viewer -> B return. |
 | mGBA screenshots | Pass | `/tmp/prebattle-team-viewer-real-prebattle.png`, `/tmp/prebattle-team-viewer-real-action-menu.png`, `/tmp/prebattle-team-viewer-real-inbattle.png`, `/tmp/prebattle-team-viewer-real-return.png`. |
 | mGBA Live read-only regression | Pass | Session `prebattle-team-viewer-readonly-route` confirmed `R` viewer from action menu, D-pad / `SELECT` ignored, `A` close returns to action menu, and held `A` does not leak into Fight / move selection. |
