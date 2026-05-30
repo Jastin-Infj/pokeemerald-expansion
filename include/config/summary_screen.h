@@ -5,6 +5,8 @@
 #define P_SUMMARY_SCREEN_NATURE_COLORS   TRUE   // If TRUE, nature-based stat boosts and reductions will be red and blue in the summary screen.
 #define P_SUMMARY_SCREEN_RENAME          TRUE   // If TRUE, an option to change Pokémon nicknames replaces the cancel prompt on the summary screen info page.
 #define P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH TRUE // If TRUE and B_ALL_ABILITY_SLOTS is TRUE, allows L/R to cycle the displayed ability slot on the summary screen info page.
+#define P_SUMMARY_TERA_TYPE_ICON_X       205    // X coordinate for the Tera badge on the summary screen info page.
+#define P_SUMMARY_TERA_TYPE_ICON_Y       48     // Y coordinate for the Tera badge on the summary screen info page.
 
 // IV/EV settings
 #define P_SUMMARY_SCREEN_IV_EV_INFO      FALSE  // If TRUE, will allow player to cycle through the Stats, IVs, and EVs in the summary screen skills page.
