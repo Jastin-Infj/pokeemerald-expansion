@@ -4,26 +4,30 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-22 |
-| Baseline | `master` `b2d64f1577`; `git describe` = `expansion/1.15.2-84-gb2d64f1577` |
-| Code status | Implemented completed shelf #28 on `feature/unified-move-relearner`; not on `master` |
-| Provenance | User request, local code/docs review, PR #28 / PR #54 dependency check |
+| Last reviewed | 2026-05-30 |
+| Baseline | `integration/runtime-dev-20260529` after TM Shop Migration adoption |
+| Code status | Implemented completed shelf #28 and adopted into integration PR #68; not on `master` |
+| Provenance | User request, local code/docs review, PR #28 / PR #54 dependency check, 2026-05-30 integration validation |
 
 ## Status
 
-Status: Implemented completed shelf #28 (`feature/unified-move-relearner`).
-Unified mode is guarded by config, uses generated historical candidate data, and
-has local build plus mGBA Live evidence. The special event / XD / Ranger /
+Status: Implemented completed shelf #28 (`feature/unified-move-relearner`) and
+adopted into `integration/runtime-dev-20260529` on 2026-05-30. Unified mode is
+guarded by config, uses generated historical candidate data, and has local
+build plus mGBA Live evidence. The special event / XD / Ranger /
 form-specific / LGPE partner seed data is now connected as a `Sp` source; story
 unlock gating and per-entry special labels remain future work. PR #28 was closed
-on 2026-05-17 as a completed implementation shelf after CI success; re-check
-with `gh pr view 28` and local branch diffs before source integration.
+on 2026-05-17 as a completed implementation shelf after CI success.
 
 2026-05-22 dependency update: after reviewing the party grid shelf (#54), the
 recommended player-facing integration route is Summary-first. The Summary move
 page `START` flow should be treated as canonical; the direct party `RELEARN`
 action from #28 is useful shelf evidence and may remain as an optional/debug
 route, but it should not be the primary party grid command-bar UX.
+
+2026-05-30 integration update: PR #68 keeps `P_PARTY_MOVE_RELEARNER` defaulted
+to `FALSE`, preserves the 2x3 Party UI command bar, and validates the Summary
+`START RELEARN` route plus unified `Lv` / `TM` labels through mGBA Live.
 
 ## Goal
 

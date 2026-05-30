@@ -2,9 +2,15 @@
 
 ## Status
 
-Implemented on `feature/unified-move-relearner` as a guarded runtime feature.
+Implemented on `feature/unified-move-relearner` as a guarded runtime feature
+and adopted into `integration/runtime-dev-20260529` on 2026-05-30.
 The implementation keeps existing category-specific relearners available when
 the unified config is disabled.
+
+The integration pass deliberately keeps `P_PARTY_MOVE_RELEARNER` defaulted to
+`FALSE`. The canonical player route is Summary moves page -> `START RELEARN`.
+This preserves the 2x3 Party / Status UI command bar and avoids adding another
+direct party action until that UX is intentionally reopened.
 
 ## What Changed
 
@@ -22,6 +28,22 @@ the unified config is disabled.
 | Party entry | Field party action menu gets a direct `RELEARN` action when unified candidates exist on this shelf. After the 2x3 party grid shelf, Summary entry is preferred as the canonical UX; direct party entry should be optional/debug or kept on a vertical/fallback menu if retained. |
 | NPC/script entry | Common, Fallarbor, and Two Island relearner scripts set unified state when enabled. Script-mode return is forced through `RELEARN_MODE_SCRIPT` after PC/party selection. |
 | Long list UX | The existing list is retained, but D-pad left/right page-scroll is enabled for unified long lists. |
+
+## 2026-05-30 Integration Notes
+
+- Adopted onto `integration/runtime-dev-20260529` after TM Shop Migration, so
+  virtual TM rows are staged without reintroducing physical TM item expansion.
+- Resolved the main `src/party_menu.c` conflict by keeping the 2x3 party menu's
+  shared `GetSelectionActionText()` / `GetSelectionActionFontColorsId()`
+  helpers and extending the move-relearner color range to include
+  `MENU_RELEARN_MOVES`.
+- Kept Scout Selection generated data rules in `Makefile` and added the
+  Unified Relearner generated header rule alongside them.
+- Added `tools/learnset_helpers/special_relearner_moves.json` as the runtime
+  special source and kept
+  `src/data/pokemon/unified_relearner_learnsets.h` generated / ignored.
+- Preserved All Ability Slots Summary config and kept Summary ability slot
+  switching independent from the `START RELEARN` moves-page prompt.
 
 Candidate generation details are recorded in
 [Candidate Data Flow](candidate_data_flow.md).
@@ -88,6 +110,10 @@ still making normal builds reproducible.
 | `rtk make -j16 -O debug` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
 | `rtk make -j16 -O all` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
 | `rtk make -j16 -O check` | Pass | Existing linker warning on test ROM link; suite output includes expected `EXPECTED_FAIL` / `KNOWN_FAILING` markers and exits 0. |
+| 2026-05-30 integration `rtk make -j16 -O debug` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
+| 2026-05-30 integration `rtk make -j16 -O all` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
+| 2026-05-30 integration `rtk make -j16 -O check` | Pass | Existing linker warning on test ROM link; suite exits 0. |
+| 2026-05-30 integration mGBA Live | Pass | Continue-loaded save, confirmed Party menu does not expose direct `RELEARN`, Summary moves page shows `START RELEARN`, unified list opens, and D-pad right page-scroll reaches `TM` source labels. Cleanup returned `status --all` to `[]`. |
 | Runtime special JSON audit | Pass | 32 source refs, 178 candidate blocks, 229 moves, and no unknown species or move constants. |
 | mGBA Live boot / Continue | Pass | Debug ROM loaded the temporary Mew save via Continue. |
 | mGBA party entry | Pass | Start menu -> Pokemon -> Mew showed direct `RELEARN` action and opened unified list. |
@@ -153,6 +179,7 @@ build/check and mGBA evidence above before push.
   candidate targets. The current page-scrollable list is adequate for the
   current stress tests, but not a final large-scale UX.
 - When adopting alongside Party / Status UI Overhaul, keep the Summary route as
-  the default player path. If direct party `RELEARN` is preserved, validate it
+  the default player path. The 2026-05-30 integration keeps direct party
+  `RELEARN` disabled by config; if it is re-enabled later, validate it
   separately from the bottom command bar and document whether it is player,
   debug, or fallback-only.

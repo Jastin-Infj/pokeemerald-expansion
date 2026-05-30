@@ -584,7 +584,7 @@ static const struct WindowTemplate sSummaryTemplate[] =
     },
     [PSS_LABEL_WINDOW_PROMPT_RELEARN] = {
         .bg = 0,
-        .tilemapLeft = 18,
+        .tilemapLeft = (P_ENABLE_MOVE_RELEARNERS || P_UNIFIED_MOVE_RELEARNER) ? 18 : 22,
         .tilemapTop = 2,
         .width = 11,
         .height = 2,
@@ -789,6 +789,7 @@ static const u8 *const sRelearnTexts[MOVE_RELEARNER_COUNT] =
     [MOVE_RELEARNER_EGG_MOVES] =      COMPOUND_STRING("{START_BUTTON} RELEARN EGG"),
     [MOVE_RELEARNER_TM_MOVES] =       COMPOUND_STRING("{START_BUTTON} RELEARN TM"),
     [MOVE_RELEARNER_TUTOR_MOVES] =    COMPOUND_STRING("{START_BUTTON} RELEARN TUTOR"),
+    [MOVE_RELEARNER_UNIFIED] =        COMPOUND_STRING("{START_BUTTON} RELEARN"),
 };
 
 static const u8 sMemoNatureTextColor[] = _("{COLOR LIGHT_RED}{SHADOW GREEN}");
@@ -1743,12 +1744,15 @@ static void HandleMoveRelearnerInput(u8 taskId)
     if (JOY_NEW(START_BUTTON))
     {
         sMonSummaryScreen->callback = CB2_InitLearnMove;
+        if (P_UNIFIED_MOVE_RELEARNER)
+            gMoveRelearnerState = MOVE_RELEARNER_UNIFIED;
         gRelearnMode = sMonSummaryScreen->currPageIndex;
         gSpecialVar_MonBoxPos = sMonSummaryScreen->curMonIndex;
         if (sMonSummaryScreen->isBoxMon)
         {
             gSpecialVar_0x8004 = PC_MON_CHOSEN;
             gSpecialVar_MonBoxPos = sMonSummaryScreen->curMonIndex;
+            gSpecialVar_MonBoxId = StorageGetCurrentBox();
         }
         else
         {
@@ -1977,14 +1981,56 @@ bool32 HasAnyRelearnableMoves(enum MoveRelearnerStates state)
     return CanBoxMonRelearnMoves(GetCurrentBoxmon(), state);
 }
 
+bool32 CheckRelearnerStateFlag(enum MoveRelearnerStates state)
+{
+    if (state == MOVE_RELEARNER_UNIFIED)
+        return P_UNIFIED_MOVE_RELEARNER;
+
+    if (P_ENABLE_MOVE_RELEARNERS)
+        return TRUE;
+
+    switch (state)
+    {
+    case MOVE_RELEARNER_LEVEL_UP_MOVES:
+        return TRUE;
+    case MOVE_RELEARNER_EGG_MOVES:
+        return FlagGet(P_FLAG_EGG_MOVES);
+    case MOVE_RELEARNER_TM_MOVES:
+        return P_TM_MOVES_RELEARNER;
+    case MOVE_RELEARNER_TUTOR_MOVES:
+        return FlagGet(P_FLAG_TUTOR_MOVES);
+    default:
+        return FALSE;
+    }
+}
+
 static void UpdateMoveRelearnerState(bool32 goingDown)
 {
-    s32 state;
+    s32 state = gMoveRelearnerState;
 
     sMonSummaryScreen->hasRelearnableMoves = FALSE;
+
+    if (P_UNIFIED_MOVE_RELEARNER)
+    {
+        gMoveRelearnerState = MOVE_RELEARNER_UNIFIED;
+        sMonSummaryScreen->hasRelearnableMoves = HasAnyRelearnableMoves(MOVE_RELEARNER_UNIFIED);
+        UpdateRelearnPrompt();
+        return;
+    }
+
     for (u32 i = 0; i < MOVE_RELEARNER_COUNT; i++)
     {
-        state = (gMoveRelearnerState + i * (goingDown ? -1 : 1)) % MOVE_RELEARNER_COUNT;
+        if (i != 0)
+        {
+            if (goingDown)
+                state = (state == MOVE_RELEARNER_LEVEL_UP_MOVES) ? MOVE_RELEARNER_COUNT - 1 : state - 1;
+            else
+                state = (state + 1 >= MOVE_RELEARNER_COUNT) ? MOVE_RELEARNER_LEVEL_UP_MOVES : state + 1;
+        }
+
+        if (!CheckRelearnerStateFlag(state))
+            continue;
+
         if (HasAnyRelearnableMoves(state))
         {
             sMonSummaryScreen->hasRelearnableMoves = TRUE;
@@ -5040,7 +5086,9 @@ static void UpdateRelearnPrompt(void)
         return;
 
     const u8 *relearnText;
-    if (P_ENABLE_MOVE_RELEARNERS || P_TM_MOVES_RELEARNER || FlagGet(P_FLAG_EGG_MOVES) || FlagGet(P_FLAG_TUTOR_MOVES))
+    if (P_UNIFIED_MOVE_RELEARNER)
+        relearnText = sText_Relearn;
+    else if (P_ENABLE_MOVE_RELEARNERS || P_TM_MOVES_RELEARNER || FlagGet(P_FLAG_EGG_MOVES) || FlagGet(P_FLAG_TUTOR_MOVES))
         relearnText = sRelearnTexts[gMoveRelearnerState];
     else
         relearnText = sText_Relearn;

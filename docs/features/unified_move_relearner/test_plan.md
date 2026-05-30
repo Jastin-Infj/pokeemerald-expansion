@@ -62,6 +62,10 @@
 | 2026-05-16 | mGBA Live NPC/script cancel | Pass | Debug menu `Party -> Move Relearner`; cancel returned to YES/NO `Anything else`, not the old category multichoice. Screenshot: `/tmp/unified_move_relearner_script_yesno.png`. |
 | 2026-05-16 | mGBA Live cleanup | Pass | `mgba_live_stop` succeeded and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-22 | Party grid dependency review | Pass | Docs-only review of PR #54 and #28 branch code. Confirmed Summary START and party direct `RELEARN` are separate entry points; selected Summary-first as the recommended integrated UX. No source runtime validation was needed for this docs-only update. |
+| 2026-05-30 | `rtk make -j16 -O debug` on `integration/runtime-dev-20260529` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
+| 2026-05-30 | `rtk make -j16 -O all` on `integration/runtime-dev-20260529` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
+| 2026-05-30 | `rtk make -j16 -O check` on `integration/runtime-dev-20260529` | Pass | Existing linker warning on test ROM link; command exited 0. |
+| 2026-05-30 | mGBA Live integration smoke | Pass | Started `pokeemerald.gba`, continued local save, opened Party menu and confirmed no direct `RELEARN` action with `P_PARTY_MOVE_RELEARNER FALSE`, opened Summary moves page, confirmed `START RELEARN`, entered unified list, and page-scrolled right to a `TM` source row. Screenshots: `/tmp/integration-unified-party-actions.png`, `/tmp/integration-unified-summary-moves.png`, `/tmp/integration-unified-relearner-list.png`, `/tmp/integration-unified-relearner-page.png`. Stop succeeded and `status --all` returned `[]`. |
 
 ## Feature Complete Gate
 

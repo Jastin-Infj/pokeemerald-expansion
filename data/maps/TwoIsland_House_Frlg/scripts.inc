@@ -46,6 +46,11 @@ TwoIsland_House_EventScript_AskTutorMon::
 
 TwoIsland_House_EventScript_ChooseMonToTutor::
 	msgbox TwoIsland_House_Text_TutorWhichMon
+.if P_UNIFIED_MOVE_RELEARNER == TRUE
+	setmoverelearnerstate MOVE_RELEARNER_UNIFIED
+.else
+	setmoverelearnerstate MOVE_RELEARNER_LEVEL_UP_MOVES
+.endif @ P_UNIFIED_MOVE_RELEARNER
 	special ChooseMonForMoveRelearner
 	goto_if_ge VAR_0x8004, PARTY_SIZE, TwoIsland_House_EventScript_EndTutorMove
 	special IsSelectedMonEgg
@@ -161,4 +166,3 @@ TwoIsland_House_Text_NeedMushroomOrTwoToLearnMove::
 TwoIsland_House_Text_CantTeachAnEgg::
 	.string "Hunh? There isn't a single move\n"
 	.string "that I can teach an EGG.$"
-

@@ -239,9 +239,11 @@ endif
 LEARNSET_HELPERS_DIR := $(TOOLS_DIR)/learnset_helpers
 LEARNSET_HELPERS_DATA_DIR := $(LEARNSET_HELPERS_DIR)/porymoves_files
 LEARNSET_HELPERS_BUILD_DIR := $(LEARNSET_HELPERS_DIR)/build
+SPECIAL_RELEARNER_MOVES_JSON := $(LEARNSET_HELPERS_DIR)/special_relearner_moves.json
 ALL_LEARNABLES_JSON := $(DATA_SRC_SUBDIR)/pokemon/all_learnables.json
 ALL_TUTORS_JSON := $(LEARNSET_HELPERS_BUILD_DIR)/all_tutors.json
 ALL_TEACHING_TYPES_JSON := $(LEARNSET_HELPERS_BUILD_DIR)/all_teaching_types.json
+UNIFIED_RELEARNER_LEARNSETS := $(DATA_SRC_SUBDIR)/pokemon/unified_relearner_learnsets.h
 
 SCOUT_SELECTION_TOOL_DIR := $(TOOLS_DIR)/scout_selection
 SCOUT_SELECTION_PARTYGEN_SET_JSONS := \
@@ -448,6 +450,7 @@ generated: $(AUTO_GEN_TARGETS)
 clean-teachables_intermediates:
 	rm -f $(DATA_SRC_SUBDIR)/tutor_moves.h
 	rm -f $(DATA_SRC_SUBDIR)/pokemon/teachable_learnsets.h
+	rm -f $(UNIFIED_RELEARNER_LEARNSETS)
 	@rm -Rf $(LEARNSET_HELPERS_BUILD_DIR)
 	@echo "rm -Rf <LEARNSET_HELPERS_BUILD_DIR>"
 
@@ -471,7 +474,7 @@ $(C_BUILDDIR)/graphics.o: override CFLAGS += -Wno-missing-braces
 
 # Dependency rules (for the *.c & *.s sources to .o files)
 # Have to be explicit or else missing files won't be reported.
-$(C_BUILDDIR)/move_relearner.o: $(C_SUBDIR)/move_relearner.c $(DATA_SRC_SUBDIR)/tutor_moves.h
+$(C_BUILDDIR)/move_relearner.o: $(C_SUBDIR)/move_relearner.c $(DATA_SRC_SUBDIR)/tutor_moves.h $(UNIFIED_RELEARNER_LEARNSETS)
 $(C_BUILDDIR)/pokemon.o: $(C_SUBDIR)/pokemon.c $(DATA_SRC_SUBDIR)/pokemon/teachable_learnsets.h
 
 # As a side effect, they're evaluated immediately instead of when the rule is invoked.
@@ -567,6 +570,9 @@ $(DATA_SRC_SUBDIR)/pokemon/teachable_learnsets.h: $(TEACHABLE_DEPS) | $(ALL_TUTO
 
 $(DATA_SRC_SUBDIR)/tutor_moves.h: $(DATA_SRC_SUBDIR)/pokemon/special_movesets.json | $(ALL_TUTORS_JSON)
 	python3 $(LEARNSET_HELPERS_DIR)/make_teachables.py  --tutors $(LEARNSET_HELPERS_BUILD_DIR)
+
+$(UNIFIED_RELEARNER_LEARNSETS): $(wildcard $(LEARNSET_HELPERS_DATA_DIR)/*.json) $(SPECIAL_RELEARNER_MOVES_JSON) $(LEARNSET_HELPERS_DIR)/make_relearner_learnsets.py $(ALL_TEACHING_TYPES_JSON)
+	python3 $(LEARNSET_HELPERS_DIR)/make_relearner_learnsets.py $(LEARNSET_HELPERS_DATA_DIR) $(LEARNSET_HELPERS_BUILD_DIR) $@
 
 # Linker script
 LD_SCRIPT := ld_script_modern.ld
