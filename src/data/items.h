@@ -15839,10 +15839,10 @@ const struct ItemInfo gItemsInfo[] =
             "upgraded for field\n"
             "travel techniques."),
         .pocket = POCKET_KEY_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
-        .iconPic = gItemIcon_QuestionMark,
-        .iconPalette = gItemIconPalette_QuestionMark,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_FieldKit,
+        .iconPic = gItemIcon_FieldStyler,
+        .iconPalette = gItemIconPalette_FieldStyler,
     },
 };
 
