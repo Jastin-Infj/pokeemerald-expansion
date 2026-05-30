@@ -283,7 +283,7 @@ bool32 PreBattleTeamViewer_LoadCachedOpponentParty(void)
 bool32 PreBattleTeamViewer_TryOpenInBattle(u32 battler)
 {
 #if B_IN_BATTLE_TEAM_VIEWER
-    if (!IsEligibleInBattleViewer())
+    if (!PreBattleTeamViewer_CanOpenInBattle(battler))
         return FALSE;
 
     gBattlerInMenuId = battler;
@@ -297,6 +297,18 @@ bool32 PreBattleTeamViewer_TryOpenInBattle(u32 battler)
     gMain.callback1 = NULL;
     SetMainCallback2(CB2_PreBattleTeamViewer);
     return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+bool32 PreBattleTeamViewer_CanOpenInBattle(u32 battler)
+{
+#if B_IN_BATTLE_TEAM_VIEWER
+    if (battler >= gBattlersCount)
+        return FALSE;
+
+    return IsEligibleInBattleViewer();
 #else
     return FALSE;
 #endif
@@ -342,6 +354,8 @@ static bool32 PrepareOpponentCache(void)
 static bool32 IsEligibleInBattleViewer(void)
 {
     if (!sTeamViewerState.cacheActive)
+        return FALSE;
+    if (!sTeamViewerState.battleStarted)
         return FALSE;
     if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
         return FALSE;

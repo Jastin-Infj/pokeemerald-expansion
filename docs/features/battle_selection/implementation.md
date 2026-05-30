@@ -59,11 +59,14 @@ battle 中は選出順に詰めた一時 `gPlayerParty` だけを使い、battle
 `CB2_EndTrainerBattle()` の先頭で次の順序にした。
 
 1. `HandleBattleVariantEndParty()`
-2. `TrainerBattleSelection_RestoreIfActive()`
-3. existing follower / whiteout / trainer flag flow
+2. trainer battle selection が有効で敗北結果なら、restore 前の選出 party で
+   `NoAliveMonsForPlayer()` を記録する。
+3. `TrainerBattleSelection_RestoreIfActive()`
+4. existing follower / whiteout / trainer flag flow
 
 Sky Battle など既存 variant restore が一時 party を元 party 側へ戻す可能性があるため、
-trainer battle selection restore はその後に置く。
+trainer battle selection restore はその後に置く。whiteout / 敗北分岐だけは restore 済みの
+元 party に影響されないよう、restore 前に記録した選出 party の全滅状態を使う。
 
 ## Validation
 
@@ -76,6 +79,18 @@ trainer battle selection restore はその後に置く。
 | `rtk make -j16 -O check` | Pass | test runner build warning と linker RWX warning は既存。 |
 | mGBA Live smoke | Pass | session `codex-battle-selection-smoke-20260509c`。script-capable wrapper `/home/jastin/.local/bin/mgba-qt` で boot、Lua START/A input、New Game / Option menu screenshot。 |
 | mGBA cleanup | Pass | `mgba-live-cli status --all` returned `[]`。 |
+
+2026-05-30 integration follow-up:
+
+- `codex review --base master` flagged that restoring the full party before the defeat /
+  whiteout check could hide a selected-party wipe when the unselected original party still
+  had healthy Pokemon.
+- `CB2_EndTrainerBattle()` now snapshots the selected battle party's no-alive state before
+  `TrainerBattleSelection_RestoreIfActive()`, then uses that snapshot for the normal defeated
+  trainer branch.
+- Validation: `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check`
+  pass on `integration/runtime-dev-20260529` with only the existing RWX linker warning and
+  expected / known-failing test markers.
 
 ## 2026-05-09 Runtime Fix
 

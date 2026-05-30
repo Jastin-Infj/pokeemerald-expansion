@@ -42,6 +42,8 @@ This branch implements the Phase 2 runtime slice of the team viewer:
   action prompt and action menu after `ReshowBattleScreenAfterMenu()`;
 - pauses `gMain.callback1` while the in-battle viewer is open, then restores it after the
   battle screen is rebuilt and all held keys are released;
+- exposes `PreBattleTeamViewer_CanOpenInBattle()` and uses it for the action-menu hint,
+  so `TEAM INFO` only appears when the in-battle viewer cache and eligibility are present;
 - lets `B` from the downstream party selection menu return to the team viewer;
 - adds a debug-only `Team Viewer Battle` party-menu route so the full viewer -> selection
   -> battle -> in-battle viewer path can be rechecked without hunting for a save route,
@@ -285,6 +287,7 @@ species, type, and level, then explicitly hide private details.
 | 2026-05-30 integration `rtk make -j16 -O debug` | Pass | Debug ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
 | 2026-05-30 integration `rtk make -j16 -O all` | Pass | Normal ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
 | 2026-05-30 integration `rtk make -j16 -O check` | Pass | Full check target passed on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 review-blocker follow-up | Pass | Action-menu `TEAM INFO` hint is now gated by `PreBattleTeamViewer_CanOpenInBattle()`, which requires battle-started viewer cache state and the same eligibility as opening the viewer. |
 | 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` used `Party -> Team Viewer Battle`, opened player Summary with `SELECT`, returned to the viewer, selected 3/3 Pokemon, reached the trainer battle, confirmed the action-menu `R / TEAM / INFO` hint, opened the in-battle read-only viewer with `R`, and returned to the action menu with `B`. |
 | 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
 | 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |

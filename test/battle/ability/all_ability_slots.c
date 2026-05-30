@@ -325,6 +325,27 @@ SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Ice Body heal in s
     }
 }
 
+SINGLE_BATTLE_TEST("All Ability Slots applies paired end-turn weather abilities one at a time")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_HELIOLISK, 0) == ABILITY_DRY_SKIN);
+        ASSUME(GetSpeciesAbility(SPECIES_HELIOLISK, 1) == ABILITY_SAND_VEIL);
+        ASSUME(GetSpeciesAbility(SPECIES_HELIOLISK, 2) == ABILITY_SOLAR_POWER);
+        PLAYER(SPECIES_HELIOLISK) { Ability(ABILITY_SAND_VEIL); HP(80); MaxHP(80); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_SUNNY_DAY); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_DRY_SKIN);
+        HP_BAR(player, damage: 80 / 8);
+        ABILITY_POPUP(player, ABILITY_SOLAR_POWER);
+        HP_BAR(player, damage: 80 / 8);
+    } THEN {
+        EXPECT_EQ(player->hp, player->maxHP - player->maxHP / 4);
+    }
+}
+
 SINGLE_BATTLE_TEST("All Ability Slots can let non-representative Mold Breaker bypass Wonder Guard")
 {
     bool32 moldBreakerConfig;

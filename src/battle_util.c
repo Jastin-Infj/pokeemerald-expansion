@@ -5046,6 +5046,21 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
     return effect;
 }
 
+u32 AbilityBattleEffectsSingleAbility(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger)
+{
+#if B_ALL_ABILITY_SLOTS != FALSE || TESTING || DEBUG_OVERWORLD_MENU
+    bool8 savedIteratingAllAbilitySlots = sIteratingAllAbilitySlots;
+    u32 effect;
+
+    sIteratingAllAbilitySlots = TRUE;
+    effect = AbilityBattleEffects(caseID, battler, ability, move, shouldAbilityTrigger);
+    sIteratingAllAbilitySlots = savedIteratingAllAbilitySlots;
+    return effect;
+#else
+    return AbilityBattleEffects(caseID, battler, ability, move, shouldAbilityTrigger);
+#endif
+}
+
 bool32 TryPrimalReversion(enum BattlerId battler)
 {
     if (TryBattleFormChange(battler, FORM_CHANGE_BATTLE_PRIMAL_REVERSION, GetBattlerAbility(battler)))
@@ -5364,9 +5379,9 @@ u32 IsAbilityOnSide(enum BattlerId battler, enum Ability ability)
 {
     enum BattlerId partner = BATTLE_PARTNER(battler);
 
-    if (BattlerHasAbility(battler, ability))
+    if (gBattleMons[battler].hp != 0 && !(gAbsentBattlerFlags & (1u << battler)) && BattlerHasAbility(battler, ability))
         return battler + 1;
-    else if (partner < gBattlersCount && BattlerHasAbility(partner, ability))
+    else if (partner < gBattlersCount && gBattleMons[partner].hp != 0 && !(gAbsentBattlerFlags & (1u << partner)) && BattlerHasAbility(partner, ability))
         return partner + 1;
     else
         return 0;
@@ -5381,7 +5396,7 @@ u32 IsAbilityOnField(enum Ability ability)
 {
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
     {
-        if (BattlerHasAbility(i, ability))
+        if (gBattleMons[i].hp != 0 && !(gAbsentBattlerFlags & (1u << i)) && BattlerHasAbility(i, ability))
             return i + 1;
     }
 
@@ -5392,7 +5407,7 @@ u32 IsAbilityOnFieldExcept(enum BattlerId battler, enum Ability ability)
 {
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
     {
-        if (i != battler && BattlerHasAbility(i, ability))
+        if (i != battler && gBattleMons[i].hp != 0 && !(gAbsentBattlerFlags & (1u << i)) && BattlerHasAbility(i, ability))
             return i + 1;
     }
 

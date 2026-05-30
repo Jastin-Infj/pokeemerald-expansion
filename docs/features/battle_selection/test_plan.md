@@ -37,7 +37,7 @@ script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成�
 | PP reflect | 技 PP を消費 | 選出元 slot の PP が減る |
 | EXP/level reflect | battle で level up | 選出元 slot に EXP/level が反映 |
 | Held item reflect | battle 中に item 消費 | 選出元 slot に item 変化が反映 |
-| Whiteout | 選出 party が全滅 | 復元後に通常 whiteout flow へ進む |
+| Whiteout | 選出 party が全滅 | restore 前の選出 party 全滅状態を使って通常 whiteout / defeat flow へ進む |
 | Win trainer flag | battle 勝利 | trainer flag が立ち、post battle script が正しく進む |
 | Already beaten trainer | 既戦闘 trainer | 選出 UI は出ず、post battle script へ進む |
 | Cancel behavior | 選出 UI で B / Cancel | Cancel は無効。選出画面に留まり、encounter を中断しない |

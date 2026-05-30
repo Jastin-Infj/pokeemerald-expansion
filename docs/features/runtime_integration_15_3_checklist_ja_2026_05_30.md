@@ -4,7 +4,10 @@
 
 `integration/runtime-dev-20260529` / PR #68 は、1.15.3 期間に実装・検証してきた主要 runtime feature をほぼ取り込み済みです。
 
-ただし、`codex review --base master` で統合ブロッカーが出ています。現時点の判定は「runtime 棚はおおむね集約済み。ただし PR #68 はまだ draft のまま修正ゲートを通す」です。
+`codex review --base master` で出た統合ブロッカー、追加の All Ability Slots
+天候エンドターン指摘、追加 review の Pokemon Vendor long-list cursor / row
+allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。現時点の判定は「runtime 棚は
+おおむね集約済み。PR #68 は runtime integration candidate として ready」です。
 
 `master` 方針は変えません。runtime source / data / graphics / tools 変更は `master` に入れず、この integration branch / PR #68 側で扱います。
 
@@ -17,9 +20,9 @@
 | 対象 PR | #68 `[codex] Runtime integration staging` |
 | base | `master` |
 | master baseline | `4e48ff993f` |
-| integration head | `3f9e1a4a85` before this docs update |
+| integration head | review-blocker follow-up included in this integration update |
 | runtime 方針 | `master` は docs / Lua-only。runtime 実装は integration lane に保持 |
-| review command | `codex review --base master` 完了 |
+| review command | `codex review --base master` 完了。追加 P2 群も follow-up 修正済み |
 
 ## ステータス凡例
 
@@ -39,16 +42,16 @@
 | [x] 取り込み済み | Party / Status UI 2x3 | #54 / `feature/party-status-ui-overhaul-20260521` | `4eadc80062` | 2x3 party menu baseline として採用済み |
 | [x] 取り込み済み | Scout Selection | #51 / `feature/scout-selection-runtime-20260520` | `96366478fd` | Pokemon Champions 型の最大 12 枠 scout UI を採用済み |
 | [x] 取り込み済み | Friendly Shop Pokemon Vendor / Global No Evolution | #57 / `feature/global-no-evolution-20260523` | `7f15d175c7` | Pokemon vendor、sealed recruit、global no evolution policy を採用済み |
-| [!] 採用済み・修正必須 | All Ability Slots | #60 / `feature/all-ability-slots-runtime-20260523` | `3161fb963e` | default `FALSE` の opt-in で採用済み。ただし field / side ability helper の alive guard 修正が必要 |
+| [x] 取り込み済み | All Ability Slots | #60 / `feature/all-ability-slots-runtime-20260523` | `3161fb963e` | default `FALSE` の opt-in で採用済み。field / side ability helper と end-turn weather paired ability queue は修正済み |
 | [x] 取り込み済み | Champions Run Session | #62 / `feature/champions-run-session-runtime-20260524` | `29f5f11ca8` | run session save / restore MVP を採用済み |
 | [x] 取り込み済み | No Random Encounters | #41 / `feature/no-random-encounters-step-only-runtime-20260517` | `6d20de9357` | step-only random encounter suppression を採用済み |
 | [x] 取り込み済み | TM Shop Migration | #31 / `feature/tm-shop-migration` | `dc352ebd34` | TM/HM acquisition retirement と reusable TM policy を採用済み |
 | [x] 取り込み済み | Unified Move Relearner | #28 / `feature/unified-move-relearner` | `d28f21f8c7` | Summary-first unified move list を採用済み |
-| [!] 採用済み・修正必須 | Battle Selection / Team Viewer phase2 | branch-only / `feature/battle-selection-mvp`, `feature/prebattle-team-viewer`, `feature/prebattle-team-viewer-phase2` | `b082725110`, `07e13e49c5` | 選出・pre-battle / in-battle viewer は採用済み。ただし敗北判定前 restore と in-battle hint gate の修正が必要 |
+| [x] 取り込み済み | Battle Selection / Team Viewer phase2 | branch-only / `feature/battle-selection-mvp`, `feature/prebattle-team-viewer`, `feature/prebattle-team-viewer-phase2` | `b082725110`, `07e13e49c5` | 選出・pre-battle / in-battle viewer は採用済み。restore 前 defeat snapshot と in-battle hint gate を修正済み |
 | [x] 取り込み済み | Pokemon State Editor | #23 / `feature/pokemon-state-editor-expansion` | `292a75704b`, `831296f770` | Summary-launched editor と polish を採用済み |
 | [x] 取り込み済み | Summary Tera Type Badge | #26 / `feature/summary-tera-type-badge` | `c045b0876c` | Summary Info badge と State Editor coexistence を採用済み |
 | [x] 取り込み済み | Trainer Battle Aftercare | #10 / `feature/trainer-battle-aftercare-heal` | `bc7237a568` | default `FALSE` の heal hook として採用済み |
-| [!] 採用済み・修正必須 | Field Move Modernization / Field Kit | branch-only / `feature/field-move-modernization-mvp`, `feature/field-move-toolkit-item` | `1312cdb528`, `068bf06a78`, `105a6083a5`, `afc48be574`, `74b876f7f1` | HM-free field move と Field Kit は採用済み。ただし mandatory handoff の bag-full loop 修正が必要 |
+| [x] 取り込み済み | Field Move Modernization / Field Kit | branch-only / `feature/field-move-modernization-mvp`, `feature/field-move-toolkit-item` | `1312cdb528`, `068bf06a78`, `105a6083a5`, `afc48be574`, `74b876f7f1` | HM-free field move と Field Kit は採用済み。mandatory Surf / Dive handoff の bag-full retry を修正済み |
 | [x] 取り込み済み | Trainer Partygen Catalog | #7 / `feature/trainer-partygen-catalog-expansion` | `391bd527d7` | Champions / Scout pool 調整用の partygen catalog を採用済み |
 | [x] 取り込み済み | Battle BGM Selector / Sound Archive | #39 / `feature/battle-bgm-selector-mvp-20260517` | `3f9e1a4a85` | BGM selector、imported battle tracks、aif2pcm 修正を採用済み |
 
@@ -82,6 +85,45 @@
 | P2 | `src/battle_util.c:5384` | `BattlerHasAbility` に置き換えた field / side ability query が `IsBattlerAlive` guard を失い、瀕死 battler の Damp / Aroma Veil / aura 系などが同一ターン後続処理に残る可能性 | `IsAbilityOnField`, `IsAbilityOnFieldExcept` など field / side helper に alive guard を戻す |
 | P2 | `data/maps/PetalburgCity_WallysHouse/scripts.inc:23` | mandatory Surf handoff で Field Kit が Key Items pocket に入らない場合、on-frame state が進まず bag-full message loop になりうる。Steven Dive handoff も同種 | mandatory grant を non-failing にするか、失敗時に on-frame state へ留まらない専用 failure path にする |
 | P3 | `src/battle_controller_player.c:380` | in-battle Team Viewer cache がない wild battle などでも `R / TEAM / INFO` hint が出るが、実際には viewer が開けない | hint 表示を `PreBattleTeamViewer_TryOpenInBattle` 相当の eligibility に合わせる |
+| P2 | `src/battle_end_turn.c:109` | All Ability Slots ON 時、天候エンドターンで `Dry Skin` と `Solar Power` など同じ天候に紐づく複数特性の片方だけが処理されうる | paired weather ability scripts を battler ごとに queue し、明示 ability 呼び出しで all-slot dispatcher へ再入しない |
+| P2 | `src/pokemon_vendor.c:546` | one-time 商品を scrolled long-list から購入して sold-out 行が消えたあと、旧 scroll offset のまま `ListMenuInit()` され、範囲外行を描画する可能性 | list rebuild 後に visible count + Cancel に合わせて scroll offset / selected row を clamp する |
+| P2 | `src/pokemon_vendor.c:285` | long product table / fragmented heap で `items`, `names`, `productIndexes` のいずれかの確保に失敗した場合、直後に null row buffer へ書き込む可能性 | row allocation を全件検証し、部分確保を解放して初回は script 復帰、購入後 rebuild は vendor close へ unwind する |
+
+### Follow-up Fixes
+
+| 元優先度 | 対応 | 検証 |
+|---|---|---|
+| P1 | trainer battle selection の敗北分岐は、restore 前の選出 party 全滅状態を snapshot してから元 party を restore する | `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check` |
+| P2 | `IsAbilityOnSide()`, `IsAbilityOnField()`, `IsAbilityOnFieldExcept()` は HP 0 / absent battler を除外してから all-slot ability predicate を見る | `rtk make -j16 -O check TESTS=test/battle/ability/damp.c`, full `check` |
+| P2 | Wally's Dad Surf / Steven Dive の mandatory Field Kit handoff は bag full 時に retry state へ進み、on-frame loop を止める | `rtk make -j16 -O all`, `rtk make -j16 -O debug`, full `check` |
+| P3 | Team Viewer action hint は `PreBattleTeamViewer_CanOpenInBattle()` で actual open eligibility と同じ条件に揃えた | `rtk make -j16 -O all`, `rtk make -j16 -O debug`, full `check` |
+| P2 | end-turn weather は `eventState.endTurnBlock` で paired ability scripts を 1 つずつ queue し、hidden-slot `Dry Skin` + `Solar Power` のような組み合わせを両方処理する | `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c` |
+| P2 | Pokemon Vendor は list rebuild 後に `PokemonVendorClampListCursor()` で scroll offset / selected row を clamp してから `ListMenuInit()` する | `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` |
+| P2 | Pokemon Vendor は `PokemonVendorBuildList()` の row allocations を検証し、失敗時は部分確保を解放して script 復帰 / vendor close する | `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`, full `all` / `debug` / `check`, docs build, mGBA final smoke |
+
+追加で、live-battler guard の hot path 影響に合わせて
+`AI_FRAME_CEILING_SINGLES_SMART_TRAINER` を 9 から 10 に更新した。
+`rtk make -j16 -O check TESTS=test/battle/ai/ai.c` と full `check` は通過済み。
+
+### Runtime Smoke
+
+| Check | 結果 |
+|---|---|
+| mGBA Live `integration-review-blocker-smoke` | Pass。debug ROM boot、START input、continue menu screenshot `/tmp/integration-review-blocker-smoke.png` |
+| mGBA Live `integration-review-final-smoke` | Pass。ROM boot、START input、continue menu screenshot `/tmp/integration-review-final-smoke.png` |
+| mGBA Live cleanup | Pass。`stop` は `alive_after:false`、`status --all` は `[]` |
+
+### Final Validation
+
+| Command | 結果 |
+|---|---|
+| `rtk git diff --check` | Pass |
+| `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` | Pass。vendor ABI / locked display / concealed Egg / unlock helper tests が通過 |
+| `rtk make -j16 -O all` | Pass。既存 RWX linker warning のみ |
+| `rtk make -j16 -O debug` | Pass。既存 RWX linker warning のみ |
+| `rtk make -j16 -O check` | Pass。既存の `EXPECTED_FAIL` / `KNOWN_FAILING` marker を含み exit 0 |
+| `rtk mdbook build docs` | Pass。既知の root `CHANGELOG.md` include 警告、`CREDITS.md` `</img>` 警告、large search index 警告のみ |
+| mGBA Live `integration-review-final-smoke` | Pass。`pokeemerald.gba` boot、START input、screenshot、clean stop、`status --all` `[]` |
 
 ## 現在の判定
 
@@ -90,18 +132,14 @@
 | 主要 1.15.3 runtime feature の集約 | ほぼ完了 |
 | 未取り込み runtime shelf | 明確な主要 runtime 残りは見当たらない |
 | 別 lane | Map Asset Relinker、randomizer、map / Fly 実験は分離継続 |
-| PR #68 merge readiness | まだ不可。P1/P2/P2/P3 修正後に再 review / validation |
+| PR #68 merge readiness | P1/P2/P2/P3 と追加 P2 群は修正済み。full validation と mGBA Live smoke は Pass。runtime integration candidate として ready |
 | `master` 反映 | 不可。runtime 実装は docs-only master policy の対象外 |
 
 ## 次の推奨順
 
-1. P1 の trainer loss / party restore ordering を修正する。
-2. P2 の all-ability field / side query alive guard を修正する。
-3. P2 の Field Kit mandatory handoff failure loop を修正する。
-4. P3 の Team Viewer hint eligibility を修正する。
-5. `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check` を再実行する。
-6. mGBA Live で最低限、Team Viewer 選出敗北、Field Kit handoff、wild battle action menu hint、All Ability field-effect 系を再確認する。
-7. `codex review --base master` を再実行して PR #68 の draft 継続 / ready 判定を更新する。
+1. PR #68 を実装 integration branch として review する。
+2. `master` 反映が必要な場合は、別途 docs / Lua-only branch で対象 docs だけを cherry-pick する。
+3. Map Asset Relinker / randomizer / map-Fly 実験は runtime-dev に混ぜず、それぞれの lane で継続する。
 
 ## 残リスク
 

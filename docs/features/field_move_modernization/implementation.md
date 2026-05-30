@@ -25,6 +25,11 @@
 - `Common_EventScript_GiveFieldKit` を追加し、Field Kit 未所持なら配布、所持済みなら何もしない共通 script にした。
 - Cut / Flash / Rock Smash / Strength / Surf / Fly / Dive / Waterfall の Emerald 入手イベントは、各 HM item の代わりに `Common_EventScript_GiveFieldKit` を呼ぶ。
 - Field Kit 配布が失敗した場合は既存 `Common_EventScript_ShowBagIsFull` に入り、対応 capability flag を立てない。
+- mandatory handoff で Field Kit 配布に失敗した場合、on-frame script を繰り返さず
+  retry state に進める。Wally's Dad の Surf は Petalburg state 6 を retry state とし、
+  Steven の Dive は Steven's House state 3 を retry state とする。バッグ整理後に同じ
+  NPCへ話しかけると handoff を再試行し、成功時だけ capability flag と既存 story state
+  を進める。
 - 古い HM receive flags は TM Shop Migration で `FLAG_UNUSED_0x...` に戻したため、Field Kit capability flags は field move feature 側で別名 / 別枠として用意する。
 - `OW_FIELD_MOVE_TOOLKIT_REQUIRED` を追加し、modernized HM field move は Field Kit 所持 + 対応 capability flag を要求する。
 - `OW_FIELD_MOVE_TOOLKIT_BADGES` を追加し、初期値では既存 badge gate も維持する。進行順を壊さず item 化するための安全寄せ。将来 capability-only にする場合はここを FALSE にする。
@@ -81,6 +86,11 @@ Field Kit は UI / lore anchor として単一 item に留め、実際の解禁�
 - Field Kit menu polish: Fly-unavailable menu height now uses a 2-row frame, Teleport / Dig start without the return-to-field fade flash, and the menu reloads the standard window border palette before drawing. `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk make -j16 -O debug`: PASS on 2026-05-09. mGBA Live boot / input check also PASS with screenshot `/tmp/field_kit_menu_polish_boot.png`; session stopped cleanly and no `mgba-qt` process remained. User manual validation confirmed the 2-row frame and standard window border palette fix; the remaining Fly night-brightening issue is addressed by the follow-up `FadeScreen(FADE_TO_BLACK, 0)` change.
 - Field Kit Fly night fade follow-up: `rtk make -j16 -O all`, `rtk make -j16 -O check`, and `rtk make -j16 -O debug`: PASS on 2026-05-09 after replacing the Field Kit Fly fade with `FadeScreen(FADE_TO_BLACK, 0)`. mGBA Live boot / input check also PASS with screenshot `/tmp/field_kit_fly_fade_boot.png`; session stopped cleanly and no `mgba-qt` process remained. User manual validation confirmed the Fly night fade fix.
 - Field Kit icon / palette asset follow-up: `graphics/items/icons/field_styler.png` is a 24x24 4bpp indexed PNG with 16 palette entries and transparent palette index 0. `graphics/items/icon_palettes/field_styler.pal` is a matching JASC 16-color palette. `ITEM_FIELD_KIT` now points to `gItemIcon_FieldStyler` / `gItemIconPalette_FieldStyler`. `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check`: PASS on 2026-05-09. mGBA Live boot / input check also PASS with screenshot `/tmp/field_kit_icon_wiring_boot.png`; session stopped cleanly and no `mgba-qt` ROM process remained.
+- 2026-05-30 integration review-blocker follow-up: mandatory Surf / Dive Field Kit
+  handoffs no longer loop on-frame when the Key Items pocket cannot receive the item.
+  `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check`
+  pass on `integration/runtime-dev-20260529` with only the existing RWX linker warning
+  and expected / known-failing test markers.
 - Capture Styler reference art follow-up: `field_styler.png` / `field_styler.pal` were revised against Nintendo's Capture Styler reference silhouette, reducing the heavy black outer outline and moving the 24x24 read toward a red body, gold ring, blue lens, and gray wrist strap. A later art pass pushed the silhouette further toward a Mega Ring / bracelet-like read: the gray strap now forms a lower ring, while the red body / gold lens bezel keep a simplified official-style angle. The latest source-guided stylized pass used a user-provided 48x48 cell-art rough as a shape and line reference, but redraws the final 24x24 asset with broader GBA item-icon color clusters instead of copying the half-scale pixel detail exactly. The source rough is intentionally not committed. The asset remains 24x24 4bpp indexed with 16 palette entries and transparent palette index 0. `rtk make -j16 -O all` and `rtk make -j16 -O debug`: PASS on 2026-05-09. mGBA Live boot / input check also PASS with screenshots `/tmp/field_styler_reference_art_boot.png`, `/tmp/field_styler_ring_angle_boot.png`, `/tmp/field_styler_cleanup_boot.png`, `/tmp/field_styler_original_refit_boot.png`, `/tmp/field_styler_gap_pass_boot.png`, `/tmp/field_styler_round_ring_boot.png`, `/tmp/field_styler_xlsx_half_boot.png`, and `/tmp/field_styler_xlsx_stylized_boot.png`; sessions stopped cleanly and no `mgba-qt` ROM process remained.
 
 ## Remaining Runtime Checks

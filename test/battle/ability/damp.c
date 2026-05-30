@@ -39,6 +39,23 @@ DOUBLE_BATTLE_TEST("Damp prevents Explosion-like moves from enemies in a double 
     }
 }
 
+DOUBLE_BATTLE_TEST("Damp does not prevent Explosion-like moves after its bearer faints")
+{
+    GIVEN {
+        PLAYER(SPECIES_PARAS) { Ability(ABILITY_DAMP); HP(1); Speed(1); }
+        PLAYER(SPECIES_WYNAUT) { HP(1); Speed(1); }
+        OPPONENT(SPECIES_ABRA) { Speed(3); }
+        OPPONENT(SPECIES_KADABRA) { Speed(2); }
+    } WHEN {
+        TURN { MOVE(opponentLeft, MOVE_SCRATCH, target: playerLeft); MOVE(opponentRight, MOVE_EXPLOSION); }
+    } SCENE {
+        HP_BAR(playerLeft, hp: 0);
+        NOT ABILITY_POPUP(playerLeft, ABILITY_DAMP);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_EXPLOSION, opponentRight);
+        HP_BAR(playerRight, hp: 0);
+    }
+}
+
 SINGLE_BATTLE_TEST("Damp prevents Explosion-like moves from self")
 {
     enum Move move;

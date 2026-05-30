@@ -659,10 +659,31 @@ used for bit-field width / clamping rather than the runtime default. This keeps
 the normal ROM and full upstream-style test suite on single-ability behavior
 while retaining the opt-in config and debug override.
 
+2026-05-30 review-blocker follow-up: field / side presence helpers now skip
+HP-zero or absent battlers before calling `BattlerHasAbility()`. This preserves
+all-slot predicates for live battlers while preventing fainted Pokemon from
+continuing to provide field effects such as `Damp`, `Aroma Veil`, or aura
+abilities later in the same turn. A focused `Damp` regression was added for the
+case where the `Damp` bearer faints before another battler uses `Explosion`.
+The extra live-battler guard raises the accepted `AI_FRAME_CEILING_SINGLES_SMART_TRAINER`
+stress ceiling from 9 to 10 frames; the other AI stress ceilings are unchanged.
+
+The same review pass exposed a second all-slot edge case in end-turn weather:
+paired weather abilities could stop after the first matching slot. For example,
+a Pokemon with hidden-slot `Dry Skin` and `Solar Power` in harsh sunlight should
+take both end-turn damage scripts, even if its representative ability is a third
+slot. End-turn weather handling now queues paired weather abilities one script at
+a time through `eventState.endTurnBlock`, and calls the explicitly selected
+ability without re-entering the all-slot dispatcher. A focused Heliolisk
+regression covers `Dry Skin` plus `Solar Power` under sun.
+
 Integration validation passed:
 
 - `rtk git diff --check`
 - `rtk git diff --cached --check`
+- `rtk make -j16 -O check TESTS=test/battle/ability/damp.c`
+- `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c`
+- `rtk make -j16 -O check TESTS=test/battle/ai/ai.c`
 - `rtk make -j16 -O check TESTS='All Ability Slots'`
 - `rtk make -j16 -O check TESTS='AI thinking time'`
 - `rtk make -j16 -O check TESTS='Battle item restore'`

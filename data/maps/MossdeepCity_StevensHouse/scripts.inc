@@ -14,6 +14,7 @@ MossdeepCity_StevensHouse_EventScript_HideStevensNote::
 
 MossdeepCity_StevensHouse_OnTransition:
 	call_if_eq VAR_STEVENS_HOUSE_STATE, 2, MossdeepCity_StevensHouse_EventScript_SetStevenPos
+	call_if_eq VAR_STEVENS_HOUSE_STATE, 3, MossdeepCity_StevensHouse_EventScript_SetStevenPos
 	end
 
 MossdeepCity_StevensHouse_EventScript_SetStevenPos::
@@ -38,7 +39,7 @@ MossdeepCity_StevensHouse_EventScript_StevenGivesDive::
 	waitmovement 0
 	msgbox MossdeepCity_StevensHouse_Text_YouveEarnedHMDive, MSGBOX_DEFAULT
 	call Common_EventScript_GiveFieldKit
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	goto_if_eq VAR_RESULT, FALSE, MossdeepCity_StevensHouse_EventScript_DiveFieldKitBagFullOnFrame
 	setflag FLAG_RECEIVED_HM_DIVE
 	setflag FLAG_OMIT_DIVE_FROM_STEVEN_LETTER
 	msgbox MossdeepCity_StevensHouse_Text_ExplainDive, MSGBOX_DEFAULT
@@ -49,6 +50,16 @@ MossdeepCity_StevensHouse_EventScript_StevenGivesDive::
 	setflag FLAG_HIDE_MOSSDEEP_CITY_SCOTT
 	setflag FLAG_HIDE_SEAFLOOR_CAVERN_ENTRANCE_AQUA_GRUNT
 	setvar VAR_STEVENS_HOUSE_STATE, 2
+	releaseall
+	end
+
+MossdeepCity_StevensHouse_EventScript_DiveFieldKitBagFullOnFrame::
+	msgbox gText_TooBadBagIsFull, MSGBOX_DEFAULT
+	closemessage
+	delay 20
+	applymovement LOCALID_STEVENS_HOUSE_STEVEN, MossdeepCity_StevensHouse_Movement_StevenReturn
+	waitmovement 0
+	setvar VAR_STEVENS_HOUSE_STATE, 3
 	releaseall
 	end
 
@@ -133,7 +144,28 @@ MossdeepCity_StevensHouse_EventScript_RockDisplay::
 	end
 
 MossdeepCity_StevensHouse_EventScript_Steven::
+	goto_if_eq VAR_STEVENS_HOUSE_STATE, 3, MossdeepCity_StevensHouse_EventScript_StevenRetryDive
 	msgbox MossdeepCity_StevensHouse_Text_UnderwateCavernBetweenMossdeepSootopolis, MSGBOX_NPC
+	end
+
+MossdeepCity_StevensHouse_EventScript_StevenRetryDive::
+	lock
+	faceplayer
+	msgbox MossdeepCity_StevensHouse_Text_YouveEarnedHMDive, MSGBOX_DEFAULT
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, MossdeepCity_StevensHouse_EventScript_DiveFieldKitBagFullTalk
+	setflag FLAG_RECEIVED_HM_DIVE
+	setflag FLAG_OMIT_DIVE_FROM_STEVEN_LETTER
+	msgbox MossdeepCity_StevensHouse_Text_ExplainDive, MSGBOX_DEFAULT
+	setflag FLAG_HIDE_MOSSDEEP_CITY_SCOTT
+	setflag FLAG_HIDE_SEAFLOOR_CAVERN_ENTRANCE_AQUA_GRUNT
+	setvar VAR_STEVENS_HOUSE_STATE, 2
+	release
+	end
+
+MossdeepCity_StevensHouse_EventScript_DiveFieldKitBagFullTalk::
+	msgbox gText_TooBadBagIsFull, MSGBOX_DEFAULT
+	release
 	end
 
 MossdeepCity_StevensHouse_EventScript_Letter::

@@ -583,6 +583,8 @@ Local validation passed:
 
 - `rtk git diff --check`
 - `rtk git diff --cached --check`
+- `rtk make -j16 -O check TESTS=test/battle/ability/damp.c`
+- `rtk make -j16 -O check TESTS=test/battle/ai/ai.c`
 - `rtk make -j16 -O check TESTS='All Ability Slots'`
 - `rtk make -j16 -O check TESTS='AI thinking time'`
 - `rtk make -j16 -O check TESTS='Battle item restore'`
@@ -593,6 +595,22 @@ Local validation passed:
 
 Builds still report the existing RWX linker warning. Full `check` passed with
 the existing expected / known-failing markers.
+
+2026-05-30 review-blocker follow-up:
+
+- `IsAbilityOnSide()`, `IsAbilityOnField()`, and `IsAbilityOnFieldExcept()` now
+  require live, present battlers before all-slot `BattlerHasAbility()` matching.
+- Added `Damp does not prevent Explosion-like moves after its bearer faints` to
+  prevent fainted field-ability providers from leaking into later same-turn
+  actions.
+- A second `codex review --base master` pass found an end-turn weather edge case
+  where paired weather abilities could skip the second effect in all-slot mode.
+  End-turn weather now queues paired ability scripts with `eventState.endTurnBlock`,
+  and `All Ability Slots applies paired end-turn weather abilities one at a time`
+  covers hidden-slot `Dry Skin` plus `Solar Power` in sun.
+- `AI_FRAME_CEILING_SINGLES_SMART_TRAINER` is now 10 to account for the live
+  guard in a hot ability-query path; focused AI and full `check` pass.
+- Focused validation: `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c`.
 
 mGBA Live validation:
 
