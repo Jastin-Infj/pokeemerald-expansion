@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "champions_run_session.h"
 #include "battle_hold_effects.h"
 #include "battle_message.h"
 #include "battle_anim.h"
@@ -4150,6 +4151,7 @@ static void Cmd_getexp(void)
     case 0: // check if should receive exp at all
         if (IsOnPlayerSide(gBattlerFainted)
             || IsAiVsAiBattle()
+            || ChampionsRun_ShouldSuppressExp()
             || !BattleTypeAllowsExp())
         {
             gBattleScripting.getexpState = 6; // goto last case

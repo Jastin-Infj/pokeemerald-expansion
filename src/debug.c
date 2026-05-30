@@ -404,6 +404,12 @@ extern const u8 Debug_EventScript_Script_6[];
 extern const u8 Debug_EventScript_Script_7[];
 extern const u8 Debug_EventScript_Script_8[];
 extern const u8 Debug_EventScript_ScoutSelection[];
+extern const u8 Debug_EventScript_ChampionsRunStart[];
+extern const u8 Debug_EventScript_ChampionsRunGiveMon[];
+extern const u8 Debug_EventScript_ChampionsRunCheckpoint[];
+extern const u8 Debug_EventScript_ChampionsRunRetire[];
+extern const u8 Debug_EventScript_ChampionsRunLoseTest[];
+extern const u8 Debug_EventScript_ChampionsRunClear[];
 extern const u8 DebugScript_DaycareMonsNotCompatible[];
 extern const u8 DebugScript_OneDaycareMons[];
 extern const u8 DebugScript_ZeroDaycareMons[];
@@ -697,9 +703,15 @@ static const struct DebugMenuOption sDebugMenu_Actions_Player[] =
 static const struct DebugMenuOption sDebugMenu_Actions_Scripts[] =
 {
     { COMPOUND_STRING("Scout Selection"), DebugAction_ExecuteScript, Debug_EventScript_ScoutSelection },
-    { COMPOUND_STRING("Script 1"), DebugAction_ExecuteScript, Debug_EventScript_Script_1 },
-    { COMPOUND_STRING("Script 2"), DebugAction_ExecuteScript, Debug_EventScript_Script_2 },
-    { COMPOUND_STRING("Script 3"), DebugAction_ExecuteScript, Debug_EventScript_Script_3 },
+    { COMPOUND_STRING("Pokemon Vendor"), DebugAction_ExecuteScript, Debug_EventScript_Script_1 },
+    { COMPOUND_STRING("Scout Pick 6"), DebugAction_ExecuteScript, Debug_EventScript_Script_2 },
+    { COMPOUND_STRING("Vendor Reward"), DebugAction_ExecuteScript, Debug_EventScript_Script_3 },
+    { COMPOUND_STRING("Champs: Start"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunStart },
+    { COMPOUND_STRING("Champs: Give Mon"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunGiveMon },
+    { COMPOUND_STRING("Champs: Checkpoint"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunCheckpoint },
+    { COMPOUND_STRING("Champs: Retire"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunRetire },
+    { COMPOUND_STRING("Champs: Lose Test"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunLoseTest },
+    { COMPOUND_STRING("Champs: Clear"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunClear },
     { COMPOUND_STRING("Script 4"), DebugAction_ExecuteScript, Debug_EventScript_Script_4 },
     { COMPOUND_STRING("Script 5"), DebugAction_ExecuteScript, Debug_EventScript_Script_5 },
     { COMPOUND_STRING("Script 6"), DebugAction_ExecuteScript, Debug_EventScript_Script_6 },

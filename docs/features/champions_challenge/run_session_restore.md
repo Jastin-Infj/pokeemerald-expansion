@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-25 |
-| Baseline | `master` `5b8ced1883`; implementation branch `feature/champions-run-session-runtime-20260524` |
-| Code status | MVP runtime implemented on feature branch; not on `master` |
+| Last reviewed | 2026-05-29 |
+| Baseline | `master` `4e48ff993f`; implementation branch `feature/champions-run-session-runtime-20260524` |
+| Code status | MVP runtime adopted into `integration/runtime-dev-20260529`; not on `master` |
 | Provenance | Local project feature docs |
 
 ## Goal

@@ -1090,6 +1090,34 @@ struct Bag
     struct ItemSlot berries[BAG_BERRIES_COUNT];
 };
 
+#if SAVE_CHAMPIONS_RUN_SESSION == TRUE
+struct ChampionsRunSession
+{
+    u32 signature;
+    u32 version;
+    u32 runSeed;
+    u32 runIndex;
+    u32 streak;
+    u32 normalMoney;
+    u16 normalCoins;
+    u16 normalRegisteredItem;
+    u8 active;
+    u8 status;
+    u8 checkpointKind;
+    u8 outcome;
+    u8 normalPartyCount;
+    u8 requiredPartyCount;
+    u8 lastClearPartyCount;
+    u8 lastClearBoxIds[PARTY_SIZE];
+    u8 lastClearBoxPositions[PARTY_SIZE];
+    u8 padding;
+    struct WarpData startLocation;
+    struct Pokemon normalParty[PARTY_SIZE];
+    struct Bag normalBag;
+    struct Mail normalMail[MAIL_COUNT];
+};
+#endif
+
 struct SaveBlock1
 {
     /*0x00*/ struct Coords16 pos;
@@ -1188,6 +1216,9 @@ struct SaveBlock1
 #if FREE_MYSTERY_EVENT_BUFFERS == FALSE
     /*0x3???*/ struct RamScript ramScript;
 #endif //FREE_MYSTERY_EVENT_BUFFERS
+#if SAVE_CHAMPIONS_RUN_SESSION == TRUE
+    /*0x3???*/ struct ChampionsRunSession championsRun;
+#endif //SAVE_CHAMPIONS_RUN_SESSION
     /*0x3???*/ struct RecordMixingGift recordMixingGift;
     /*0x3???*/ LilycoveLady lilycoveLady;
     /*0x3???*/ struct TrainerNameRecord trainerNameRecords[20];
