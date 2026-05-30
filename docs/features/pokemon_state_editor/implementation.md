@@ -4,6 +4,11 @@
 
 Branch: `feature/pokemon-state-editor-expansion`
 
+Integrated branch: `integration/runtime-dev-20260529` on 2026-05-30, staged in
+PR #68. The integration apply preserved the already-staged Party UI, Pokemon
+Vendor sealed recruit Summary hooks, All Ability slot display switch, Unified
+Move Relearner Summary prompt, and Team Viewer Summary return behavior.
+
 The MVP adds a party Summary overlay editor on the Skills page. `START EDIT` opens
 the editor, `A` changes editor pages, `B` closes it, D-pad changes values, and
 `L`/`R` apply min/max or first/last valid values.
@@ -166,6 +171,27 @@ mGBA Live passed on sessions `pokemon-state-editor-runtime-fixed`,
   showed no matching PID.
 
 GitHub Actions were not waited; local make and mGBA Live are the handoff evidence.
+
+Integration adoption on `integration/runtime-dev-20260529` passed:
+
+- Applied source/config changes from `feature/pokemon-state-editor-expansion`
+  commits `3f534c5f04` and `d80e7a9b15`.
+- Resolved the Summary prompt window conflict by keeping the State Editor
+  13-tile prompt width at `tilemapLeft = 17`; this avoids right-edge overflow
+  while retaining the Unified Move Relearner prompt area.
+- `rtk git diff --check HEAD~2..HEAD`: passed.
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning.
+- `rtk make -j16 -O check`: passed with the existing RWX linker warning.
+- mGBA Live session `integration-pokemon-state-editor-smoke` reused an existing
+  save, opened Party -> Wobbuffet Summary -> Skills, confirmed `START EDIT`,
+  opened the right-pane Status Editor, used `A` to switch to the IV page, and
+  used `B` to return to Summary without corruption or softlock.
+- Integration screenshots:
+  `/tmp/integration-pokemon-state-editor-open.png`,
+  `/tmp/integration-pokemon-state-editor-closed.png`.
+- Cleanup: `mgba_live_stop` returned `stopped: true`; `mgba-live-cli status --all`
+  returned `[]`.
 
 ## Remaining Risks
 

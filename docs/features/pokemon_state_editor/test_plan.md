@@ -137,3 +137,27 @@ Final results for `feature/pokemon-state-editor-expansion`:
   - Screenshot evidence: `/tmp/pokemon-state-editor-mgba/status-editor-final-tabs-color-open.png`.
   - Cleanup: `mgba_live_stop` returned `stopped: false`, `alive_after: true`; `ps -p 58215` showed no matching PID. `mgba-live-cli status --all` still reported a stale `pokemon-state-editor-final-visual-check` entry.
 - GitHub Actions: not waited unless explicitly requested
+
+Integration results for `integration/runtime-dev-20260529` / PR #68:
+
+- Adopted from `feature/pokemon-state-editor-expansion` on 2026-05-30.
+- `rtk git diff --check HEAD~2..HEAD`: passed
+- `rtk make -j16 -O debug`: passed with the existing RWX linker warning
+- `rtk make -j16 -O all`: passed with the existing RWX linker warning
+- `rtk make -j16 -O check`: passed with the existing RWX linker warning
+- mGBA Live: passed
+  - Session: `integration-pokemon-state-editor-smoke`
+  - Route: existing save -> Continue -> Start menu -> Party -> Wobbuffet
+    Summary -> Skills page -> `START EDIT`.
+  - Confirmed the `START EDIT` prompt appears in the top-right prompt area.
+  - Confirmed the Status Editor opens in the right-side Summary pane.
+  - Pressed `A` and confirmed the page tabs switch from EVs to IVs.
+  - Pressed `B` and confirmed the editor closes back to the Skills page without
+    corruption or softlock.
+  - Screenshot evidence:
+    `/tmp/integration-pokemon-state-editor-open.png`,
+    `/tmp/integration-pokemon-state-editor-closed.png`.
+  - Cleanup: `mgba_live_stop` returned `stopped: true`;
+    `mgba-live-cli status --all` returned `[]`.
+- GitHub Actions: not re-waited; local make and mGBA Live evidence are the
+  integration handoff.
