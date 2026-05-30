@@ -33,6 +33,12 @@ Info taken from https://bulbapedia.bulbagarden.net/wiki/Stats_judge.
 // Move Relearner settings
 #define P_ENABLE_MOVE_RELEARNERS         FALSE   // If TRUE, it enables move relearners for egg, TM and tutor. (see below for specific configs /flags)
 #define P_SORT_MOVES                     FALSE   // If TRUE, sorts all moves alphabetically in the relearner's list.
+#define P_UNIFIED_MOVE_RELEARNER         TRUE    // If TRUE, Summary and common NPC relearner entries use a single all-source move relearner.
+#define P_UNIFIED_RELEARNER_LEVEL_MOVES  TRUE    // If TRUE, unified mode includes all current level-up moves regardless of the Pokemon's current level.
+#define P_UNIFIED_RELEARNER_EGG_MOVES    TRUE    // If TRUE, unified mode includes current and historical egg move candidates.
+#define P_UNIFIED_RELEARNER_TM_MOVES     TRUE    // If TRUE, unified mode includes historical TM/TR candidates without requiring physical TM items.
+#define P_UNIFIED_RELEARNER_TUTOR_MOVES  TRUE    // If TRUE, unified mode includes historical tutor / tower candidates.
+#define P_UNIFIED_RELEARNER_SPECIAL_MOVES TRUE   // If TRUE, unified mode includes special event / distribution-only / XD move candidates.
 
 // Level up Relearner
 #define P_PRE_EVO_MOVES                  FALSE   // If TRUE, it enables the Pokémon to learn moves from it's pre evolution.

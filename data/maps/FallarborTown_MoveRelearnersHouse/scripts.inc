@@ -22,7 +22,11 @@ FallarborTown_MoveRelearnersHouse_EventScript_AskTeachMove::
 
 FallarborTown_MoveRelearnersHouse_EventScript_ChooseMon::
 	msgbox FallarborTown_MoveRelearnersHouse_Text_TutorWhichMon, MSGBOX_DEFAULT
+.if P_UNIFIED_MOVE_RELEARNER == TRUE
+	setmoverelearnerstate MOVE_RELEARNER_UNIFIED
+.else
 	setmoverelearnerstate MOVE_RELEARNER_LEVEL_UP_MOVES @ Specifically supposed to teach level up moves
+.endif @ P_UNIFIED_MOVE_RELEARNER
 	chooseboxmon SELECT_PC_MON_MOVE_RELEARNER
 	waitstate
 	goto_if_eq VAR_0x8004, PARTY_NOTHING_CHOSEN, FallarborTown_MoveRelearnersHouse_EventScript_ComeBackWithHeartScale
@@ -96,4 +100,3 @@ FallarborTown_MoveRelearnersHouse_Text_ComeBackWithHeartScale:
 FallarborTown_MoveRelearnersHouse_Text_CantTeachEgg:
 	.string "Hunh? There isn't a single move that\n"
 	.string "I can teach an EGG.$"
-

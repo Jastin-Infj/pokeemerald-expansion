@@ -104,6 +104,7 @@ enum {
     MENU_REGISTER,
     MENU_TRADE1,
     MENU_TRADE2,
+    MENU_RELEARN_MOVES,
     MENU_LEVEL_UP_MOVES,
     MENU_EGG_MOVES,
     MENU_TM_MOVES,
@@ -494,6 +495,7 @@ static void CursorCb_Trade1(u8);
 static void CursorCb_Trade2(u8);
 static void CursorCb_Toss(u8);
 static void CursorCb_FieldMove(u8);
+static void CursorCb_RelearnMoves(u8);
 static void CursorCb_ChangeLevelUpMoves(u8);
 static void CursorCb_ChangeEggMoves(u8);
 static void CursorCb_ChangeTMMoves(u8);
@@ -2903,7 +2905,7 @@ static const u8 *GetSelectionActionText(u8 action)
 
 static u8 GetSelectionActionFontColorsId(u8 action)
 {
-    if (action >= MENU_LEVEL_UP_MOVES && action <= MENU_SUB_MOVES)
+    if (action >= MENU_RELEARN_MOVES && action <= MENU_SUB_MOVES)
         return 6;
     if (action >= MENU_FIELD_MOVES)
         return 4;
@@ -3159,7 +3161,10 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
      && GetMonData(&mons[slotId], MON_DATA_SPECIES)
      && CanBoxMonRelearnAnyMove(&mons[slotId].box))
     {
-        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUB_MOVES);
+        if (P_UNIFIED_MOVE_RELEARNER)
+            AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_RELEARN_MOVES);
+        else
+            AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUB_MOVES);
     }
 
     // Add field moves to action list
@@ -3192,6 +3197,9 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
 
 static void SetPartyMonLearnMoveSelectionActions(struct Pokemon *mons, u8 slotId)
 {
+    if (P_UNIFIED_MOVE_RELEARNER && CanBoxMonRelearnMoves(&mons[slotId].box, MOVE_RELEARNER_UNIFIED))
+        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_RELEARN_MOVES);
+
     if (CanBoxMonRelearnMoves(&mons[slotId].box, MOVE_RELEARNER_LEVEL_UP_MOVES))
         AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEVEL_UP_MOVES);
 
@@ -8434,6 +8442,17 @@ static void CursorCb_ChangeLevelUpMoves(u8 taskId)
 {
     PlaySE(SE_SELECT);
     gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES;
+    gRelearnMode = RELEARN_MODE_PARTY_MENU;
+    gLastViewedMonIndex = gPartyMenu.slotId;
+    gSpecialVar_0x8004 = gLastViewedMonIndex;
+    TeachMoveRelearnerMove();
+    Task_ClosePartyMenu(taskId);
+}
+
+static void CursorCb_RelearnMoves(u8 taskId)
+{
+    PlaySE(SE_SELECT);
+    gMoveRelearnerState = MOVE_RELEARNER_UNIFIED;
     gRelearnMode = RELEARN_MODE_PARTY_MENU;
     gLastViewedMonIndex = gPartyMenu.slotId;
     gSpecialVar_0x8004 = gLastViewedMonIndex;

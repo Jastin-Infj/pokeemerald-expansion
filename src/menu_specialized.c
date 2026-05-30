@@ -38,6 +38,7 @@ static void MailboxMenu_MoveCursorFunc(s32, bool8, struct ListMenu *);
 static void ConditionGraph_CalcRightHalf(struct ConditionGraph *);
 static void ConditionGraph_CalcLeftHalf(struct ConditionGraph *);
 static void MoveRelearnerCursorCallback(s32, bool8, struct ListMenu *);
+static void MoveRelearnerPrintSourceLabel(u8 windowId, u32 menuId, u8 y);
 static void MoveRelearnerDummy(void);
 static void SetNextConditionSparkle(struct Sprite *);
 static void SpriteCB_ConditionSparkle(struct Sprite *);
@@ -744,6 +745,13 @@ u8 LoadMoveRelearnerMovesList(const struct ListMenuItem *items, u16 numChoices)
     gMultiuseListMenuTemplate = sMoveRelearnerMovesListTemplate;
     gMultiuseListMenuTemplate.totalItems = numChoices;
     gMultiuseListMenuTemplate.items = items;
+    if (MoveRelearnerUseSourceLabels())
+    {
+        gMultiuseListMenuTemplate.itemPrintFunc = MoveRelearnerPrintSourceLabel;
+        gMultiuseListMenuTemplate.textNarrowWidth = 50;
+    }
+    if (MoveRelearnerUseSourceLabels() && numChoices > 6)
+        gMultiuseListMenuTemplate.scrollMultiple = LIST_MULTIPLE_SCROLL_DPAD;
 
     if (numChoices < 6)
         gMultiuseListMenuTemplate.maxShowed = numChoices;
@@ -751,6 +759,19 @@ u8 LoadMoveRelearnerMovesList(const struct ListMenuItem *items, u16 numChoices)
         gMultiuseListMenuTemplate.maxShowed = 6;
 
     return gMultiuseListMenuTemplate.maxShowed;
+}
+
+static void MoveRelearnerPrintSourceLabel(u8 windowId, u32 menuId, u8 y)
+{
+    if ((s32)menuId < 0)
+        return;
+
+    const u8 *source = MoveRelearnerGetSourceLabelForMenuId(menuId);
+    u8 x = GetStringRightAlignXOffset(FONT_SMALL, source, 76);
+
+    if (x < 58)
+        x = 58;
+    AddTextPrinterParameterized(windowId, FONT_SMALL, source, x, y + 1, TEXT_SKIP_DRAW, NULL);
 }
 
 static void MoveRelearnerLoadBattleMoveDescription(u32 chosenMove)
@@ -850,10 +871,12 @@ static void MoveRelearnerMenuLoadContestMoveDescription(u32 chosenMove)
 
 static void MoveRelearnerCursorCallback(s32 itemIndex, bool8 onInit, struct ListMenu *list)
 {
+    s32 move = MoveRelearnerGetMoveForMenuId(itemIndex);
+
     if (onInit != TRUE)
         PlaySE(SE_SELECT);
-    MoveRelearnerLoadBattleMoveDescription(itemIndex);
-    MoveRelearnerMenuLoadContestMoveDescription(itemIndex);
+    MoveRelearnerLoadBattleMoveDescription(move);
+    MoveRelearnerMenuLoadContestMoveDescription(move);
 }
 
 void MoveRelearnerPrintMessage(u8 *str)

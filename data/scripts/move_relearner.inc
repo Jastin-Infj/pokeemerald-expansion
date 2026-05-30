@@ -3,7 +3,11 @@ Common_EventScript_MoveRelearner::
 	faceplayer
 	message MoveRelearner_Text_WouldLearnNewMoves
 	waitmessage
+.if P_UNIFIED_MOVE_RELEARNER == TRUE
+	goto MoveRelearner_EventScript_TeachUnifiedMoves
+.else
 	goto Common_EventScript_MoveRelearnerDynMultiChoice
+.endif @ P_UNIFIED_MOVE_RELEARNER
 	end
 
 Common_EventScript_MoveRelearnerDynMultiChoice::
@@ -42,6 +46,12 @@ MoveRelearner_EventScript_PushTMMoves:
 MoveRelearner_EventScript_PushTutorMoves:
 	dynmultipush MoveRelearner_Text_TutormoveMoves, 3
 	return
+
+MoveRelearner_EventScript_TeachUnifiedMoves:
+	setmoverelearnerstate MOVE_RELEARNER_UNIFIED
+	bufferstring STR_VAR_3, MoveRelearner_Text_MoveLWR
+	goto MoveRelearner_EventScript_TeachMove
+	end
 
 MoveRelearner_EventScript_TeachLevelUpMoves:
 	setmoverelearnerstate MOVE_RELEARNER_LEVEL_UP_MOVES
@@ -100,7 +110,13 @@ MoveRelearner_EventScript_CantTeachMoveToPkmn:
 	end
 
 MoveRelearner_EventScript_AnythingElse::
+.if P_UNIFIED_MOVE_RELEARNER == TRUE
+	msgbox MoveRelearner_Text_AnythingElse, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, YES, MoveRelearner_EventScript_TeachUnifiedMoves
+	goto MoveRelearner_EventScript_PleaseComeAgain
+.else
 	message MoveRelearner_Text_AnythingElse
 	waitmessage
 	goto Common_EventScript_MoveRelearnerDynMultiChoice
 	end
+.endif @ P_UNIFIED_MOVE_RELEARNER
