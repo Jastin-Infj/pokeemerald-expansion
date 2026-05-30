@@ -1,4 +1,5 @@
 #include "global.h"
+#include "config/overworld.h"
 #include "event_data.h"
 #include "field_move.h"
 #include "fldeff.h"
@@ -106,6 +107,32 @@ static bool32 IsFieldMoveUnlocked_Defog(void)
     return TRUE;
 }
 #endif
+
+bool32 FieldMove_IsHM(enum FieldMove fieldMove)
+{
+    switch (fieldMove)
+    {
+    case FIELD_MOVE_CUT:
+    case FIELD_MOVE_FLASH:
+    case FIELD_MOVE_ROCK_SMASH:
+    case FIELD_MOVE_STRENGTH:
+    case FIELD_MOVE_SURF:
+    case FIELD_MOVE_FLY:
+    case FIELD_MOVE_DIVE:
+    case FIELD_MOVE_WATERFALL:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+bool32 FieldMove_UsesModernUnlock(enum FieldMove fieldMove)
+{
+    if (OW_FIELD_MOVE_MODERNIZATION)
+        return FieldMove_IsHM(fieldMove);
+
+    return FALSE;
+}
 
 const struct FieldMoveInfo gFieldMoveInfo[FIELD_MOVES_COUNT] =
 {

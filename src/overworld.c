@@ -18,6 +18,7 @@
 #include "field_effect.h"
 #include "field_effect_helpers.h"
 #include "field_message_box.h"
+#include "field_move.h"
 #include "field_player_avatar.h"
 #include "field_screen_effect.h"
 #include "field_special_scene.h"
@@ -119,6 +120,7 @@ static void CB2_LoadMap2(void);
 static void VBlankCB_Field(void);
 static void SpriteCB_LinkPlayer(struct Sprite *);
 static void ChooseAmbientCrySpecies(void);
+static void TryAutoUseFlashOnMapLoad(void);
 static void DoMapLoadLoop(u8 *);
 static bool32 LoadMapInStepsLocal(u8 *, bool32);
 static bool32 LoadMapInStepsLink(u8 *);
@@ -1104,12 +1106,23 @@ bool32 Overworld_IsBikingAllowed(void)
 // Flash level of 8 is fully black
 void SetDefaultFlashLevel(void)
 {
+    TryAutoUseFlashOnMapLoad();
+
     if (!gMapHeader.cave)
         gSaveBlock1Ptr->flashLevel = 0;
     else if (FlagGet(FLAG_SYS_USE_FLASH))
         gSaveBlock1Ptr->flashLevel = 1;
     else
         gSaveBlock1Ptr->flashLevel = gMaxFlashLevel - 1;
+}
+
+static void TryAutoUseFlashOnMapLoad(void)
+{
+    if (FieldMove_UsesModernUnlock(FIELD_MOVE_FLASH)
+        && gMapHeader.cave
+        && !FlagGet(FLAG_SYS_USE_FLASH)
+        && IsFieldMoveUnlocked(FIELD_MOVE_FLASH))
+        FlagSet(FLAG_SYS_USE_FLASH);
 }
 
 void SetFlashLevel(s32 flashLevel)
