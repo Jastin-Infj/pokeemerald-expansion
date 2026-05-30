@@ -677,12 +677,25 @@ a time through `eventState.endTurnBlock`, and calls the explicitly selected
 ability without re-entering the all-slot dispatcher. A focused Heliolisk
 regression covers `Dry Skin` plus `Solar Power` under sun.
 
+A later `codex review --base master` pass found one more related edge: if the
+representative ability itself is handled by the third end-turn block, that early
+branch could call the all-slot dispatcher again. That could replay unrelated
+end-turn abilities from other slots, such as `Solar Power`, after the weather
+pass already handled them. `TryHandleThirdEventBlockAbility()` now calls
+`AbilityBattleEffectsSingleAbility()` for both the representative branch and
+the additional slot loop, so the selected explicit ability is processed once
+without dispatcher recursion. A Tropius regression covers representative
+`Harvest` plus hidden-slot `Solar Power` under sun and asserts only one
+`Solar Power` damage tick.
+
 Integration validation passed:
 
 - `rtk git diff --check`
 - `rtk git diff --cached --check`
 - `rtk make -j16 -O check TESTS=test/battle/ability/damp.c`
-- `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c`
+- `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c`,
+  including the paired-weather and third-block representative recursion
+  regressions
 - `rtk make -j16 -O check TESTS=test/battle/ai/ai.c`
 - `rtk make -j16 -O check TESTS='All Ability Slots'`
 - `rtk make -j16 -O check TESTS='AI thinking time'`

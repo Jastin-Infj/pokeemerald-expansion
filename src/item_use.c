@@ -1623,12 +1623,21 @@ static void FieldKit_ShowCannotUseMessage(u8 taskId)
 
 static void FieldKit_StartFieldMove(u8 taskId)
 {
+    bool8 (*fieldCallback2)(void) = gFieldCallback2;
+
     FieldKit_CloseMenuWindow(taskId);
     FieldKit_InitSelectedMon();
-    if (gPostMenuFieldCallback != NULL)
+
+    if (fieldCallback2 != NULL)
+    {
+        gFieldCallback2 = NULL;
+        fieldCallback2();
+    }
+    else if (gPostMenuFieldCallback != NULL)
+    {
         gPostMenuFieldCallback();
-    gFieldCallback2 = NULL;
-    gPostMenuFieldCallback = NULL;
+        gPostMenuFieldCallback = NULL;
+    }
     DestroyTask(taskId);
 }
 

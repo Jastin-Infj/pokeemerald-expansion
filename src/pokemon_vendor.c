@@ -26,6 +26,7 @@
 #include "string_util.h"
 #include "strings.h"
 #include "task.h"
+#include "trainer_battle_selection.h"
 #include "constants/game_stat.h"
 #include "constants/battle_setup.h"
 #include "constants/event_objects.h"
@@ -90,6 +91,14 @@ struct PokemonVendorMenu
     u8 deliveryResult;
 };
 
+struct PokemonVendorBondExpContext
+{
+    u8 amount;
+    u16 affectedCount;
+    u16 unlockedCount;
+    bool8 countResult;
+};
+
 static EWRAM_DATA struct PokemonVendorMenu *sPokemonVendorMenu = NULL;
 static EWRAM_DATA u8 sPokemonVendorQueuedBattleBondExp = 0;
 
@@ -131,6 +140,7 @@ static void PokemonVendorMarkSealedRecruit(const struct PokemonVendorProduct *pr
 static u8 PokemonVendorClampBondThreshold(u16 threshold);
 static void PokemonVendorUnlockSealedRecruit(struct Pokemon *mon);
 static void PokemonVendorAddBondExpToPartyInternal(u8 amount, u16 *affectedCount, u16 *unlockedCount);
+static void PokemonVendorAddBondExpToMon(struct Pokemon *mon, void *context);
 
 static const u8 sText_Sealed[] = _("SEALED");
 static const u8 sText_Normal[] = _("NORMAL");
@@ -1067,18 +1077,33 @@ void BS_PokemonVendorAwardQueuedBattleBondExp(void)
 static void PokemonVendorAddBondExpToPartyInternal(u8 amount, u16 *affectedCount, u16 *unlockedCount)
 {
     u8 i;
+    struct PokemonVendorBondExpContext context = {amount, 0, 0, TRUE};
 
-    *affectedCount = 0;
-    *unlockedCount = 0;
-
-    for (i = 0; i < gPlayerPartyCount; i++)
+    if (TrainerBattleSelection_ForEachOriginalPartyMon(PokemonVendorAddBondExpToMon, &context))
     {
-        if (PokemonVendor_IsLockedSealedRecruit(&gPlayerParty[i]))
-        {
-            (*affectedCount)++;
-            if (PokemonVendor_AddBondExp(&gPlayerParty[i], amount))
-                (*unlockedCount)++;
-        }
+        struct PokemonVendorBondExpContext selectedContext = {amount, 0, 0, FALSE};
+        TrainerBattleSelection_ForEachSelectedBattleMon(PokemonVendorAddBondExpToMon, &selectedContext);
+    }
+    else
+    {
+        for (i = 0; i < gPlayerPartyCount; i++)
+            PokemonVendorAddBondExpToMon(&gPlayerParty[i], &context);
+    }
+
+    *affectedCount = context.affectedCount;
+    *unlockedCount = context.unlockedCount;
+}
+
+static void PokemonVendorAddBondExpToMon(struct Pokemon *mon, void *data)
+{
+    struct PokemonVendorBondExpContext *context = data;
+
+    if (PokemonVendor_IsLockedSealedRecruit(mon))
+    {
+        if (context->countResult)
+            context->affectedCount++;
+        if (PokemonVendor_AddBondExp(mon, context->amount) && context->countResult)
+            context->unlockedCount++;
     }
 }
 

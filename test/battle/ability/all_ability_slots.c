@@ -1111,3 +1111,27 @@ SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Contrary reverse s
         EXPECT_EQ(player->statStages[STAT_ATK], DEFAULT_STAT_STAGE + 1);
     }
 }
+
+SINGLE_BATTLE_TEST("All Ability Slots does not replay Solar Power during third-block ability handling")
+{
+    s16 damage;
+
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_TROPIUS, 0) == ABILITY_CHLOROPHYLL);
+        ASSUME(GetSpeciesAbility(SPECIES_TROPIUS, 1) == ABILITY_SOLAR_POWER);
+        ASSUME(GetSpeciesAbility(SPECIES_TROPIUS, 2) == ABILITY_HARVEST);
+        PLAYER(SPECIES_TROPIUS) { Ability(ABILITY_HARVEST); HP(160); MaxHP(160); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SUNNY_DAY); }
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_SUNNY_DAY); MOVE(player, MOVE_CELEBRATE); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SUNNY_DAY, opponent);
+        HP_BAR(player, captureDamage: &damage);
+        NOT HP_BAR(player);
+    } THEN {
+        EXPECT_EQ(damage, 20);
+        EXPECT_EQ(player->hp, 140);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_SOLAR_POWER));
+    }
+}

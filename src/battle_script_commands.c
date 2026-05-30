@@ -9918,7 +9918,7 @@ static void Cmd_trycopyability(void)
 
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
     enum BattlerId partner = BATTLE_PARTNER(battler);
-    bool32 allAbilitySlots = GetConfig(B_ALL_ABILITY_SLOTS) != FALSE;
+    bool32 allAbilitySlots = gAllAbilitySlotsBattle;
     u32 slot = GetBattlerAbilityOperationSlot(battler);
     enum Ability battlerAbility = allAbilitySlots ? GetBattlerAbilitySlotIgnoreSuppression(battler, slot) : GetBattlerAbility(battler);
     enum Ability defAbility = allAbilitySlots ? GetBattlerAbilitySlotIgnoreSuppression(gBattlerTarget, slot) : GetBattlerAbility(gBattlerTarget);
@@ -10081,7 +10081,7 @@ static void Cmd_setroom(void)
 static void Cmd_tryswapabilities(void)
 {
     CMD_ARGS(const u8 *failInstr);
-    bool32 allAbilitySlots = GetConfig(B_ALL_ABILITY_SLOTS) != FALSE;
+    bool32 allAbilitySlots = gAllAbilitySlotsBattle;
     u32 attackerSlot = GetBattlerAbilityOperationSlot(gBattlerAttacker);
     u32 targetSlot = allAbilitySlots ? attackerSlot : GetBattlerAbilityOperationSlot(gBattlerTarget);
     enum Ability attackerAbility = allAbilitySlots ? GetBattlerAbilitySlotIgnoreSuppression(gBattlerAttacker, attackerSlot) : GetBattlerAbility(gBattlerAttacker);
@@ -11604,7 +11604,7 @@ static void Cmd_setnonvolatilestatus(void)
 static void Cmd_tryoverwriteability(void)
 {
     CMD_ARGS(const u8 *failInstr);
-    bool32 allAbilitySlots = GetConfig(B_ALL_ABILITY_SLOTS) != FALSE;
+    bool32 allAbilitySlots = gAllAbilitySlotsBattle;
     u32 slot = GetBattlerAbilityOperationSlot(gBattlerTarget);
     enum Ability targetAbility = allAbilitySlots ? GetBattlerAbilitySlotIgnoreSuppression(gBattlerTarget, slot) : GetBattlerAbility(gBattlerTarget);
 
@@ -14068,7 +14068,7 @@ void BS_TryActivateReceiver(void)
     NATIVE_ARGS(u8 battler);
     enum BattlerId faintedBattler = GetBattlerForBattleScript(cmd->battler);
     enum BattlerId receiverBattler = BATTLE_PARTNER(faintedBattler);
-    bool32 allAbilitySlots = GetConfig(B_ALL_ABILITY_SLOTS) != FALSE;
+    bool32 allAbilitySlots = gAllAbilitySlotsBattle;
     u32 slot = GetBattlerAbilityOperationSlot(receiverBattler);
     enum Ability copiedAbility = allAbilitySlots ? GetBattlerAbilitySlotIgnoreSuppression(faintedBattler, slot) : GetBattlerAbility(faintedBattler);
 
@@ -14152,7 +14152,7 @@ void BS_SetLuckyChant(void)
 void BS_TryEntrainment(void)
 {
     NATIVE_ARGS(const u8 *failInstr);
-    bool32 allAbilitySlots = GetConfig(B_ALL_ABILITY_SLOTS) != FALSE;
+    bool32 allAbilitySlots = gAllAbilitySlotsBattle;
     u32 attackerSlot = GetBattlerAbilityOperationSlot(gBattlerAttacker);
     u32 targetSlot = allAbilitySlots ? attackerSlot : GetBattlerAbilityOperationSlot(gBattlerTarget);
     enum Ability attackerAbility = allAbilitySlots ? GetBattlerAbilitySlotIgnoreSuppression(gBattlerAttacker, attackerSlot) : GetBattlerAbility(gBattlerAttacker);

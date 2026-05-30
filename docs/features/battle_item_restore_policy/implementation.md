@@ -74,6 +74,14 @@ The smoke confirms the integrated ROM boots and accepts input after the source
 adoption. The feature behavior is covered by the focused battle restore tests
 above; no new in-game manual berry battle was run during this integration slice.
 
+2026-05-30 integration review follow-up: trainer battle selection can create
+temporary NPC-borrowed held items for battle setup. If the original player item
+is not eligible for restore, `ShouldRestoreHeldBattleItem()` now also clears the
+borrowed trainer item to `ITEM_NONE` instead of leaving it on the restored
+Pokemon. A focused regression in `test/battle_item_restore.c` covers this
+borrowed-item clear path, and full `rtk make -j16 -O check` passes on the
+runtime integration branch.
+
 Historical feature-branch validation:
 
 Confirmed commands:

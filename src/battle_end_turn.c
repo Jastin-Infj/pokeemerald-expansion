@@ -172,7 +172,7 @@ static bool32 TryHandleThirdEventBlockAbility(enum BattlerId battler)
     u16 triggeredAbilityPopupOverwrite = gBattleScripting.abilityPopupOverwrite;
 
     if (IsThirdEventBlockAbility(ability))
-        return AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE);
+        return AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE);
 
 #if B_ALL_ABILITY_SLOTS != FALSE || TESTING || DEBUG_OVERWORLD_MENU
     if (gAllAbilitySlotsBattle)
@@ -185,7 +185,7 @@ static bool32 TryHandleThirdEventBlockAbility(enum BattlerId battler)
             if (abilities[i] != ability
              && IsThirdEventBlockAbility(abilities[i]))
             {
-                if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, abilities[i], MOVE_NONE, TRUE))
+                if (AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, abilities[i], MOVE_NONE, TRUE))
                 {
                     effect = TRUE;
                     triggeredLastUsedAbility = gLastUsedAbility;

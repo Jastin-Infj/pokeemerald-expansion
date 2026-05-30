@@ -99,3 +99,29 @@ void TrainerBattleSelection_RestoreIfActive(void)
     ClearTrainerBattleSelectionState();
     CalculatePlayerPartyCount();
 }
+
+bool32 TrainerBattleSelection_ForEachOriginalPartyMon(TrainerBattleSelectionPartyMonFunc func, void *context)
+{
+    u8 i;
+
+    if (!sTrainerBattleSelectionState.active || func == NULL)
+        return FALSE;
+
+    for (i = 0; i < sTrainerBattleSelectionState.originalPartyCount && i < PARTY_SIZE; i++)
+        func(&sTrainerBattleSelectionState.originalParty[i], context);
+
+    return TRUE;
+}
+
+bool32 TrainerBattleSelection_ForEachSelectedBattleMon(TrainerBattleSelectionPartyMonFunc func, void *context)
+{
+    u8 i;
+
+    if (!sTrainerBattleSelectionState.active || func == NULL)
+        return FALSE;
+
+    for (i = 0; i < sTrainerBattleSelectionState.selectedCount && i < PARTY_SIZE; i++)
+        func(&gPlayerParty[i], context);
+
+    return TRUE;
+}

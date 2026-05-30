@@ -76,6 +76,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 |---|---|
 | `codex review --base master "<prompt>"` | CLI 制約で失敗。`--base` と prompt positional は併用不可 |
 | `codex review --base master` | 完了。レビュー内で `rtk make -j16 -O check` も実行され、既存の expected / known-failing marker込みで exit 0 |
+| `codex review --base master` after blocker fixes | usage limit で中断。直前の完了レビューで残った P2 は修正済みのため、以降は local make / mGBA Live evidence を handoff 証跡にした |
 
 ### Review Findings
 
@@ -88,6 +89,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | P2 | `src/battle_end_turn.c:109` | All Ability Slots ON 時、天候エンドターンで `Dry Skin` と `Solar Power` など同じ天候に紐づく複数特性の片方だけが処理されうる | paired weather ability scripts を battler ごとに queue し、明示 ability 呼び出しで all-slot dispatcher へ再入しない |
 | P2 | `src/pokemon_vendor.c:546` | one-time 商品を scrolled long-list から購入して sold-out 行が消えたあと、旧 scroll offset のまま `ListMenuInit()` され、範囲外行を描画する可能性 | list rebuild 後に visible count + Cancel に合わせて scroll offset / selected row を clamp する |
 | P2 | `src/pokemon_vendor.c:285` | long product table / fragmented heap で `items`, `names`, `productIndexes` のいずれかの確保に失敗した場合、直後に null row buffer へ書き込む可能性 | row allocation を全件検証し、部分確保を解放して初回は script 復帰、購入後 rebuild は vendor close へ unwind する |
+| P2 | `src/battle_end_turn.c:174` | 代表特性が third-block end-turn ability の場合に全スロット dispatcher へ再入し、`Harvest` 代表 + hidden `Solar Power` のような構成で別の end-turn ability が二重発火しうる | representative third-block branch と追加スロット branch を `AbilityBattleEffectsSingleAbility()` にして明示 ability だけ処理する |
 
 ### Follow-up Fixes
 
@@ -100,6 +102,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | P2 | end-turn weather は `eventState.endTurnBlock` で paired ability scripts を 1 つずつ queue し、hidden-slot `Dry Skin` + `Solar Power` のような組み合わせを両方処理する | `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c` |
 | P2 | Pokemon Vendor は list rebuild 後に `PokemonVendorClampListCursor()` で scroll offset / selected row を clamp してから `ListMenuInit()` する | `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` |
 | P2 | Pokemon Vendor は `PokemonVendorBuildList()` の row allocations を検証し、失敗時は部分確保を解放して script 復帰 / vendor close する | `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`, full `all` / `debug` / `check`, docs build, mGBA final smoke |
+| P2 | All Ability Slots の third-block end-turn ability は単体 ability dispatcher で処理し、representative branch から all-slot dispatcher へ再入しない | `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c` |
 
 追加で、live-battler guard の hot path 影響に合わせて
 `AI_FRAME_CEILING_SINGLES_SMART_TRAINER` を 9 から 10 に更新した。
@@ -111,6 +114,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 |---|---|
 | mGBA Live `integration-review-blocker-smoke` | Pass。debug ROM boot、START input、continue menu screenshot `/tmp/integration-review-blocker-smoke.png` |
 | mGBA Live `integration-review-final-smoke` | Pass。ROM boot、START input、continue menu screenshot `/tmp/integration-review-final-smoke.png` |
+| mGBA Live `runtime-integration-review-20260530` | Pass。debug ROM boot、START input、screenshot `/tmp/runtime-integration-review-20260530.png` |
 | mGBA Live cleanup | Pass。`stop` は `alive_after:false`、`status --all` は `[]` |
 
 ### Final Validation
@@ -124,13 +128,14 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | `rtk make -j16 -O check` | Pass。既存の `EXPECTED_FAIL` / `KNOWN_FAILING` marker を含み exit 0 |
 | `rtk mdbook build docs` | Pass。既知の root `CHANGELOG.md` include 警告、`CREDITS.md` `</img>` 警告、large search index 警告のみ |
 | mGBA Live `integration-review-final-smoke` | Pass。`pokeemerald.gba` boot、START input、screenshot、clean stop、`status --all` `[]` |
+| mGBA Live `runtime-integration-review-20260530` | Pass。`pokeemerald.gba` boot、START input、screenshot、clean stop、`status --all` `[]` |
 
 ## 現在の判定
 
 | 観点 | 判定 |
 |---|---|
 | 主要 1.15.3 runtime feature の集約 | ほぼ完了 |
-| 未取り込み runtime shelf | 明確な主要 runtime 残りは見当たらない |
+| 未取り込み runtime shelf | 明確な主要 runtime 残りは見当たらない。open の旧 implementation shelf #47/#48/#51/#54/#57/#60/#62 は #68 の integration evidence に採用済みで、独立 merge 対象ではない |
 | 別 lane | Map Asset Relinker、randomizer、map / Fly 実験は分離継続 |
 | PR #68 merge readiness | P1/P2/P2/P3 と追加 P2 群は修正済み。full validation と mGBA Live smoke は Pass。runtime integration candidate として ready |
 | `master` 反映 | 不可。runtime 実装は docs-only master policy の対象外 |

@@ -10118,21 +10118,25 @@ void SortBattlersBySpeed(enum BattlerId *battlers, bool32 slowToFast)
 static bool32 ShouldRestoreHeldBattleItem(u16 originalItem, u16 currentItem, bool32 wasStolen, bool32 returnNPCItems, u16 *itemToRestore)
 {
     bool32 originalItemIsBerry = GetItemPocket(originalItem) == POCKET_BERRIES;
+    bool32 shouldRestoreOriginal;
 
     *itemToRestore = originalItem;
 
-    if (originalItemIsBerry && B_RESTORE_HELD_BATTLE_BERRIES == FALSE && currentItem != originalItem)
-        *itemToRestore = ITEM_NONE;
+    if (originalItem == ITEM_NONE)
+        shouldRestoreOriginal = FALSE;
+    else if (originalItemIsBerry)
+        shouldRestoreOriginal = B_RESTORE_HELD_BATTLE_BERRIES == TRUE;
+    else
+        shouldRestoreOriginal = B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9 || wasStolen;
 
-    // Trainer NPC item return may clear a stolen opponent item, but should not
-    // turn berry-only restore into non-berry restore.
-    if (returnNPCItems && currentItem != originalItem && (wasStolen || originalItem == ITEM_NONE))
+    if (returnNPCItems && currentItem != originalItem)
+    {
+        if (!shouldRestoreOriginal)
+            *itemToRestore = ITEM_NONE;
         return TRUE;
-    if (*itemToRestore == ITEM_NONE)
-        return FALSE;
-    if (originalItemIsBerry)
-        return B_RESTORE_HELD_BATTLE_BERRIES == TRUE;
-    return B_RESTORE_HELD_BATTLE_ITEMS >= GEN_9 || wasStolen;
+    }
+
+    return shouldRestoreOriginal;
 }
 
 void TryRestoreHeldItems(void)
