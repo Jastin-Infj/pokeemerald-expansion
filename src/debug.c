@@ -295,6 +295,8 @@ static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
 static void DebugAction_Party_TeamViewerBattle(u8 taskId);
+static void DebugAction_Party_TeamViewerWBattle(u8 taskId);
+static void DebugAction_Party_StartTeamViewerBattle(u8 taskId, u16 trainerId);
 static void DebugAction_Party_AllAbilityA(u8 taskId);
 static void DebugAction_Party_AllAbilityB(u8 taskId);
 static void DebugAction_Party_AllAbilityC(u8 taskId);
@@ -680,6 +682,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
     { COMPOUND_STRING("Team Viewer Battle"), DebugAction_Party_TeamViewerBattle },
+    { COMPOUND_STRING("Team Viewer W"),      DebugAction_Party_TeamViewerWBattle },
     { COMPOUND_STRING("All Ability..."),     DebugAction_OpenSubMenu, sDebugMenu_Actions_Party_AllAbility },
     { NULL }
 };
@@ -5162,6 +5165,16 @@ static void DebugAction_Party_AllAbilityT(u8 taskId)
 
 static void DebugAction_Party_TeamViewerBattle(u8 taskId)
 {
+    DebugAction_Party_StartTeamViewerBattle(taskId, TRAINER_GABRIELLE_1);
+}
+
+static void DebugAction_Party_TeamViewerWBattle(u8 taskId)
+{
+    DebugAction_Party_StartTeamViewerBattle(taskId, TRAINER_AMY_AND_LIV_1);
+}
+
+static void DebugAction_Party_StartTeamViewerBattle(u8 taskId, u16 trainerId)
+{
     static const u8 sDefeatText[] = _("Team viewer route complete.");
     static const u16 sPlayerSpecies[PARTY_SIZE] =
     {
@@ -5194,7 +5207,7 @@ static void DebugAction_Party_TeamViewerBattle(u8 taskId)
     InitTrainerBattleParameter();
     TRAINER_BATTLE_PARAM.mode = TRAINER_BATTLE_SINGLE_NO_INTRO_TEXT;
     TRAINER_BATTLE_PARAM.objEventLocalIdA = LOCALID_NONE;
-    TRAINER_BATTLE_PARAM.opponentA = TRAINER_GABRIELLE_1;
+    TRAINER_BATTLE_PARAM.opponentA = trainerId;
     TRAINER_BATTLE_PARAM.defeatTextA = (u8 *)sDefeatText;
     gNoOfApproachingTrainers = 0;
     gApproachingTrainerId = 0;

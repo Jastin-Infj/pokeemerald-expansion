@@ -11,9 +11,11 @@
 #include "menu.h"
 #include "move.h"
 #include "overworld.h"
+#include "party_menu.h"
 #include "palette.h"
 #include "pokemon.h"
 #include "pokemon_icon.h"
+#include "pokemon_summary_screen.h"
 #include "prebattle_team_viewer.h"
 #include "reshow_battle_screen.h"
 #include "scanline_effect.h"
@@ -40,7 +42,27 @@
 #define TEAM_VIEWER_LABEL_X 2
 #define TEAM_VIEWER_LABEL_TOP_Y 44
 #define TEAM_VIEWER_LABEL_ROW_SPACING 38
+#define TEAM_VIEWER_LABEL_TEXT_X_OFFSET 5
+#define TEAM_VIEWER_LABEL_TEXT_Y_OFFSET 0
 #define TEAM_VIEWER_PANEL_TEXT_CLEAR_Y 2
+#define TEAM_VIEWER_SUMMARY_ALLOW_MOVE_REORDER 0
+#if TEAM_VIEWER_SUMMARY_ALLOW_MOVE_REORDER
+#define TEAM_VIEWER_SUMMARY_MODE SUMMARY_MODE_NORMAL
+#else
+#define TEAM_VIEWER_SUMMARY_MODE SUMMARY_MODE_LOCK_MOVES
+#endif
+#define TEAM_VIEWER_SUMMARY_START_PAGE PSS_PAGE_SKILLS
+// Selected marker coordinates are relative to the slot label origin.
+#define TEAM_VIEWER_SELECTED_MARKER_X_OFFSET 10
+#define TEAM_VIEWER_SELECTED_MARKER_Y_OFFSET 1
+#define TEAM_VIEWER_SELECTED_MARKER_WIDTH 9
+#define TEAM_VIEWER_SELECTED_MARKER_HEIGHT 8
+#define TEAM_VIEWER_SELECTED_TEXT_X_OFFSET 8
+#define TEAM_VIEWER_SELECTED_TEXT_Y_OFFSET 0
+#define TEAM_VIEWER_SELECTED_LABEL_BG_COLOR 5
+#define TEAM_VIEWER_SELECTED_LABEL_TEXT_COLOR 6
+#define TEAM_VIEWER_SELECTED_TEXT_BG_COLOR TEXT_COLOR_TRANSPARENT
+#define TEAM_VIEWER_SELECTED_TEXT_SHADOW_COLOR TEXT_COLOR_TRANSPARENT
 
 enum TeamViewerMode
 {
@@ -73,6 +95,7 @@ struct PreBattleTeamViewerState
     bool8 showDetails;
     u8 cursor;
     u8 selectedCount;
+    u8 selectionCount;
     u8 playerCount;
     u8 enemyPartyCount;
     u16 trainerId;
@@ -82,6 +105,7 @@ struct PreBattleTeamViewerState
     MainCallback callback;
     MainCallback callback1;
     struct Pokemon enemyParty[PARTY_SIZE];
+    u8 selectedSlots[MAX_FRONTIER_PARTY_SIZE];
     u8 iconSpriteIds[2][PARTY_SIZE];
 };
 
@@ -97,13 +121,18 @@ static void DrawFooter(void);
 static void DrawSelectedMonDetails(void);
 static void RefreshTeamCursor(bool8 redrawFooter);
 static void DrawThinFrame(u8 windowId);
-static void BuildMonIconLabel(u8 *dest, struct Pokemon *mon, u8 slot);
+static void BuildMonIconLabel(u8 *dest, struct Pokemon *mon, enum TeamViewerSide side, u8 slot);
 static void BuildBattleActionPrompt(u8 *dest);
 static void BuildTypeText(u8 *dest, u16 species);
 static void BuildHeldItemText(u8 *dest, enum Item item);
 static void BuildMoveText(u8 *dest, struct Pokemon *mon, u8 moveSlot);
 static struct Pokemon *GetSelectedMon(void);
 static u8 GetCurrentSideCount(void);
+static bool32 ToggleSelectedMonSelection(void);
+static bool32 ConfirmPreBattleSelection(void);
+static bool32 IsPlayerSlotEligible(u8 slot);
+static u8 GetSelectionOrderForSlot(u8 slot);
+static void RemoveSelectedSlot(u8 slot);
 static bool32 PrepareOpponentCache(void);
 static bool32 IsEligibleInBattleViewer(void);
 static void InitTeamIconSpriteIds(void);
@@ -112,7 +141,10 @@ static void CreateTeamIcons(void);
 static void CreateTeamIcon(struct Pokemon *party, enum TeamViewerSide side, u8 slot);
 static void CloseTeamViewer(void);
 static void FreeTeamViewerWindows(void);
+static void OpenSelectedMonSummary(void);
+static void CB2_ReturnToPreBattleTeamViewerFromSummary(void);
 static void PrintText(u8 windowId, const u8 *str, u8 x, u8 y);
+static void PrintTextWithColor(u8 windowId, const u8 *str, u8 x, u8 y, const u8 *color);
 
 static const struct BgTemplate sBgTemplates[] =
 {
@@ -170,6 +202,15 @@ static const struct WindowTemplate sWindowTemplates[] =
 };
 
 static const u8 sTextColor[] = { TEXT_COLOR_TRANSPARENT, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY };
+static const u8 sSelectedTextColor[] = {
+    TEAM_VIEWER_SELECTED_TEXT_BG_COLOR,
+    TEAM_VIEWER_SELECTED_LABEL_TEXT_COLOR,
+    TEAM_VIEWER_SELECTED_TEXT_SHADOW_COLOR
+};
+static const u16 sSelectedLabelPalette[] = {
+    RGB(31, 31, 25),
+    RGB(24, 12, 2),
+};
 static const u8 sTitleText[] = _("TEAM VIEWER");
 static const u8 sPlayerText[] = _("YOUR TEAM");
 static const u8 sOpponentText[] = _("OPPONENT");
@@ -182,12 +223,14 @@ bool32 PreBattleTeamViewer_Begin(u8 selectedCount, MainCallback callback)
         return FALSE;
 
     sTeamViewerState.mode = TEAM_VIEWER_MODE_PRE_BATTLE;
-    sTeamViewerState.side = TEAM_VIEWER_SIDE_OPPONENT;
+    sTeamViewerState.side = TEAM_VIEWER_SIDE_PLAYER;
     sTeamViewerState.cursor = 0;
     sTeamViewerState.showDetails = FALSE;
     sTeamViewerState.selectedCount = selectedCount;
+    sTeamViewerState.selectionCount = 0;
     sTeamViewerState.playerCount = CalculatePlayerPartyCount();
     sTeamViewerState.callback = callback;
+    ClearSelectedPartyOrder();
     SetMainCallback2(CB2_PreBattleTeamViewer);
     return TRUE;
 #else
@@ -202,13 +245,15 @@ bool32 PreBattleTeamViewer_Reopen(u8 selectedCount, MainCallback callback)
         return FALSE;
 
     sTeamViewerState.mode = TEAM_VIEWER_MODE_PRE_BATTLE;
-    sTeamViewerState.side = TEAM_VIEWER_SIDE_OPPONENT;
+    sTeamViewerState.side = TEAM_VIEWER_SIDE_PLAYER;
     sTeamViewerState.cursor = 0;
     sTeamViewerState.showDetails = FALSE;
     sTeamViewerState.selectedCount = selectedCount;
+    sTeamViewerState.selectionCount = 0;
     sTeamViewerState.playerCount = CalculatePlayerPartyCount();
     sTeamViewerState.callback = callback;
     InitTeamIconSpriteIds();
+    ClearSelectedPartyOrder();
     SetMainCallback2(CB2_PreBattleTeamViewer);
     return TRUE;
 #else
@@ -345,6 +390,9 @@ static void CB2_PreBattleTeamViewer(void)
         DeactivateAllTextPrinters();
         FillBgTilemapBufferRect(0, 0, 0, 0, DISPLAY_TILE_WIDTH, DISPLAY_TILE_HEIGHT, STD_WINDOW_PALETTE_NUM);
         Menu_LoadStdPal();
+        LoadPalette(sSelectedLabelPalette,
+                    BG_PLTT_ID(STD_WINDOW_PALETTE_NUM) + TEAM_VIEWER_SELECTED_LABEL_BG_COLOR,
+                    sizeof(sSelectedLabelPalette));
         InitTeamIconSpriteIds();
         SetVBlankCallback(VBlankCB_PreBattleTeamViewer);
         gMain.state++;
@@ -441,15 +489,43 @@ static void CB2_PreBattleTeamViewer(void)
         }
         else if (JOY_NEW(B_TEAM_VIEWER_DETAILS_BUTTON))
         {
-            sTeamViewerState.showDetails ^= 1;
-            PlaySE(SE_SELECT);
-            DrawFooter();
+            if (sTeamViewerState.side == TEAM_VIEWER_SIDE_PLAYER && GetSelectedMon() != NULL)
+            {
+                sTeamViewerState.showDetails = FALSE;
+                PlaySE(SE_SELECT);
+                BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+                gMain.state = 5;
+            }
+            else
+            {
+                sTeamViewerState.showDetails ^= 1;
+                PlaySE(SE_SELECT);
+                DrawFooter();
+            }
         }
         else if (JOY_NEW(A_BUTTON))
         {
-            PlaySE(SE_SELECT);
-            BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
-            gMain.state++;
+            if (ToggleSelectedMonSelection())
+                PlaySE(SE_SELECT);
+            else
+                PlaySE(SE_FAILURE);
+        }
+        else if (JOY_NEW(START_BUTTON))
+        {
+            if (ConfirmPreBattleSelection())
+            {
+                PlaySE(SE_SELECT);
+                BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+                gMain.state++;
+            }
+            else
+            {
+                PlaySE(SE_FAILURE);
+            }
+        }
+        else if (JOY_NEW(B_BUTTON))
+        {
+            PlaySE(SE_FAILURE);
         }
         break;
     case 4:
@@ -458,6 +534,13 @@ static void CB2_PreBattleTeamViewer(void)
         BuildOamBuffer();
         if (!UpdatePaletteFade())
             CloseTeamViewer();
+        break;
+    case 5:
+        RunTasks();
+        AnimateSprites();
+        BuildOamBuffer();
+        if (!UpdatePaletteFade())
+            OpenSelectedMonSummary();
         break;
     }
 }
@@ -493,6 +576,35 @@ static void FreeTeamViewerWindows(void)
         RemoveWindow(i);
     }
     FreeAllWindowBuffers();
+}
+
+static void OpenSelectedMonSummary(void)
+{
+    if (sTeamViewerState.cursor >= sTeamViewerState.playerCount)
+    {
+        SetMainCallback2(CB2_PreBattleTeamViewer);
+        return;
+    }
+
+    DestroyTeamIcons();
+    FreeMonIconPalettes();
+    FreeTeamViewerWindows();
+    SetVBlankCallback(NULL);
+    ShowPokemonSummaryScreenAtPage(TEAM_VIEWER_SUMMARY_MODE,
+                                   gPlayerParty,
+                                   sTeamViewerState.cursor,
+                                   sTeamViewerState.playerCount - 1,
+                                   CB2_ReturnToPreBattleTeamViewerFromSummary,
+                                   TEAM_VIEWER_SUMMARY_START_PAGE);
+}
+
+static void CB2_ReturnToPreBattleTeamViewerFromSummary(void)
+{
+    gMain.state = 0;
+    sTeamViewerState.side = TEAM_VIEWER_SIDE_PLAYER;
+    if (gLastViewedMonIndex < sTeamViewerState.playerCount)
+        sTeamViewerState.cursor = gLastViewedMonIndex;
+    SetMainCallback2(CB2_PreBattleTeamViewer);
 }
 
 static void DrawTeamViewer(void)
@@ -542,6 +654,7 @@ static void DrawTeamLabels(u8 windowId, struct Pokemon *party, u8 count, enum Te
         u8 row = i / TEAM_VIEWER_GRID_COLUMNS;
         u8 x = TEAM_VIEWER_LABEL_X + col * TEAM_VIEWER_ICON_COLUMN_SPACING;
         u8 y = TEAM_VIEWER_LABEL_TOP_Y + row * TEAM_VIEWER_LABEL_ROW_SPACING;
+        u8 selectionOrder = GetSelectionOrderForSlot(i);
 
         if (i >= count || GetMonData(&party[i], MON_DATA_SPECIES_OR_EGG) == SPECIES_NONE)
         {
@@ -557,14 +670,43 @@ static void DrawTeamLabels(u8 windowId, struct Pokemon *party, u8 count, enum Te
         }
         else
         {
-            BuildMonIconLabel(gStringVar4, &party[i], i);
+            BuildMonIconLabel(gStringVar4, &party[i], side, i);
+        }
+
+        if (sTeamViewerState.mode == TEAM_VIEWER_MODE_PRE_BATTLE
+         && side == TEAM_VIEWER_SIDE_PLAYER
+         && selectionOrder != 0)
+        {
+            FillWindowPixelRect(windowId,
+                                PIXEL_FILL(TEAM_VIEWER_SELECTED_LABEL_BG_COLOR),
+                                x + TEAM_VIEWER_SELECTED_MARKER_X_OFFSET,
+                                y + TEAM_VIEWER_SELECTED_MARKER_Y_OFFSET,
+                                TEAM_VIEWER_SELECTED_MARKER_WIDTH,
+                                TEAM_VIEWER_SELECTED_MARKER_HEIGHT);
         }
 
         if (sTeamViewerState.mode == TEAM_VIEWER_MODE_PRE_BATTLE
          && sTeamViewerState.side == side
          && sTeamViewerState.cursor == i)
             PrintText(windowId, COMPOUND_STRING(">"), x, y);
-        PrintText(windowId, gStringVar4, x + 5, y);
+
+        if (sTeamViewerState.mode == TEAM_VIEWER_MODE_PRE_BATTLE
+         && side == TEAM_VIEWER_SIDE_PLAYER
+         && selectionOrder != 0)
+        {
+            PrintTextWithColor(windowId,
+                               gStringVar4,
+                               x + TEAM_VIEWER_SELECTED_TEXT_X_OFFSET,
+                               y + TEAM_VIEWER_SELECTED_TEXT_Y_OFFSET,
+                               sSelectedTextColor);
+        }
+        else
+        {
+            PrintText(windowId,
+                      gStringVar4,
+                      x + TEAM_VIEWER_LABEL_TEXT_X_OFFSET,
+                      y + TEAM_VIEWER_LABEL_TEXT_Y_OFFSET);
+        }
     }
 }
 
@@ -572,7 +714,7 @@ static void DrawFooter(void)
 {
     DrawThinFrame(WIN_FOOTER);
     PutWindowTilemap(WIN_FOOTER);
-    if (sTeamViewerState.showDetails)
+    if (sTeamViewerState.showDetails && sTeamViewerState.side == TEAM_VIEWER_SIDE_OPPONENT)
         DrawSelectedMonDetails();
     else
     {
@@ -580,8 +722,8 @@ static void DrawFooter(void)
         PrintText(WIN_FOOTER, gStringVar4, 8, 4);
         if (sTeamViewerState.mode == TEAM_VIEWER_MODE_PRE_BATTLE)
         {
-            PrintText(WIN_FOOTER, COMPOUND_STRING("A: Choose  Sel: Strength"), 8, 19);
-            PrintText(WIN_FOOTER, COMPOUND_STRING("D-Pad: Cursor"), 8, 34);
+            PrintText(WIN_FOOTER, COMPOUND_STRING("A: Pick  START: Battle"), 8, 19);
+            PrintText(WIN_FOOTER, COMPOUND_STRING("Sel: Summary  D-Pad: Move"), 8, 34);
         }
         else
         {
@@ -669,16 +811,21 @@ static void DrawSelectedMonDetails(void)
     PrintText(WIN_FOOTER, gStringVar4, 126, 35);
 }
 
-static void BuildMonIconLabel(u8 *dest, struct Pokemon *mon, u8 slot)
+static void BuildMonIconLabel(u8 *dest, struct Pokemon *mon, enum TeamViewerSide side, u8 slot)
 {
-    (void)mon;
+    u8 order;
 
     if (sTeamViewerState.mode == TEAM_VIEWER_MODE_IN_BATTLE)
     {
         dest[0] = EOS;
     }
+    else if (side == TEAM_VIEWER_SIDE_PLAYER && (order = GetSelectionOrderForSlot(slot)) != 0)
+    {
+        ConvertIntToDecimalStringN(dest, order, STR_CONV_MODE_LEFT_ALIGN, 1);
+    }
     else
     {
+        (void)mon;
         ConvertIntToDecimalStringN(dest, slot + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
     }
 }
@@ -693,7 +840,9 @@ static void BuildBattleActionPrompt(u8 *dest)
     }
     else if (sTeamViewerState.selectedCount != 0)
     {
-        txtPtr = StringCopy(dest, COMPOUND_STRING("Choose "));
+        txtPtr = StringCopy(dest, COMPOUND_STRING("Pick "));
+        txtPtr = ConvertIntToDecimalStringN(txtPtr, sTeamViewerState.selectionCount, STR_CONV_MODE_LEFT_ALIGN, 1);
+        txtPtr = StringAppend(txtPtr, COMPOUND_STRING("/"));
         txtPtr = ConvertIntToDecimalStringN(txtPtr, sTeamViewerState.selectedCount, STR_CONV_MODE_LEFT_ALIGN, 1);
         StringCopy(txtPtr, COMPOUND_STRING(" from your team."));
     }
@@ -758,6 +907,94 @@ static u8 GetCurrentSideCount(void)
     if (sTeamViewerState.side == TEAM_VIEWER_SIDE_PLAYER)
         return sTeamViewerState.playerCount;
     return sTeamViewerState.enemyPartyCount;
+}
+
+static bool32 ToggleSelectedMonSelection(void)
+{
+    u8 slot;
+
+    if (sTeamViewerState.mode != TEAM_VIEWER_MODE_PRE_BATTLE
+     || sTeamViewerState.side != TEAM_VIEWER_SIDE_PLAYER)
+        return FALSE;
+
+    slot = sTeamViewerState.cursor;
+    if (GetSelectionOrderForSlot(slot) != 0)
+    {
+        RemoveSelectedSlot(slot);
+        RefreshTeamCursor(TRUE);
+        return TRUE;
+    }
+
+    if (!IsPlayerSlotEligible(slot))
+        return FALSE;
+
+    if (sTeamViewerState.selectionCount >= sTeamViewerState.selectedCount)
+        return FALSE;
+
+    sTeamViewerState.selectedSlots[sTeamViewerState.selectionCount++] = slot;
+    RefreshTeamCursor(TRUE);
+    return TRUE;
+}
+
+static bool32 ConfirmPreBattleSelection(void)
+{
+    u8 i;
+
+    if (sTeamViewerState.mode != TEAM_VIEWER_MODE_PRE_BATTLE
+     || sTeamViewerState.selectionCount != sTeamViewerState.selectedCount)
+        return FALSE;
+
+    ClearSelectedPartyOrder();
+    for (i = 0; i < sTeamViewerState.selectionCount; i++)
+        gSelectedOrderFromParty[i] = sTeamViewerState.selectedSlots[i] + 1;
+
+    return TRUE;
+}
+
+static bool32 IsPlayerSlotEligible(u8 slot)
+{
+    if (slot >= sTeamViewerState.playerCount)
+        return FALSE;
+
+    if (GetMonData(&gPlayerParty[slot], MON_DATA_SPECIES) == SPECIES_NONE)
+        return FALSE;
+    if (GetMonData(&gPlayerParty[slot], MON_DATA_IS_EGG))
+        return FALSE;
+    if (GetMonData(&gPlayerParty[slot], MON_DATA_HP) == 0)
+        return FALSE;
+
+    return TRUE;
+}
+
+static u8 GetSelectionOrderForSlot(u8 slot)
+{
+    u8 i;
+
+    for (i = 0; i < sTeamViewerState.selectionCount; i++)
+    {
+        if (sTeamViewerState.selectedSlots[i] == slot)
+            return i + 1;
+    }
+    return 0;
+}
+
+static void RemoveSelectedSlot(u8 slot)
+{
+    u8 i;
+
+    for (i = 0; i < sTeamViewerState.selectionCount; i++)
+    {
+        if (sTeamViewerState.selectedSlots[i] == slot)
+            break;
+    }
+
+    if (i == sTeamViewerState.selectionCount)
+        return;
+
+    for (; i + 1 < sTeamViewerState.selectionCount; i++)
+        sTeamViewerState.selectedSlots[i] = sTeamViewerState.selectedSlots[i + 1];
+
+    sTeamViewerState.selectionCount--;
 }
 
 static void InitTeamIconSpriteIds(void)
@@ -836,5 +1073,10 @@ static void CreateTeamIcon(struct Pokemon *party, enum TeamViewerSide side, u8 s
 
 static void PrintText(u8 windowId, const u8 *str, u8 x, u8 y)
 {
-    AddTextPrinterParameterized4(windowId, FONT_SMALL, x, y, 0, 0, sTextColor, TEXT_SKIP_DRAW, str);
+    PrintTextWithColor(windowId, str, x, y, sTextColor);
+}
+
+static void PrintTextWithColor(u8 windowId, const u8 *str, u8 x, u8 y, const u8 *color)
+{
+    AddTextPrinterParameterized4(windowId, FONT_SMALL, x, y, 0, 0, color, TEXT_SKIP_DRAW, str);
 }
