@@ -39,6 +39,20 @@ Use the debug ROM and mGBA Live:
 | Single-type Pokemon | Not run | Remaining manual check after badge-only revision. |
 | Egg stale-icon path | Not run | Remaining manual check. |
 
+## Integration Result
+
+| Check | Result | Notes |
+|---|---|---|
+| Runtime branch | Passed | Adopted into `integration/runtime-dev-20260529` / PR #68 on 2026-05-30 from commit `bee3f54025`. |
+| Debug ROM | Passed | `rtk make -j16 -O debug`; existing RWX LOAD segment linker warning. |
+| Normal ROM | Passed | `rtk make -j16 -O all`; existing RWX LOAD segment linker warning. |
+| Full checks | Passed | `rtk make -j16 -O check`; existing RWX LOAD segment linker warning. |
+| Summary Info visual | Passed | mGBA Live session `integration-summary-tera-smoke` opened Party -> Wobbuffet Summary -> Info and confirmed the Tera badge appears to the right of the normal type icon area. |
+| State Editor coexistence | Passed | Same session moved to Skills page and confirmed the `START EDIT` prompt still renders after the Tera badge adoption. |
+| Screenshot evidence | Passed | `/tmp/integration-summary-tera-info.png`, `/tmp/integration-summary-tera-skills.png`. |
+| Cleanup | Passed | `mgba_live_stop` returned `stopped: true`; `mgba-live-cli status --all` returned `[]`. |
+| GitHub Actions | Not waited | Local make and mGBA Live evidence are the integration handoff. |
+
 ## Manual Cases
 
 | Case | Expected |
