@@ -4,10 +4,10 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-18 |
-| Baseline | `feature/prebattle-team-viewer-phase2` |
-| Code status | Phase 2 integrated selection implemented; build/check and focused mGBA route passed |
-| Provenance | Local project feature docs; 2026-05-18 source audit |
+| Last reviewed | 2026-05-30 |
+| Baseline | `feature/prebattle-team-viewer-phase2`, adopted into `integration/runtime-dev-20260529` |
+| Code status | Phase 2 integrated selection implemented and staged in runtime integration PR #68 |
+| Provenance | Local project feature docs; 2026-05-18 source audit; 2026-05-30 integration replay |
 
 ## Current Validation
 
@@ -44,6 +44,13 @@
 | `rtk make -j16 -O all` | Pass | Normal ROM built after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning only. |
 | `rtk make -j16 -O debug` | Pass | Debug ROM built after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning only. |
 | `rtk make -j16 -O check` | Pass | Test/check target passed after W debug route and MoveInfo-aligned double hint positioning; existing linker RWX warning plus existing known learnset KNOWN_FAILING line only. |
+| 2026-05-30 integration `rtk git diff --check` | Pass | No whitespace errors after adopting the base and phase2 source slices. |
+| 2026-05-30 integration `rtk make -j16 -O debug` | Pass | Debug ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 integration `rtk make -j16 -O all` | Pass | Normal ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 integration `rtk make -j16 -O check` | Pass | Full check target passed on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
+| 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` opened `Party -> Team Viewer Battle`, confirmed pre-battle viewer rendering, player Summary on `SELECT`, 3/3 pick-order selection, trainer battle start, action-menu `R / TEAM / INFO` hint, in-battle viewer on `R`, and action-menu return on `B`. |
+| 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
+| 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |
 | mGBA Live focused route | Pass | Session `prebattle-team-viewer-real-route` booted the ROM, entered debug menu, selected `Party -> Team Viewer Battle`, confirmed pre-battle viewer, selected three mons, reached trainer battle, opened in-battle viewer with `R`, and returned with `B` to a visible action menu. |
 | mGBA screenshots | Pass | `/tmp/prebattle-team-viewer-real-prebattle.png`, `/tmp/prebattle-team-viewer-real-action-menu.png`, `/tmp/prebattle-team-viewer-real-inbattle.png`, `/tmp/prebattle-team-viewer-real-return.png`. |
 | mGBA Live read-only regression | Pass | Session `prebattle-team-viewer-readonly-route` confirmed action-menu `R` opens the viewer, D-pad / `SELECT` do not change screens, `A` close returns to action menu, and held `A` after close does not enter Fight / move selection. |
