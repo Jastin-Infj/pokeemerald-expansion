@@ -4,8 +4,11 @@ MauvilleCity_House1_MapScripts::
 MauvilleCity_House1_EventScript_RockSmashDude::
 	lock
 	faceplayer
-	goto_if_set FLAG_HIDE_ROUTE_111_ROCK_SMASH_TIP_GUY, MauvilleCity_House1_EventScript_ReceivedRockSmash
+	goto_if_set FLAG_RECEIVED_HM_ROCK_SMASH, MauvilleCity_House1_EventScript_ReceivedRockSmash
 	msgbox MauvilleCity_House1_Text_ImRockSmashDudeTakeThis, MSGBOX_DEFAULT
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_HM_ROCK_SMASH
 	setflag FLAG_HIDE_ROUTE_111_ROCK_SMASH_TIP_GUY
 	msgbox MauvilleCity_House1_Text_ExplainRockSmash, MSGBOX_DEFAULT
 	release
@@ -26,16 +29,15 @@ MauvilleCity_House1_Text_ImRockSmashDudeTakeThis:
 	.string "Anyways, your POKéMON look pretty\n"
 	.string "strong.\p"
 	.string "I like that!\n"
-	.string "Here, let me tell you about\n"
-	.string "ROCK SMASH!$"
+	.string "Here, take this FIELD KIT upgrade!$"
 
 MauvilleCity_House1_Text_ExplainRockSmash:
-	.string "ROCK SMASH can break cracked rocks\n"
-	.string "that block your path.\p"
+	.string "Your FIELD KIT can now use\n"
+	.string "ROCK SMASH.\p"
 	.string "If you come across large boulders\n"
 	.string "that block your path…\p"
-	.string "Well, smash them right out of\n"
-	.string "your way!\p"
+	.string "Well, use that upgrade and smash\n"
+	.string "them right out of your way!\p"
 	.string "Yes, sir! Smash rocks aside, I say!\n"
 	.string "Woohoo!$"
 

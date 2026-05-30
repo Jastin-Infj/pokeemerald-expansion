@@ -5,6 +5,14 @@ RustboroCity_CuttersHouse_EventScript_Cutter::
 	lock
 	faceplayer
 	msgbox RustboroCity_CuttersHouse_Text_YouCanPutThisHMToGoodUse, MSGBOX_DEFAULT
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_HM_CUT
+	msgbox RustboroCity_CuttersHouse_Text_ExplainCut, MSGBOX_DEFAULT
+	release
+	end
+
+RustboroCity_CuttersHouse_EventScript_ExplainCut::
 	msgbox RustboroCity_CuttersHouse_Text_ExplainCut, MSGBOX_DEFAULT
 	release
 	end
@@ -20,16 +28,15 @@ RustboroCity_CuttersHouse_Text_YouCanPutThisHMToGoodUse:
 	.string "You're obviously a skilled TRAINER!\p"
 	.string "No, wait, don't say a word.\n"
 	.string "I can tell just by looking at you.\p"
-	.string "I'm sure that you can put the\n"
-	.string "CUT technique to good use.\p"
+	.string "I'm sure that you can put this\n"
+	.string "FIELD KIT upgrade to good use.\p"
 	.string "No need to be modest or shy.\n"
 	.string "Let me tell you about it!$"
 
 RustboroCity_CuttersHouse_Text_ExplainCut:
-	.string "CUT can be used by POKéMON\n"
-	.string "outside of battle.\p"
-	.string "Any POKéMON that knows CUT can\n"
-	.string "chop down thin trees if the TRAINER\l"
+	.string "That FIELD KIT upgrade is CUT.\p"
+	.string "It lets you chop down thin trees\n"
+	.string "outside battle if the TRAINER\l"
 	.string "has earned the STONE BADGE.$"
 
 RustboroCity_CuttersHouse_Text_DadHelpedClearLandOfTrees:

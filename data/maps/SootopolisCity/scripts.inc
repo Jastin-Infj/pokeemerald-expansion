@@ -1282,6 +1282,9 @@ SootopolisCity_EventScript_Wallace::
 
 SootopolisCity_EventScript_GiveWaterfall::
 	msgbox SootopolisCity_Text_ThankYouForHelpAcceptThis, MSGBOX_DEFAULT
+	call Common_EventScript_GiveFieldKit
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_HM_WATERFALL
 	msgbox SootopolisCity_Text_ExplainWaterfallGoToGym, MSGBOX_DEFAULT
 	closemessage
 	call_if_eq VAR_FACING, DIR_NORTH, SootopolisCity_EventScript_WallaceMoveFromGym
@@ -1679,9 +1682,10 @@ SootopolisCity_Text_ThankYouForHelpAcceptThis:
 	.string "Please accept some advice from me.$"
 
 SootopolisCity_Text_ExplainWaterfallGoToGym:
-	.string "If you have the RAIN BADGE, a POKéMON\n"
-	.string "that knows WATERFALL can\l"
-	.string "force its way up waterfalls.\p"
+	.string "Your FIELD KIT can now use\n"
+	.string "WATERFALL.\p"
+	.string "If you have the RAIN BADGE, you\n"
+	.string "can force your way up waterfalls.\p"
 	.string "And where does one get the RAIN BADGE?\n"
 	.string "You know, don't you?\p"
 	.string "That's right! You have to beat\n"

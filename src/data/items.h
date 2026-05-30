@@ -15828,6 +15828,22 @@ const struct ItemInfo gItemsInfo[] =
         .iconPic = gItemIcon_PokeshiDoll,
         .iconPalette = gItemIconPalette_PokeshiDoll,
     },
+
+    [ITEM_FIELD_KIT] =
+    {
+        .name = ITEM_NAME("Field Kit"),
+        .price = 0,
+        .importance = 1,
+        .description = COMPOUND_STRING(
+            "A compact kit\n"
+            "upgraded for field\n"
+            "travel techniques."),
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_QuestionMark,
+        .iconPalette = gItemIconPalette_QuestionMark,
+    },
 };
 
 #undef ITEM_NAME
