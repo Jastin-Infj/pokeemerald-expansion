@@ -88,6 +88,12 @@ trainer battle selection restore はその後に置く。whiteout / 敗北分岐
 - `CB2_EndTrainerBattle()` now snapshots the selected battle party's no-alive state before
   `TrainerBattleSelection_RestoreIfActive()`, then uses that snapshot for the normal defeated
   trainer branch.
+- Vendor reward integration added two iteration helpers:
+  `TrainerBattleSelection_ForEachOriginalPartyMon()` for state that must be
+  applied to the saved original party while selection is active, and
+  `TrainerBattleSelection_ForEachSelectedBattleMon()` for mirroring changes back
+  into the temporary selected battle party before restore. Pokemon Vendor uses
+  both paths so queued bond EXP survives battle-end restoration.
 - Validation: `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check`
   pass on `integration/runtime-dev-20260529` with only the existing RWX linker warning and
   expected / known-failing test markers.

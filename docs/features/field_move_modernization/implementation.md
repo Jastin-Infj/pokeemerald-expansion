@@ -38,7 +38,7 @@
 - Fly は Field Kit + Fly capability flag + badge gate を満たす場合だけ menu に表示する。Fly 選択時は region map を直接開き、B cancel では party menu ではなく field に戻る。
 - Teleport / Dig は HM capability ではなく Field Kit utility menu の常設 shortcut として扱う。既存 `SetUpFieldMove_Teleport()` / `SetUpFieldMove_Dig()` の map / follower 条件が失敗した場合は既存の cannot-use message を表示する。
 - Field Kit menu は option count に合わせて window height を縮める。Fly 未解禁時は Teleport / Dig の 2-row frame にする。
-- Field Kit からの Teleport / Dig は party menu と同じ return-to-field fade を挟まず、menu close 後に `gPostMenuFieldCallback` を直接開始する。night palette などで field が一瞬明るく見える戻りフェードを避けるための Field Kit 専用 path。
+- Field Kit からの Teleport / Dig は party menu と同じ return-to-field fade を挟まず、menu close 後に `gFieldCallback2` があればその field-move callback を優先して呼び、必要な場合だけ `gPostMenuFieldCallback` に fallback する。night palette などで field が一瞬明るく見える戻りフェードを避けるための Field Kit 専用 path。
 - Field Kit menu 表示前に `LoadMessageBoxAndBorderGfx()` を呼び、cave / overworld palette 状態に依存せず標準 window frame palette を使う。
 - Field Kit からの Fly map 起動は `BeginNormalPaletteFade()` ではなく `FadeScreen(FADE_TO_BLACK, 0)` を使う。`FadeScreen` は fade-out 前に現在の faded palette を unfaded buffer へ写すため、night / time-of-day palette を一瞬解除せずに黒フェードできる。
 - FRLG は separate legacy HM route が残るため、この slice では toolkit requirement を適用せず既存 badge gate を維持する。
@@ -91,6 +91,10 @@ Field Kit は UI / lore anchor として単一 item に留め、実際の解禁�
   `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check`
   pass on `integration/runtime-dev-20260529` with only the existing RWX linker warning
   and expected / known-failing test markers.
+- 2026-05-30 final integration review follow-up: Cutter's House now preserves the
+  repeat-HM-Cut conversation branch after the TM/HM retirement and Field Kit
+  handoff edits. When `FLAG_RECEIVED_HM_CUT` is already set, the script jumps to
+  the Cut explanation instead of replaying the acquisition path.
 - Capture Styler reference art follow-up: `field_styler.png` / `field_styler.pal` were revised against Nintendo's Capture Styler reference silhouette, reducing the heavy black outer outline and moving the 24x24 read toward a red body, gold ring, blue lens, and gray wrist strap. A later art pass pushed the silhouette further toward a Mega Ring / bracelet-like read: the gray strap now forms a lower ring, while the red body / gold lens bezel keep a simplified official-style angle. The latest source-guided stylized pass used a user-provided 48x48 cell-art rough as a shape and line reference, but redraws the final 24x24 asset with broader GBA item-icon color clusters instead of copying the half-scale pixel detail exactly. The source rough is intentionally not committed. The asset remains 24x24 4bpp indexed with 16 palette entries and transparent palette index 0. `rtk make -j16 -O all` and `rtk make -j16 -O debug`: PASS on 2026-05-09. mGBA Live boot / input check also PASS with screenshots `/tmp/field_styler_reference_art_boot.png`, `/tmp/field_styler_ring_angle_boot.png`, `/tmp/field_styler_cleanup_boot.png`, `/tmp/field_styler_original_refit_boot.png`, `/tmp/field_styler_gap_pass_boot.png`, `/tmp/field_styler_round_ring_boot.png`, `/tmp/field_styler_xlsx_half_boot.png`, and `/tmp/field_styler_xlsx_stylized_boot.png`; sessions stopped cleanly and no `mgba-qt` ROM process remained.
 
 ## Remaining Runtime Checks

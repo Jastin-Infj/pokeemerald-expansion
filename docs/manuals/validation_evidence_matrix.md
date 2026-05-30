@@ -14,15 +14,30 @@
 
 ## Current Open PR Snapshot
 
-2026-05-17 cleanup 後、open runtime PR は 0 件。
+2026-05-30 runtime integration audit 時点では、PR #68 が runtime-dev の統合
+staging PR。旧 implementation shelf PR は複数 open のままだが、主要 runtime
+内容は #68 に採用済みで、個別に `master` へ merge する対象ではない。
 
 | PR | Feature | Draft | Branch | Merge state | CI snapshot |
 |---|---|---|---|---|---|
-| None | - | - | - | - | - |
+| #68 | Runtime integration staging | Yes | `integration/runtime-dev-20260529` | `UNSTABLE` | Local `all` / `debug` / full `check` pass; Actions not re-waited |
+| #65 | Map Asset Relinker tooling | Yes | `feature/map-asset-relinker-20260525` | `CLEAN` | Tooling lane; not runtime-dev |
+| #62 | Champions Run Session shelf | Yes | `feature/champions-run-session-runtime-20260524` | `DIRTY` | Adopted into #68; keep as evidence shelf |
+| #60 | All Ability Slots shelf | Yes | `feature/all-ability-slots-runtime-20260523` | `UNSTABLE` | Adopted into #68; keep as evidence shelf |
+| #57 | Pokemon Vendor shelf | No | `feature/global-no-evolution-20260523` | `DIRTY` | Adopted into #68; keep as evidence shelf |
+| #54 | Party / Status UI shelf | No | `feature/party-status-ui-overhaul-20260521` | `DIRTY` | Adopted into #68; keep as evidence shelf |
+| #51 | Scout Selection shelf | No | `feature/scout-selection-runtime-20260520` | `DIRTY` | Adopted into #68; keep as evidence shelf |
+| #48 | Held Item Catalog shelf | No | `feature/held-item-catalog-current-master-20260519` | `DIRTY` | Adopted into #68; keep as evidence shelf |
+| #47 | Battle Item Restore shelf | No | `feature/battle-item-restore-current-master-20260519` | `DIRTY` | Adopted into #68; keep as evidence shelf |
 
-The successful runtime PRs #41 / #39 / #31 / #28 / #26 / #23 / #20 were closed
-on 2026-05-17 as completed implementation shelves. Their branches remain
-preserved.
+## Runtime Integration #68 Evidence
+
+| Date | Check | Result | Notes |
+|---|---|---|---|
+| 2026-05-30 | Runtime branch audit | Pass | [Japanese checklist](../features/runtime_integration_15_3_checklist_ja_2026_05_30.md) marks the major 1.15.3 runtime shelves adopted into `integration/runtime-dev-20260529`. Map relinker, randomizer, and map / Fly experiments remain separate lanes. |
+| 2026-05-30 | `codex review --base master` | Partially complete | Completed review passes found and drove fixes for trainer battle selection defeat restore, live battler all-slot field helpers, mandatory Field Kit handoff retry, in-battle Team Viewer hint gating, all-slot paired weather end-turn queue, Pokemon Vendor long-list cursor clamp, Pokemon Vendor allocation guards, trainer-selection queued vendor rewards, battle item borrowed-item cleanup, Cut repeat branch, runtime ability-copy switches, and third-block end-turn recursion. Final rerun was blocked by Codex usage limit after the last P2 was fixed. |
+| 2026-05-30 | Local validation | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` pass. Existing RWX linker warning and expected / known-failing test markers only. |
+| 2026-05-30 | mGBA Live smoke | Pass | Session `runtime-integration-review-20260530` booted `pokeemerald.gba`, accepted START input, captured `/tmp/runtime-integration-review-20260530.png`, stopped cleanly, and `status --all` returned `[]`. |
 
 ## Closed / PR-less Implementation Shelves
 

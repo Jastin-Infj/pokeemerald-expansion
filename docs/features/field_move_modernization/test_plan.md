@@ -132,6 +132,8 @@
 ### Cut
 
 - Cutter's House gives `ITEM_FIELD_KIT` if missing and sets the Cut capability flag.
+- Cutter's House repeat interaction after `FLAG_RECEIVED_HM_CUT` jumps to the
+  Cut explanation path and does not replay the acquisition handoff.
 - If Field Kit cannot be added, bag full message is shown and the Cut capability flag is not set.
 - Cut remains blocked without Field Kit, without Cut capability, or without the Stone Badge while `OW_FIELD_MOVE_TOOLKIT_BADGES == TRUE`.
 - Cut tree interaction before unlock.

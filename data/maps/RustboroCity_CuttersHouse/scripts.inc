@@ -4,6 +4,7 @@ RustboroCity_CuttersHouse_MapScripts::
 RustboroCity_CuttersHouse_EventScript_Cutter::
 	lock
 	faceplayer
+	goto_if_set FLAG_RECEIVED_HM_CUT, RustboroCity_CuttersHouse_EventScript_ExplainCut
 	msgbox RustboroCity_CuttersHouse_Text_YouCanPutThisHMToGoodUse, MSGBOX_DEFAULT
 	call Common_EventScript_GiveFieldKit
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull

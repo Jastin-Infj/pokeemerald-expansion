@@ -70,6 +70,11 @@ Re-check if this area changes again:
   - `status --all`: returned `[]`.
 - This integration pass did not wait for long GitHub Actions runs. Local make,
   focused battle tests, and mGBA Live smoke are the current handoff basis.
+- 2026-05-30 review follow-up added a regression for trainer selection
+  NPC-borrowed item cleanup: if the original player-held item is not restored,
+  the temporary trainer item is also cleared to `ITEM_NONE`. Focused
+  `rtk make -j16 -O check TESTS='Battle item restore'` and full
+  `rtk make -j16 -O check` pass on the runtime integration branch.
 
 2026-05-09 (`feature/battle-item-restore-policy`, baseline `master`
 `f5a3b7b6c2`):

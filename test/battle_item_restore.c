@@ -48,3 +48,16 @@ TEST("Battle item restore keeps existing non-berry restore behavior")
     EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_HELD_ITEM), ITEM_WHITE_HERB);
     TearDownHeldItemRestoreTest();
 }
+
+TEST("Battle item restore clears trainer items when original item is not restored")
+{
+    ASSUME(B_RETURN_STOLEN_NPC_ITEMS >= GEN_5);
+    ASSUME(B_RESTORE_HELD_BATTLE_ITEMS < GEN_9);
+
+    SetupPlayerMonHeldItem(ITEM_WHITE_HERB, ITEM_LEFTOVERS);
+    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+    TryRestoreHeldItems();
+
+    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_HELD_ITEM), ITEM_NONE);
+    TearDownHeldItemRestoreTest();
+}

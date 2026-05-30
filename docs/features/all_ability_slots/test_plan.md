@@ -608,6 +608,14 @@ the existing expected / known-failing markers.
   End-turn weather now queues paired ability scripts with `eventState.endTurnBlock`,
   and `All Ability Slots applies paired end-turn weather abilities one at a time`
   covers hidden-slot `Dry Skin` plus `Solar Power` in sun.
+- A later `codex review --base master` pass found a related representative
+  third-block recursion risk: if the selected ability was itself `Harvest`,
+  `Moody`, `Pickup`, or another third-block end-turn ability, the early branch
+  could call the all-slot dispatcher and replay unrelated slot effects.
+  `TryHandleThirdEventBlockAbility()` now uses single-ability dispatch for the
+  representative and additional-slot paths. `All Ability Slots does not replay
+  Solar Power during third-block ability handling` covers representative
+  `Harvest` plus hidden-slot `Solar Power` and asserts only one sun damage tick.
 - `AI_FRAME_CEILING_SINGLES_SMART_TRAINER` is now 10 to account for the live
   guard in a hot ability-query path; focused AI and full `check` pass.
 - Focused validation: `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c`.

@@ -196,6 +196,10 @@ prints the unlock message only if one or more recruits unlocked.
 - Bond-yield metadata is stored in product rows but the first progress sources
   use script-provided amounts. Queued battle rewards are intentionally opt-in
   per script, not global for every trainer battle.
+- In trainer battle selection battles, queued battle-win rewards apply to the
+  original party snapshot and are mirrored back into the selected battle copy
+  before restore. This prevents a selected locked recruit from losing bond
+  progress when the temporary selected party is restored into the real party.
 
 ## Validation
 
@@ -238,6 +242,7 @@ prints the unlock message only if one or more recruits unlocked.
 | 2026-05-29 | mGBA Live `integration-pokemon-vendor-smoke` | Pass | Booted `pokeemerald.gba`, continued the local save, opened `Debug Menu > Scripts... > Script 1`, confirmed the vendor list / detail icon pane, opened the Pikachu purchase prompt, bought Pikachu, and saw `Here you go! Take good care of it.` Screenshots: `/tmp/integration-pokemon-vendor-open.png`, `/tmp/integration-pokemon-vendor-buy-prompt.png`, `/tmp/integration-pokemon-vendor-after-buy.png`. Session stopped cleanly and `mgba-live-cli status --all` returned `[]`. |
 | 2026-05-30 | Integration review cursor clamp | Pass | `codex review --base master` found that buying a one-time product from a scrolled long list could rebuild the list with an out-of-range scroll offset. `PokemonVendorClampListCursor()` now clamps scroll offset and selected row before `ListMenuInit()`. `rtk git diff --check` and `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` pass. |
 | 2026-05-30 | Integration review allocation guard | Pass | Second `codex review --base master` reported unchecked row allocations in `PokemonVendorBuildList()`. The build path now validates `items`, `names`, and `productIndexes`, frees partial allocations, and returns to script / closes the vendor instead of crashing. Focused `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`, full `all` / `debug` / `check`, docs build, and final mGBA smoke passed on the integration branch. |
+| 2026-05-30 | Trainer selection queued reward restore | Pass | Review follow-up fixed queued vendor bond rewards during trainer battle selection. Rewards are applied to the original party snapshot and mirrored to selected battle mons before restore. New tests cover original-party reward application and selected-copy restore persistence. Focused `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` and full `rtk make -j16 -O check` pass. |
 
 GitHub Actions were not re-waited; local build, test, and mGBA evidence are the
 handoff evidence for this implementation update.
