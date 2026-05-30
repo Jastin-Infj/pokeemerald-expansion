@@ -84,6 +84,8 @@ static void CB2_StartFirstBattle(void);
 static void CB2_EndFirstBattle(void);
 static void SaveChangesToPlayerParty(void);
 static void HandleBattleVariantEndParty(void);
+static bool32 TrainerBattleAftercare_ShouldApply(void);
+static void TrainerBattleAftercare_ApplyIfEnabled(void);
 static void CB2_EndTrainerBattle(void);
 static void SetMainCallback2ToChampionsRunStartLocation(void);
 static bool32 TrainerBattleSelection_ShouldOffer(void);
@@ -1543,6 +1545,37 @@ static u8 TrainerBattleSelection_CountEligibleMons(void)
 }
 #endif
 
+static bool32 TrainerBattleAftercare_ShouldApply(void)
+{
+    if (B_TRAINER_BATTLE_AFTERCARE == FALSE)
+        return FALSE;
+    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
+        return FALSE;
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED_LINK | BATTLE_TYPE_FRONTIER))
+        return FALSE;
+    if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE || InTrainerHillChallenge())
+        return FALSE;
+    if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
+        return FALSE;
+    if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
+        return FALSE;
+    if (FollowerNPCIsBattlePartner())
+        return FALSE;
+    if (DidPlayerForfeitNormalTrainerBattle())
+        return FALSE;
+    return TRUE;
+}
+
+static void TrainerBattleAftercare_ApplyIfEnabled(void)
+{
+    if (!TrainerBattleAftercare_ShouldApply())
+        return;
+    if (IsPlayerDefeated(gBattleOutcome) == TRUE)
+        return;
+
+    HealPlayerParty();
+}
+
 static void CB2_EndTrainerBattle(void)
 {
     HandleBattleVariantEndParty();
@@ -1565,6 +1598,8 @@ static void CB2_EndTrainerBattle(void)
         SetMainCallback2ToChampionsRunStartLocation();
         return;
     }
+
+    TrainerBattleAftercare_ApplyIfEnabled();
 
     if (GetTrainerBattleMode() == TRAINER_BATTLE_EARLY_RIVAL)
     {
