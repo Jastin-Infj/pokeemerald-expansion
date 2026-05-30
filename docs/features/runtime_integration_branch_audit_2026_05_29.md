@@ -54,8 +54,8 @@ a current PR.
 | Branch | PR status | Runtime status | Recommended action |
 |---|---|---|---|
 | `feature/battle-selection-mvp` | No active PR; docs PR #18 exists. | Implemented trainer battle party selection MVP. | Supporting source was adopted through Team Viewer phase2 on `integration/runtime-dev-20260529`; keep the older branch as evidence only. |
-| `feature/field-move-modernization-mvp` | No active PR. | Implemented HM-free field move MVP. | Adoption candidate if the next integration lane includes HM / field policy. Otherwise keep as a validated shelf. |
-| `feature/field-move-toolkit-item` | No active PR. | Implemented Field Kit itemization on top of field move modernization. | Adopt only with the field-move lane; includes graphics and item data, so it is not docs-only. |
+| `feature/field-move-modernization-mvp` | No active PR. | Implemented HM-free field move MVP. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Keep the branch as source evidence; do not merge it into `master`. |
+| `feature/field-move-toolkit-item` | No active PR. | Implemented Field Kit itemization on top of field move modernization. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after field move modernization. Keep graphics / item data on runtime integration, not docs-only `master`. |
 | `feature/prebattle-team-viewer` | Closed PR #20. | Implemented pre-battle / in-battle team viewer MVP. | Superseded by the phase2 adoption into `integration/runtime-dev-20260529` on 2026-05-30; keep PR #20 closed as source evidence. |
 | `feature/prebattle-team-viewer-phase2` | No active runtime PR; docs PR #22 exists. | Implemented phase 2 selection flow on top of Team Viewer. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after Unified Move Relearner. Integration preserved Scout Selection, Party UI, Pokemon Vendor, All Ability, and Champions run-session hooks. |
 | `feature/pokemon-state-editor-expansion` | Closed PR #23. | Implemented Summary-launched Pokemon State Editor MVP. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after Team Viewer phase2. Integration preserved Summary / Party UI / vendor / all-ability / unified relearner ownership and keeps Box Summary disabled. |
@@ -63,9 +63,9 @@ a current PR.
 | `feature/unified-move-relearner` | Closed PR #28. | Implemented unified level / egg / TM / tutor / special move candidate list. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after TM Shop Migration. Integration keeps Summary-first route and leaves direct party `RELEARN` disabled by config. Actual teach / overwrite proof remains recommended before final merge. |
 | `feature/tm-shop-migration` | Closed PR #31. | Implemented TM/HM acquisition retirement and reusable TM config. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Prefer Unified Move Relearner next if the TM/HM lane continues. |
 | `feature/no-random-encounters-step-only-runtime-20260517` | Closed PR #41. | Implemented and user-confirmed step-only random encounter suppression. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Keep PR #41 closed as source evidence. |
-| `feature/battle-bgm-selector-mvp-20260517` | Closed PR #39. | Implemented battle BGM selector plus large imported audio set. | Separate audio lane. Do not mix into the first runtime-dev pass unless audio becomes the selected focus. |
+| `feature/battle-bgm-selector-mvp-20260517` | Closed PR #39. | Implemented battle BGM selector plus large imported audio set. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after `codex review --commit` and selective re-application. The integration branch fixes the reviewed `aif2pcm --compress` odd-length partial-byte bug. |
 | `feature/trainer-battle-aftercare-heal` | Closed PR #10. | Implemented default-off trainer battle win heal hook. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after Summary Tera. Keep config default `FALSE`; focused config-on win/exclusion validation remains before default enable. |
-| `feature/trainer-partygen-catalog-expansion` | Closed PR #7. | Implemented partygen CLI / catalog / Elite Four and Wallace trainer pool data. | Tool/data shelf for Champions integration. Review generated data before adopting into runtime-dev. |
+| `feature/trainer-partygen-catalog-expansion` | Closed PR #7. | Implemented partygen CLI / catalog / Elite Four and Wallace trainer pool data. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after review. Keep as a tool/data shelf for further Champions balancing. |
 | `feature/champions-partygen-next-slice` | No active PR. | Docs-only follow-up for partygen / battle selection ordering. | Reference only unless docs need to be re-synced. |
 
 ## Legacy Or Reference Branches
@@ -139,6 +139,9 @@ These are the files most likely to define the integration order.
 | 2026-05-30 | `integration/runtime-dev-20260529` | #23 Pokemon State Editor | Source / config re-applied from `feature/pokemon-state-editor-expansion` commits `3f534c5f04` and `d80e7a9b15`; conflict resolution kept the State Editor 13-tile prompt window at `tilemapLeft = 17` so the Unified Move Relearner / State Editor prompt area does not overflow the right edge. `debug`, `all`, full `check`, and mGBA Live Party -> Summary -> Skills -> `START EDIT` smoke passed, including page-tab switch and B-button Summary return. | Summary Tera badge can be reviewed next if the next slice stays in Summary UI; field-move and audio shelves should remain separate lanes. |
 | 2026-05-30 | `integration/runtime-dev-20260529` | #26 Summary Tera Type Icon | Source / graphics re-applied from `feature/summary-tera-type-badge` commit `bee3f54025`; full branch merge was avoided because the shelf baseline was older than the current runtime stack. Conflict resolution preserved All Ability Summary config and State Editor config while adding the Tera badge coordinates. `debug`, `all`, full `check`, and mGBA Live Summary Info badge smoke passed, then Skills-page `START EDIT` was rechecked for coexistence. | Field-move modernization, trainer aftercare, partygen, and battle BGM remain separate lanes with larger ownership surfaces. |
 | 2026-05-30 | `integration/runtime-dev-20260529` | #10 Trainer Battle Aftercare heal hook | Source re-applied from `feature/trainer-battle-aftercare-heal` commit `719867d846`; the later berry-restore branch lineage was skipped because #47 already owns battle-end held item restore. Conflict resolution preserved Champions run-session defeat restore before the aftercare hook and kept aftercare default `FALSE`. `debug`, `all`, full `check`, and mGBA Live title boot smoke passed. | Field-move modernization, partygen catalog, and battle BGM remain larger separate lanes. If aftercare behavior is enabled later, add config-on normal-win and exclusion-path validation first. |
+| 2026-05-30 | `integration/runtime-dev-20260529` | Field Move Modernization + Field Kit | Source / data / item / debug scripts re-applied from `feature/field-move-modernization-mvp` and `feature/field-move-toolkit-item`; follow-up commits repaired HM flag constants and the item-restore gate found during review. Integration preserved existing Vendor / Scout / Champions debug entries. `debug`, `all`, full `check`, and mGBA / manual field-kit smoke evidence are recorded in the owning docs. | Battle BGM was the last large non-tool runtime shelf not yet present in the integration lane. |
+| 2026-05-30 | `integration/runtime-dev-20260529` | Trainer Partygen Catalog | Source / tools / generated catalog data adopted from `feature/trainer-partygen-catalog-expansion`; this adds partygen catalog support for Champions / Scout pool work without making `master` depend on generated drift. `debug`, `all`, and full `check` remained green after adoption. | Use later balancing review for generated trainer pools; keep map relinker and randomizer outside this runtime lane. |
+| 2026-05-30 | `integration/runtime-dev-20260529` | #39 Battle BGM Selector / Sound Archive | Source / audio assets / sound tables / `aif2pcm` / `mid2agb -Q` / tests selectively re-applied from `feature/battle-bgm-selector-mvp-20260517`; `src/pokemon.c` and `src/debug.c` hooks were manually integrated to preserve the current runtime stack. `codex review --commit a4c6035968ec0fd2890b12c17caad4f2658fa3f6` found an odd-length `aif2pcm --compress` partial-byte issue, fixed in integration. `debug`, `all`, full `check`, odd-length AIF round-trip, and mGBA Debug -> Sound -> Trainer BGM selector smoke passed. | Remaining non-integrated branches are now either tooling (`#65` Map Asset Relinker), randomizer / map experiment lanes, or legacy superseded shelves. |
 
 ### Item Policy Stack
 
@@ -249,21 +252,25 @@ Integration rule:
 
 | Branch | Role | Runtime-dev guidance |
 |---|---|---|
-| `feature/trainer-partygen-catalog-expansion` | Rust CLI / catalog / generated trainer data shelf | Review generated trainer data separately. Useful for Champions and Scout pools, but not required for the first save/session integration. |
+| `feature/trainer-partygen-catalog-expansion` | Rust CLI / catalog / generated trainer data shelf | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Keep further generated-data balancing and drift checks explicit. |
 | #51 Scout Selection | Consumes a generated partygen JSON pool for the demo pool | Can be adopted without turning partygen into a ROM build dependency. |
 | `feature/unified-move-relearner` | Generates learnset candidate headers from porymoves JSON | Re-run generator after TM/HM policy changes. Do not mix with partygen generation. |
 | #65 Map Asset Relinker | Tooling lane with Rust core / Tauri GUI / Python compatibility | Keep outside ROM runtime-dev. Its generated/fixture map data should not be adopted into gameplay integration. |
 
 ## Hard Gates Before First Runtime-Dev Merge
 
-1. Choose whether #54 Party UI is the first UI baseline.
+1. #54 Party UI is the runtime-dev party baseline.
 2. Team Viewer Phase 2 is included in the first runtime-dev pass as of
    2026-05-30.
-3. Choose #47 and #48 item-policy defaults.
-4. Decide whether #62 Champions Run Session is included in the first pass or
-   waits until item / party / scout / vendor integration is green.
+3. #47 and #48 item-policy defaults are staged on the integration branch and
+   should be reviewed as a combined policy before final runtime merge.
+4. #62 Champions Run Session is included after item / party / scout / vendor
+   integration.
 5. Keep #65 Map Asset Relinker out of the ROM runtime integration lane.
-6. Close #64 only after recording that #66 superseded it.
+6. Closed #64 as superseded after recording that #66 superseded it.
+7. Battle BGM audio imports are included in runtime-dev, but Modern Emerald
+   license / permission risk remains a release gate before any public
+   distribution decision.
 
 ## Proposed Runtime-Dev Order
 
@@ -286,13 +293,16 @@ This is a starting point, not a merge command list.
 
 Optional lanes that should be explicitly selected before inclusion:
 
-- TM/HM lane: `feature/tm-shop-migration` ->
-  `feature/unified-move-relearner` -> field move shelves.
+- TM/HM lane: `feature/tm-shop-migration`, `feature/unified-move-relearner`,
+  and the field move / Field Kit shelves are adopted into
+  `integration/runtime-dev-20260529`.
 - Team preview lane: `feature/prebattle-team-viewer-phase2`, optionally with
   `feature/battle-selection-mvp` if not taking the integrated viewer path.
 - Editor lane: `feature/pokemon-state-editor-expansion`, after Summary / Party
   UI and Pokemon Vendor entitlement hooks are settled.
-- Audio lane: `feature/battle-bgm-selector-mvp-20260517`.
+- Audio lane: `feature/battle-bgm-selector-mvp-20260517` is adopted into
+  `integration/runtime-dev-20260529`; further audio imports should still be
+  reviewed as an explicit audio lane.
 - Tool lane: #65 Map Asset Relinker, outside ROM runtime-dev.
 - Randomizer lane: `feature/EX/ex-rz-upstream1`, outside the first integration
   pass.
@@ -315,7 +325,9 @@ For each candidate branch:
 
 ## Current Recommendation
 
-Do not close runtime PRs yet, except the superseded docs-only #64. Keep them as
-source shelves until `integration/runtime-dev-20260529` contains equivalent or
-better code. Once a feature has been adopted into runtime-dev and validated,
-update the owning docs and then close the old PR with a superseded-by note.
+Most previously identified runtime shelves now have equivalent or newer code in
+`integration/runtime-dev-20260529`. Keep open PRs as evidence until the user
+chooses to close or supersede them; do not merge them into `master`. The
+remaining non-integrated branches should be treated as separate lanes: #65 Map
+Asset Relinker for tooling, `feature/EX/ex-rz-upstream1` for randomizer work,
+and `feature/new-map*` / Fly / region-map experiments for map work.

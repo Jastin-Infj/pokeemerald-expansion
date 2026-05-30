@@ -36,6 +36,33 @@ Run on `feature/battle-bgm-selector-mvp-20260517`:
   listening remains a manual check, but the original `PRIO 64` starvation cause
   is removed.
 
+## Runtime Integration Validation
+
+Run on `integration/runtime-dev-20260529` after re-applying the BGM selector
+without wholesale-merging the older feature branch:
+
+- `rtk git diff --check`: pass
+- `codex review --commit a4c6035968ec0fd2890b12c17caad4f2658fa3f6`: found the
+  `aif2pcm --compress` odd-length half-byte issue fixed in this slice.
+- `codex review --uncommitted`: found a stale Makefile hunk from the older BGM
+  branch that would have removed Unified Move Relearner and Scout Selection
+  generated-header support. Fixed before commit; final staged Makefile diff is
+  only the `AIF` tool path addition.
+- `rtk make -j16 -O debug`: pass with existing RWX linker warning
+- `rtk make -j16 -O all`: pass with existing RWX linker warning
+- `rtk make -j16 -O check`: pass with existing RWX linker warning; scan output
+  includes `test/battle_bgm.c`
+- `tools/aif2pcm/aif2pcm sound/direct_sound_samples/dp_016bongo.aif /tmp/dp_016bongo_compressed.bin --compress`
+  followed by `tools/aif2pcm/aif2pcm /tmp/dp_016bongo_compressed.bin /tmp/dp_016bongo_roundtrip.aif`:
+  pass. Both original and round-trip AIF files report `1563` frames, covering
+  the reviewed odd-length compressed half-byte case.
+- mGBA Live smoke: pass. Booted `pokeemerald.gba`, continued the existing save,
+  opened Debug Menu -> `Sound...`, confirmed `Trainer BGM...` / `Wild BGM...`
+  render, opened `Trainer BGM`, changed from `Default` to `Hoenn Wild`, pressed
+  A to set / preview, captured screenshots, and stopped cleanly with
+  `alive_after: false`. MCP cannot confirm audible playback, so final listening
+  remains manual.
+
 ## Focused Code Checks
 
 - Confirm `GetBattleBGM()` returns vanilla values when Trainer/Wild choices are

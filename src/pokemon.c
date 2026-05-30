@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_bgm.h"
 #include "malloc.h"
 #include "apprentice.h"
 #include "battle.h"
@@ -5356,7 +5357,7 @@ bool32 IsSpeciesInHoennDex(enum Species species)
         return TRUE;
 }
 
-u16 GetBattleBGM(void)
+static u16 GetDefaultBattleBGM(void)
 {
     if (gBattleTypeFlags & BATTLE_TYPE_LEGENDARY)
     {
@@ -5444,6 +5445,11 @@ u16 GetBattleBGM(void)
     }
 }
 
+u16 GetBattleBGM(void)
+{
+    return ApplyBattleBgmSelection(GetDefaultBattleBGM());
+}
+
 void PlayBattleBGM(void)
 {
     ResetMapMusic();
@@ -5456,7 +5462,7 @@ void PlayMapChosenOrBattleBGM(u16 songId)
     ResetMapMusic();
     m4aMPlayAllStop();
     if (songId)
-        PlayNewMapMusic(songId);
+        PlayNewMapMusic(ApplyBattleBgmSelection(songId));
     else
         PlayNewMapMusic(GetBattleBGM());
 }
@@ -5478,7 +5484,7 @@ void CreateTask_PlayMapChosenOrBattleBGM(u16 songId)
 static void Task_PlayMapChosenOrBattleBGM(u8 taskId)
 {
     if (gTasks[taskId].tSongId)
-        PlayNewMapMusic(gTasks[taskId].tSongId);
+        PlayNewMapMusic(ApplyBattleBgmSelection(gTasks[taskId].tSongId));
     else
         PlayNewMapMusic(GetBattleBGM());
     DestroyTask(taskId);
