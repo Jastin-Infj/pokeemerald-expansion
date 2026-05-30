@@ -92,7 +92,6 @@ Route119_EventScript_BattleMayMudkip::
 
 Route119_EventScript_DefeatedMay::
 	msgbox Route119_Text_MayPresentForYou, MSGBOX_DEFAULT
-	call Route119_EventScript_GiveFlyHM
 	msgbox Route119_Text_MayExplainFly, MSGBOX_DEFAULT
 	goto Route119_EventScript_RivalExitScottArrive
 	end
@@ -122,15 +121,9 @@ Route119_EventScript_BattleBrendanMudkip::
 
 Route119_EventScript_DefeatedBrendan::
 	msgbox Route119_Text_BrendanIllGiveYouThis, MSGBOX_DEFAULT
-	call Route119_EventScript_GiveFlyHM
 	msgbox Route119_Text_BrendanExplainFly, MSGBOX_DEFAULT
 	goto Route119_EventScript_RivalExitScottArrive
 	end
-
-Route119_EventScript_GiveFlyHM::
-	giveitem ITEM_HM_FLY
-	setflag FLAG_RECEIVED_HM_FLY
-	return
 
 Route119_EventScript_RivalExitScottArrive::
 	closemessage
@@ -492,7 +485,8 @@ Route119_Text_MayDefeat:
 Route119_Text_MayPresentForYou:
 	.string "MAY: But I had absolutely nothing to\n"
 	.string "worry about! Keep it up!\p"
-	.string "And, here! I have a present for you.$"
+	.string "And, here! I have some advice\n"
+	.string "for you.$"
 
 Route119_Text_MayExplainFly:
 	.string "MAY: Use FLY, and your POKéMON will\n"
@@ -522,8 +516,8 @@ Route119_Text_BrendanDefeat:
 Route119_Text_BrendanIllGiveYouThis:
 	.string "BRENDAN: I'd say you're good enough\n"
 	.string "to search for POKéMON anywhere.\p"
-	.string "Here, I'll give you this.\n"
-	.string "Try it out.$"
+	.string "Here, remember this.\n"
+	.string "Try it out when you can.$"
 
 Route119_Text_BrendanExplainFly:
 	.string "BRENDAN: Use FLY, and your POKéMON\n"
@@ -577,8 +571,8 @@ Route119_Text_ThoughtFlyByCatchingBirdMons:
 	.string "I thought you FLY by catching a whole\n"
 	.string "flock of BIRD POKéMON, and then\l"
 	.string "hanging on to them somehow.\p"
-	.string "But it turns out there's an HM move\n"
-	.string "called FLY!\p"
+	.string "But it turns out there's a field\n"
+	.string "technique called FLY!\p"
 	.string "I wish I'd known about that a long\n"
 	.string "time ago…$"
 

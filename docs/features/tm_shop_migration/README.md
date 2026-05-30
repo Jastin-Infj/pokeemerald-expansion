@@ -3,6 +3,7 @@
 調査日: 2026-05-02
 再確認日: 2026-05-16
 PR 整理: 2026-05-17
+統合採用: 2026-05-30
 
 Legacy Gen 3 TM acquisition を退役させるための feature handoff。2026-05-16
 時点では `feature/tm-shop-migration` で implementation を入れ、Emerald
@@ -75,6 +76,24 @@ move 解放は別 feature / story flag 側へ寄せる。
 PR #31 was closed on 2026-05-17 as a completed implementation shelf after CI
 success. The branch remains preserved. Re-check with `gh pr view 31` and local
 branch diffs before source integration.
+
+## 2026-05-30 Runtime Integration
+
+`feature/tm-shop-migration` commit `eb486f6356` was adopted into
+`integration/runtime-dev-20260529` / PR #68 after Battle Item Restore, Held Item
+Catalog, Party UI, Scout Selection, Pokemon Vendor, All Ability Slots,
+Champions Run Session, and No Random Encounters.
+
+Conflict resolution:
+
+- `Script 1` remains the Pokemon Vendor debug route.
+- TM Shop now uses a dedicated `Debug_EventScript_TmShopTest` route and a
+  separate `Debug_EventScript_TmShopTestItems` pokemart list.
+- Debug menu `Scripts...` now exposes both `Pokemon Vendor` and `TM Shop Test`.
+- `FLAG_NO_ENCOUNTER` at `SYSTEM_FLAGS + 0x85` is preserved; TM Shop Migration
+  only retires the legacy TM/HM acquisition flags from the original shelf.
+
+Validation on the integration branch is recorded in `test_plan.md`.
 
 ## Scope Note
 

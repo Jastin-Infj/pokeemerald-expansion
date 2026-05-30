@@ -325,11 +325,7 @@ Route104_EventScript_Woman::
 Route104_EventScript_Boy2::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_BULLET_SEED, Route104_EventScript_ReceivedBulletSeed
 	msgbox Route104_Text_LikeFillingMouthWithSeedsTakeThis, MSGBOX_DEFAULT
-	giveitem ITEM_TM_BULLET_SEED
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_BULLET_SEED
 	release
 	end
 
@@ -1027,9 +1023,8 @@ Route104_Text_ImNotATrainer:
 Route104_Text_LikeFillingMouthWithSeedsTakeThis:
 	.string "I like filling my mouth with seeds,\n"
 	.string "then spitting them out fast!\p"
-	.string "You can have this, so you try it out!\p"
-	.string "Use it on a POKéMON, and it will learn\n"
-	.string "a move for firing seeds rapidly.$"
+	.string "A POKéMON that fires seeds rapidly\n"
+	.string "would be pretty neat, huh?$"
 
 Route104_Text_TMsAreOneTimeUse:
 	.string "A word of advice!\p"

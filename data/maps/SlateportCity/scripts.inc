@@ -528,18 +528,13 @@ SlateportCity_PokemartDecor:
 SlateportCity_EventScript_PowerTMClerk::
 	lock
 	faceplayer
-	message gText_HowMayIServeYou
-	waitmessage
-	pokemart SlateportCity_Pokemart_PowerTMs
-	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	msgbox SlateportCity_Text_PowerTMClerkClosed, MSGBOX_DEFAULT
 	release
 	end
 
-	.align 2
-SlateportCity_Pokemart_PowerTMs:
-	.2byte ITEM_TM_HIDDEN_POWER
-	.2byte ITEM_TM_SECRET_POWER
-	pokemartlistend
+SlateportCity_Text_PowerTMClerkClosed:
+	.string "The move-machine counter is closed\n"
+	.string "while the stock is reorganized.$"
 
 @ Scene with Capt Sterns interview and Team Aqua announcing plans to steal Submarine
 SlateportCity_EventScript_CaptStern::

@@ -414,6 +414,7 @@ extern const u8 Debug_EventScript_Script_6[];
 extern const u8 Debug_EventScript_Script_7[];
 extern const u8 Debug_EventScript_Script_8[];
 extern const u8 Debug_EventScript_ScoutSelection[];
+extern const u8 Debug_EventScript_TmShopTest[];
 extern const u8 Debug_EventScript_ChampionsRunStart[];
 extern const u8 Debug_EventScript_ChampionsRunGiveMon[];
 extern const u8 Debug_EventScript_ChampionsRunCheckpoint[];
@@ -721,6 +722,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Scripts[] =
 {
     { COMPOUND_STRING("Scout Selection"), DebugAction_ExecuteScript, Debug_EventScript_ScoutSelection },
     { COMPOUND_STRING("Pokemon Vendor"), DebugAction_ExecuteScript, Debug_EventScript_Script_1 },
+    { COMPOUND_STRING("TM Shop Test"), DebugAction_ExecuteScript, Debug_EventScript_TmShopTest },
     { COMPOUND_STRING("Scout Pick 6"), DebugAction_ExecuteScript, Debug_EventScript_Script_2 },
     { COMPOUND_STRING("Vendor Reward"), DebugAction_ExecuteScript, Debug_EventScript_Script_3 },
     { COMPOUND_STRING("Champs: Start"), DebugAction_ExecuteScript, Debug_EventScript_ChampionsRunStart },

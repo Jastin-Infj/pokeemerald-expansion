@@ -101,3 +101,42 @@
 | mGBA Live boot | Follow-up run reached Pokemon Emerald title screen, continued into an existing save, and opened the in-game Start menu. |
 | mGBA Live feature screen | Rustboro Cutter / HM source NPC behavior was not confirmed because the loaded save was not positioned on that route. No new mGBA route was run after the old HM flag rename; static search plus rebuilds covered that follow-up. |
 | mGBA cleanup | Follow-up session `tm-shop-migration-hm-followup` stopped cleanly with `stopped: true`. An older `[mgba-qt] <defunct>` entry from the previous validation remains visible in `pgrep`. |
+
+## Integration Runtime Record: 2026-05-30
+
+Branch checked: `integration/runtime-dev-20260529`
+
+Source shelf adopted: `feature/tm-shop-migration` commit `eb486f6356`.
+
+Conflict resolution:
+
+- `Pokemon Vendor` keeps `Debug_EventScript_Script_1`.
+- TM Shop uses `Debug_EventScript_TmShopTest` and
+  `Debug_EventScript_TmShopTestItems`.
+- Debug menu `Scripts...` contains both `Pokemon Vendor` and `TM Shop Test`.
+- `FLAG_NO_ENCOUNTER` from the no-random integration is preserved.
+
+Static / build checks:
+
+| Command | Result | Notes |
+|---|---|---|
+| `rtk git diff --check` | passed | No whitespace errors. |
+| `rtk bash -lc 'for f in $(git diff --name-only --cached -- "data/maps/**/*.json" "*.json"); do python3 -m json.tool "$f" >/dev/null || exit 1; done'` | passed | Staged edited `map.json` files parse. |
+| `rg` TM/HM source checks | passed for Emerald scope | Remaining `ITEM_TM_*` / `ITEM_HM_*` matches are FRLG follow-up scope or debug-only `TM Shop Test`. |
+| `rtk make -j16 -O all` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+| `rtk make -j16 -O debug` | passed | Existing linker warning: `LOAD segment with RWX permissions`. |
+| `rtk make -j16 -O check` | passed | Existing EXPECTED_FAIL / KNOWN_FAILING markers remain accepted. |
+
+mGBA Live smoke:
+
+| Test | Result | Evidence |
+|---|---|---|
+| Boot / field state | passed | Session `integration-tm-shop-smoke` booted `pokeemerald.gba`, continued the local save, and reported callback2 `0x081A6981` (`CB2_Overworld`) at map `0/2`, coords `22,6`. |
+| Debug menu route | passed | Opened Debug menu with `R+START`, navigated to `Scripts...`, then selected the new `TM Shop Test` route. Screenshots: `/tmp/integration-tm-shop-debug-menu.png`, `/tmp/integration-tm-shop-scripts-menu.png`, `/tmp/integration-tm-shop-open.png`. |
+| Cleanup | passed | `mgba-live-cli stop --session integration-tm-shop-smoke` returned `alive_after:false`; final `status --all` returned `[]`. |
+
+Remaining manual checks:
+
+- Route-specific NPC/gym/HM-source conversations were not walked in this
+  integration pass.
+- FRLG-specific legacy TM/HM acquisition remains follow-up scope.

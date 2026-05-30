@@ -9,15 +9,10 @@ Route123_OnTransition:
 Route123_EventScript_GigaDrainGirl::
 	lock
 	faceplayer
-	goto_if_set FLAG_RECEIVED_TM_GIGA_DRAIN, Route123_EventScript_ReceivedGigaDrain
 	msgbox Route123_Text_LoveGrassMonsHaveAny, MSGBOX_DEFAULT
 	special IsGrassTypeInParty
 	goto_if_eq VAR_RESULT, FALSE, Route123_EventScript_NoGrassMons
 	msgbox Route123_Text_YouLikeGrassMonsTooHaveThis, MSGBOX_DEFAULT
-	giveitem ITEM_TM_GIGA_DRAIN
-	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
-	setflag FLAG_RECEIVED_TM_GIGA_DRAIN
-	msgbox Route123_Text_CheckTreesWithMyGrassMon, MSGBOX_DEFAULT
 	release
 	end
 
@@ -178,8 +173,8 @@ Route123_Text_YouLikeGrassMonsTooHaveThis:
 	.string "Oh?\p"
 	.string "You like GRASS-type POKéMON, too,\n"
 	.string "don't you?\p"
-	.string "I'm so happy, you can have this!\n"
-	.string "It's a token of our friendship.$"
+	.string "I'm so happy to meet another\n"
+	.string "GRASS-type fan!$"
 
 Route123_Text_CheckTreesWithMyGrassMon:
 	.string "I check trees with my GRASS-type\n"
@@ -195,4 +190,3 @@ Route123_Text_RouteSignMtPyre:
 
 Route123_Text_BerryMastersHouse:
 	.string "BERRY MASTER'S HOUSE$"
-

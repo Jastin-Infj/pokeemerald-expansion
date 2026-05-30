@@ -91,6 +91,46 @@ mGBA Live:
 - Feature-specific Rustboro Cutter / HM source NPC behavior was not confirmed
   in mGBA because the loaded save was not positioned on that route.
 
+## Integration Adoption: 2026-05-30
+
+Runtime branch: `integration/runtime-dev-20260529`
+
+Source shelf: `feature/tm-shop-migration`, commit
+`eb486f6356 Implement TM shop migration`
+
+Conflict choices:
+
+- Kept Pokemon Vendor on `Debug_EventScript_Script_1`.
+- Moved the TM debug shop route to `Debug_EventScript_TmShopTest`.
+- Renamed the pokemart item list to `Debug_EventScript_TmShopTestItems` so the
+  route label and list label do not collide.
+- Added a named `TM Shop Test` entry to Debug menu `Scripts...`.
+- Preserved `FLAG_NO_ENCOUNTER` from the no-random integration while applying
+  the TM/HM legacy flag retirements.
+
+Validation on the integration branch:
+
+| Check | Result |
+|---|---|
+| `rtk git diff --check` / `rtk git diff --cached --check` | Passed. |
+| Edited `map.json` parse check | Passed with `python3 -m json.tool` over the staged map JSON files. |
+| Static TM/HM search | Passed for Emerald normal progression. Remaining `ITEM_TM_*` / `ITEM_HM_*` routes are FRLG follow-up scope or the debug-only `TM Shop Test`. |
+| `rtk make -j16 -O all` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O check` | Passed with existing EXPECTED_FAIL / KNOWN_FAILING markers. |
+| mGBA Live smoke | Passed. Session `integration-tm-shop-smoke` booted `pokeemerald.gba`, continued the local save, opened Debug menu, navigated to `Scripts...`, selected the new `TM Shop Test` route, and captured screenshots. |
+| mGBA Live cleanup | Passed. `mgba-live-cli stop` returned `alive_after:false`; final `status --all` returned `[]`. |
+
+Screenshots:
+
+- `/tmp/integration-tm-shop-debug-menu.png`
+- `/tmp/integration-tm-shop-scripts-menu.png`
+- `/tmp/integration-tm-shop-open.png`
+
+The integration smoke validates the debug route entry and script handoff. It
+does not replace the broader static audit for every retired NPC, map pickup,
+shop, and prize source.
+
 ## Remaining Risks
 
 - FRLG-specific legacy TM acquisition remains. If this feature should cover
