@@ -64,7 +64,7 @@ a current PR.
 | `feature/tm-shop-migration` | Closed PR #31. | Implemented TM/HM acquisition retirement and reusable TM config. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Prefer Unified Move Relearner next if the TM/HM lane continues. |
 | `feature/no-random-encounters-step-only-runtime-20260517` | Closed PR #41. | Implemented and user-confirmed step-only random encounter suppression. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30. Keep PR #41 closed as source evidence. |
 | `feature/battle-bgm-selector-mvp-20260517` | Closed PR #39. | Implemented battle BGM selector plus large imported audio set. | Separate audio lane. Do not mix into the first runtime-dev pass unless audio becomes the selected focus. |
-| `feature/trainer-battle-aftercare-heal` | Closed PR #10. | Implemented default-off trainer battle win heal hook. | Completed shelf needing focused exclusion tests before adoption. |
+| `feature/trainer-battle-aftercare-heal` | Closed PR #10. | Implemented default-off trainer battle win heal hook. | Adopted into `integration/runtime-dev-20260529` on 2026-05-30 after Summary Tera. Keep config default `FALSE`; focused config-on win/exclusion validation remains before default enable. |
 | `feature/trainer-partygen-catalog-expansion` | Closed PR #7. | Implemented partygen CLI / catalog / Elite Four and Wallace trainer pool data. | Tool/data shelf for Champions integration. Review generated data before adopting into runtime-dev. |
 | `feature/champions-partygen-next-slice` | No active PR. | Docs-only follow-up for partygen / battle selection ordering. | Reference only unless docs need to be re-synced. |
 
@@ -138,6 +138,7 @@ These are the files most likely to define the integration order.
 | 2026-05-30 | `integration/runtime-dev-20260529` | Pre-Battle / In-Battle Team Viewer phase2 | Source re-applied from `feature/prebattle-team-viewer` commit `d597041bf9` and `feature/prebattle-team-viewer-phase2` commit `e5f9f2a7c3`; full branch merge was avoided because the shelf baseline was older than the current runtime stack. Conflict resolution preserved Champions run-session end handling, Pokemon Vendor battle-bond cleanup, and the All Ability debug submenu. `debug`, `all`, full `check`, and mGBA Live `Party -> Team Viewer Battle` smoke passed, including Summary, 3/3 selection, trainer battle start, in-battle `R / TEAM / INFO`, and action-menu return. | Next runtime shelf can be chosen after reviewing remaining unadopted branches; Team Viewer phase2 now covers the separate battle-selection MVP path for normal trainer battles. |
 | 2026-05-30 | `integration/runtime-dev-20260529` | #23 Pokemon State Editor | Source / config re-applied from `feature/pokemon-state-editor-expansion` commits `3f534c5f04` and `d80e7a9b15`; conflict resolution kept the State Editor 13-tile prompt window at `tilemapLeft = 17` so the Unified Move Relearner / State Editor prompt area does not overflow the right edge. `debug`, `all`, full `check`, and mGBA Live Party -> Summary -> Skills -> `START EDIT` smoke passed, including page-tab switch and B-button Summary return. | Summary Tera badge can be reviewed next if the next slice stays in Summary UI; field-move and audio shelves should remain separate lanes. |
 | 2026-05-30 | `integration/runtime-dev-20260529` | #26 Summary Tera Type Icon | Source / graphics re-applied from `feature/summary-tera-type-badge` commit `bee3f54025`; full branch merge was avoided because the shelf baseline was older than the current runtime stack. Conflict resolution preserved All Ability Summary config and State Editor config while adding the Tera badge coordinates. `debug`, `all`, full `check`, and mGBA Live Summary Info badge smoke passed, then Skills-page `START EDIT` was rechecked for coexistence. | Field-move modernization, trainer aftercare, partygen, and battle BGM remain separate lanes with larger ownership surfaces. |
+| 2026-05-30 | `integration/runtime-dev-20260529` | #10 Trainer Battle Aftercare heal hook | Source re-applied from `feature/trainer-battle-aftercare-heal` commit `719867d846`; the later berry-restore branch lineage was skipped because #47 already owns battle-end held item restore. Conflict resolution preserved Champions run-session defeat restore before the aftercare hook and kept aftercare default `FALSE`. `debug`, `all`, full `check`, and mGBA Live title boot smoke passed. | Field-move modernization, partygen catalog, and battle BGM remain larger separate lanes. If aftercare behavior is enabled later, add config-on normal-win and exclusion-path validation first. |
 
 ### Item Policy Stack
 
@@ -197,8 +198,9 @@ Resolved / open decisions before runtime-dev adoption:
   battle-selection compression / restore helper remains the source of truth.
 - whether Pokemon Vendor bond EXP remains product-specific script reward first,
   trainer-win queued reward second;
-- whether Trainer Aftercare is included in the first runtime-dev pass or left
-  as a later post-battle policy lane.
+- Trainer Aftercare is included in runtime-dev as a default-off heal hook. The
+  next decision is whether/when to enable it and how to test config-on
+  normal-win plus exclusion paths.
 
 ### Save, PC, And Run-State Stack
 

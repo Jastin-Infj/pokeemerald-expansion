@@ -3,7 +3,8 @@
 ## Heal After Trainer Battle
 
 - `B_TRAINER_BATTLE_AFTERCARE == FALSE` で通常 trainer battle の win / loss
-  挙動が既存と同じこと。
+  挙動が既存と同じこと。2026-05-30 の runtime integration ではこの
+  default-off 状態で採用した。
 - `B_TRAINER_BATTLE_AFTERCARE == TRUE` で通常 trainer battle 勝利後だけ
   `HealPlayerParty()` 相当が走ること。
 - 通常 trainer battle に勝利後、HP / PP / status が回復するか。
@@ -57,3 +58,22 @@
 - post-battle trainer script が継続するか。
 - whiteout cutscene が誤って出ないか。
 - release message を出す場合、window / palette / callback が壊れないか。
+
+## Runtime Integration Evidence 2026-05-30
+
+Adopted into `integration/runtime-dev-20260529` as the default-off heal hook.
+
+- `rtk git diff --cached --check` passed before the source commit.
+- `rtk make -j16 -O debug` passed with the existing RWX linker warning.
+- `rtk make -j16 -O all` passed with the existing RWX linker warning.
+- `rtk make -j16 -O check` passed with the existing RWX linker warning.
+- mGBA Live boot smoke reached the title splash and exported
+  `/tmp/integration-trainer-aftercare-boot.png`.
+- mGBA Live session stop was clean and CLI `status --all` returned `[]`.
+
+Remaining manual checks before enabling `B_TRAINER_BATTLE_AFTERCARE` by default:
+
+- Config-on normal trainer win should prove HP / PP / status heal.
+- Config-on trainer loss should prove no heal and no whiteout policy drift.
+- Frontier / Pyramid / Trainer Hill / secret base / early rival / follower
+  partner exclusions should be walked or covered by focused tests.
