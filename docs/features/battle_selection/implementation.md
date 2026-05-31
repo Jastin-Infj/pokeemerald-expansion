@@ -35,7 +35,7 @@ battle 中は選出順に詰めた一時 `gPlayerParty` だけを使い、battle
 | Question | Decision |
 |---|---|
 | On/off control | `include/config/battle.h` の `B_TRAINER_BATTLE_SELECTION` で build-time 切り替え。 |
-| Short party policy | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT` で、eligible 数が通常要求数 3/4 未満の時に UI を開くかを切り替える。 |
+| Short party policy | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と short minimum config で、eligible 数が通常要求数 3/4 未満の時に UI を開くかを切り替える。single は `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT`、double は `B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT` を使う。 |
 | Runtime option | MVP では追加しない。 |
 | SaveBlock migration | 不要。 |
 | saved flag / var | 不要。 |
@@ -51,8 +51,8 @@ battle 中は選出順に詰めた一時 `gPlayerParty` だけを使い、battle
 | battle type | normal trainer battle のみ。 |
 | excluded battle flags | link、Frontier、multi、partner、two opponents、Pyramid、Trainer Hill、secret base、recorded battle を除外。 |
 | first battle | tutorial / first battle は除外。 |
-| party size | 通常は required count 以下なら UI を出さない。`B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` が `TRUE` で eligible 数が required count 未満、かつ short-party minimum 以上なら、eligible 数を選出数に落として UI を開く。 |
-| eligible count | egg / fainted / empty を除いて required count 未満の場合、short party policy が有効なら `2/2` などの縮小選出、無効なら既存通り UI を出さない。 |
+| party size | 通常は required count 以下なら UI を出さない。`B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` が `TRUE` で eligible 数が required count 未満、かつ battle kind 別の short-party minimum 以上なら、eligible 数を選出数に落として UI を開く。 |
+| eligible count | egg / fainted / empty を除いて required count 未満の場合、short party policy が有効なら `1/1`、`2/2` などの縮小選出、無効なら既存通り UI を出さない。デフォルトでは single は 1 匹から許可し、double は 1 匹では許可せず 2 匹以上から許可する。 |
 | Cancel / B button | trainer encounter の script 復帰先が曖昧なため、selection 中は無効。 |
 
 ## Restore Order

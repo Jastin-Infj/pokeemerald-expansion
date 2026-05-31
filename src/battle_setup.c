@@ -91,6 +91,9 @@ static void SetMainCallback2ToChampionsRunStartLocation(void);
 static bool32 TrainerBattleSelection_ShouldOffer(void);
 static u8 TrainerBattleSelection_GetRequiredCount(void);
 static u8 TrainerBattleSelection_GetBaseRequiredCount(void);
+#if B_TRAINER_BATTLE_SELECTION && B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY
+static u8 TrainerBattleSelection_GetShortPartyMinCount(void);
+#endif
 #if B_TRAINER_BATTLE_SELECTION
 static u8 TrainerBattleSelection_CountEligibleMons(void);
 #endif
@@ -1516,7 +1519,7 @@ static bool32 TrainerBattleSelection_ShouldOffer(void)
 
 #if B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY
     if (eligibleCount < TrainerBattleSelection_GetBaseRequiredCount())
-        return eligibleCount >= B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT;
+        return eligibleCount >= TrainerBattleSelection_GetShortPartyMinCount();
 #endif
 
     if (CalculatePlayerPartyCount() <= requiredCount)
@@ -1538,7 +1541,7 @@ static u8 TrainerBattleSelection_GetRequiredCount(void)
 #if B_TRAINER_BATTLE_SELECTION && B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY
     u8 eligibleCount = TrainerBattleSelection_CountEligibleMons();
 
-    if (eligibleCount >= B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT && eligibleCount < requiredCount)
+    if (eligibleCount >= TrainerBattleSelection_GetShortPartyMinCount() && eligibleCount < requiredCount)
         return eligibleCount;
 #endif
 
@@ -1551,6 +1554,15 @@ static u8 TrainerBattleSelection_GetBaseRequiredCount(void)
         return FRONTIER_DOUBLES_PARTY_SIZE;
     return FRONTIER_PARTY_SIZE;
 }
+
+#if B_TRAINER_BATTLE_SELECTION && B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY
+static u8 TrainerBattleSelection_GetShortPartyMinCount(void)
+{
+    if (gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
+        return B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT;
+    return B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT;
+}
+#endif
 
 #if B_TRAINER_BATTLE_SELECTION
 static u8 TrainerBattleSelection_CountEligibleMons(void)
