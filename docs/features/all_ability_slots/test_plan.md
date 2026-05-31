@@ -415,7 +415,9 @@ Additional debug-route validation added on 2026-05-24:
     selector after removing adaptive multi-name display. Nidoqueen (`1/2/3`)
     showed `->2 Rivalry` then `->3 Sheer Force`; Bastiodon (`1/3`) showed
     `->1 Sturdy` then skipped the empty middle slot and changed to
-    `->3 Soundproof`. Each selection showed the matching description.
+    `->3 Soundproof`. Each selection showed the matching description. This
+    older sparse-slot behavior was superseded on 2026-05-31 by mirroring slot 1
+    into omitted slot 2 for Summary readability.
     Screenshots:
     `/tmp/all-ability-unified-selector-nidoqueen-20260524.png`,
     `/tmp/all-ability-unified-selector-nidoqueen-r-20260524.png`,
@@ -681,6 +683,21 @@ Validation result on `integration/runtime-dev-20260529`:
 - `rtk make -j16 -O check TESTS='Moxie'` passed after the KO-popup follow-up.
 - `rtk make -j16 -O all` passed after the KO-popup follow-up.
 - `rtk make -j16 -O debug` passed after adding Pattern U `Moxie Popup`.
+- 2026-05-31 Summary selector follow-up: slot 2 now mirrors slot 1 for species
+  with omitted normal slot 2 plus hidden slot 3, so Summary selection presents a
+  continuous `1/2/3` sequence while battle ability-set evaluation continues to
+  dedupe duplicates. The state editor remains backed by the real species ability
+  table and should not write the omitted slot.
+- 2026-05-31 Summary selector validation: `rtk git diff --check`,
+  `rtk make -j16 -O check TESTS='All Ability Slots'`, `rtk make -j16 -O all`,
+  `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and
+  `rtk mdbook build docs` passed. The make commands only emitted the existing
+  RWX linker warning; mdbook only emitted the existing missing root
+  `CHANGELOG.md`, `CREDITS.md` `</img>`, and large search-index warnings.
+- mGBA Live boot smoke `runtime-followup-ability-noencounter-20260531b`
+  captured `/tmp/runtime-followup-ability-noencounter-20260531b-boot.png` and
+  stopped cleanly (`status --all` returned `[]`). The exact Summary slot visual
+  remains a manual check from party Summary because the smoke only covered boot.
 - mGBA Live session `all-ability-moxie-popup-20260531` booted the debug ROM,
   continued from the local save, opened `Party` -> `All Ability...`, confirmed
   Pattern U `Moxie Popup` appears at the bottom of the submenu, started the
@@ -708,7 +725,7 @@ Validation result on `integration/runtime-dev-20260529`:
 | Battle-only boundary | Field lead ability behavior remains single-ability while battle behavior uses all active slots. |
 | AI | Damage / switch decisions that depend on immunity, trapping, priority, speed, and Magic Guard-style secondary damage. |
 | Items | Ability Capsule / Patch fail or apply chosen new policy under all-active mode, and retain upstream behavior when disabled. |
-| Summary UI | Summary shows the selected active slot label plus ability name without text overflow and lets `L` / `R` cycle the displayed ability description across full `1/2/3` and sparse `1/3` species when `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` is enabled. A temporary disabled-config build should still compile and keep the selected / representative display stable without cycling. |
+| Summary UI | Summary shows the selected active slot label plus ability name without text overflow and lets `L` / `R` cycle the displayed ability description across full `1/2/3` species when `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` is enabled. Species whose normal slot 2 is omitted but hidden slot 3 exists should mirror slot 1 into slot 2 for selector readability, while battle evaluation still dedupes duplicates. A temporary disabled-config build should still compile and keep the selected / representative display stable without cycling. |
 
 ## Candidate Manual Checks
 
@@ -739,8 +756,9 @@ Validation result on `integration/runtime-dev-20260529`:
   item-retention flow.
 - Open Summary from party and from battle-adjacent flows, then inspect the
   active ability selector. On the Info page, use `L` / `R` and confirm the
-  selected slot marker, ability name, and description change together for both a
-  full `1/2/3` species and a sparse `1/3` species.
+  selected slot marker, ability name, and description change together for a full
+  `1/2/3` species and for an omitted-slot species whose slot 2 mirrors slot 1 in
+  the UI.
 - Try Ability Capsule and Ability Patch in all-active mode and confirm the
   chosen message / behavior is clear.
 - Mega Evolve a Pokemon whose target form has a different ability table and

@@ -28,8 +28,10 @@ by default.
 
 Summary UI now shows the selected active slot label plus ability name on the
 Info page, and the lower ability area shows that slot's description. `L` / `R`
-cycles to the next non-empty slot, so full `1/2/3` species and sparse `1/3`
-species use the same flow. This cycling is separately guarded by
+cycles to the next selectable slot. Species whose slot 2 is omitted but hidden
+slot 3 exists mirror slot 1 into slot 2 for UI readability, so they display as
+`1/2/3`; battle evaluation still dedupes duplicate abilities. This cycling is
+separately guarded by
 `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH`, default `TRUE`, so later integration
 can disable the UI selector without disabling the battle rule.
 

@@ -221,9 +221,13 @@ Summary now uses a compact selectable-slot layout when `B_ALL_ABILITY_SLOTS` is
 enabled. It uses direct slot labels `1`, `2`, and `3` instead of a deduped set,
 but only prints the currently selected active slot label plus ability name in the
 upper ability line. The selected slot is marked with a right-arrow marker.
-`L` / `R` on the Info page cycles to the next non-empty ability slot, so sparse
-tables such as `1/3` use the same flow as full `1/2/3` tables. The lower white
-ability-detail area shows the selected slot's ability description. The
+`L` / `R` on the Info page cycles to the next selectable ability slot. Species
+with a normal slot 2 omitted but a hidden slot present now mirror slot 1 into
+slot 2 for Summary display only, so the UI reads as `1/2/3` instead of sparse
+`1/3`; the battle active set still dedupes duplicate abilities. The state editor
+continues to use the real species ability table so it does not save an omitted
+slot. The
+lower white ability-detail area shows the selected slot's ability description. The
 single-ability name / description block is still used when the mode is disabled.
 The `L` / `R` cycling behavior is separately guarded by
 `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` in `include/config/summary_screen.h`;
@@ -607,6 +611,8 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
   Nidoqueen (`1/2/3`) showed `->2 Rivalry` then `->3 Sheer Force`, while
   Bastiodon (`1/3`) showed `->1 Sturdy` then skipped the empty middle slot and
   changed to `->3 Soundproof`; each selection showed the matching description.
+  This older sparse-slot behavior was superseded on 2026-05-31 by mirroring slot
+  1 into omitted slot 2 for Summary readability.
   Screenshots:
   `/tmp/all-ability-unified-selector-nidoqueen-20260524.png`,
   `/tmp/all-ability-unified-selector-nidoqueen-r-20260524.png`,

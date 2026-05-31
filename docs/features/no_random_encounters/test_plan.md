@@ -231,6 +231,11 @@ rollup:
 | `src/field_control_avatar.c` | `CheckStandardWildEncounter` short-circuits when `FlagGet(OW_FLAG_NO_ENCOUNTER)` is true. |
 | `include/constants/flags_frlg.h` | FRLG keeps `FLAG_NO_ENCOUNTER 0`, so the Emerald integration target owns this runtime flag. |
 
+Debug validation route on this branch is `Debug` -> `Flags/Vars...` ->
+`Toggle Encounter OFF`. The menu item is active because `OW_FLAG_NO_ENCOUNTER`
+is assigned to `FLAG_NO_ENCOUNTER`; it sets / clears the same saved event flag
+used by the field encounter gate.
+
 No new mGBA walking pass was repeated in this source-audit follow-up; the
 previous Route 101 OFF / ON / OFF-restored evidence remains the runtime oracle
 for the step-only MVP.

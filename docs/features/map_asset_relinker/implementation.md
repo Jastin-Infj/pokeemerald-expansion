@@ -104,12 +104,13 @@ README / local generated build output. The workflow also runs on
 `integration/runtime-dev-*` pushes, so the runtime integration PR can publish a
 fresh portable Windows exe artifact from GitHub Actions. The binary exe remains
 build output / artifact output, not a committed source file.
-Latest checked Actions run `26705337993` on
+Latest checked Actions run `26708238131` on
 `integration/runtime-dev-20260529` uploaded `map-asset-relinker-portable-windows`
-artifact id `7314429373` and `map-asset-relinker-windows` artifact id
-`7314429256`; both are unexpired as of 2026-05-31. The portable artifact is the
+artifact id `7315400434` and `map-asset-relinker-windows` artifact id
+`7315400291`; both are unexpired as of 2026-05-31. The portable artifact is the
 expected source for `map-asset-relinker-gui.exe` and
-`map-asset-relinker-core.exe`.
+`map-asset-relinker-core.exe`; for local handoff it was expanded into ignored
+`tools/map_asset_relinker_gui/dist-windows/portable/`.
 
 The Rust core and GUI scan summary now expose map `music`, `weather`,
 `battle_scene`, and movement flags in addition to map/group/layout/mapsec
