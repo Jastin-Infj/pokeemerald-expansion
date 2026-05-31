@@ -9,12 +9,12 @@
 | PR | #68 `[codex] Runtime integration staging` |
 | Base policy | `master` is docs / Lua-only. Runtime source stays on the integration lane. |
 | Japanese HTML | [html/index.html](html/index.html) |
-| Config / Debug matrix | [config_debug_matrix.md](config_debug_matrix.md) |
+| Config / Debug matrix | [completed_config_debug_matrix.md](completed_config_debug_matrix.md) |
 
 この folder は、1.15.3 期間にこちらで追加・統合した runtime / tooling 差分を
 日本語で読むためのまとめです。詳細な採用履歴は
-[1.15.3 Runtime Integration Checklist](runtime_integration_15_3_checklist_ja_2026_05_30.md)
-と [Runtime Integration Branch Audit](runtime_integration_branch_audit_2026_05_29.md)
+[1.15.3 Runtime Integration Checklist](completed_runtime_integration_checklist_ja_2026_05_30.md)
+と [Runtime Integration Branch Audit](completed_branch_audit_2026_05_29.md)
 に残し、この summary では「何が増えたか」「何が切り替え可能か」「どこから確認するか」を優先しています。
 
 ## Executive Summary
@@ -71,7 +71,7 @@
 
 ## Config And Runtime Toggles
 
-The full table is in [config_debug_matrix.md](config_debug_matrix.md). The most important switches are:
+The full table is in [completed_config_debug_matrix.md](completed_config_debug_matrix.md). The most important switches are:
 
 | Token | Current integration value | Meaning |
 |---|---:|---|
@@ -94,7 +94,7 @@ The full table is in [config_debug_matrix.md](config_debug_matrix.md). The most 
 
 ## Debug Commands
 
-The full debug command list is in [config_debug_matrix.md](config_debug_matrix.md). Primary routes:
+The full debug command list is in [completed_config_debug_matrix.md](completed_config_debug_matrix.md). Primary routes:
 
 | Menu | Command | Purpose |
 |---|---|---|
@@ -129,6 +129,6 @@ The full debug command list is in [config_debug_matrix.md](config_debug_matrix.m
 Before moving to the next phase:
 
 1. Read [html/index.html](html/index.html) visually and confirm the feature set is understandable.
-2. Use [config_debug_matrix.md](config_debug_matrix.md) to decide which defaults should remain enabled in the runtime integration lane.
+2. Use [completed_config_debug_matrix.md](completed_config_debug_matrix.md) to decide which defaults should remain enabled in the runtime integration lane.
 3. Confirm whether PR #68 should remain a staging branch, be narrowed, or become the base for a future 16.x migration branch.
 4. Keep `master` docs / Lua-only unless that branch policy is explicitly changed.

@@ -146,7 +146,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | 観点 | 判定 |
 |---|---|
 | 主要 1.15.3 runtime feature の集約 | ほぼ完了 |
-| 未取り込み runtime shelf | 明確な主要 runtime 残りは見当たらない。open の旧 implementation shelf #47/#48/#51/#54/#57/#60/#62 は #68 の integration evidence に採用済みで、独立 merge 対象ではない |
+| 未取り込み runtime shelf | 明確な主要 runtime 残りは見当たらない。旧 implementation shelf #47/#48/#51/#54/#57/#60/#62 は #68 の integration evidence に採用済みで、2026-05-31 に superseded として close 済み |
 | 一部統合 | Map Asset Relinker は integration lane に tool source / Windows artifact workflow を取り込み。randomizer、map / Fly 実験データは分離継続 |
 | PR #68 merge readiness | P1/P2/P2/P3 と追加 P2 群は修正済み。full validation と mGBA Live smoke は Pass。runtime integration candidate として ready |
 | `master` 反映 | 不可。runtime 実装は docs-only master policy の対象外 |
