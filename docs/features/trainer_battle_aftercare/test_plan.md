@@ -3,8 +3,9 @@
 ## Heal After Trainer Battle
 
 - `B_TRAINER_BATTLE_AFTERCARE == FALSE` で通常 trainer battle の win / loss
-  挙動が既存と同じこと。2026-05-30 の runtime integration ではこの
-  default-off 状態で採用した。
+  挙動が既存と同じこと。2026-05-30 の runtime integration では
+  default-off 状態で採用したが、2026-05-31 follow-up で runtime lane は
+  `TRUE` に切り替えた。
 - `B_TRAINER_BATTLE_AFTERCARE == TRUE` で通常 trainer battle 勝利後だけ
   `HealPlayerParty()` 相当が走ること。
 - 通常 trainer battle に勝利後、HP / PP / status が回復するか。
@@ -61,7 +62,9 @@
 
 ## Runtime Integration Evidence 2026-05-30
 
-Adopted into `integration/runtime-dev-20260529` as the default-off heal hook.
+Adopted into `integration/runtime-dev-20260529` as the heal hook. The first
+adoption was default-off; the 2026-05-31 runtime follow-up enables it by
+default on the integration lane.
 
 - `rtk git diff --cached --check` passed before the source commit.
 - `rtk make -j16 -O debug` passed with the existing RWX linker warning.
@@ -71,9 +74,12 @@ Adopted into `integration/runtime-dev-20260529` as the default-off heal hook.
   `/tmp/integration-trainer-aftercare-boot.png`.
 - mGBA Live session stop was clean and CLI `status --all` returned `[]`.
 
-Remaining manual checks before enabling `B_TRAINER_BATTLE_AFTERCARE` by default:
+Remaining manual checks after enabling `B_TRAINER_BATTLE_AFTERCARE` by default:
 
 - Config-on normal trainer win should prove HP / PP / status heal.
 - Config-on trainer loss should prove no heal and no whiteout policy drift.
 - Frontier / Pyramid / Trainer Hill / secret base / early rival / follower
   partner exclusions should be walked or covered by focused tests.
+- 2026-05-31 status: runtime integration now has the config enabled, but the
+  full win/loss and exclusion walk is still a focused manual/mGBA item rather
+  than proven by the current boot smoke.

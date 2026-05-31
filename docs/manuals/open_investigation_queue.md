@@ -32,7 +32,7 @@ selected cherry-pick.
 | ~~battle item restore adoption defaults~~ | Runtime restore shelf was adopted into `integration/runtime-dev-20260529`; final release default remains documented on the feature policy docs, but this is no longer an open adoption blocker for PR #68. |
 | ~~nonconsumable held item catalog policy~~ | Held item catalog / unique-token assignment was adopted into `integration/runtime-dev-20260529`; remaining policy tuning belongs to feature validation, not initial branch discovery. |
 | ~~unified move relearner adoption policy~~ | Unified Move Relearner was adopted into `integration/runtime-dev-20260529` after TM Shop Migration. Integration keeps Summary-first behavior and leaves direct party `RELEARN` disabled by config. |
-| ~~trainer aftercare focused test gate~~ | Trainer Battle Aftercare was adopted into `integration/runtime-dev-20260529` as a default-off heal hook. Config-on normal-win and exclusion-path checks remain feature validation before enabling, not an adoption blocker. |
+| trainer aftercare focused test gate | Trainer Battle Aftercare is adopted into `integration/runtime-dev-20260529` and enabled on 2026-05-31. Config-on normal-win and exclusion-path checks are now acceptance validation. |
 | ~~pokemon state editor adoption polish~~ | Pokemon State Editor was adopted into `integration/runtime-dev-20260529` after Team Viewer phase2. Integration mGBA smoke confirmed Skills-page `START EDIT`, right-pane editor open, tab switch, and B-button Summary return. |
 
 ### Resolved (2026-05-18)

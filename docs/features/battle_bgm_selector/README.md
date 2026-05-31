@@ -48,7 +48,10 @@ This feature is separate from the generic Jukebox.
 - Allow previewing the selected track.
 - Apply a temporary battle BGM override for focused testing.
 - Keep the default choice as current vanilla behavior.
-- Do not require SaveBlock layout changes.
+- First slice did not require SaveBlock layout changes; the 2026-05-31
+  runtime integration follow-up stores the selected Trainer/Wild choices in
+  existing SaveBlock2 filler with a magic marker so old saves still default
+  cleanly.
 
 ## External BGM Import Follow-up
 
@@ -65,17 +68,19 @@ sound-bank compatibility proof:
 
 This follow-up stays inside the Battle BGM Selector feature because the selector
 is the current runtime surface for previewing and validating imported battle
-music. It does not add SaveBlock state, player-facing Options UI, trainer data
-rewrites, or new story map dependencies.
+music. It does not add player-facing Options UI, trainer data rewrites, or new
+story map dependencies. The integration follow-up adds only small persistent
+choice state in existing SaveBlock2 filler.
 
 Source and credit status are recorded in
 [Asset Sources and Import Plan](asset_sources.md). The Modern Emerald source
 commit was audited, but the repository did not expose a top-level license file
 during the audit; keep that as a master-adoption risk.
 
-Persistent choice storage is not required for the first runtime slice. If a
-persistent setting is needed, prefer an explicitly allocated event var / runtime
-option owner rather than adding new SaveBlock fields.
+Persistent choice storage was not required for the first runtime slice. The
+integration lane now persists the two choices in existing SaveBlock2 filler
+without growing the saveblock; future player-facing Options UI should still be
+designed separately.
 
 ## Implemented MVP Choices
 

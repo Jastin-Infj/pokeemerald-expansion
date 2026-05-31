@@ -707,8 +707,8 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
-    { COMPOUND_STRING("Team Viewer Battle"), DebugAction_Party_TeamViewerBattle },
-    { COMPOUND_STRING("Team Viewer W"),      DebugAction_Party_TeamViewerWBattle },
+    { COMPOUND_STRING("Selection Battle"),   DebugAction_Party_TeamViewerBattle },
+    { COMPOUND_STRING("Selection Double"),   DebugAction_Party_TeamViewerWBattle },
     { COMPOUND_STRING("All Ability..."),     DebugAction_OpenSubMenu, sDebugMenu_Actions_Party_AllAbility },
     { NULL }
 };

@@ -27,7 +27,7 @@
 | Branch | `feature/map-asset-relinker-20260525` |
 | Status | Host-dependent Linux executable build validated |
 | Primary files | `tools/map_asset_relinker_core/`, `tools/map_asset_relinker_gui/`, `.github/workflows/map-asset-relinker-desktop.yml`, `tools/map_asset_relinker_gui/scripts/build_native.sh`, `tools/map_asset_relinker_gui/scripts/build_windows.ps1`, `tools/map_asset_relinker_gui/scripts/prepare_linux_deps_local.sh`, `tools/map_asset_relinker_gui/src-tauri/icons/icon.png`, `tools/map_asset_relinker_gui/src-tauri/icons/icon.ico` |
-| Last updated | 2026-05-26 |
+| Last updated | 2026-05-31 |
 
 The GUI path now keeps the Rust core as the executable source of truth and uses
 Tauri for the local desktop shell. `build_native.sh` builds the Rust CUI release
@@ -63,6 +63,10 @@ failure, and diagnostics panel access. On Windows the path is
 `%APPDATA%\Map Asset Relinker\logs\diagnostics.jsonl`; the GUI `Diagnostics`
 button reads and displays the same recent log lines.
 
+`Apply With Backup` reuses the exact plan path produced by the successful
+dry-run. It no longer regenerates a fresh temp plan from current form fields at
+apply time, so the write operation matches the move/edit set the user reviewed.
+
 When the host cannot install GTK/WebKit Tauri development packages globally,
 `prepare_linux_deps_local.sh` can download the Ubuntu packages into
 `tools/map_asset_relinker_gui/.cache/`, extract them as a local pkg-config
@@ -93,6 +97,34 @@ After adding the portable output, run `26553513425` uploaded
 `map-asset-relinker-portable-windows` artifact id `7257355989` for commit
 `95f19ffc0f`; the portable artifact contains `map-asset-relinker-gui.exe`,
 `map-asset-relinker-core.exe`, and `README.txt` at its root.
+
+2026-05-31 integration note: `integration/runtime-dev-20260529` now carries the
+map relinker source tree and the Windows artifact workflow instead of only the
+README / local generated build output. The workflow also runs on
+`integration/runtime-dev-*` pushes, so the runtime integration PR can publish a
+fresh portable Windows exe artifact from GitHub Actions. The binary exe remains
+build output / artifact output, not a committed source file.
+
+The Rust core and GUI scan summary now expose map `music`, `weather`,
+`battle_scene`, and movement flags in addition to map/group/layout/mapsec
+links. This does not make the relinker a full map settings editor yet, but it
+does surface BGM-related map metadata in the first-pass UX instead of hiding it
+behind raw JSON.
+
+The apply path also treats layout renames as a project-wide structured
+reference update. If a selected map's old layout id is shared by another map,
+the dry-run lists that other `map.json`, and real apply rewrites its `layout`
+field to the renamed id. This keeps shared-layout projects valid after a layout
+id/path rename instead of leaving non-selected maps pointing at a removed old
+layout id. The same selected-map repair pass now also normalizes a missing or
+empty `map.json` id to the generated `MAP_*` id.
+
+The runtime integration branch also carries the generic source-side Fly icon
+support required by `--set-fly-icon-style ...:palette-blink`: `src/region_map.c`
+now has `sPaletteBlinkFlyDestinations`, the custom blue palette, and the sprite
+callback path that palette-swaps selected Fly icons instead of hiding them.
+Route301 / Jongle / sample map data from the map-authoring experiments is not
+adopted into runtime-dev; the reusable runtime support and tooling are.
 
 Expected Windows output paths:
 

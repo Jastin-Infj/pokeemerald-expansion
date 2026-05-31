@@ -7,8 +7,9 @@
   IDs through `ApplyBattleBgmSelection()`, but future special paths need review.
 - Changing `.encounterMusic` will not change battle BGM, which can lead to a
   false-positive implementation.
-- A persistent setting needs an owner. Adding new SaveBlock fields is not
-  justified for the first slice.
+- Persistent settings need an owner. The current integration uses existing
+  SaveBlock2 filler plus a magic marker for the two debug-selected choices; a
+  player-facing Options UI still needs separate design.
 - Random choice mode can make mGBA validation harder unless seeded or logged.
 - Some `MUS_*` entries are fanfares or special-case tracks rather than safe
   looping battle BGM.
@@ -55,12 +56,14 @@
 - Trainer / NPC sprite expansion is tracked separately.
 - Any additional new BGM asset import must have MIDI / song assembly,
   voicegroup, source, credit, and mGBA evidence.
-- Persistent setting must either use an existing safe var owner or be deferred.
+- Player-facing persistent settings must either use the existing SaveBlock2
+  filler owner or a separately documented runtime option owner.
 
 ## Accepted MVP Risk
 
-- The choice is session-only. Resetting the ROM or debug session returns both
-  Trainer and Wild BGM choices to `Default`.
+- The original choice state was session-only. The integration branch now
+  persists Trainer/Wild choices after save/load, while old saves without the
+  magic marker still read as `Default`.
 - The selector does not own trainer eye-contact cues or victory music. Those
   should become separate settings if needed.
 - The imported BW/BW2 and DPPt / Platinum / HGSS tracks have build evidence,

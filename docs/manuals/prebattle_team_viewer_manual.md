@@ -90,8 +90,8 @@ Use these focused routes from the debug menu:
 
 | Debug menu item | Trainer | Purpose |
 |---|---|---|
-| `Party -> Team Viewer Battle` | `TRAINER_GABRIELLE_1` | Single 3-of-6 route. |
-| `Party -> Team Viewer W` | `TRAINER_AMY_AND_LIV_1` | Double 4-of-6 route. |
+| `Party -> Selection Battle` | `TRAINER_GABRIELLE_1` | Single 3-of-6 route. |
+| `Party -> Selection Double` | `TRAINER_AMY_AND_LIV_1` | Double 4-of-6 route. |
 
 Both routes create the same six-mon player party with known moves, then enter normal
 trainer battle setup.
@@ -165,8 +165,8 @@ Focused runtime checks:
 
 | Check | Route |
 |---|---|
-| Single pick flow | `Party -> Team Viewer Battle`, select 3, start battle. |
-| Double pick flow | `Party -> Team Viewer W`, select 4, start battle. |
+| Single pick flow | `Party -> Selection Battle`, select 3, start battle. |
+| Double pick flow | `Party -> Selection Double`, select 4, start battle. |
 | Summary first entry | In viewer, player-side `SELECT`; Summary opens on `POKEMON SKILLS` without layout corruption. |
 | Summary info regression | From `POKEMON SKILLS`, press left to `POKEMON INFO`; skills background must not remain. |
 | Marker order | Pick slot 6 first; label changes from `6` to `1`, not `P1`. |

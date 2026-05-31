@@ -68,3 +68,6 @@ tools/aif2pcm/aif2pcm
 *.smolTM
 __pycache__
 .map_version
+.map_asset_relinker_backups/
+.playwright-mcp/
+map-asset-relinker-*-dry-run.png

@@ -1,11 +1,23 @@
 #include "battle_bgm.h"
 #include "constants/songs.h"
 
+#define BATTLE_BGM_SAVE_MAGIC 0x4247 // "BG"
+
 static EWRAM_DATA u8 sBattleBgmChoices[BATTLE_BGM_TARGET_COUNT] =
 {
     [BATTLE_BGM_TARGET_TRAINER] = BATTLE_BGM_CHOICE_DEFAULT,
     [BATTLE_BGM_TARGET_WILD]    = BATTLE_BGM_CHOICE_DEFAULT,
 };
+
+static u8 SanitizeBattleBgmChoice(u8 choice)
+{
+    return choice < BATTLE_BGM_CHOICE_COUNT ? choice : BATTLE_BGM_CHOICE_DEFAULT;
+}
+
+static bool8 HasSavedBattleBgmChoices(void)
+{
+    return gSaveBlock2Ptr != NULL && gSaveBlock2Ptr->battleBgmMagic == BATTLE_BGM_SAVE_MAGIC;
+}
 
 static const u8 *const sBattleBgmTargetNames[BATTLE_BGM_TARGET_COUNT] =
 {
@@ -277,7 +289,13 @@ u8 GetBattleBgmChoice(u8 target)
     if (target >= BATTLE_BGM_TARGET_COUNT)
         target = BATTLE_BGM_TARGET_TRAINER;
 
-    return sBattleBgmChoices[target];
+    if (gSaveBlock2Ptr != NULL)
+    {
+        if (HasSavedBattleBgmChoices())
+            return SanitizeBattleBgmChoice(gSaveBlock2Ptr->battleBgmChoices[target]);
+        return BATTLE_BGM_CHOICE_DEFAULT;
+    }
+    return SanitizeBattleBgmChoice(sBattleBgmChoices[target]);
 }
 
 void SetBattleBgmChoice(u8 target, u8 choice)
@@ -285,10 +303,18 @@ void SetBattleBgmChoice(u8 target, u8 choice)
     if (target >= BATTLE_BGM_TARGET_COUNT)
         return;
 
-    if (choice < BATTLE_BGM_CHOICE_COUNT)
-        sBattleBgmChoices[target] = choice;
-    else
-        sBattleBgmChoices[target] = BATTLE_BGM_CHOICE_DEFAULT;
+    choice = SanitizeBattleBgmChoice(choice);
+    sBattleBgmChoices[target] = choice;
+    if (gSaveBlock2Ptr != NULL)
+    {
+        if (!HasSavedBattleBgmChoices())
+        {
+            gSaveBlock2Ptr->battleBgmChoices[BATTLE_BGM_TARGET_TRAINER] = BATTLE_BGM_CHOICE_DEFAULT;
+            gSaveBlock2Ptr->battleBgmChoices[BATTLE_BGM_TARGET_WILD] = BATTLE_BGM_CHOICE_DEFAULT;
+            gSaveBlock2Ptr->battleBgmMagic = BATTLE_BGM_SAVE_MAGIC;
+        }
+        gSaveBlock2Ptr->battleBgmChoices[target] = choice;
+    }
 }
 
 const u8 *GetBattleBgmTargetName(u8 target)
@@ -329,9 +355,9 @@ u16 ApplyBattleBgmSelection(u16 songId)
     u16 override;
 
     if (IsWildBattleBgm(songId))
-        override = GetBattleBgmChoiceSong(sBattleBgmChoices[BATTLE_BGM_TARGET_WILD]);
+        override = GetBattleBgmChoiceSong(GetBattleBgmChoice(BATTLE_BGM_TARGET_WILD));
     else if (IsTrainerBattleBgm(songId))
-        override = GetBattleBgmChoiceSong(sBattleBgmChoices[BATTLE_BGM_TARGET_TRAINER]);
+        override = GetBattleBgmChoiceSong(GetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER));
     else
         override = 0;
 

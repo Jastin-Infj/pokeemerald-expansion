@@ -7,7 +7,9 @@
 - Integration branch: `integration/runtime-dev-20260529`
 - Master status: Not merged
 - Runtime scope: Existing BGM plus BW/BW2, DPPt, Platinum, and HGSS battle import slices
-- Save layout: No changes
+- Save layout: Uses two bytes plus a magic marker in existing `SaveBlock2`
+  filler at `0x90`, so Trainer/Wild choices persist after save/load without
+  increasing SaveBlock2 size.
 
 ## Implemented Files
 
@@ -40,8 +42,10 @@
 ## Runtime Behavior
 
 - `Default` returns vanilla battle BGM behavior.
-- Trainer BGM and Wild BGM are stored as separate session-only choices.
-- The choices are stored in EWRAM only and reset when the ROM/session resets.
+- Trainer BGM and Wild BGM are stored as separate choices.
+- The first runtime slice stored the choices in EWRAM only. The 2026-05-31
+  integration follow-up persists them in the existing SaveBlock2 filler with a
+  small magic marker, so old saves without the marker still read as `Default`.
 - `GetBattleBGM()` applies the selected Trainer or Wild choice based on the
   vanilla song category.
 - `PlayMapChosenOrBattleBGM(songId)` now applies the selected choice to nonzero
