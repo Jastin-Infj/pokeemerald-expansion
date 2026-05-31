@@ -125,9 +125,10 @@ Deferred UI:
 
 The runtime integration branch adopted the MVP source after #47 / #48 / #54 /
 #51 / #57. As of 2026-05-31, integration defaults `B_ALL_ABILITY_SLOTS` to
-`TRUE` so normal battles use all active ability slots. Focused tests can still
-force `FALSE` for single-ability regression coverage, and the debug menu
-`Party` -> `All Ability...` routes remain useful for manual validation.
+`FALSE` and provides a save-backed Debug -> `Flags/Vars` -> `All Abilities`
+runtime toggle for `DEFAULT` / `OFF` / `ON`. Focused tests can still force
+`TRUE` / `FALSE` directly, and the debug menu `Party` -> `All Ability...`
+routes remain useful for manual validation.
 
 ## Open Questions
 

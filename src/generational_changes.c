@@ -32,10 +32,36 @@ EWRAM_DATA struct GenChanges *gConfigChangesTestOverride = NULL;
 #define UNPACK_CONFIG_SETTERS(_name, _field, ...) case CONFIG_##_name: return;
 #endif
 
+static u32 GetAllAbilitySlotsConfigValue(u32 defaultValue)
+{
+    if (gSaveBlock2Ptr == NULL)
+        return defaultValue;
+
+    switch (gSaveBlock2Ptr->optionsAllAbilitySlotsMode)
+    {
+    case OPTIONS_ALL_ABILITY_SLOTS_OFF:
+        return FALSE;
+    case OPTIONS_ALL_ABILITY_SLOTS_ON:
+        return TRUE;
+    case OPTIONS_ALL_ABILITY_SLOTS_DEFAULT:
+    default:
+        return defaultValue;
+    }
+}
+
 // Gets the value of a volatile status flag for a certain battler
 // Primarily used for the debug menu and scripts. Outside of it explicit references are preferred
 u32 GetConfigInternal(enum ConfigTag _genConfig)
 {
+    if (_genConfig == CONFIG_B_ALL_ABILITY_SLOTS)
+    {
+#if TESTING
+        if (gConfigChangesTestOverride != NULL)
+            return gConfigChangesTestOverride->allAbilitySlots;
+#endif
+        return GetAllAbilitySlotsConfigValue(sConfigChanges.allAbilitySlots);
+    }
+
 #if TESTING
     if (gConfigChangesTestOverride == NULL)
     {

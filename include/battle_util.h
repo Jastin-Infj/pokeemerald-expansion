@@ -246,7 +246,7 @@ static inline bool32 BattlerHasAbility(enum BattlerId battler, enum Ability abil
 {
     if (ability == ABILITY_NONE)
         return FALSE;
-#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS == FALSE && !B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE && !TESTING && !DEBUG_OVERWORLD_MENU
     return GetBattlerAbility(battler) == ability;
 #else
     if (!gAllAbilitySlotsBattle)

@@ -785,7 +785,7 @@ static enum Ability GetRedirectAbilityForMove(enum BattlerId battler, enum Type 
 {
     enum Ability ability;
 
-#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS == FALSE && !B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE && !TESTING && !DEBUG_OVERWORLD_MENU
     ability = GetBattlerAbility(battler);
 #else
     if (gAllAbilitySlotsBattle)
