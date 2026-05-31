@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-31 |
-| Baseline | `master` `4e48ff993f` |
-| Code status | Adopted into `integration/runtime-dev-20260529`; source remains off `master` |
+| Baseline | `master` `4faec7cb08` / `expansion/1.16.0-104-g4faec7cb08` |
+| Code status | Adopted into `integration/runtime-dev-16-20260531`; source remains off `master` |
 | Provenance | Local project overlay |
 
 ## Runtime Validation Gate
@@ -709,6 +709,55 @@ Validation result on `integration/runtime-dev-20260529`:
   assertion is covered by the focused `All Ability Slots` test because the
   high-speed live session advanced through the KO follow-up quickly. Cleanup
   returned `status --all` to `[]`.
+
+## 16.0 Runtime Port Validation 2026-05-31
+
+`integration/runtime-dev-16-20260531` replays the all-slot runtime onto upstream
+`master` `4faec7cb08`. The port keeps the build default `B_ALL_ABILITY_SLOTS`
+`FALSE` and keeps runtime / debug override support compiled.
+
+Port-specific repairs:
+
+- Updated tests and helper calls for 16.0 API drift, including player party
+  access through `gParties[B_TRAINER_PLAYER]` and the 16.0 `CanFling()` ability
+  parameter.
+- Revalidated and repaired all-slot interactions that changed under the 16.0
+  baseline: Trace, Teraform Zero, Supersweet Syrup, Mega Sol accuracy,
+  Magician after faint, Unnerve after faint, stat-drop blockers, priority
+  blockers, Serene Grace / rainbow flinch stacking, and AI thinking-time guard
+  expectations.
+- Follow-up `codex review --base master` reported two all-slot regressions:
+  defaulted `AbilityBattleEffects(..., ABILITY_NONE, ...)` callers only evaluated
+  the representative slot, and switched-out battlers with HP could still expose
+  abilities while marked `notOnField`.
+- The fix routes defaulted ability-effect callers through the all-slot
+  dispatcher, suppresses abilities only for `notOnField` battlers that still have
+  HP, and preserves Receiver / Power of Alchemy access to fainted ally abilities.
+- Added focused coverage for non-representative `Poison Touch` through the
+  defaulted move-end path and for switched-out / off-field ability suppression.
+- Follow-up uncommitted review exploration highlighted two more representative
+  checks in high-risk paths. Hidden-slot status-immunity abilities now
+  participate in turn-0 / switch-in cleanup, and hidden-slot Gen 8 Intimidate
+  blockers now participate in Intimidate handling. The focused file now has 62
+  `All Ability Slots` cases, including hidden-slot `Immunity` poison cleanup and
+  hidden-slot `Scrappy` Intimidate blocking.
+
+Validation:
+
+- `rtk codex review --base master` completed twice. The first actionable finding
+  was in Held Item Catalog berry ownership; the second actionable pass drove the
+  all-slot defaulted-caller and `notOnField` repairs described above.
+- `rtk make -j16 -O check TESTS='Receiver'` passed.
+- `rtk make -j16 -O check TESTS='Ability Shield on fainted ally'` passed.
+- `rtk make -j16 -O check TESTS='All Ability Slots lets non-representative Scrappy block Intimidate'` passed.
+- `rtk make -j16 -O check TESTS='All Ability Slots lets non-representative Immunity cure existing poison'` passed.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed.
+- `rtk make -j16 -O check` passed.
+- `rtk make -j16 -O all` passed.
+- `rtk make -j16 -O debug` passed.
+- Final mGBA Live session `runtime-dev-16-final-20260531` booted the normal ROM,
+  captured `/tmp/runtime-dev-16-final-20260531.png`, stopped cleanly, and
+  follow-up `status --all` returned `[]`.
 
 ## Required Focused Tests
 

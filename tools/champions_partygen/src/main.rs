@@ -472,13 +472,15 @@ fn cmd_render_one(opts: &Options) -> Result<i32> {
         rom_repo: opts.rom_repo.clone(),
         catalog: opts.catalog.clone(),
         seed: opts.seed,
-        out: None,
+        out: opts.out.clone(),
         trainer: Some(trainer.to_string()),
+        strict: opts.strict,
+        lint_only: opts.lint_only,
         ..Default::default()
     };
-    sub_opts.lint_only = true;
     sub_opts.audit_out = opts.audit_out.clone();
     sub_opts.audit_dir = opts.audit_dir.clone();
+    sub_opts.profile = opts.profile.clone();
     cmd_generate(&sub_opts)
 }
 

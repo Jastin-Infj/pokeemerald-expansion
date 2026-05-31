@@ -49,7 +49,7 @@
 ## Current Automated Coverage
 
 Implemented on `feature/champions-run-session-runtime-20260524` and adopted
-into `integration/runtime-dev-20260529`:
+into `integration/runtime-dev-16-20260531` through the runtime integration lane:
 
 | Test | Evidence |
 |---|---|
@@ -63,7 +63,7 @@ into `integration/runtime-dev-20260529`:
 | PC access guard | `test/champions_run_session.c` confirms `ChampionsRun_CanUseNormalPc` blocks access while active. |
 | Active-run restrictions | `test/champions_run_session.c` confirms Bag, held-item changes, and normal EXP suppression toggle only while active. |
 | Loss restore path | `test/champions_run_session.c` confirms `ChampionsRun_EndByBattleOutcome(B_OUTCOME_LOST)` restores the normal party / bag / money and clears active state. |
-| Loss restore Continue warp | `test/champions_run_session.c` confirms loss restore returns to the saved run-start location, writes that restored warp as the one-shot Continue target for the restore save, then clears the live RAM flag so later normal saves do not inherit a stale run-start warp. |
+| Loss restore Continue warp | `test/champions_run_session.c` confirms loss restore returns to the saved run-start location, clears the one-shot Continue flag before the normal restore save, and keeps the live flag clear so later reloads do not inherit a stale run-start warp. |
 | Retire restore path | `test/champions_run_session.c` confirms `ChampionsRun_RetireAndSave()` restores the normal state, clears active state, and saves through the normal path. |
 | Clear carryover path | `test/champions_run_session.c` confirms `ChampionsRun_CompleteClearAndSave()` deposits the live run party into storage, applies configured held-item carryover, restores normal state, and follows the configured next-start party mode. |
 | SaveBlock budget | `test/save.c` expects `sizeof(struct SaveBlock1) == 15664`. |
@@ -89,11 +89,10 @@ Latest local evidence:
 - 2026-05-31 focused loss-restore Continue warp check:
   `rtk make -j16 -O check TESTS=Champions` passes after extending the loss
   restore test to simulate a run-map location before loss and assert that the
-  restored start location is written to `continueGameWarp` while the live
-  one-shot flag is cleared after the restore save. This targets the manual
-  issue where the in-session loss restore worked, but closing the game without
-  another report could resume on an unexpected map, while avoiding stale warp
-  inheritance on later normal saves.
+  restored start location is written to `continueGameWarp` while the one-shot
+  flag is clear before the normal restore save. This targets the manual issue
+  where the in-session loss restore worked, but closing the game without another
+  report could resume on an unexpected map.
 - `codex review --uncommitted` was run twice. The first pass found stale
   in-memory one-shot Continue warp state after restore save; the source and
   tests were updated, and the second pass found no discrete issues.
@@ -124,6 +123,28 @@ Latest local evidence:
   after repeated stop attempts, and `pgrep` showed `[mgba-qt] <defunct>`.
   This is recorded as the known stale / zombie cleanup state rather than a
   feature failure.
+
+16.0 port closeout on `integration/runtime-dev-16-20260531`:
+
+- The tests were updated for 16.0 player-party storage through
+  `gParties[B_TRAINER_PLAYER]`.
+- `ChampionsRun_EndByBattleOutcome()` and `ChampionsRun_RetireAndSave()` now
+  clear `CONTINUE_GAME_WARP` before the normal restore save, not after it. This
+  keeps the saved file from carrying a stale one-shot reboot warp.
+- `tools/champions_partygen render-one` now respects `--out`, `--strict`,
+  `--lint-only`, `--profile`, and audit options instead of forcing a lint-only
+  dry run. This keeps single-trainer debug generation useful on the 16.0 replay.
+- `rtk cargo check --manifest-path tools/champions_partygen/Cargo.toml` is the
+  focused Rust compile target for this closeout.
+- `rtk cargo run --quiet --manifest-path tools/champions_partygen/Cargo.toml -- render-one --trainer TRAINER_SIDNEY`
+  is the focused smoke target for the fixed single-trainer render path.
+- `rtk make -j16 -O check TESTS=test/champions_run_session.c` passed 8 tests.
+- `rtk make -j16 -O check`, `rtk make -j16 -O all`, and
+  `rtk make -j16 -O debug` passed with the existing RWX linker warning and
+  expected / known-failing test markers.
+- Final mGBA Live session `runtime-dev-16-final-20260531` booted the normal ROM,
+  captured `/tmp/runtime-dev-16-final-20260531.png`, stopped cleanly, and
+  follow-up `status --all` returned `[]`.
 
 Integration evidence on `integration/runtime-dev-20260529`:
 

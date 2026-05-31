@@ -230,7 +230,7 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
         return effect;
     }
 
-    if (!IsBattlerAlive(battler) || !HasWeatherEffect())
+    if (!IsBattlerPresent(battler) || !HasWeatherEffect())
     {
         AdvanceEndTurnWeatherBattler();
         return effect;

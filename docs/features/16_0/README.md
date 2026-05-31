@@ -8,6 +8,7 @@
 | Purpose | 16.0 upgrade / next runtime planning tree |
 | Previous tree | [1.15.3 CompleteTree](../15_3/complete_tree/) |
 | Sync policy | [upgrade_sync_policy.md](upgrade_sync_policy.md) |
+| Current port status | [runtime_port_status.md](runtime_port_status.md) |
 
 16.0 は、1.15.3 integration branch を一度整理したあとに進める次の作業 tree です。
 1.15.3 で完了扱いにしたものは [15.3 CompleteTree](../15_3/complete_tree/)
@@ -20,6 +21,7 @@ baseline として扱い、必要な差分だけ 16.0 側の carryover / sync po
 
 - [16.0 OpenTree](open_tree/)
 - [16.0 Carryover Items](open_tree/carryover_items.md)
+- [16.0 Runtime Port Status](runtime_port_status.md)
 - [15.3 / 15.6 / 16.0 Upgrade Sync Policy](upgrade_sync_policy.md)
 
 ## Policy

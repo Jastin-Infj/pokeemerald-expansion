@@ -212,6 +212,20 @@ TEST("Held item catalog ownership leaves ordinary consumables physical")
     EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), 2);
 }
 
+TEST("Held item catalog ownership leaves consumable berries physical")
+{
+    ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);
+    ASSUME(GetItemPocket(ITEM_ORAN_BERRY) == POCKET_BERRIES);
+    ASSUME(GetItemHoldEffect(ITEM_ORAN_BERRY) != HOLD_EFFECT_NONE);
+
+    ClearBag();
+
+    EXPECT(AddBagItem(ITEM_ORAN_BERRY, 3));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_ORAN_BERRY), 3);
+    EXPECT(RemoveBagItemForHeldItemAssignment(ITEM_ORAN_BERRY));
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_ORAN_BERRY), 2);
+}
+
 TEST("Held item catalog assignment does not create another Bag copy when taking")
 {
     ASSUME(I_HELD_ITEM_CATALOG_ASSIGNMENT == TRUE);

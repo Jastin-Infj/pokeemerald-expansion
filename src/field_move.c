@@ -14,33 +14,48 @@
 
 static bool32 FieldMove_HasToolkitCapability(enum FieldMove fieldMove)
 {
+    bool32 hasLegacyReceiptFlag;
+
     if (!OW_FIELD_MOVE_MODERNIZATION || !OW_FIELD_MOVE_TOOLKIT_REQUIRED || IS_FRLG)
         return TRUE;
-
-    if (!CheckBagHasItem(ITEM_FIELD_KIT, 1))
-        return FALSE;
 
     switch (fieldMove)
     {
     case FIELD_MOVE_CUT:
-        return FlagGet(FLAG_RECEIVED_HM_CUT);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_CUT);
+        break;
     case FIELD_MOVE_FLASH:
-        return FlagGet(FLAG_RECEIVED_HM_FLASH);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_FLASH);
+        break;
     case FIELD_MOVE_ROCK_SMASH:
-        return FlagGet(FLAG_RECEIVED_HM_ROCK_SMASH);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_ROCK_SMASH);
+        break;
     case FIELD_MOVE_STRENGTH:
-        return FlagGet(FLAG_RECEIVED_HM_STRENGTH);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_STRENGTH);
+        break;
     case FIELD_MOVE_SURF:
-        return FlagGet(FLAG_RECEIVED_HM_SURF);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_SURF);
+        break;
     case FIELD_MOVE_FLY:
-        return FlagGet(FLAG_RECEIVED_HM_FLY);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_FLY);
+        break;
     case FIELD_MOVE_DIVE:
-        return FlagGet(FLAG_RECEIVED_HM_DIVE);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_DIVE);
+        break;
     case FIELD_MOVE_WATERFALL:
-        return FlagGet(FLAG_RECEIVED_HM_WATERFALL);
+        hasLegacyReceiptFlag = FlagGet(FLAG_RECEIVED_HM_WATERFALL);
+        break;
     default:
         return TRUE;
     }
+
+    if (!hasLegacyReceiptFlag)
+        return FALSE;
+
+    if (!CheckBagHasItem(ITEM_FIELD_KIT, 1))
+        AddBagItem(ITEM_FIELD_KIT, 1);
+
+    return TRUE;
 }
 
 static bool32 FieldMove_CheckModernUnlock(enum FieldMove fieldMove, bool32 badgeUnlocked)

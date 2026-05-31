@@ -429,11 +429,13 @@ bool32 RemoveBagItem(enum Item itemId, u16 count)
 
 bool32 IsHeldItemCatalogActiveForItem(enum Item itemId)
 {
+    enum Pocket pocket = GetItemPocket(itemId);
+
     if (I_HELD_ITEM_CATALOG_ASSIGNMENT != TRUE)
         return FALSE;
     if (itemId == ITEM_NONE || ItemIsMail(itemId))
         return FALSE;
-    if (GetItemPocket(itemId) >= POCKETS_COUNT || GetItemPocket(itemId) == POCKET_KEY_ITEMS)
+    if (pocket >= POCKETS_COUNT || pocket == POCKET_KEY_ITEMS || pocket == POCKET_BERRIES)
         return FALSE;
     if (GetItemHoldEffect(itemId) == HOLD_EFFECT_NONE)
         return FALSE;

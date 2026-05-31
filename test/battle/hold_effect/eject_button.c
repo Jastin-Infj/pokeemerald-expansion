@@ -289,3 +289,25 @@ SINGLE_BATTLE_TEST("Eject Button activates and the attacker takes Life Orb recoi
         ABILITY_POPUP(opponent, ABILITY_INTIMIDATE);
     }
 }
+
+SINGLE_BATTLE_TEST("Eject Button holder is not damaged by weather after leaving the field")
+{
+    GIVEN {
+        ASSUME(GetSpeciesAbility(SPECIES_TYRANITAR, 0) == ABILITY_SAND_STREAM);
+        PLAYER(SPECIES_TYRANITAR) { Ability(ABILITY_SAND_STREAM); }
+        OPPONENT(SPECIES_WOBBUFFET) { Item(ITEM_EJECT_BUTTON); }
+        OPPONENT(SPECIES_STEELIX);
+    } WHEN {
+        TURN { MOVE(player, MOVE_SCRATCH); SEND_OUT(opponent, 1); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_SAND_STREAM);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SCRATCH, player);
+        HP_BAR(opponent);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_HELD_ITEM_EFFECT, opponent);
+        MESSAGE("The opposing Wobbuffet is switched out with the Eject Button!");
+        NONE_OF {
+            HP_BAR(opponent);
+        }
+        MESSAGE("2 sent out Steelix!");
+    }
+}

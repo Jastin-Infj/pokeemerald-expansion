@@ -131,6 +131,26 @@ The integration smoke validates the debug route entry and script handoff. It
 does not replace the broader static audit for every retired NPC, map pickup,
 shop, and prize source.
 
+## 16.0 Replay Adoption: 2026-05-31
+
+Runtime branch: `integration/runtime-dev-16-20260531`
+
+The 16.0 replay keeps the upstream 16.0 script baseline authoritative, then
+reapplies the Emerald TM / HM source retirement. `codex review --base master`
+found one New Mauville flow regression from the replay: moving Wattson back to
+the Gym during `MauvilleCity_OnTransition` made the post-generator city
+completion conversation unreachable. The transition hook was removed; the
+existing `MauvilleCity_EventScript_CompletedNewMauville` conversation remains
+the only place that flips Wattson back to the Gym.
+
+Validation after the fix:
+
+| Check | Result |
+|---|---|
+| `rtk make -j16 -O all` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O check` | Passed with existing expected / known-failing markers. |
+
 ## Remaining Risks
 
 - FRLG-specific legacy TM acquisition remains. If this feature should cover

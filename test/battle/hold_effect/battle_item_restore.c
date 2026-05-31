@@ -1,6 +1,7 @@
 #include "global.h"
 #include "pokemon.h"
 #include "test/battle.h"
+#include "constants/battle.h"
 
 SINGLE_BATTLE_TEST("Battle-end restore returns a consumed Oran Berry to the party")
 {
@@ -16,12 +17,12 @@ SINGLE_BATTLE_TEST("Battle-end restore returns a consumed Oran Berry to the part
     } SCENE {
         ANIMATION(ANIM_TYPE_MOVE, MOVE_DRAGON_RAGE, opponent);
         HP_BAR(player);
-        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_HELD_ITEM_EFFECT, player);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_HELD_ITEM_BERRY, player);
         HP_BAR(player);
         ANIMATION(ANIM_TYPE_MOVE, MOVE_SCRATCH, player);
         HP_BAR(opponent);
     } THEN {
         EXPECT_EQ(player->item, ITEM_NONE);
-        EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_HELD_ITEM), ITEM_ORAN_BERRY);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_HELD_ITEM), ITEM_ORAN_BERRY);
     }
 }

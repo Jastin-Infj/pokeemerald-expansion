@@ -200,6 +200,10 @@ prints the unlock message only if one or more recruits unlocked.
   original party snapshot and are mirrored back into the selected battle copy
   before restore. This prevents a selected locked recruit from losing bond
   progress when the temporary selected party is restored into the real party.
+- 16.0 replay follow-up: the vendor now frees loaded Pokemon icon palettes on
+  both build-failure and close paths. This keeps repeated open / close and
+  early allocation-failure routes from leaking icon palette tags after the
+  selected-product icon detail pane is active.
 
 ## Validation
 

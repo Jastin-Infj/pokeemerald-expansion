@@ -82,6 +82,14 @@
   - `rtk make -j16 -O all`: PASS on 2026-05-30.
   - `rtk make -j16 -O debug`: PASS on 2026-05-30.
   - `rtk make -j16 -O check`: PASS on 2026-05-30.
+- 16.0 replay old-save compatibility follow-up:
+  - Old saves with legacy `FLAG_RECEIVED_HM_*` progress but no
+    `ITEM_FIELD_KIT` now auto-migrate the Field Kit item when an unlocked modern
+    HM field move is checked.
+  - Focused test: `Modern Field Kit migrates old HM receipt saves` in
+    `test/field_move.c`.
+  - Validation: `rtk make -j16 -O check TESTS=test/field_move.c` passed on
+    2026-05-31.
 - Capture Styler reference art revision:
   - Expected visual change: reduce the heavy black outer border, make the gray strap read more like a tilted ring / bracelet, and keep the top body closer to the official Capture Styler angle with a red shell, gold ring, and blue lens.
   - Cleanup pass: reduce roughness by removing isolated pixels, simplifying the ring into larger gray clusters, and keeping highlights as small blocks instead of scattered 1px noise.

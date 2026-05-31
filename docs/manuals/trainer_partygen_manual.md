@@ -284,6 +284,14 @@ defaults for `minimum_adaptation_runs`, `exploration_rate`, and friends, and
 privacy boundaries) lives in
 `docs/features/champions_challenge/partygen_player_style_logging.md`.
 
+## 16.0 Render-One Note
+
+`partygen render-one --trainer TRAINER_ID` is no longer lint-only by default in
+the 16.0 replay. It forwards the same output and audit controls used by
+`generate`, including `--out`, `--strict`, `--lint-only`, `--audit-out`,
+`--audit-dir`, and `--profile`. Use `--lint-only` explicitly when the goal is a
+dry validation pass without writing or printing the generated block.
+
 ## Review Checklist
 
 Before committing generated trainer data:

@@ -18,11 +18,11 @@
 static void InitNormalStateForChampionsRunTest(void)
 {
     ZeroPlayerPartyMons();
-    gPlayerPartyCount = 0;
+    gPartiesCount[B_TRAINER_PLAYER] = 0;
     ClearBag();
 
-    CreateMon(&gPlayerParty[0], SPECIES_PIKACHU, 50, 0, OTID_STRUCT_PRESET(0));
-    CreateMon(&gPlayerParty[1], SPECIES_DRAGONITE, 50, 1, OTID_STRUCT_PRESET(1));
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_PIKACHU, 50, 0, OTID_STRUCT_PRESET(0));
+    CreateMon(&gParties[B_TRAINER_PLAYER][1], SPECIES_DRAGONITE, 50, 1, OTID_STRUCT_PRESET(1));
     CalculatePlayerPartyCount();
 
     AddBagItem(ITEM_POTION, 3);
@@ -37,7 +37,7 @@ TEST("Champions run entry snapshots normal state and clears live challenge state
 
     EXPECT_EQ(ChampionsRun_BeginEntry(), TRUE);
     EXPECT_EQ(ChampionsRun_IsActive(), TRUE);
-    EXPECT_EQ(gPlayerPartyCount, 0);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 0);
     EXPECT_EQ(CalculatePlayerPartyCount(), 0);
     EXPECT_EQ(CheckBagHasItem(ITEM_POTION, 1), FALSE);
     EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 0);
@@ -46,9 +46,9 @@ TEST("Champions run entry snapshots normal state and clears live challenge state
     ChampionsRun_RestoreNormalState(CHAMPIONS_RUN_STATUS_RETIRED);
 
     EXPECT_EQ(ChampionsRun_IsActive(), FALSE);
-    EXPECT_EQ(gPlayerPartyCount, 2);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_PIKACHU);
-    EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_PIKACHU);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
     EXPECT_EQ(CheckBagHasItem(ITEM_POTION, 3), TRUE);
     EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 12345);
     EXPECT_EQ(GetCoins(), 123);
@@ -137,17 +137,17 @@ TEST("Champions run defeat restores the normal party before clearing the session
     gSaveBlock1Ptr->location.y = 10;
     gSaveBlock1Ptr->pos.x = 10;
     gSaveBlock1Ptr->pos.y = 10;
-    CreateMon(&gPlayerParty[0], SPECIES_MAGIKARP, 1, 0, OTID_STRUCT_PRESET(2));
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_MAGIKARP, 1, 0, OTID_STRUCT_PRESET(2));
     CalculatePlayerPartyCount();
-    EXPECT_EQ(gPlayerPartyCount, 1);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_MAGIKARP);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 1);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_MAGIKARP);
 
     EXPECT_EQ(ChampionsRun_EndByBattleOutcome(B_OUTCOME_LOST), TRUE);
 
     EXPECT_EQ(ChampionsRun_IsActive(), FALSE);
-    EXPECT_EQ(gPlayerPartyCount, 2);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_PIKACHU);
-    EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_PIKACHU);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
     EXPECT_EQ(CheckBagHasItem(ITEM_POTION, 3), TRUE);
     EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 12345);
     EXPECT_EQ(GetCoins(), 123);
@@ -167,7 +167,7 @@ TEST("Champions run retire restores the normal state and clears the run")
     InitNormalStateForChampionsRunTest();
     EXPECT_EQ(ChampionsRun_BeginEntry(), TRUE);
 
-    CreateMon(&gPlayerParty[0], SPECIES_MAGIKARP, 1, 0, OTID_STRUCT_PRESET(2));
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_MAGIKARP, 1, 0, OTID_STRUCT_PRESET(2));
     CalculatePlayerPartyCount();
     EXPECT_EQ(AddBagItem(ITEM_RARE_CANDY, 2), TRUE);
     for (i = 0; i < ARRAY_COUNT(gSaveBlock1Ptr->mapView); i++)
@@ -176,9 +176,9 @@ TEST("Champions run retire restores the normal state and clears the run")
     EXPECT_EQ(ChampionsRun_RetireAndSave(), SAVE_STATUS_OK);
 
     EXPECT_EQ(ChampionsRun_IsActive(), FALSE);
-    EXPECT_EQ(gPlayerPartyCount, 2);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_PIKACHU);
-    EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_PIKACHU);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
     EXPECT_EQ(UseContinueGameWarp(), FALSE);
     EXPECT_EQ(CheckBagHasItem(ITEM_POTION, 3), TRUE);
     EXPECT_EQ(CheckBagHasItem(ITEM_RARE_CANDY, 1), FALSE);
@@ -194,19 +194,19 @@ TEST("Champions run clear deposits run party and follows configured next-start c
     InitNormalStateForChampionsRunTest();
     EXPECT_EQ(ChampionsRun_BeginEntry(), TRUE);
 
-    CreateMon(&gPlayerParty[0], SPECIES_MAGIKARP, 10, 0, OTID_STRUCT_PRESET(2));
-    CreateMon(&gPlayerParty[1], SPECIES_DRAGONITE, 50, 0, OTID_STRUCT_PRESET(3));
-    SetMonData(&gPlayerParty[1], MON_DATA_HELD_ITEM, &heldItem);
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_MAGIKARP, 10, 0, OTID_STRUCT_PRESET(2));
+    CreateMon(&gParties[B_TRAINER_PLAYER][1], SPECIES_DRAGONITE, 50, 0, OTID_STRUCT_PRESET(3));
+    SetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_HELD_ITEM, &heldItem);
     CalculatePlayerPartyCount();
-    EXPECT_EQ(gPlayerPartyCount, 2);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
     EXPECT_EQ(AddBagItem(ITEM_RARE_CANDY, 2), TRUE);
 
     EXPECT_EQ(ChampionsRun_CompleteClearAndSave(), SAVE_STATUS_OK);
 
     EXPECT_EQ(ChampionsRun_IsActive(), FALSE);
-    EXPECT_EQ(gPlayerPartyCount, 2);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_PIKACHU);
-    EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_PIKACHU);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
     EXPECT_EQ(CountAllStorageMons(), 2);
 #if CHAMPIONS_RUN_CLEAR_CARRY_ITEMS == TRUE
     EXPECT_EQ(CheckBagHasItem(ITEM_RARE_CANDY, 2), TRUE);
@@ -223,15 +223,15 @@ TEST("Champions run clear deposits run party and follows configured next-start c
 
     EXPECT_EQ(ChampionsRun_BeginEntry(), TRUE);
 #if CHAMPIONS_RUN_ENTRY_PARTY_MODE == CHAMPIONS_RUN_START_PARTY_LAST_CLEAR
-    EXPECT_EQ(gPlayerPartyCount, 2);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_MAGIKARP);
-    EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_MAGIKARP);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
 #elif CHAMPIONS_RUN_ENTRY_PARTY_MODE == CHAMPIONS_RUN_START_PARTY_CURRENT
-    EXPECT_EQ(gPlayerPartyCount, 2);
-    EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_PIKACHU);
-    EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 2);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPECIES), SPECIES_PIKACHU);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
 #else
-    EXPECT_EQ(gPlayerPartyCount, 0);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 0);
 #endif
 
     ChampionsRun_RestoreNormalState(CHAMPIONS_RUN_STATUS_RETIRED);

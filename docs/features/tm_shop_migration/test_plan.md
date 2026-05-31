@@ -140,3 +140,24 @@ Remaining manual checks:
 - Route-specific NPC/gym/HM-source conversations were not walked in this
   integration pass.
 - FRLG-specific legacy TM/HM acquisition remains follow-up scope.
+
+## 16.0 Replay Validation: 2026-05-31
+
+Branch checked: `integration/runtime-dev-16-20260531`
+
+This replay keeps upstream 16.0 map / script structure authoritative while
+reapplying the TM / HM source retirement.
+
+| Check | Result | Notes |
+|---|---|---|
+| `rtk codex review --base master` | Fixed | Review found that `MauvilleCity_OnTransition` moved Wattson back to the Gym as soon as `VAR_NEW_MAUVILLE_STATE` reached `2`, which skipped the New Mauville completion conversation. The transition-time move was removed; `MauvilleCity_EventScript_CompletedNewMauville` remains the place that moves Wattson back after the player receives the payoff dialogue. |
+| `rtk make -j16 -O all` | Passed | Existing RWX linker warning only. |
+| `rtk make -j16 -O debug` | Passed | Existing RWX linker warning only. |
+| `rtk make -j16 -O check` | Passed | Existing expected / known-failing markers only. |
+
+Remaining manual check:
+
+- Walk the New Mauville post-generator return path in mGBA before a runtime
+  release merge: turn off the generator, return to Mauville City, confirm
+  Wattson is still in the city, talk to him, then confirm he moves back to the
+  Gym afterward.

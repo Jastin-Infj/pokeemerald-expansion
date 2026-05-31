@@ -207,9 +207,10 @@ static enum ItemEffect TryKingsRock(enum BattlerId battlerAtk, enum BattlerId ba
 
     u32 holdEffectParam = GetItemHoldEffectParam(item);
 
-    if (B_SERENE_GRACE_BOOST >= GEN_5 && BattlerHasAbility(battlerAtk, ABILITY_SERENE_GRACE))
-        holdEffectParam *= 2;
-    if (gSideStatuses[GetBattlerSide(battlerAtk)] & SIDE_STATUS_RAINBOW && gCurrentMove != MOVE_SECRET_POWER)
+    bool32 hasSereneGrace = B_SERENE_GRACE_BOOST >= GEN_5 && BattlerHasAbility(battlerAtk, ABILITY_SERENE_GRACE);
+    bool32 hasRainbow = gSideStatuses[GetBattlerSide(battlerAtk)] & SIDE_STATUS_RAINBOW && gCurrentMove != MOVE_SECRET_POWER;
+
+    if (hasSereneGrace || hasRainbow)
         holdEffectParam *= 2;
     if (!BattlerHasAbility(battlerAtk, ABILITY_STENCH) && RandomPercentage(RNG_HOLD_EFFECT_FLINCH, holdEffectParam))
     {

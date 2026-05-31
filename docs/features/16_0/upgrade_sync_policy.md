@@ -8,6 +8,7 @@
 | Purpose | 15.3 runtime integration docs を、今後の 15.6 / 16.0 upstream baseline と混ぜないための同期方針 |
 | Previous complete tree | [15.3 CompleteTree](../15_3/complete_tree/) |
 | Carryover list | [16.0 Carryover Items](open_tree/carryover_items.md) |
+| Current 16.0 replay | [runtime_port_status.md](runtime_port_status.md) |
 
 ## Version Meaning
 
@@ -47,6 +48,23 @@
 7. docs は一括コピーしない。まず upstream の README / docs を残し、必要な local docs だけ移植する。
 8. conflict が出た feature は `16_0/open_tree/carryover_items.md` に追記する。
 9. local build / check / mGBA evidence を取ってから、16.0 用の新しい completed / carryover tree を作る。
+
+## Current Replay Result
+
+The first 16.0 replay was performed on `integration/runtime-dev-16-20260531`
+from upstream `master` `4faec7cb08`
+(`expansion/1.16.0-104-g4faec7cb08`). The closeout status is
+[16.0 Runtime Port Status](runtime_port_status.md).
+
+The practical rule from this replay is:
+
+1. Keep new upstream source/data shape unless a local feature explicitly needs
+   a replayed hook.
+2. Fix port drift with focused tests first, then full `check` / `all` / `debug`.
+3. Run Codex review against the upgraded `master`; record and patch actionable
+   findings before handoff.
+4. Keep generated binaries and runtime artifacts out of git. Distribute desktop
+   tools through Actions artifacts / releases.
 
 ## Practical Read Order
 

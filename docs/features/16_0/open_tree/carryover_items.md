@@ -7,6 +7,7 @@
 | Last reviewed | 2026-05-31 |
 | Purpose | 1.15.3 で完了扱いにしないもの、16.0 / 15.x sync 後に再確認するもの |
 | Previous complete tree | [15.3 CompleteTree](../../15_3/complete_tree/) |
+| Current port status | [16.0 Runtime Port Status](../runtime_port_status.md) |
 
 この file は、まだ完了扱いにしない作業だけを置く場所です。
 15.3 の実装済み feature と混ぜないため、16.0 側では `carryover` として扱います。
@@ -16,7 +17,7 @@
 | Priority | Item | Why it is open | Suggested 16.0 action |
 |---|---|---|---|
 | High | CI / workflow cleanup | Latest PR #68 CI still goes red because `build-firered` and `build-leafgreen` fail while `build-emerald` and docs validation pass. Local `all` / `debug` / `check` are green for the Emerald integration target. | Decide whether branch CI should only gate Emerald/local target for runtime-dev, or repair FRLG/test jobs for the full matrix. |
-| High | Upstream 15.6 / 16.0 resync | Upstream may move master to a newer 15.x or 16.0 baseline, changing README, feature docs, configs, generated data, and build rules. | Rebase / replay #68 intentionally and update [upgrade_sync_policy.md](../upgrade_sync_policy.md) with conflicts. |
+| High | Future upstream resync | Initial 16.0 replay is recorded in [runtime_port_status.md](../runtime_port_status.md), but upstream may move again and change README, feature docs, configs, generated data, and build rules. | Rebase / replay intentionally from the newest `master`, keeping upstream source authoritative and updating this carryover list with conflicts. |
 | Medium | Randomizer / EX lane | `feature/EX/ex-rz-upstream1` remains a large separate randomizer lane. | Re-audit after the new upstream baseline. Do not merge wholesale into 1.15.3 CompleteTree. |
 | Medium | Map / Fly experiment data | Map Asset Relinker tool is complete, but Route301 / sample gameplay maps are not part of 1.15.3 runtime integration. | Start a dedicated 16.0 map content branch if actual map data should ship. |
 | Medium | Bag Expansion | Still planning / investigation, not implemented in #68. | Revisit after Champions run / Field Kit pressure and new SaveBlock changes are known. |
@@ -60,6 +61,7 @@ Option 1 is least disruptive for current 1.15.3 preservation. Option 2 is likely
 1. Decide #68 CI policy first.
 2. Keep `master` docs / Lua-only and do not merge #68 runtime source there.
 3. If a docs handoff to `master` is needed, cherry-pick only the version-tree docs needed for handoff, not the whole #68 docs state.
-4. After `master` is updated to the next upstream baseline, create a fresh integration branch from that new `master`.
-5. Replay / reapply #68 runtime feature slices intentionally, using [completed_features.md](../../15_3/complete_tree/completed_features.md) as the checklist.
-6. Record every upstream conflict or changed assumption here before starting new runtime feature work.
+4. For the current 16.0 replay, use [runtime_port_status.md](../runtime_port_status.md) as the closeout state.
+5. For the next upstream movement, create a fresh integration branch from the newest `master`.
+6. Replay / reapply runtime feature slices intentionally, using [completed_features.md](../../15_3/complete_tree/completed_features.md) and the 16.0 port status as the checklist.
+7. Record every upstream conflict or changed assumption here before starting new runtime feature work.

@@ -102,7 +102,6 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Flash Fire absor
         TURN { MOVE(player, MOVE_FLAMETHROWER); }
     } SCENE {
         ABILITY_POPUP(opponent, ABILITY_FLASH_FIRE);
-        MESSAGE("The opposing Houndoom's Flash Fire raised the power of Fire-type moves!");
         NONE_OF {
             ANIMATION(ANIM_TYPE_MOVE, MOVE_FLAMETHROWER, player);
             HP_BAR(opponent);
@@ -151,7 +150,7 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Soundproof block
         TURN { MOVE(player, MOVE_HYPER_VOICE); }
     } SCENE {
         ABILITY_POPUP(opponent, ABILITY_SOUNDPROOF);
-        MESSAGE("The opposing Kommo-o's Soundproof blocks Hyper Voice!");
+        MESSAGE("It doesn't affect the opposing Kommo-o…");
         NONE_OF {
             ANIMATION(ANIM_TYPE_MOVE, MOVE_HYPER_VOICE, player);
             HP_BAR(opponent);
@@ -468,7 +467,7 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Drought start su
     } SCENE {
         ABILITY_POPUP(player, ABILITY_DROUGHT);
         NOT ABILITY_POPUP(player, ABILITY_FLASH_FIRE);
-        MESSAGE("Ninetales's Drought intensified the sun's rays!");
+        MESSAGE("The sunlight is strong.");
     } THEN {
         EXPECT(gBattleWeather & B_WEATHER_SUN);
         EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_DROUGHT));
@@ -490,6 +489,28 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Intimidate trigg
     } THEN {
         EXPECT_EQ(opponent->statStages[STAT_ATK], DEFAULT_STAT_STAGE - 1);
         EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_INTIMIDATE));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Scrappy block Intimidate")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        WITH_CONFIG(B_UPDATED_INTIMIDATE, GEN_8);
+        ASSUME(GetSpeciesAbility(SPECIES_EXPLOUD, 0) == ABILITY_SOUNDPROOF);
+        ASSUME(GetSpeciesAbility(SPECIES_EXPLOUD, 2) == ABILITY_SCRAPPY);
+        ASSUME(GetSpeciesAbility(SPECIES_MIGHTYENA, 0) == ABILITY_INTIMIDATE);
+        PLAYER(SPECIES_EXPLOUD) { Ability(ABILITY_SOUNDPROOF); }
+        OPPONENT(SPECIES_MIGHTYENA) { Ability(ABILITY_INTIMIDATE); }
+    } WHEN {
+        TURN {}
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_INTIMIDATE);
+        ABILITY_POPUP(player, ABILITY_SCRAPPY);
+        MESSAGE("Exploud's Attack was not lowered!");
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_ATK], DEFAULT_STAT_STAGE);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_SCRAPPY));
     }
 }
 
@@ -528,7 +549,124 @@ SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Klutz suppress hel
     } THEN {
         enum BattlerId battler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
         EXPECT_EQ(GetBattlerHoldEffect(battler), HOLD_EFFECT_NONE);
-        EXPECT(!CanFling(battler));
+        EXPECT(!CanFling(battler, GetBattlerAbility(battler)));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots makes non-representative Klutz fail Natural Gift")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_LOPUNNY, 0) == ABILITY_CUTE_CHARM);
+        ASSUME(GetSpeciesAbility(SPECIES_LOPUNNY, 1) == ABILITY_KLUTZ);
+        PLAYER(SPECIES_LOPUNNY) { Ability(ABILITY_CUTE_CHARM); Item(ITEM_PECHA_BERRY); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_NATURAL_GIFT); }
+    } SCENE {
+        NOT ANIMATION(ANIM_TYPE_MOVE, MOVE_NATURAL_GIFT, player);
+    } THEN {
+        EXPECT_EQ(player->item, ITEM_PECHA_BERRY);
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Insomnia block Rest")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_ARIADOS, 0) == ABILITY_SWARM);
+        ASSUME(GetSpeciesAbility(SPECIES_ARIADOS, 1) == ABILITY_INSOMNIA);
+        PLAYER(SPECIES_ARIADOS) { Ability(ABILITY_SWARM); HP(1); MaxHP(100); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_REST); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_INSOMNIA);
+        NONE_OF {
+            ANIMATION(ANIM_TYPE_MOVE, MOVE_REST, player);
+            STATUS_ICON(player, sleep: TRUE);
+            HP_BAR(player);
+        }
+    } THEN {
+        EXPECT_EQ(player->hp, 1);
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Immunity cure existing poison")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_GLIGAR, 0) == ABILITY_HYPER_CUTTER);
+        ASSUME(GetSpeciesAbility(SPECIES_GLIGAR, 2) == ABILITY_IMMUNITY);
+        PLAYER(SPECIES_GLIGAR) { Ability(ABILITY_HYPER_CUTTER); Status1(STATUS1_POISON); Moves(MOVE_SPLASH); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SPLASH); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_IMMUNITY);
+        TURN { MOVE(player, MOVE_SPLASH); MOVE(opponent, MOVE_SPLASH); }
+    } THEN {
+        EXPECT_EQ(player->status1, STATUS1_NONE);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_IMMUNITY));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Magic Bounce reflect status moves")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_ESPEON, 0) == ABILITY_SYNCHRONIZE);
+        ASSUME(GetSpeciesAbility(SPECIES_ESPEON, 2) == ABILITY_MAGIC_BOUNCE);
+        ASSUME(GetMoveEffect(MOVE_TOXIC) == EFFECT_NON_VOLATILE_STATUS);
+        ASSUME(GetMoveNonVolatileStatus(MOVE_TOXIC) == MOVE_EFFECT_TOXIC);
+        PLAYER(SPECIES_WYNAUT);
+        OPPONENT(SPECIES_ESPEON) { Ability(ABILITY_SYNCHRONIZE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TOXIC); }
+    } SCENE {
+        ABILITY_POPUP(opponent, ABILITY_MAGIC_BOUNCE);
+        MESSAGE("Wynaut's Toxic was bounced back!");
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_TOXIC, opponent);
+        STATUS_ICON(player, badPoison: TRUE);
+    } THEN {
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), ABILITY_MAGIC_BOUNCE));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Plus receive Magnetic Flux")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_DEDENNE, 0) == ABILITY_CHEEK_POUCH);
+        ASSUME(GetSpeciesAbility(SPECIES_DEDENNE, 2) == ABILITY_PLUS);
+        ASSUME(GetMoveEffect(MOVE_MAGNETIC_FLUX) == EFFECT_STAT_CHANGE_MAGNETIC);
+        PLAYER(SPECIES_DEDENNE) { Ability(ABILITY_CHEEK_POUCH); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_MAGNETIC_FLUX); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_MAGNETIC_FLUX, player);
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_DEF], DEFAULT_STAT_STAGE + 1);
+        EXPECT_EQ(player->statStages[STAT_SPDEF], DEFAULT_STAT_STAGE + 1);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_PLUS));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Mirror Armor reflect stat drops")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_CORVIKNIGHT, 0) == ABILITY_PRESSURE);
+        ASSUME(GetSpeciesAbility(SPECIES_CORVIKNIGHT, 2) == ABILITY_MIRROR_ARMOR);
+        PLAYER(SPECIES_CORVIKNIGHT) { Ability(ABILITY_PRESSURE); }
+        OPPONENT(SPECIES_WYNAUT);
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_LEER); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_MIRROR_ARMOR);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_STATS_CHANGE, opponent);
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_DEF], DEFAULT_STAT_STAGE);
+        EXPECT_EQ(opponent->statStages[STAT_DEF], DEFAULT_STAT_STAGE - 1);
     }
 }
 
@@ -1158,5 +1296,49 @@ SINGLE_BATTLE_TEST("All Ability Slots does not replay Solar Power during third-b
         EXPECT_EQ(damage, 20);
         EXPECT_EQ(player->hp, 140);
         EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_SOLAR_POWER));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets defaulted move-end effects use non-representative Poison Touch")
+{
+    PASSES_RANDOMLY(3, 10, RNG_POISON_TOUCH);
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_MUK, 0) == ABILITY_STENCH);
+        ASSUME(GetSpeciesAbility(SPECIES_MUK, 2) == ABILITY_POISON_TOUCH);
+        ASSUME(MoveMakesContact(MOVE_SCRATCH));
+        PLAYER(SPECIES_MUK) { Ability(ABILITY_STENCH); Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_SCRATCH); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SCRATCH, player);
+        ABILITY_POPUP(player, ABILITY_POISON_TOUCH);
+        ANIMATION(ANIM_TYPE_STATUS, B_ANIM_STATUS_PSN, opponent);
+        STATUS_ICON(opponent, poison: TRUE);
+    } THEN {
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_POISON_TOUCH));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots suppresses abilities while a battler is off field")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_MUK, 0) == ABILITY_STENCH);
+        ASSUME(GetSpeciesAbility(SPECIES_MUK, 2) == ABILITY_POISON_TOUCH);
+        PLAYER(SPECIES_MUK) { Ability(ABILITY_STENCH); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); MOVE(opponent, MOVE_CELEBRATE); }
+    } THEN {
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        bool8 savedNotOnField = gBattleStruct->battlerState[battler].notOnField;
+
+        gBattleStruct->battlerState[battler].notOnField = TRUE;
+        EXPECT_EQ(GetBattlerAbility(battler), ABILITY_NONE);
+        EXPECT(!BattlerHasAbility(battler, ABILITY_STENCH));
+        EXPECT(!BattlerHasAbility(battler, ABILITY_POISON_TOUCH));
+        gBattleStruct->battlerState[battler].notOnField = savedNotOnField;
     }
 }

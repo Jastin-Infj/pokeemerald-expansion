@@ -4,12 +4,29 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-29 |
-| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Last reviewed | 2026-05-31 |
+| Baseline | `master` `4faec7cb08`; integration branch `integration/runtime-dev-16-20260531` |
 | Code status | Catalog assignment adopted into runtime integration branch |
 | Provenance | Local source read and feature planning |
 
 ## Validation Log
+
+2026-05-31 (`integration/runtime-dev-16-20260531`, baseline `master`
+`4faec7cb08`):
+
+- `rtk codex review --base master` found one P2 issue: berries were treated as
+  catalog ownership tokens because Berry-pocket items can have held effects, but
+  existing berry planting / use paths still consume physical Bag quantities.
+- The fix excludes `POCKET_BERRIES` from `IsHeldItemCatalogActiveForItem()`.
+  Berries now remain physical inventory, while non-mail held items in ordinary
+  held-item pockets still use one ownership token.
+- `rtk make -j16 -O check TESTS=test/bag.c`: passed, 11 tests. The focused suite
+  now includes `Held item catalog ownership leaves consumable berries physical`.
+- `rtk make -j16 -O check`: passed.
+- `rtk make -j16 -O all`: passed.
+- `rtk make -j16 -O debug`: passed.
+- mGBA Live session `runtime-dev-16-boot` booted the debug ROM, captured
+  `/tmp/runtime-dev-16-boot.png`, and stopped cleanly.
 
 2026-05-29 (`integration/runtime-dev-20260529`, baseline `master`
 `4e48ff993f`):
@@ -109,6 +126,7 @@ For any runtime branch:
 | Assign one Bag-held Leftovers to two party Pokemon | Both Pokemon can hold Leftovers; Bag quantity does not decrease. Helper coverage exists; mGBA UI route remains. |
 | Add duplicate catalog item copies | Bag stores one token only; existing duplicate token stacks normalize back to one when touched by catalog add / give / return helpers. |
 | Add ordinary consumables like Potion | Physical quantity behavior remains unchanged because items without a hold effect are outside the catalog token policy. |
+| Add consumable berries like Oran Berry | Physical quantity behavior remains unchanged even though berries have held effects; Berry-pocket items are excluded from catalog ownership. |
 | Bag list catalog token display | Catalog items show the token marker instead of `x1`; ordinary physical items still show numeric quantity. |
 | Take catalog-assigned item | Pokemon held item clears; Bag quantity does not increase when the Bag already owns the item. |
 | Take first-time held item | Pokemon held item clears and one Bag copy is added if the Bag did not already own the item. |

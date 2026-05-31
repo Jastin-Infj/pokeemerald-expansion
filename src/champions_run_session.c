@@ -545,8 +545,8 @@ bool32 ChampionsRun_EndByBattleOutcome(u8 battleOutcome)
     RestoreNormalState(session, CHAMPIONS_RUN_STATUS_LOST, TRUE);
     session->outcome = battleOutcome;
 
-    saveStatus = TrySavingData(SAVE_NORMAL);
     ClearContinueGameWarpStatus();
+    saveStatus = TrySavingData(SAVE_NORMAL);
     (void)saveStatus;
     return TRUE;
 }
@@ -579,8 +579,8 @@ u8 ChampionsRun_RetireAndSave(void)
         return SAVE_STATUS_ERROR;
 
     RestoreNormalState(session, CHAMPIONS_RUN_STATUS_RETIRED, TRUE);
-    saveStatus = TrySavingData(SAVE_NORMAL);
     ClearContinueGameWarpStatus();
+    saveStatus = TrySavingData(SAVE_NORMAL);
     return saveStatus;
 }
 

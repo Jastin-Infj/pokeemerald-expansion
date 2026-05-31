@@ -67,6 +67,13 @@ Dive の field input は既存コード上、Dive down が A button (`TrySetupDi
 
 Field Kit は UI / lore anchor として単一 item に留め、実際の解禁は capability flags で管理する。古い HM receive flags は TM Shop Migration で unused に戻したため、capability flags は field move feature 側で別名 / 別枠として持つ。per-HM key item は Key Items pocket を圧迫し、badge-only はジム進行以外の解禁設計が窮屈になる。現状の Key Items pocket は `BAG_KEYITEMS_COUNT 30` で、save block の `keyItems[BAG_KEYITEMS_COUNT]` に固定長で入っているため、[Bag Expansion](../bag_expansion/README.md) は大型改修として別 feature に分離する。
 
+16.0 replay follow-up: old saves can legitimately have legacy
+`FLAG_RECEIVED_HM_*` progress from before the Field Kit item existed. When
+modern toolkit mode is required and such a legacy receipt flag is present,
+`FieldMove_HasToolkitCapability()` now auto-adds `ITEM_FIELD_KIT` during the
+unlock check before returning true. This preserves old-save HM progress without
+reintroducing separate HM items or changing FRLG's legacy route.
+
 2026-05-09 の手動確認では、Field Kit itemization と debug shortcut は期待どおりに動作した。その後の Field Kit menu slice で、`ITEM_FIELD_KIT` を「使う」操作と SELECT registered key item 起動を Field Kit utility menu に集約した。Fly は capability / badge gate を満たす場合だけ先頭に出し、未解禁時は Teleport / Dig のみを表示する。Teleport / Dig は非 HM utility として Field Kit から呼べるが、解禁 flag は持たず既存 map 条件に従う。
 
 ## Validation

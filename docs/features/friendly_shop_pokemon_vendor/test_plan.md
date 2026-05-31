@@ -102,6 +102,7 @@
 | 2026-05-30 | Integration review cursor clamp | Pass | `codex review --base master` reported an out-of-range scroll offset risk after one-time long-list purchases. `PokemonVendorClampListCursor()` now clamps the rebuilt list cursor before `ListMenuInit()`. `rtk git diff --check` and `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` pass. |
 | 2026-05-30 | Integration review allocation guard | Pass | `codex review --base master` reported unchecked row allocations in `PokemonVendorBuildList()`. Runtime now checks all three row buffers and unwinds safely on failure. `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`, full `all` / `debug` / `check`, docs build, and final mGBA smoke passed after this fix. |
 | 2026-05-30 | Trainer selection queued reward restore | Pass | Queued battle-win bond rewards now apply to the original party snapshot and mirror to selected battle mons before trainer battle selection restore. New tests cover both original-party reward application and persistence after selected-copy restore. `rtk make -j16 -O check TESTS=test/pokemon_vendor.c` and full `rtk make -j16 -O check` pass. |
+| 2026-05-31 | 16.0 replay icon-palette cleanup | Pass | Close and build-failure paths now call `FreeMonIconPalettes()` after the selected-product icon pane has loaded icon palettes. Focused validation target: `rtk make -j16 -O check TESTS=test/pokemon_vendor.c`; full 16.0 closeout validation is recorded in `docs/features/16_0/runtime_port_status.md`. |
 
 ## Feature Complete Gate
 

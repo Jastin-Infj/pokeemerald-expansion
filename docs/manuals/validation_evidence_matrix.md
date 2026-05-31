@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Last reviewed | 2026-05-31 |
-| Baseline | `master` `0cdd416376`; `git describe` = `expansion/1.15.2-71-g0cdd416376` |
+| Baseline | `master` `4faec7cb08`; `git describe` = `expansion/1.16.0-104-g4faec7cb08` |
 | Code status | Docs-only evidence index |
 | Provenance | Feature test plans, current `gh pr list --state all`, fetched PR refs, branch merge-base diffs, 2026-05-17 PR cleanup, 2026-05-18 Team Viewer / partygen source audit |
 
@@ -20,7 +20,7 @@
 
 | PR | Feature | State | Branch | Handling |
 |---|---|---|---|---|
-| #68 | Runtime integration staging | Open draft | `integration/runtime-dev-20260529` | Current runtime integration lane. Local `all` / `debug` / full `check` / focused feature checks pass; All Ability Slots is default-`FALSE` with a save-backed debug runtime override. |
+| #68 / 16.0 replay | Runtime integration staging | Open draft / replay branch | `integration/runtime-dev-20260529`; replayed on `integration/runtime-dev-16-20260531` | Current runtime integration lane. Local `all` / `debug` / full `check` / focused feature checks pass; All Ability Slots is default-`FALSE` with a save-backed debug runtime override. |
 | #47 / #48 / #51 / #54 / #57 / #60 / #62 | Older runtime shelves | Closed 2026-05-31 | feature branches | Adopted into #68; keep closed PRs / branches as evidence shelves only. |
 | #65 | Map Asset Relinker tooling | Closed 2026-05-31 | `feature/map-asset-relinker-20260525` | Adopted into #68 for source/workflow tracking and released through `map-asset-relinker-v0.1.0`; Route301 / sample map experiment data remains separate. |
 
@@ -36,6 +36,7 @@
 | 2026-05-31 | All Ability Slots runtime-toggle follow-up | Pass | `B_ALL_ABILITY_SLOTS` defaults to `FALSE` and `B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE` stays `TRUE` in `include/config/battle.h`; `SaveBlock2.optionsAllAbilitySlotsMode` adds `DEFAULT` / `OFF` / `ON` runtime override support. `BattleStartClearSetData()`, Summary, and Party UI all resolve through `GetConfig(B_ALL_ABILITY_SLOTS)`, so the override affects normal battles without rebuilding. `rtk make -j16 -O check TESTS='All Ability Slots'`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, full `rtk make -j16 -O check`, docs build, and mGBA Live boot pass. mGBA Lua changed the save option from `DEFAULT` to `ON` and read back `afterMode = 2`; screenshot `/tmp/all-ability-runtime-toggle-final-20260531.png`; cleanup `[]`. |
 | 2026-05-31 | Version-tree docs and PR shelf cleanup | Pass | Closed completed / superseded PR shelves #47, #48, #51, #54, #57, #60, #62, and #65, leaving #68 as the only open runtime staging PR. Renamed 15.3 files to `completed_*`, added 16.0 carryover / sync policy docs, and updated SUMMARY navigation. `rtk git diff --cached --check`, `rtk mdbook build docs`, focused generated HTML link check, and `codex review --uncommitted` passed; review reported no actionable issues. |
 | 2026-05-31 | User runtime closeout confirmations | Pass | User confirmed Battle BGM runtime behavior, No Random Encounters behavior, and Trainer Battle Selection short-party behavior are OK on the integrated branch. These are no longer treated as open runtime-smoke blockers for #68; remaining concern is CI / workflow classification and future upstream sync order. |
+| 2026-05-31 | 16.0 runtime replay closeout | Pass | `integration/runtime-dev-16-20260531` replays #68 runtime work onto upstream `master` `4faec7cb08`. `rtk codex review --base master` first found Berry-pocket items were incorrectly included in Held Item Catalog ownership; fixed by excluding `POCKET_BERRIES` and adding `test/bag.c` coverage. Later review passes found All Ability Slots defaulted ability-effect callers skipped extra slots, switched-out battlers could expose abilities, hidden-slot status-immunity cleanup was still representative-only, and hidden-slot Gen 8 Intimidate blockers were still representative-only; fixed with focused `Poison Touch`, off-field suppression, Receiver, Ability Shield, hidden-slot `Scrappy`, and hidden-slot `Immunity` coverage. Another review found the New Mauville generator state moved Wattson back to the Gym before his completion conversation; fixed by gating the move-back on the completion conversation itself. Field Kit old-save HM receipt migration and Partygen `render-one` output handling were also repaired. Focused `test/bag.c`, `test/field_move.c`, `test/champions_run_session.c`, `test/pokemon_vendor.c`, `test/battle/hold_effect/eject_button.c`, `TESTS='All Ability Slots'`, `TESTS='Receiver'`, `TESTS='Ability Shield on fainted ally'`, repeated full `rtk make -j16 -O check`, repeated `rtk make -j16 -O all`, repeated `rtk make -j16 -O debug`, `rtk mdbook build docs`, `rtk cargo check --manifest-path tools/champions_partygen/Cargo.toml`, and `rtk cargo run --quiet --manifest-path tools/champions_partygen/Cargo.toml -- render-one --trainer TRAINER_SIDNEY` pass. Final mGBA Live session `runtime-dev-16-final-20260531` captured `/tmp/runtime-dev-16-final-20260531.png`, stopped cleanly, and `status --all` returned `[]`. |
 
 ## Closed / PR-less Implementation Shelves
 
@@ -58,7 +59,7 @@
 
 | Feature | Docs | mdBook | Local make | Focused tests | mGBA / manual evidence | Known gaps |
 |---|---|---|---|---|---|---|
-| Nonconsumable Held Items | #48 / `feature/held-item-catalog-current-master-20260519` | [test_plan](../features/nonconsumable_held_items/test_plan.md) | 2026-05-19 `all`, `debug`, full `check`, and focused `test/bag.c` passed. | Bag quantity drift helper tests passed for catalog Give / Take / first-copy preservation / Mail exclusion / duplicate normalization / ordinary consumable exclusion. | mGBA Live boot/input smoke passed; Bag token marker UI route exported screenshot evidence and was user-confirmed; cleanup returned `status --all` to `[]`. | Battle-end restore remains separate in PR #47; stolen / swapped item ownership remains open. |
+| Nonconsumable Held Items | #48 / `feature/held-item-catalog-current-master-20260519`; adopted into `integration/runtime-dev-16-20260531` | [test_plan](../features/nonconsumable_held_items/test_plan.md) | 2026-05-31 16.0 port: focused `test/bag.c`, full `check`, `all`, and `debug` passed. | Bag quantity drift helper tests passed for catalog Give / Take / first-copy preservation / Mail exclusion / duplicate normalization / ordinary consumable exclusion / Berry-pocket physical exclusion. | mGBA Live `runtime-dev-16-boot` booted and stopped cleanly; older Bag token marker UI route exported screenshot evidence and was user-confirmed. | Stolen / swapped item ownership remains open. Berry-pocket items are intentionally physical and out of catalog ownership. |
 
 ## Docs-only Baseline Check
 

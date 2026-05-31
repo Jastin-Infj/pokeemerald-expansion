@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-29 |
-| Baseline | `master` `4e48ff993f`; integration branch `integration/runtime-dev-20260529` |
+| Last reviewed | 2026-05-31 |
+| Baseline | `master` `4faec7cb08`; integration branch `integration/runtime-dev-16-20260531` |
 | Code status | Adopted into runtime integration branch; not present in `master` source |
 | Provenance | Runtime feature handoff plus integration adoption |
 
@@ -31,8 +31,8 @@ When the catalog policy applies:
 - A non-mail, non-Key Item with an actual hold effect
   (`GetItemHoldEffect(item) != HOLD_EFFECT_NONE`) acts as a unique Bag
   ownership token.
-- Normal consumables and utility items with no hold effect remain physical Bag
-  quantities.
+- Normal consumables, Berry-pocket items, and utility items with no hold effect
+  remain physical Bag quantities.
 - `AddBagItem` stores only one catalog token. Existing duplicate catalog stacks
   are normalized to one token when touched by catalog add / give / return paths.
 - Bag list quantity display uses a catalog token marker (`x` plus two hollow
@@ -58,14 +58,29 @@ When the catalog policy applies:
 | File | Change |
 |---|---|
 | `include/config/item.h` | Added `I_HELD_ITEM_CATALOG_ASSIGNMENT`, default `TRUE` on this feature branch. |
-| `include/item.h`, `src/item.c` | Added catalog-aware helper functions for held item assignment / return, plus unique-token add and duplicate normalization. |
+| `include/item.h`, `src/item.c` | Added catalog-aware helper functions for held item assignment / return, plus unique-token add and duplicate normalization. Berry-pocket items are excluded from catalog mode. |
 | `src/item_menu.c` | Shows a catalog token marker in the Bag list and blocks Bag Toss, shop Sell, and PC Deposit for catalog tokens. |
 | `src/shop.c` | Treats already-owned catalog tokens as sold out and buys unowned tokens as a single item. |
 | `src/party_menu.c` | Routed Party / Bag Give, Take, and Switch item paths through catalog-aware helpers. |
 | `src/pokemon_storage_system.c` | Routed PC Storage item give / take / close / release paths through catalog-aware helpers. |
-| `test/bag.c` | Added focused quantity drift tests for catalog give / take / first-copy preservation / Mail exclusion / duplicate normalization / ordinary consumable exclusion. |
+| `test/bag.c` | Added focused quantity drift tests for catalog give / take / first-copy preservation / Mail exclusion / duplicate normalization / ordinary consumable and Berry-pocket exclusion. |
 
 ## Validation
+
+2026-05-31 16.0 port review on `integration/runtime-dev-16-20260531`
+(`master` baseline `4faec7cb08`):
+
+- `rtk codex review --base master` found that Berry-pocket items were being
+  collapsed to catalog ownership tokens even though existing berry use paths
+  still consume Bag quantity.
+- `IsHeldItemCatalogActiveForItem()` now excludes `POCKET_BERRIES`.
+- `rtk make -j16 -O check TESTS=test/bag.c` passed, including the new
+  consumable-berry physical quantity test.
+- `rtk make -j16 -O check`, `rtk make -j16 -O all`, and
+  `rtk make -j16 -O debug` passed with the existing RWX linker warning and
+  expected / known-failing test markers.
+- mGBA Live session `runtime-dev-16-boot` booted the debug ROM, captured
+  `/tmp/runtime-dev-16-boot.png`, and stopped cleanly.
 
 2026-05-29 integration adoption on `integration/runtime-dev-20260529`
 (`master` baseline `4e48ff993f`):

@@ -52,6 +52,7 @@
     - [16.0 Feature Tree](features/16_0/README.md)
     - [16.0 OpenTree](features/16_0/open_tree/README.md)
     - [16.0 Carryover Items](features/16_0/open_tree/carryover_items.md)
+    - [16.0 Runtime Port Status](features/16_0/runtime_port_status.md)
     - [15.3 / 15.6 / 16.0 Upgrade Sync Policy](features/16_0/upgrade_sync_policy.md)
     - [Runtime Integration Gate](manuals/runtime_integration_gate.md)
     - [Local Config And Flag Ledger](manuals/local_config_and_flag_ledger.md)

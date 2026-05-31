@@ -357,19 +357,13 @@ static bool32 IsUnnerveAbilityOnOpposingSide(enum BattlerId battler)
 {
     for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
     {
-        if (battler == battlerDef || IsBattlerAlly(battler, battlerDef))
+        if (!IsBattlerAlive(battlerDef) || battler == battlerDef || IsBattlerAlly(battler, battlerDef))
             continue;
 
-        enum Ability ability = GetBattlerAbility(battlerDef);
-        switch (ability)
-        {
-        case ABILITY_UNNERVE:
-        case ABILITY_AS_ONE_ICE_RIDER:
-        case ABILITY_AS_ONE_SHADOW_RIDER:
+        if (BattlerHasAbility(battlerDef, ABILITY_UNNERVE)
+         || BattlerHasAbility(battlerDef, ABILITY_AS_ONE_ICE_RIDER)
+         || BattlerHasAbility(battlerDef, ABILITY_AS_ONE_SHADOW_RIDER))
             return TRUE;
-        default:
-            break;
-        }
     }
 
     return FALSE;
@@ -3027,9 +3021,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
 
     if (gAllAbilitySlotsBattle
      && !sIteratingAllAbilitySlots
-     && ability != ABILITY_NONE
      && IsBattlerAlive(battler)
-     && ability == GetBattlerAbility(battler))
+     && (ability == ABILITY_NONE || ability == GetBattlerAbility(battler)))
     {
         return AbilityBattleEffectsAllSlots(caseID, battler, move, shouldAbilityTrigger);
     }
@@ -3077,11 +3070,6 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 u32 slot = GetBattlerAbilityOperationSlot(battler);
                 enum Ability target1Ability;
                 enum Ability target2Ability;
-
-                if (GetBattlerHoldEffectIgnoreAbility(battler) == HOLD_EFFECT_ABILITY_SHIELD)
-                    break;
-                if (gBattleMons[battler].volatiles.overwrittenAbility != ABILITY_NONE)
-                    break;
 
                 side = (BATTLE_OPPOSITE(GetBattlerPosition(battler))) & BIT_SIDE;
                 target1 = GetBattlerAtPosition(side);
@@ -3448,6 +3436,12 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
             {
                 gEffectBattler = battler;
                 GetBattlerPartyState(battler)->supersweetSyrup = TRUE;
+                for (enum BattlerId i = 0; i < gBattlersCount; i++)
+                {
+                    if (IsBattlerAlly(battler, i) || !IsBattlerAlive(i))
+                        continue;
+                    SetStatChange(i, STAT_EVASION, -1);
+                }
                 BattleScriptCallWithBattlerAbility(battler, gLastUsedAbility, BattleScript_SupersweetSyrupActivates);
                 effect++;
             }
@@ -3457,13 +3451,6 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
             if (shouldAbilityTrigger)
             {
                 BattleScriptCallWithBattlerAbility(battler, gLastUsedAbility, BattleScript_AnnounceAirLockCloudNine);
-                effect++;
-            }
-            break;
-        case ABILITY_TERAFORM_ZERO:
-            if (shouldAbilityTrigger && gBattleMons[battler].species == SPECIES_TERAPAGOS_STELLAR)
-            {
-                BattleScriptCallWithBattlerAbility(battler, gLastUsedAbility, BattleScript_ActivateTeraformZero);
                 effect++;
             }
             break;
@@ -4528,7 +4515,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
         switch (ability)
         {
         case ABILITY_MAGICIAN:
-            if (GetMoveEffect(move) != EFFECT_FLING
+            if (IsBattlerAlive(battler)
+             && GetMoveEffect(move) != EFFECT_FLING
              && GetMoveEffect(move) != EFFECT_NATURAL_GIFT
              && GetMoveEffect(move) != EFFECT_FUTURE_SIGHT
              && gBattleMons[battler].item == ITEM_NONE
@@ -4704,7 +4692,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
         }
         break;
     case ABILITYEFFECT_IMMUNITY:
-        effect = TryImmunityAbilityHealStatus(battler);
+        effect = TryImmunityAbilityHealStatus(battler, gLastUsedAbility);
         if (effect)
             return effect;
         break;
@@ -5096,6 +5084,9 @@ static bool32 IsBattlerAbilitySuppressed(enum BattlerId battler, enum Ability ab
     bool32 abilityCantBeSuppressed = gAbilitiesInfo[ability].cantBeSuppressed;
 
     if (ability == ABILITY_NONE)
+        return TRUE;
+
+    if (gBattleStruct->battlerState[battler].notOnField && gBattleMons[battler].hp != 0)
         return TRUE;
 
     if (abilityCantBeSuppressed)
@@ -9651,10 +9642,13 @@ void SetIllusionMon(struct Pokemon *mon, enum BattlerId battler)
     }
 }
 
-enum ImmunityHealStatusOutcome TryImmunityAbilityHealStatus(enum BattlerId battler)
+enum ImmunityHealStatusOutcome TryImmunityAbilityHealStatus(enum BattlerId battler, enum Ability ability)
 {
     enum ImmunityHealStatusOutcome outcome = IMMUNITY_NO_EFFECT;
-    switch (GetBattlerAbilityIgnoreMoldBreaker(battler))
+    if (ability == ABILITY_NONE)
+        ability = GetBattlerAbilityIgnoreMoldBreaker(battler);
+
+    switch (ability)
     {
     case ABILITY_IMMUNITY:
     case ABILITY_PASTEL_VEIL:
@@ -11140,6 +11134,8 @@ u32 GetTotalAccuracy(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum 
 
     moveAcc = GetMoveAccuracy(move);
     attackerWeather = GetAttackerWeather(atkHoldEffect, atkAbility, GetWeather());
+    if (BattlerHasAdditionalAbility(battlerAtk, atkAbility, ABILITY_MEGA_SOL))
+        attackerWeather = B_WEATHER_SUN;
 
     // Check Thunder and Hurricane on sunny weather.
     if ((attackerWeather & B_WEATHER_SUN) && MoveHas50AccuracyInSun(move))
@@ -11172,12 +11168,12 @@ u32 GetTotalAccuracy(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum 
     // Target's ability
     if (defAbility == ABILITY_SAND_VEIL)
     {
-        if (gBattleWeather & B_WEATHER_SANDSTORM && HasWeatherEffect())
+        if (attackerWeather & B_WEATHER_SANDSTORM)
             calc = (calc * 80) / 100; // 1.2 sand veil loss
     }
     if (defAbility == ABILITY_SNOW_CLOAK)
     {
-        if ((gBattleWeather & B_WEATHER_ICY_ANY) && HasWeatherEffect())
+        if (attackerWeather & B_WEATHER_ICY_ANY)
             calc = (calc * 80) / 100; // 1.2 snow cloak loss
     }
     if (defAbility == ABILITY_TANGLED_FEET)
@@ -11188,12 +11184,10 @@ u32 GetTotalAccuracy(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum 
     if (gAllAbilitySlotsBattle)
     {
         if (BattlerHasAdditionalAbility(battlerDef, defAbility, ABILITY_SAND_VEIL)
-         && gBattleWeather & B_WEATHER_SANDSTORM
-         && HasWeatherEffect())
+         && attackerWeather & B_WEATHER_SANDSTORM)
             calc = (calc * 80) / 100;
         if (BattlerHasAdditionalAbility(battlerDef, defAbility, ABILITY_SNOW_CLOAK)
-         && (gBattleWeather & B_WEATHER_ICY_ANY)
-         && HasWeatherEffect())
+         && attackerWeather & B_WEATHER_ICY_ANY)
             calc = (calc * 80) / 100;
         if (BattlerHasAdditionalAbility(battlerDef, defAbility, ABILITY_TANGLED_FEET)
          && gBattleMons[battlerDef].volatiles.confusionTurns)

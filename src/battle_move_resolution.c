@@ -27,6 +27,7 @@ static bool32 TryActivatePowderStatus(enum Move move);
 static void CalculateMagnitudeDamage(void);
 static void UpdateStallMons(void);
 static enum Ability GetRedirectAbilityForMove(enum BattlerId battler, enum Type moveType);
+static bool32 TrySetBattlerAbilityForPopup(enum BattlerId battler, enum Ability representativeAbility, enum Ability ability);
 
 // Submoves
 static enum Move GetMirrorMoveMove(void);
@@ -301,10 +302,9 @@ static enum CancelerResult CancelerFlinch(struct BattleCalcValues *cv)
     if (gBattleMons[cv->battlerAtk].volatiles.flinched)
     {
         CancelMultiTurnMoves(cv->battlerAtk);
-        if (cv->abilities[cv->battlerAtk] == ABILITY_STEADFAST)
+        if (TrySetBattlerAbilityForPopup(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_STEADFAST))
         {
             SetStatChange(cv->battlerAtk, STAT_SPEED, 1);
-            gBattlerAbility = cv->battlerAtk;
             gBattlescriptCurrInstr = BattleScript_MoveUsedFlinchedAndSteadfast;
         }
         else
@@ -314,6 +314,18 @@ static enum CancelerResult CancelerFlinch(struct BattleCalcValues *cv)
         return CANCELER_RESULT_FAILURE;
     }
     return CANCELER_RESULT_SUCCESS;
+}
+
+static bool32 TrySetBattlerAbilityForPopup(enum BattlerId battler, enum Ability representativeAbility, enum Ability ability)
+{
+    if (!IsAbilityAndRecord(battler, representativeAbility, ability))
+        return FALSE;
+
+    gBattlerAbility = battler;
+    gBattleScripting.battler = battler;
+    gLastUsedAbility = ability;
+    gBattleScripting.abilityPopupOverwrite = ability;
+    return TRUE;
 }
 
 static enum CancelerResult CancelerDisabled(struct BattleCalcValues *cv)
@@ -1295,18 +1307,18 @@ static enum CancelerResult CancelerMoveFailure(struct BattleCalcValues *cv)
         break;
     case EFFECT_REST:
         if (gBattleMons[cv->battlerAtk].status1 & STATUS1_SLEEP
-         || cv->abilities[cv->battlerAtk] == ABILITY_COMATOSE)
+         || BattlerHasAbility(cv->battlerAtk, ABILITY_COMATOSE))
             battleScript = BattleScript_RestIsAlreadyAsleep;
         else if (gBattleMons[cv->battlerAtk].hp == gBattleMons[cv->battlerAtk].maxHP)
             battleScript = BattleScript_AlreadyAtFullHp;
-        else if (cv->abilities[cv->battlerAtk] == ABILITY_INSOMNIA
-              || cv->abilities[cv->battlerAtk] == ABILITY_VITAL_SPIRIT
-              || cv->abilities[cv->battlerAtk] == ABILITY_PURIFYING_SALT)
+        else if (TrySetBattlerAbilityForPopup(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_INSOMNIA)
+              || TrySetBattlerAbilityForPopup(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_VITAL_SPIRIT)
+              || TrySetBattlerAbilityForPopup(cv->battlerAtk, cv->abilities[cv->battlerAtk], ABILITY_PURIFYING_SALT))
             battleScript = BattleScript_InsomniaProtects;
         break;
     case EFFECT_SNORE:
         if (!(gBattleMons[cv->battlerAtk].status1 & STATUS1_SLEEP)
-         && cv->abilities[cv->battlerAtk] != ABILITY_COMATOSE)
+         && !BattlerHasAbility(cv->battlerAtk, ABILITY_COMATOSE))
             battleScript = BattleScript_ButItFailed;
         break;
     case EFFECT_STEEL_ROLLER:
@@ -1332,7 +1344,7 @@ static enum CancelerResult CancelerMoveFailure(struct BattleCalcValues *cv)
     case EFFECT_NATURAL_GIFT:
         if (GetItemPocket(gBattleMons[cv->battlerAtk].item) != POCKET_BERRIES
          || gFieldStatuses & STATUS_FIELD_MAGIC_ROOM
-         || cv->abilities[cv->battlerAtk] == ABILITY_KLUTZ
+         || BattlerHasAbility(cv->battlerAtk, ABILITY_KLUTZ)
          || gBattleMons[cv->battlerAtk].volatiles.embargo)
             battleScript = BattleScript_ButItFailed;
         break;
@@ -1477,7 +1489,7 @@ static enum CancelerResult CancelerMoveEffectFailureTarget(struct BattleCalcValu
             }
             break;
         case EFFECT_STAT_CHANGE_MAGNETIC:
-            if (cv->abilities[battlerDef] != ABILITY_PLUS && cv->abilities[battlerDef] != ABILITY_MINUS)
+            if (!BattlerHasAbility(battlerDef, ABILITY_PLUS) && !BattlerHasAbility(battlerDef, ABILITY_MINUS))
             {
                 battleScript = BattleScript_ButItFailed;
             }
@@ -1586,7 +1598,8 @@ static enum CancelerResult CancelerPriorityBlock(struct BattleCalcValues *cv)
     {
         gLastUsedAbility = ability;
         RecordAbilityBattle(battler, ability);
-        gBattlerAbility = battler;
+        gBattleScripting.battler = gBattlerAbility = battler;
+        gBattleScripting.abilityPopupOverwrite = ability;
         gBattlescriptCurrInstr = BattleScript_PokemonCannotUseMove;
         return CANCELER_RESULT_FAILURE;
     }
@@ -2391,7 +2404,7 @@ static enum CancelerResult CancelerMultihitMoves(struct BattleCalcValues *cv)
     {
         if (GetMoveEffect(cv->move) == EFFECT_POPULATION_BOMB
          && cv->holdEffects[cv->battlerAtk] == HOLD_EFFECT_LOADED_DICE
-         && cv->abilities[cv->battlerAtk] != ABILITY_SKILL_LINK)
+         && !BattlerHasAbility(cv->battlerAtk, ABILITY_SKILL_LINK))
         {
             gMultiHitCounter = RandomUniform(RNG_LOADED_DICE, 4, 10);
         }
@@ -2556,7 +2569,7 @@ static enum MoveEndResult MoveEndProtectLikeEffect(struct BattleCalcValues *cv)
     }
 
     if (method != PROTECT_MAX_GUARD
-     && (cv->abilities[cv->battlerAtk] == ABILITY_UNSEEN_FIST || cv->abilities[cv->battlerAtk] == ABILITY_PIERCING_DRILL)
+     && (BattlerHasAbility(cv->battlerAtk, ABILITY_UNSEEN_FIST) || BattlerHasAbility(cv->battlerAtk, ABILITY_PIERCING_DRILL))
      && IsMoveMakingContact(cv->battlerAtk, cv->battlerDef, cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk], cv->move))
     {
         gBattleScripting.moveendState++;
@@ -3223,6 +3236,8 @@ static enum MoveEndResult MoveEndBouncedMove(struct BattleCalcValues *cv)
             if (gBattleStruct->magicBouncePending & 1u << bounceBattler)
             {
                 gBattlerAbility = bounceBattler;
+                gLastUsedAbility = ABILITY_MAGIC_BOUNCE;
+                gBattleScripting.abilityPopupOverwrite = ABILITY_MAGIC_BOUNCE;
                 gBattlescriptCurrInstr = GetMoveBattleScript(gCurrentMove);
                 BattleScriptCall(BattleScript_MagicBounce);
             }
@@ -4640,7 +4655,7 @@ static enum MoveResult StatChangeMirrorArmor(struct BattleCalcValues *cv)
          || cv->battlerAtk == battler)
             continue;
 
-        if (GetBattlerAbility(battler) == ABILITY_MIRROR_ARMOR)
+        if (BattlerHasAbility(battler, ABILITY_MIRROR_ARMOR))
             gBattleStruct->moveResultFlags[battler] = MOVE_RESULT_MIRROR_ARMOR_PENDING;
     }
 
@@ -5219,7 +5234,7 @@ static bool32 TryMagicBounce(struct BattleCalcValues *cv)
     if (gBattleStruct->bouncedMoveIsUsed)
         return FALSE;
 
-    if (cv->abilities[cv->battlerDef] != ABILITY_MAGIC_BOUNCE)
+    if (!BattlerHasAbility(cv->battlerDef, ABILITY_MAGIC_BOUNCE))
         return FALSE;
 
     gBattleStruct->magicBouncePending |= 1u << cv->battlerDef;

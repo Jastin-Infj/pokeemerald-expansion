@@ -787,6 +787,25 @@ KO-popup follow-up on `integration/runtime-dev-20260529`:
   by the focused test-runner assertion because the high-speed live session
   advanced through the short KO follow-up quickly.
 
+## 16.0 Port Follow-up 2026-05-31
+
+The 16.0 replay keeps upstream source shape as the baseline and reapplies local
+all-slot hooks only where the feature needs them. Two additional representative
+ability checks were converted during closeout:
+
+- `TryImmunityAbilityHealStatus()` now receives the active ability being
+  evaluated, so all-slot dispatch can let a non-representative status-immunity
+  ability cure existing status during switch-in / turn-0 cleanup.
+- Intimidate blocking now resolves the active blocker from the full ability set.
+  This lets hidden-slot Gen 8 blockers (`Scrappy`, `Inner Focus`, `Own Tempo`,
+  `Oblivious`) stop Intimidate, and lets hidden-slot `Guard Dog` use the Guard
+  Dog stat-raise path.
+
+Focused validation:
+
+- `rtk make -j16 -O check TESTS='All Ability Slots lets non-representative Scrappy block Intimidate'`
+- `rtk make -j16 -O check TESTS='All Ability Slots lets non-representative Immunity cure existing poison'`
+
 ## Remaining Risks
 
 - AI caches still store one known ability per battler. Core battle behavior is

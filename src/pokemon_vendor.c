@@ -275,6 +275,7 @@ void CreatePokemonVendorMenu(const struct PokemonVendorProduct *productsForSale)
     if (!PokemonVendorBuildList())
     {
         PokemonVendorDestroyWindows();
+        FreeMonIconPalettes();
         Free(sPokemonVendorMenu);
         sPokemonVendorMenu = NULL;
         ScriptContext_Enable();
@@ -627,6 +628,7 @@ static void Task_PokemonVendorClose(u8 taskId)
     {
         PokemonVendorFree();
         PokemonVendorDestroyWindows();
+        FreeMonIconPalettes();
         Free(sPokemonVendorMenu);
         sPokemonVendorMenu = NULL;
     }
