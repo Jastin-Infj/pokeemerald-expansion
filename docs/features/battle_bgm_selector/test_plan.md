@@ -66,6 +66,10 @@ without wholesale-merging the older feature branch:
   A to set / preview, captured screenshots, and stopped cleanly with
   `alive_after: false`. MCP cannot confirm audible playback, so final listening
   remains manual.
+- 2026-05-31 user runtime check: pass. User confirmed Battle BGM behavior on the
+  integrated branch, so BGM is not an open #68 runtime-smoke blocker. MCP still
+  cannot confirm audible playback, so subjective mix / volume checks remain
+  human-listening work.
 
 ## Focused Code Checks
 

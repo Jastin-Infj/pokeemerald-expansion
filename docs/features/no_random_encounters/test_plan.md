@@ -275,3 +275,6 @@ mGBA Live smoke:
 This integration smoke confirms the current branch uses the real event flag and
 the ROM boots with the flag layout. It intentionally does not replace the
 longer Route 101 encounter macro evidence from 2026-05-17.
+
+2026-05-31 user runtime closeout: pass. User reconfirmed the integrated branch's
+No Random Encounter behavior, so this is not an open #68 runtime-smoke blocker.
