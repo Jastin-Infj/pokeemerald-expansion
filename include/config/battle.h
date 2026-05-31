@@ -333,7 +333,8 @@
 #define B_RUN_TRAINER_BATTLE                TRUE  // If set to TRUE, players can run from Trainer battles. This is treated as a whiteout.
 #define B_TRAINER_BATTLE_SELECTION          TRUE  // If set to TRUE, normal Trainer battles ask the player to choose 3 mons for singles or 4 mons for doubles.
 #define B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY TRUE  // If set to TRUE, selection still opens with fewer eligible mons than the normal 3/4 target.
-#define B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT 2  // Minimum eligible mons required before short-party selection is offered.
+#define B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT 1  // Minimum eligible mons required before short-party selection is offered in singles.
+#define B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT 2  // Minimum eligible mons required before short-party selection is offered in doubles. Set to 1 to experiment with 1v2 doubles.
 #define B_PREBATTLE_TEAM_VIEWER             TRUE  // If set to TRUE, eligible Trainer battles show both teams before party selection.
 #define B_IN_BATTLE_TEAM_VIEWER             TRUE  // If set to TRUE, eligible Trainer battles allow reopening the team viewer from the action menu.
 #define B_TEAM_VIEWER_BUTTON                R_BUTTON // Button used by the in-battle team viewer action-menu shortcut.

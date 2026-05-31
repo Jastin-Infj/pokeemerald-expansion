@@ -22,7 +22,7 @@ selection, battle start, and party restore.
 | 2026-05-09 | user manual single battle after fix | Pass | 3 匹選出、battle start、battle end、party restore を確認。 |
 | 2026-05-09 | user manual double battle after fix | Pass | 4 匹選出、battle start、battle end、party restore を確認。 |
 | 2026-05-09 | transition animation visual note | Accepted cosmetic issue | battle transition 中に player / NPC trainer sprite が一瞬黒い影のように見える。進行不能ではない。 |
-| 2026-05-31 | short party selection config | Build pass; manual pending | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT` を追加。eligible が通常要求数未満かつ minimum 以上なら、例として single 2 匹 party で `2/2` 選出 UI を開く。`rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed on `integration/runtime-dev-20260529`; `codex review --uncommitted` reported no actionable defects; mGBA Live boot smoke `runtime-short-selection-package-20260531b` captured `/tmp/runtime-short-selection-package-20260531b-boot.png` and stopped cleanly. Exact `2/2` selection remains a manual check. |
+| 2026-05-31 | short party selection config | Build pass; manual pending | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と single / double 別 minimum を追加。eligible が通常要求数未満かつ minimum 以上なら、例として single 1 匹 party で `1/1`、single 2 匹 party で `2/2`、double 2 匹 party で `2/2` 選出 UI を開く。`rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed on `integration/runtime-dev-20260529`; `codex review --uncommitted` reported no introduced bug after the 1v2 double prerequisite docs fix; mGBA Live boot smoke `runtime-short-selection-minsplit2-20260531` captured `/tmp/runtime-short-selection-minsplit2-20260531-boot.png` and stopped cleanly. Exact `1/1` / `2/2` selection remains a manual check. |
 
 初回 mGBA attempt は direct `mgba_path` 指定で `DISPLAY` が無く SIGABRT した。
 script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成功した。
@@ -42,9 +42,12 @@ script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成�
 | Win trainer flag | battle 勝利 | trainer flag が立ち、post battle script が正しく進む |
 | Already beaten trainer | 既戦闘 trainer | 選出 UI は出ず、post battle script へ進む |
 | Cancel behavior | 選出 UI で B / Cancel | Cancel は無効。選出画面に留まり、encounter を中断しない |
-| Insufficient party allowed | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE`、eligible 2 匹で single trainer | `2/2` 選出 UI が開き、選出順を決めて battle に入れる |
+| Single one-mon allowed | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE`、`B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT == 1`、eligible 1 匹で single trainer | team viewer / 選出 UI が `1/1` で開き、1 匹を確認して battle に入れる |
+| Single two-mon allowed | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE`、eligible 2 匹で single trainer | `2/2` 選出 UI が開き、選出順を決めて battle に入れる |
+| Double two-mon allowed | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE`、`B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT == 2`、eligible 2 匹で double trainer | `2/2` 選出 UI が開き、2v2 の double battle に入れる |
+| Double one-mon blocked | `B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT == 2`、eligible 1 匹で double trainer | trainer battle selection は開かない。通常 script 側の not-enough-mons gate または既存 fallback に任せる |
 | Insufficient party blocked | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == FALSE`、eligible 2 匹で single trainer | 選出 UI は開かず、既存 trainer battle flow へ fallback |
-| Below short minimum | `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT == 2`、eligible 1 匹 | 選出 UI は開かず、既存 trainer battle flow へ fallback |
+| Experimental 1v2 double | `B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT == 1`、`OW_DOUBLE_APPROACH_WITH_ONE_MON == TRUE`、eligible 1 匹で double trainer | 既存 double-battle script gate を通過したうえで `1/1` 選出 UI が開く。battle engine は empty partner を absent battler として扱う想定だが、default policy ではないため manual regression 必須 |
 | Fainted mons | fainted を含む party | 選出可否が仕様通り |
 | Egg | egg を含む party | 既存 eligibility または仕様通り |
 | Rematch trainer | rematch script | battle 前後 script が壊れない |
