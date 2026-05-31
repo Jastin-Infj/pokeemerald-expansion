@@ -12,34 +12,29 @@
 この matrix は open / closed implementation shelf の横断 evidence。未確認は未確認として残す。
 採用前は owning feature の `test_plan.md` を source of truth として再確認する。
 
-## Current Open PR Snapshot
+## Current PR Snapshot
 
-2026-05-30 runtime integration audit 時点では、PR #68 が runtime-dev の統合
-staging PR。旧 implementation shelf PR は複数 open のままだが、主要 runtime
-内容は #68 に採用済みで、個別に `master` へ merge する対象ではない。
+2026-05-31 時点では、open PR は PR #68 の runtime-dev 統合 staging だけです。
+旧 implementation shelf PR は #68 へ採用済みのため close 済みで、個別に
+`master` へ merge する対象ではない。
 
-| PR | Feature | Draft | Branch | Merge state | CI snapshot |
-|---|---|---|---|---|---|
-| #68 | Runtime integration staging | Yes | `integration/runtime-dev-20260529` | `UNSTABLE` | Local `all` / `debug` / full `check` / focused feature checks pass; All Ability Slots is default-`FALSE` with a save-backed debug runtime override; Actions not re-waited |
-| #65 | Map Asset Relinker tooling | Yes | `feature/map-asset-relinker-20260525`; adopted into `integration/runtime-dev-20260529` on 2026-05-31 | `CLEAN` | Tooling lane source/workflow and generic Fly icon palette-blink runtime support are now carried by runtime-dev for exe artifact generation; Route301 / sample map experiment data remains separate |
-| #62 | Champions Run Session shelf | Yes | `feature/champions-run-session-runtime-20260524` | `DIRTY` | Adopted into #68; keep as evidence shelf |
-| #60 | All Ability Slots shelf | Yes | `feature/all-ability-slots-runtime-20260523`; runtime-toggle follow-up on `integration/runtime-dev-20260529` 2026-05-31 | `UNSTABLE` | Adopted into #68; runtime integration keeps `B_ALL_ABILITY_SLOTS FALSE` and adds Debug -> `Flags/Vars` -> `All Abilities` to force `DEFAULT` / `OFF` / `ON` per save |
-| #57 | Pokemon Vendor shelf | No | `feature/global-no-evolution-20260523` | `DIRTY` | Adopted into #68; keep as evidence shelf |
-| #54 | Party / Status UI shelf | No | `feature/party-status-ui-overhaul-20260521` | `DIRTY` | Adopted into #68; keep as evidence shelf |
-| #51 | Scout Selection shelf | No | `feature/scout-selection-runtime-20260520` | `DIRTY` | Adopted into #68; keep as evidence shelf |
-| #48 | Held Item Catalog shelf | No | `feature/held-item-catalog-current-master-20260519` | `DIRTY` | Adopted into #68; keep as evidence shelf |
-| #47 | Battle Item Restore shelf | No | `feature/battle-item-restore-current-master-20260519` | `DIRTY` | Adopted into #68; keep as evidence shelf |
+| PR | Feature | State | Branch | Handling |
+|---|---|---|---|---|
+| #68 | Runtime integration staging | Open draft | `integration/runtime-dev-20260529` | Current runtime integration lane. Local `all` / `debug` / full `check` / focused feature checks pass; All Ability Slots is default-`FALSE` with a save-backed debug runtime override. |
+| #47 / #48 / #51 / #54 / #57 / #60 / #62 | Older runtime shelves | Closed 2026-05-31 | feature branches | Adopted into #68; keep closed PRs / branches as evidence shelves only. |
+| #65 | Map Asset Relinker tooling | Closed 2026-05-31 | `feature/map-asset-relinker-20260525` | Adopted into #68 for source/workflow tracking and released through `map-asset-relinker-v0.1.0`; Route301 / sample map experiment data remains separate. |
 
 ## Runtime Integration #68 Evidence
 
 | Date | Check | Result | Notes |
 |---|---|---|---|
-| 2026-05-30 | Runtime branch audit | Pass | [Japanese checklist](../features/15_3/complete_tree/runtime_integration_15_3_checklist_ja_2026_05_30.md) marks the major 1.15.3 runtime shelves adopted into `integration/runtime-dev-20260529`. Map relinker, randomizer, and map / Fly experiments remain separate lanes. |
+| 2026-05-30 | Runtime branch audit | Pass | [Japanese checklist](../features/15_3/complete_tree/completed_runtime_integration_checklist_ja_2026_05_30.md) marks the major 1.15.3 runtime shelves adopted into `integration/runtime-dev-20260529`. Map relinker, randomizer, and map / Fly experiments remain separate lanes. |
 | 2026-05-30 | `codex review --base master` | Partially complete | Completed review passes found and drove fixes for trainer battle selection defeat restore, live battler all-slot field helpers, mandatory Field Kit handoff retry, in-battle Team Viewer hint gating, all-slot paired weather end-turn queue, Pokemon Vendor long-list cursor clamp, Pokemon Vendor allocation guards, trainer-selection queued vendor rewards, battle item borrowed-item cleanup, Cut repeat branch, runtime ability-copy switches, and third-block end-turn recursion. Final rerun was blocked by Codex usage limit after the last P2 was fixed. |
 | 2026-05-30 | Local validation | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` pass. Existing RWX linker warning and expected / known-failing test markers only. |
 | 2026-05-30 | mGBA Live smoke | Pass | Session `runtime-integration-review-20260530` booted `pokeemerald.gba`, accepted START input, captured `/tmp/runtime-integration-review-20260530.png`, stopped cleanly, and `status --all` returned `[]`. |
 | 2026-05-31 | Missing runtime/tooling follow-up | Pass | Reconfirmed Trainer Battle Selection config is `TRUE`; enabled Trainer Battle Aftercare; restored Map Asset Relinker source/workflow; added generic `palette-blink` Fly icon runtime support; persisted Battle BGM choices in SaveBlock2 filler with stale-filler test coverage. Local `all`, `debug`, `check`, Battle BGM focused tests, Map Relinker fixture, Rust core check/test, GUI build, and Tauri Linux native build pass. `codex review --uncommitted` relinker findings for move preflight, selected-map self-reference preview, Windows Python fallback, transition labels, shared layout rename, generated map output directory warnings, empty map ids, GUI reviewed-plan apply, and Rust CUI broken-pipe handling were fixed. mGBA Live `runtime-dev-followup-20260531` booted the ROM, captured `/tmp/runtime-dev-followup-20260531.png`, stopped cleanly, and `status --all` returned `[]`. |
 | 2026-05-31 | All Ability Slots runtime-toggle follow-up | Pass | `B_ALL_ABILITY_SLOTS` defaults to `FALSE` and `B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE` stays `TRUE` in `include/config/battle.h`; `SaveBlock2.optionsAllAbilitySlotsMode` adds `DEFAULT` / `OFF` / `ON` runtime override support. `BattleStartClearSetData()`, Summary, and Party UI all resolve through `GetConfig(B_ALL_ABILITY_SLOTS)`, so the override affects normal battles without rebuilding. `rtk make -j16 -O check TESTS='All Ability Slots'`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, full `rtk make -j16 -O check`, docs build, and mGBA Live boot pass. mGBA Lua changed the save option from `DEFAULT` to `ON` and read back `afterMode = 2`; screenshot `/tmp/all-ability-runtime-toggle-final-20260531.png`; cleanup `[]`. |
+| 2026-05-31 | Version-tree docs and PR shelf cleanup | Pass | Closed completed / superseded PR shelves #47, #48, #51, #54, #57, #60, #62, and #65, leaving #68 as the only open runtime staging PR. Renamed 15.3 files to `completed_*`, added 16.0 carryover / sync policy docs, and updated SUMMARY navigation. `rtk git diff --cached --check`, `rtk mdbook build docs`, focused generated HTML link check, and `codex review --uncommitted` passed; review reported no actionable issues. |
 
 ## Closed / PR-less Implementation Shelves
 

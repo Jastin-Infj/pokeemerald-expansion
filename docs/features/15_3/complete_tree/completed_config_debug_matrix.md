@@ -178,7 +178,7 @@
 
 | Area | Owning evidence |
 |---|---|
-| Runtime integration queue | [runtime_integration_15_3_checklist_ja_2026_05_30.md](runtime_integration_15_3_checklist_ja_2026_05_30.md) |
-| Full branch audit | [runtime_integration_branch_audit_2026_05_29.md](runtime_integration_branch_audit_2026_05_29.md) |
+| Runtime integration queue | [completed_runtime_integration_checklist_ja_2026_05_30.md](completed_runtime_integration_checklist_ja_2026_05_30.md) |
+| Full branch audit | [completed_branch_audit_2026_05_29.md](completed_branch_audit_2026_05_29.md) |
 | Config / flag ledger | [local_config_and_flag_ledger.md](../../../manuals/local_config_and_flag_ledger.md) |
 | Validation evidence matrix | [validation_evidence_matrix.md](../../../manuals/validation_evidence_matrix.md) |

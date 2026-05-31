@@ -326,8 +326,9 @@ For each candidate branch:
 ## Current Recommendation
 
 Most previously identified runtime shelves now have equivalent or newer code in
-`integration/runtime-dev-20260529`. Keep open PRs as evidence until the user
-chooses to close or supersede them; do not merge them into `master`. The
-remaining non-integrated branches should be treated as separate lanes: #65 Map
-Asset Relinker for tooling, `feature/EX/ex-rz-upstream1` for randomizer work,
-and `feature/new-map*` / Fly / region-map experiments for map work.
+`integration/runtime-dev-20260529`. PRs #47 / #48 / #51 / #54 / #57 / #60 /
+#62 / #65 were closed on 2026-05-31 as superseded by #68; keep their branches
+and closed PRs as evidence only, and do not merge them into `master`. The
+remaining non-integrated branches should be treated as separate lanes:
+`feature/EX/ex-rz-upstream1` for randomizer work, and `feature/new-map*` / Fly /
+region-map experiments for map work.
