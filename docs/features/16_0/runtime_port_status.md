@@ -7,6 +7,7 @@
 | Last reviewed | 2026-05-31 |
 | Upstream baseline | `master` `4faec7cb08` / `expansion/1.16.0-104-g4faec7cb08` |
 | Runtime branch | `integration/runtime-dev-16-20260531` |
+| Runtime PR | PR #69 / `[codex] Port runtime integration to 16.0 baseline` |
 | Previous runtime shelf | PR #68 / `integration/runtime-dev-20260529` |
 | Policy | Upstream 16.0 source wins unless a local runtime feature must be replayed intentionally. |
 
