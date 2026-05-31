@@ -4604,7 +4604,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
         case ABILITY_AS_ONE_SHADOW_RIDER:
         case ABILITY_BEAST_BOOST:
             {
-                if (NoAliveMonsForEitherParty())
+                if (!IsBattlerAlive(battler) || NoAliveMonsForEitherParty())
                     break;
 
                 enum Stat stat = STAT_ATK;
@@ -4622,8 +4622,10 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                         gBattleScripting.abilityPopupOverwrite = gLastUsedAbility = ABILITY_CHILLING_NEIGH;
                     else if (ability == ABILITY_AS_ONE_SHADOW_RIDER)
                         gBattleScripting.abilityPopupOverwrite = gLastUsedAbility = ABILITY_GRIM_NEIGH;
+                    else
+                        gBattleScripting.abilityPopupOverwrite = gLastUsedAbility;
 
-                    gEffectBattler = gBattlerAbility = battler;
+                    gEffectBattler = gBattleScripting.battler = gBattlerAbility = battler;
                     SetStatChange(battler, stat, numMonsFainted);
                     BattleScriptCall(BattleScript_AbilityStatChange);
                     effect = TRUE;
@@ -4632,7 +4634,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
             break;
         case ABILITY_BATTLE_BOND:
             {
-                if (NoAliveMonsForEitherParty()
+                if (!IsBattlerAlive(battler)
+                 || NoAliveMonsForEitherParty()
                  || NumFaintedBattlersByAttacker(battler) == 0)
                     break;
 
@@ -4643,6 +4646,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 {
                     // Can't use TryBattleFormChange as we can't test form change const data changes.
                     gLastUsedAbility = ability;
+                    gBattleScripting.battler = gBattlerAbility = battler;
+                    gBattleScripting.abilityPopupOverwrite = gLastUsedAbility;
                     GetBattlerPartyState(battler)->battleBondBoost = TRUE;
                     PREPARE_SPECIES_BUFFER(gBattleTextBuff1, gBattleMons[battler].species);
                     GetBattlerPartyState(battler)->changedSpecies = gBattleMons[battler].species;
@@ -4662,8 +4667,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                     if (gSpecialStatuses[battler].statStageAmount > 0)
                     {
                         gLastUsedAbility = ability;
-                        gEffectBattler = gBattlerAbility = battler;
-
+                        gEffectBattler = gBattleScripting.battler = gBattlerAbility = battler;
+                        gBattleScripting.abilityPopupOverwrite = gLastUsedAbility;
                         GetBattlerPartyState(battler)->battleBondBoost = TRUE;
                         BattleScriptCall(BattleScript_AbilityStatChange);
                         effect = TRUE;

@@ -46,11 +46,11 @@ refactor rather than a data-only change.
   explicitly opts into global all-slot behavior.
 - Hidden ability slot 2 is part of the battle active set when the mode is
   enabled. `abilityNum` remains a representative / primary slot only.
-- Runtime validation currently exposes Pattern A-T debug battles under
+- Runtime validation currently exposes Pattern A-U debug battles under
   `Party` -> `All Ability...`, including Chlorophyll, Trace, Conkeldurr
   offensive stacking, Durant Hustle, and Lightning Rod / Storm Drain
   redirection routes, plus modifier-stack / defensive-modifier / partner-
-  modifier routes.
+  modifier routes and a hidden-slot Moxie KO-popup route.
 - The runtime integration branch keeps `B_ALL_ABILITY_SLOTS` default `FALSE` so
   full upstream-style validation stays single-ability by default. A per-save
   runtime override under Debug -> `Flags/Vars` -> `All Abilities` can force
