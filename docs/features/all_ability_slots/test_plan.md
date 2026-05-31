@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-29 |
+| Last reviewed | 2026-05-31 |
 | Baseline | `master` `4e48ff993f` |
 | Code status | Adopted into `integration/runtime-dev-20260529`; source remains off `master` |
 | Provenance | Local project overlay |
@@ -15,11 +15,10 @@ When implementation starts on a feature branch, run:
 
 - `rtk make -j16 -O all`
 - `rtk make -j16 -O debug`
-- `rtk make -j16 -O check` under the integration default. The runtime
-  integration branch defaults `B_ALL_ABILITY_SLOTS` to `FALSE`; if a feature
-  shelf flips it to `TRUE`, use the focused all-ability suite plus `all` /
-  `debug` as the green gate because upstream tests still assert old
-  single-ability default semantics.
+- `rtk make -j16 -O check` under the integration default when feasible. The
+  runtime integration branch now defaults `B_ALL_ABILITY_SLOTS` to `TRUE`; use
+  the focused all-ability suite plus `all` / `debug` as the green gate because
+  many upstream tests still assert old single-ability default semantics.
 - focused `TESTS=...` checks for new all-active ability tests
 - one focused mGBA Live validation route when available
 
@@ -575,9 +574,10 @@ Additional debug-route validation added on 2026-05-24:
 
 #60 was adopted into `integration/runtime-dev-20260529` after #47 Battle Item
 Restore, #48 Held Item Catalog, #54 Party / Status UI, #51 Scout Selection, and
-#57 Friendly Shop Pokemon Vendor. The integration branch keeps
-`B_ALL_ABILITY_SLOTS` default `FALSE`; tests and debug routes explicitly enable
-the mode where needed.
+#57 Friendly Shop Pokemon Vendor. The integration branch originally kept
+`B_ALL_ABILITY_SLOTS` default `FALSE`; as of 2026-05-31 it defaults to `TRUE`
+so normal battles also use the all-slot rule. Tests can still force `FALSE`
+where single-ability regression coverage is needed.
 
 Local validation passed:
 
@@ -617,23 +617,56 @@ the existing expected / known-failing markers.
   Solar Power during third-block ability handling` covers representative
   `Harvest` plus hidden-slot `Solar Power` and asserts only one sun damage tick.
 - `AI_FRAME_CEILING_SINGLES_SMART_TRAINER` is now 10 to account for the live
-  guard in a hot ability-query path; focused AI and full `check` pass.
+  guard in a hot ability-query path; focused AI and the earlier default-`FALSE`
+  integration full `check` pass.
 - Focused validation: `rtk make -j16 -O check TESTS=test/battle/ability/all_ability_slots.c`.
 
 mGBA Live validation:
 
-- Session `integration-all-ability-optin-smoke` used the default-`FALSE`
+- Session `integration-all-ability-optin-smoke` used the earlier default-`FALSE`
   integration debug ROM, continued the local save, opened
   `Party` -> `All Ability...`, selected `A Recoil Battle`, used Clefable's
   `Double-Edge`, and returned to the move menu with Clefable still at
-  `317/317`. This confirms the debug override enables all-slot behavior even
-  though the normal integration default remains opt-in.
+  `317/317`. This confirmed the debug override enabled all-slot behavior before
+  the integration default was switched to `TRUE`.
 - Screenshots:
   `/tmp/integration-all-ability-optin-submenu.png`,
   `/tmp/integration-all-ability-optin-move-menu.png`, and
   `/tmp/integration-all-ability-optin-after-double-edge.png`.
 - Cleanup was clean: `mgba_live_stop` reported `alive_after:false` and
   `mgba-live-cli status --all` returned `[]`.
+
+## Runtime Default Switch Validation 2026-05-31
+
+`include/config/battle.h` now sets `B_ALL_ABILITY_SLOTS` to `TRUE`. This makes
+normal battles initialize `gAllAbilitySlotsBattle` as enabled through
+`BattleStartClearSetData()`; the debug route no longer needs to be the only path
+that exercises all-slot mechanics. Focused validation should prioritize:
+
+- `rtk make -j16 -O check TESTS='All Ability Slots'`
+- `rtk make -j16 -O all`
+- `rtk make -j16 -O debug`
+- one mGBA Live smoke from a non-All-Ability debug trainer or normal trainer
+  route, confirming a non-representative slot effect applies without the debug
+  override.
+
+Validation result on `integration/runtime-dev-20260529`:
+
+- `rtk git diff --check` passed.
+- `rtk mdbook build docs` passed with existing warnings for the missing root
+  `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, and large
+  search index.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed.
+- `rtk make -j16 -O all` passed.
+- `rtk make -j16 -O debug` passed.
+- mGBA Live session `all-ability-default-true-20260531` booted
+  `pokeemerald.gba`, captured `/tmp/all-ability-default-true-20260531.png`,
+  stopped cleanly, and `status --all` returned `[]`.
+- Full `rtk make -j16 -O check` fails under global `TRUE` with 264 failed /
+  4289 passed / 5203 total. This is expected until upstream single-ability
+  expectation tests are either config-pinned to `FALSE` or rewritten for the
+  all-slot runtime. The detailed log from this run is
+  `/tmp/all-ability-global-true-full-check.log`.
 
 ## Required Focused Tests
 

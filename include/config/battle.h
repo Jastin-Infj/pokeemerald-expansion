@@ -79,7 +79,7 @@
 
 // Ability data settings
 #define B_UPDATED_ABILITY_DATA              GEN_LATEST // Affects flags
-#define B_ALL_ABILITY_SLOTS                 FALSE      // If TRUE, battle checks use all non-empty ability slots. abilityNum remains the representative slot.
+#define B_ALL_ABILITY_SLOTS                 TRUE       // If TRUE, battle checks use all non-empty ability slots. abilityNum remains the representative slot.
 #define B_ALL_ABILITY_SLOTS_MOLD_BREAKER    TRUE       // If TRUE, all-slot mode lets non-representative Mold Breaker-family abilities bypass target abilities.
 #define B_ALL_ABILITY_SLOTS_NEUTRALIZING_GAS TRUE      // If TRUE, all-slot mode lets non-representative Neutralizing Gas suppress other abilities.
 

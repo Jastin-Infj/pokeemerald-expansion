@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-29 |
+| Last reviewed | 2026-05-31 |
 | Baseline | `master` `4e48ff993f` |
 | Code status | Adopted into `integration/runtime-dev-20260529`; source remains off `master` |
 | Provenance | Local project overlay, source read on current `master` |
@@ -51,10 +51,10 @@ refactor rather than a data-only change.
   offensive stacking, Durant Hustle, and Lightning Rod / Storm Drain
   redirection routes, plus modifier-stack / defensive-modifier / partner-
   modifier routes.
-- The integration branch keeps `B_ALL_ABILITY_SLOTS` default `FALSE` so the
-  normal ROM and full upstream-style test suite preserve single-ability
-  semantics. The feature remains opt-in through the config system, and the debug
-  All Ability battle routes force the mode on for validation.
+- The runtime integration branch now sets `B_ALL_ABILITY_SLOTS` default `TRUE`,
+  so normal battles use the all-active-slot rule. The config remains the switch
+  for temporary single-ability regression builds, and the debug All Ability
+  battle routes still force the mode on for focused validation.
 - Enumerate species slots with `GetSpeciesAbility()`, not repeated
   `GetAbilityBySpecies()`, because `GetAbilityBySpecies()` intentionally falls
   back from empty slots to another valid ability.

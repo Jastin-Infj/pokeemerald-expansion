@@ -37,12 +37,13 @@ handoff.
 ## Implementation Summary
 
 This branch adds a guarded battle runtime mode behind `B_ALL_ABILITY_SLOTS`.
-The implementation shelf used `TRUE` for broad feature validation, but
-`integration/runtime-dev-20260529` defaults the config to `FALSE` so normal ROM
-behavior and full `check` stay single-ability until the mode is explicitly
-enabled. The focused tests still force `TRUE`, and include a
+The implementation shelf used `TRUE` for broad feature validation, and
+`integration/runtime-dev-20260529` now defaults the config to `TRUE` so normal
+ROM battles use all active ability slots. Focused tests still include a
 `B_ALL_ABILITY_SLOTS FALSE` regression to prove upstream single-ability behavior
-can be restored by config.
+can be restored by config. The full upstream-style `check` suite is not a green
+gate under global `TRUE` because many tests intentionally encode the old
+single-ability default semantics.
 
 A debug-menu override exists only for validation: `Party` -> `All Ability...`
 contains one direct trainer-battle entry per Pattern A-T. Each entry forces
@@ -652,12 +653,12 @@ reward on `Script 3`. All Ability validation remains under
 `Party` -> `All Ability...`.
 
 One integration-specific policy change was made after validation: the feature
-branch defaulted `B_ALL_ABILITY_SLOTS` to `TRUE`, but the integration branch
-defaults it to `FALSE`. The generated config maximum in
-`include/constants/generational_changes.h` stays `TRUE`, because that value is
-used for bit-field width / clamping rather than the runtime default. This keeps
-the normal ROM and full upstream-style test suite on single-ability behavior
-while retaining the opt-in config and debug override.
+branch defaulted `B_ALL_ABILITY_SLOTS` to `TRUE`, and the runtime integration
+branch now keeps that default so normal battles use all active ability slots.
+The generated config maximum in `include/constants/generational_changes.h`
+stays `TRUE`, because that value is used for bit-field width / clamping rather
+than as a separate runtime default. Temporary single-ability regression builds
+can still force the config to `FALSE`.
 
 2026-05-30 review-blocker follow-up: field / side presence helpers now skip
 HP-zero or absent battlers before calling `BattlerHasAbility()`. This preserves
@@ -711,6 +712,36 @@ Integration validation passed:
 
 The mGBA session stopped cleanly, and `mgba-live-cli status --all` returned
 `[]`.
+
+## Runtime Default Switch 2026-05-31
+
+The integration branch now sets `B_ALL_ABILITY_SLOTS` to `TRUE` in
+`include/config/battle.h`. `BattleStartClearSetData()` already derives
+`gAllAbilitySlotsBattle` from `GetConfig(B_ALL_ABILITY_SLOTS)`, so this change
+makes all normal battles use the all-active-slot rule without needing the debug
+override. The debug `Party` -> `All Ability...` routes remain as focused
+manual validation shortcuts, and tests can still use `WITH_CONFIG` to force
+`FALSE` for single-ability regression coverage.
+
+Validation result on `integration/runtime-dev-20260529`:
+
+- `rtk git diff --check` passed.
+- `rtk mdbook build docs` passed with existing warnings for the missing root
+  `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, and large
+  search index.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed.
+- `rtk make -j16 -O all` passed.
+- `rtk make -j16 -O debug` passed.
+- mGBA Live session `all-ability-default-true-20260531` booted
+  `pokeemerald.gba`, captured `/tmp/all-ability-default-true-20260531.png`,
+  stopped cleanly, and `status --all` returned `[]`.
+- Full `rtk make -j16 -O check` fails under global `TRUE` with 264 failed /
+  4289 passed / 5203 total. The failure set is dominated by upstream
+  single-ability default expectations such as Contrary, Trace, Skill Swap, Role
+  Play, Download, Slow Start, Stall, Sheer Force, Neutralizing Gas, Color
+  Change, Commander, Infiltrator, Normalize, Refrigerate, Transistor, and AI
+  thinking-time cases. The detailed log from this run is
+  `/tmp/all-ability-global-true-full-check.log`.
 
 ## Remaining Risks
 
