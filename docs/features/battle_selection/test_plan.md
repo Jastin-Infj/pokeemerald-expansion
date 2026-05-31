@@ -22,7 +22,7 @@ selection, battle start, and party restore.
 | 2026-05-09 | user manual single battle after fix | Pass | 3 匹選出、battle start、battle end、party restore を確認。 |
 | 2026-05-09 | user manual double battle after fix | Pass | 4 匹選出、battle start、battle end、party restore を確認。 |
 | 2026-05-09 | transition animation visual note | Accepted cosmetic issue | battle transition 中に player / NPC trainer sprite が一瞬黒い影のように見える。進行不能ではない。 |
-| 2026-05-31 | short party selection config | Build pass; manual pending | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と single / double 別 minimum を追加。eligible が通常要求数未満かつ minimum 以上なら、例として single 1 匹 party で `1/1`、single 2 匹 party で `2/2`、double 2 匹 party で `2/2` 選出 UI を開く。`rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed on `integration/runtime-dev-20260529`; `codex review --uncommitted` reported no introduced bug after the 1v2 double prerequisite docs fix; mGBA Live boot smoke `runtime-short-selection-minsplit2-20260531` captured `/tmp/runtime-short-selection-minsplit2-20260531-boot.png` and stopped cleanly. Exact `1/1` / `2/2` selection remains a manual check. |
+| 2026-05-31 | short party selection config | Pass | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と single / double 別 minimum を追加。eligible が通常要求数未満かつ minimum 以上なら、例として single 1 匹 party で `1/1`、single 2 匹 party で `2/2`、double 2 匹 party で `2/2` 選出 UI を開く。`rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, `rtk make -j16 -O check`, and `rtk mdbook build docs` passed on `integration/runtime-dev-20260529`; `codex review --uncommitted` reported no introduced bug after the 1v2 double prerequisite docs fix; mGBA Live boot smoke `runtime-short-selection-minsplit2-20260531` captured `/tmp/runtime-short-selection-minsplit2-20260531-boot.png` and stopped cleanly. User confirmed the integrated short-party behavior on 2026-05-31. |
 
 初回 mGBA attempt は direct `mgba_path` 指定で `DISPLAY` が無く SIGABRT した。
 script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成功した。
@@ -59,6 +59,8 @@ script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成�
 
 2026-05-09 の user manual validation で、通常 single / double trainer battle の
 core flow は確認済み。exclusion flow は未確認のため、後続 regression で見る。
+2026-05-31 の user manual validation で、runtime integration branch の short-party
+selection behavior も確認済み。
 
 ## Exclusion Regression Tests
 

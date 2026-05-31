@@ -38,12 +38,15 @@
 
 ## Recommended Sync Procedure
 
-1. `master` を upstream 15.6 / 16.0 に更新する。
-2. 新しい integration branch を master から作る。
-3. `15_3/complete_tree/completed_features.md` を見て、#68 のどの実装を再適用するか決める。
-4. docs は一括コピーしない。まず upstream の README / docs を残し、必要な local docs だけ移植する。
-5. conflict が出た feature は `16_0/open_tree/carryover_items.md` に追記する。
-6. local build / check / mGBA evidence を取ってから、16.0 用の新しい completed / carryover tree を作る。
+1. 先に #68 の CI 判定方針を決める。runtime 実装そのものの確認と、GitHub Actions の FRLG / test matrix は分けて扱う。
+2. `master` は docs / Lua-only のまま維持する。#68 runtime source は `master` に直接 merge しない。
+3. docs handoff が必要な場合でも、#68 docs を丸ごと `master` へ持ち込まない。`features/15_3/` / `features/16_0/` の必要 file だけを docs-only branch で cherry-pick する。
+4. `master` を upstream 15.6 / 16.0 に更新する。
+5. 新しい integration branch を更新後の `master` から作る。
+6. `15_3/complete_tree/completed_features.md` を見て、#68 のどの実装を再適用するか決める。
+7. docs は一括コピーしない。まず upstream の README / docs を残し、必要な local docs だけ移植する。
+8. conflict が出た feature は `16_0/open_tree/carryover_items.md` に追記する。
+9. local build / check / mGBA evidence を取ってから、16.0 用の新しい completed / carryover tree を作る。
 
 ## Practical Read Order
 

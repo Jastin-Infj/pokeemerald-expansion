@@ -238,9 +238,10 @@ plus the `pgrep` command itself.
 - No player-facing Options / PokeNav page.
 - No random choice mode.
 - No separate encounter cue or victory BGM setting.
-- Actual trainer battle BGM was confirmed with the split selector. Actual wild
-  step encounter remains to be confirmed manually; helper tests cover wild and
-  legendary song ID routing.
+- Actual trainer / wild BGM behavior is covered by helper tests, mGBA selector
+  smoke, and 2026-05-31 user runtime confirmation on the integrated branch.
+  MCP cannot confirm audible playback, so subjective mix / volume balance stays
+  human-listening work.
 - The imported BW/BW2 and first DPPt / HGSS batch have focused debug selector
   preview evidence. The expanded DPPt / Platinum / HGSS batch has build,
   routing-test, and generated-PRIO-scan evidence; focused mGBA preview remains
@@ -251,5 +252,5 @@ plus the `pgrep` command itself.
   adoption.
 - Actual battle start was confirmed for the `HGSS Rocket` imported trainer BGM
   after the `mid2agb -Q` fix. Additional imported DPPt / HGSS representative
-  battles remain useful manual listening checks, especially for subjective mix
-  balance.
+  battles are optional listening checks for subjective mix balance, not #68
+  merge blockers.
