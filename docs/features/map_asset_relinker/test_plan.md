@@ -39,6 +39,9 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | GUI Linux runtime dependency check | `dpkg-deb -I "tools/map_asset_relinker_gui/src-tauri/target/release/bundle/deb/Map Asset Relinker_0.1.0_amd64.deb"`; `LD_LIBRARY_PATH=/tmp/tauri-linux-deps/usr/lib/x86_64-linux-gnu:/tmp/tauri-linux-deps/usr/lib ldd tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui \| rg "not found"` | The `.deb` declares `libwebkit2gtk-4.1-0` and `libgtk-3-0`. With the local sysroot on `LD_LIBRARY_PATH`, `ldd` reports no missing libraries. Without system runtime packages, the direct executable remains host-dependent and may report missing WebKit/JavascriptCore libraries. |
 | GUI Windows native build helper | On Windows: `tools/map_asset_relinker_gui/scripts/build_windows.ps1` | Builds `map-asset-relinker-core.exe`, then Tauri builds the direct GUI `.exe` and NSIS setup `.exe`. The helper also creates `dist-windows/portable/` with the GUI exe, CUI exe, and README. On Linux this is covered by the GitHub Actions Windows runner because local Windows WebView/Tauri packaging is not available. |
 | GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-portable-windows` for normal direct-exe use plus `map-asset-relinker-windows` for full build output. MSI is intentionally not the primary path because local Windows testing showed `.msi` opening can fail. Run `26553513425` passed for commit `95f19ffc0f` and uploaded portable artifact id `7257355989`. |
+| Integration Windows artifact workflow | Push / PR update on `integration/runtime-dev-*` | Runs the same Windows workflow from the runtime integration branch and uploads a fresh portable Windows artifact containing `map-asset-relinker-gui.exe`, `map-asset-relinker-core.exe`, and `README.txt`. The exe is expected under workflow artifacts, not committed into source. |
+| GUI/CUI map settings scan | Rust core `scan --pretty` and GUI map detail | Each map summary includes `music`, `weather`, `battle_scene`, `allow_running`, `allow_cycling`, and `allow_escaping` so BGM and movement settings are visible while relinking. |
+| Runtime palette-blink source support | `tools/map_asset_relinker/map_relink.sh plan --map LittlerootTown:LittlerootTown --no-layout-rename --set-fly-icon-style MAPSEC_LITTLEROOT_TOWN:palette-blink --out <tmp>`; then `apply --dry-run <tmp>` | On `integration/runtime-dev-20260529`, dry-run reports `EDIT src/region_map.c` instead of failing on a missing `sPaletteBlinkFlyDestinations` array. This confirms the generic Fly icon palette-blink runtime support is present even though Route301 experiment data is not adopted. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
 | GUI Playwright plan preview | In the browser, filter `Route301`, select it, set new map name `Route401`, enable `Rewrite script labels` | Plan preview prints `tools/map_asset_relinker/map_relink.sh plan --map Route301:Route401 --to-group gMapGroup_TownsAndRoutes --rewrite-script-labels --out /tmp/route401_relink.json` followed by `apply --dry-run /tmp/route401_relink.json`. |
 | GUI layout rename default | Open the Route301 plan panel | `Rename layout with map` is checked and locked. The generated plan does not include `--no-layout-rename`, so layout id/name/path remain part of the default rename plan. |
@@ -66,6 +69,74 @@ Current `audit` warnings on `master` are pre-existing:
   listed in `map_groups.json`.
 - `Route19_UnusedHouse_Frlg/scripts.inc` is not included by
   `data/event_scripts.s`.
+
+## Latest Integration Validation (2026-05-31)
+
+For `integration/runtime-dev-20260529` after restoring the tool source/workflow,
+enabling aftercare, persisting Battle BGM choices, and adding generic
+palette-blink Fly icon support:
+
+- `rtk python3 -m py_compile tools/map_asset_relinker/map_relink.py` passes.
+- `rtk bash tools/map_asset_relinker/test_map_relink.sh` passes, including
+  backup creation, `--set-layout-id` without accidental layout rename, numeric
+  flag claims, duplicate-flag refusal, transition setflag fallback, and Fly
+  icon style transitions. The latest fixture sweep also covers move preflight
+  on dry-run and real apply, selected-map self-reference repair preview, and
+  existing `Label::` transition scripts without creating duplicate labels.
+  It also covers shared-layout renames: when another map references the same
+  old layout id, dry-run reports that map JSON and real apply rewrites its
+  `layout` reference to the renamed layout id instead of leaving a broken
+  `references missing layout` state. Empty selected-map ids are also repaired
+  to the generated `MAP_*` id instead of leaving the map invalid after rename.
+- `rtk cargo fmt --manifest-path tools/map_asset_relinker_core/Cargo.toml`
+  and `rtk cargo fmt --manifest-path
+  tools/map_asset_relinker_gui/src-tauri/Cargo.toml` pass.
+- `rtk cargo check --manifest-path tools/map_asset_relinker_core/Cargo.toml`
+  and `rtk cargo test --manifest-path tools/map_asset_relinker_core/Cargo.toml`
+  pass.
+- `cargo run --manifest-path tools/map_asset_relinker_core/Cargo.toml -- scan
+  --root . | head -c 1000` exits without a broken-pipe panic, so large scan
+  output can be inspected through normal shell pipelines.
+- `rtk npm run build` in `tools/map_asset_relinker_gui` passes.
+- GUI command previews now include the selected project root through
+  `map_relink.py --root <projectRoot>` instead of the repo-local `.sh` wrapper,
+  so copied commands match the same tree used by GUI dry-run/apply.
+- GUI `Apply With Backup` now passes the reviewed dry-run plan path back to
+  the backend instead of regenerating a fresh temp plan from current form
+  fields.
+- GUI apply now tries the `PYTHON` override first and falls back to Windows
+  `py -3`, `python`, then `python3` before failing, so the portable Windows
+  artifact is not tied to a `python3.exe` install.
+- `TAURI_LOCAL_DEPS=/tmp/tauri-linux-deps
+  tools/map_asset_relinker_gui/scripts/build_native.sh` passes and generates
+  the Linux GUI binary plus `.deb` / `.rpm` under
+  `tools/map_asset_relinker_gui/src-tauri/target/release/`.
+- The Rust release scanner reports `939` maps and 4 existing unused-map
+  warnings in the current integration worktree. It now skips generated map
+  output directories that contain only `header.inc` / `events.inc` /
+  `connections.inc`, matching the Python audit behavior and avoiding false
+  missing-`map.json` warnings after ROM builds. The Vite development scan API
+  follows the same generated-output skip rule.
+- `codex review --uncommitted` was used for the relinker follow-up. Findings
+  fixed in this slice include dry-run move preflight, selected-map
+  self-reference preview, Windows Python launcher fallback, `Label::`
+  transition script handling, shared-layout rename propagation, generated-only
+  map output directory skipping, empty selected-map id repair, GUI apply using
+  the exact reviewed dry-run plan path, and Rust CUI broken-pipe handling.
+- The `palette-blink` dry-run against `MAPSEC_LITTLEROOT_TOWN` now reaches the
+  reviewable edit stage, proving the runtime source has the style membership
+  array expected by the CLI.
+- `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
+  `rtk make -j16 -O check` pass with the existing RWX linker warning and the
+  existing expected / known-failing test markers.
+- `rtk mdbook build docs` passes with existing warnings: missing root
+  `CHANGELOG.md`, existing `CREDITS.md` `</img>`, and large search index.
+- mGBA Live boot smoke `runtime-dev-followup-20260531` starts
+  `pokeemerald.gba`, captures `/tmp/runtime-dev-followup-20260531.png`, stops
+  with `alive_after:false`, and CLI `status --all` returns `[]`.
+- Windows `.exe` output is expected from the GitHub Actions artifact
+  `map-asset-relinker-portable-windows` after the integration branch is pushed;
+  generated executables are not committed to source.
 
 ## Latest Branch Validation (2026-05-27)
 

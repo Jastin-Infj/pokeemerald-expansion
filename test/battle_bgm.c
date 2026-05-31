@@ -27,6 +27,21 @@ TEST("Battle BGM trainer and wild choices are independent")
     SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
 }
 
+TEST("Battle BGM save initialization clears stale filler choices")
+{
+    gSaveBlock2Ptr->battleBgmMagic = 0;
+    gSaveBlock2Ptr->battleBgmChoices[BATTLE_BGM_TARGET_TRAINER] = BATTLE_BGM_CHOICE_KANTO_TRAINER;
+    gSaveBlock2Ptr->battleBgmChoices[BATTLE_BGM_TARGET_WILD] = BATTLE_BGM_CHOICE_HOENN_WILD;
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DP_CYRUS);
+
+    EXPECT_EQ(GetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER), BATTLE_BGM_CHOICE_DP_CYRUS);
+    EXPECT_EQ(GetBattleBgmChoice(BATTLE_BGM_TARGET_WILD), BATTLE_BGM_CHOICE_DEFAULT);
+
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_DEFAULT);
+    SetBattleBgmChoice(BATTLE_BGM_TARGET_WILD, BATTLE_BGM_CHOICE_DEFAULT);
+}
+
 TEST("Battle BGM trainer choices can use expanded battle tracks")
 {
     SetBattleBgmChoice(BATTLE_BGM_TARGET_TRAINER, BATTLE_BGM_CHOICE_FRONTIER_BRAIN);

@@ -52,6 +52,10 @@ without wholesale-merging the older feature branch:
 - `rtk make -j16 -O all`: pass with existing RWX linker warning
 - `rtk make -j16 -O check`: pass with existing RWX linker warning; scan output
   includes `test/battle_bgm.c`
+- 2026-05-31 focused rerun on the runtime integration branch:
+  `rtk make -j16 -O check TESTS='Battle BGM'` passes 8 focused tests,
+  including save initialization clearing stale filler choices. The lowercase
+  `TESTS=battle_bgm` filter does not match this test runner's display names.
 - `tools/aif2pcm/aif2pcm sound/direct_sound_samples/dp_016bongo.aif /tmp/dp_016bongo_compressed.bin --compress`
   followed by `tools/aif2pcm/aif2pcm /tmp/dp_016bongo_compressed.bin /tmp/dp_016bongo_roundtrip.aif`:
   pass. Both original and round-trip AIF files report `1563` frames, covering
@@ -65,6 +69,9 @@ without wholesale-merging the older feature branch:
 
 ## Focused Code Checks
 
+- Save/load persistence: set `Sound -> Trainer BGM...` and `Sound -> Wild BGM...`,
+  save, reset/load, and confirm the selected choices remain active. Old saves
+  without the BGM magic marker should still read as `Default`.
 - Confirm `GetBattleBGM()` returns vanilla values when Trainer/Wild choices are
   `Default`.
 - Confirm selected Wild choice changes normal wild battle BGM.
@@ -317,7 +324,8 @@ Cleanup note:
 
 ## Known MVP Gaps To Record
 
-- Persistent setting not implemented in first slice unless explicitly chosen.
+- Player-facing Options UI is not implemented; persistence currently exists via
+  the debug selector and SaveBlock2 filler storage.
 - Encounter cue setting not implemented unless explicitly chosen.
 - Victory BGM setting not implemented.
 - Imported new BGM is limited to the selected BW/BW2, DPPt, and HGSS battle

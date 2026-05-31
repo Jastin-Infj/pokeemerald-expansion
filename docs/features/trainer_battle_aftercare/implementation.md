@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-30 |
+| Last reviewed | 2026-05-31 |
 | Baseline | `integration/runtime-dev-20260529` |
-| Code status | Adopted into runtime integration branch; not on `master` |
+| Code status | Adopted into runtime integration branch and enabled there; not on `master` |
 | Provenance | Closed PR #10 / `feature/trainer-battle-aftercare-heal`, re-applied as a small hook |
 
 ## Branch Evidence
@@ -21,7 +21,7 @@ The branch shape described by the feature docs:
 
 | Area | Branch behavior |
 |---|---|
-| Config | Adds `B_TRAINER_BATTLE_AFTERCARE`, default `FALSE`. |
+| Config | Adds `B_TRAINER_BATTLE_AFTERCARE`; original shelf defaulted `FALSE`, runtime integration now defaults `TRUE`. |
 | Hook | Calls an aftercare helper from `CB2_EndTrainerBattle` after battle-variant / follower partner restoration. |
 | MVP action | Heals the player party only after normal trainer battle wins when config is enabled. |
 | Exclusions | Loss, Frontier, Pyramid, Trainer Hill, link, recorded link, secret base, early rival, follower partner, and forfeit are excluded for MVP. |
@@ -33,8 +33,10 @@ Adopted commit: `bc7237a568 integration: adopt trainer battle aftercare hook`.
 
 Integration resolution:
 
-- Added `B_TRAINER_BATTLE_AFTERCARE` to `include/config/battle.h`, default
-  `FALSE`.
+- Added `B_TRAINER_BATTLE_AFTERCARE` to `include/config/battle.h`. The first
+  runtime adoption kept it `FALSE`; the 2026-05-31 integration follow-up flips
+  it to `TRUE` because the runtime lane is expected to heal after normal
+  trainer wins.
 - Added `TrainerBattleAftercare_ShouldApply()` and
   `TrainerBattleAftercare_ApplyIfEnabled()` to `src/battle_setup.c`.
 - Hooked aftercare in `CB2_EndTrainerBattle()` after Champions run-session loss
@@ -50,14 +52,16 @@ Validation:
 - `rtk make -j16 -O debug` passed with the existing RWX linker warning.
 - `rtk make -j16 -O all` passed with the existing RWX linker warning.
 - `rtk make -j16 -O check` passed with the existing RWX linker warning.
+- `rtk make -j16 -O check TESTS='Battle BGM'` is unrelated to aftercare but
+  was run in the same 2026-05-31 integration sweep to prove the BGM persistence
+  helper tests are discoverable with the correct focused test filter.
 - mGBA Live smoke booted `pokeemerald.gba` to the title splash and exported
   `/tmp/integration-trainer-aftercare-boot.png`.
 - mGBA Live cleanup was clean; CLI `status --all` returned `[]`.
 
-Because the config remains `FALSE`, integration validation proves that the
-runtime branch still builds and boots with the aftercare hook present but
-inactive. A future config-on pass should cover normal trainer win healing and
-the exclusion paths before enabling this behavior by default.
+The 2026-05-31 follow-up makes this a config-on runtime behavior. Validation
+must now cover a normal trainer win healing the party plus the existing
+exclusion paths before the integration PR is treated as final.
 
 ## Open Questions
 

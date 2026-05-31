@@ -4,6 +4,15 @@
 
 `integration/runtime-dev-20260529` / PR #68 は、1.15.3 期間に実装・検証してきた主要 runtime feature をほぼ取り込み済みです。
 
+2026-05-31 の再監査で、Trainer Battle Selection は `TRUE` だが
+`Party -> Start Debug Battle` が通常 trainer route を通らないため確認導線が
+紛らわしいこと、Trainer Battle Aftercare が default-off で見えないこと、
+Map Asset Relinker の source / Windows artifact workflow が integration lane
+に未採用だったことを確認しました。これらは同日の follow-up で統合対象に
+戻しています。追加レビューで見つかった `palette-blink` Fly icon の runtime
+source 未統合も、Route301 などの map 実験データは入れず、汎用描画サポート
+だけ `src/region_map.c` に取り込んでいます。
+
 `codex review --base master` で出た統合ブロッカー、追加の All Ability Slots
 天候エンドターン指摘、追加 review の Pokemon Vendor long-list cursor / row
 allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。現時点の判定は「runtime 棚は
@@ -15,7 +24,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 
 | 項目 | 内容 |
 |---|---|
-| 監査日 | 2026-05-30 JST |
+| 監査日 | 2026-05-31 JST |
 | 対象 branch | `integration/runtime-dev-20260529` |
 | 対象 PR | #68 `[codex] Runtime integration staging` |
 | base | `master` |
@@ -50,7 +59,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | [x] 取り込み済み | Battle Selection / Team Viewer phase2 | branch-only / `feature/battle-selection-mvp`, `feature/prebattle-team-viewer`, `feature/prebattle-team-viewer-phase2` | `b082725110`, `07e13e49c5` | 選出・pre-battle / in-battle viewer は採用済み。restore 前 defeat snapshot と in-battle hint gate を修正済み |
 | [x] 取り込み済み | Pokemon State Editor | #23 / `feature/pokemon-state-editor-expansion` | `292a75704b`, `831296f770` | Summary-launched editor と polish を採用済み |
 | [x] 取り込み済み | Summary Tera Type Badge | #26 / `feature/summary-tera-type-badge` | `c045b0876c` | Summary Info badge と State Editor coexistence を採用済み |
-| [x] 取り込み済み | Trainer Battle Aftercare | #10 / `feature/trainer-battle-aftercare-heal` | `bc7237a568` | default `FALSE` の heal hook として採用済み |
+| [x] 取り込み済み | Trainer Battle Aftercare | #10 / `feature/trainer-battle-aftercare-heal` | `bc7237a568` + 2026-05-31 follow-up | heal hook として採用済み。runtime integration lane では `B_TRAINER_BATTLE_AFTERCARE TRUE` に変更 |
 | [x] 取り込み済み | Field Move Modernization / Field Kit | branch-only / `feature/field-move-modernization-mvp`, `feature/field-move-toolkit-item` | `1312cdb528`, `068bf06a78`, `105a6083a5`, `afc48be574`, `74b876f7f1` | HM-free field move と Field Kit は採用済み。mandatory Surf / Dive handoff の bag-full retry を修正済み |
 | [x] 取り込み済み | Trainer Partygen Catalog | #7 / `feature/trainer-partygen-catalog-expansion` | `391bd527d7` | Champions / Scout pool 調整用の partygen catalog を採用済み |
 | [x] 取り込み済み | Battle BGM Selector / Sound Archive | #39 / `feature/battle-bgm-selector-mvp-20260517` | `3f9e1a4a85` | BGM selector、imported battle tracks、aif2pcm 修正を採用済み |
@@ -59,7 +68,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 
 | 状態 | Branch / PR | 理由 | 次の扱い |
 |---|---|---|---|
-| [-] 別 lane | #65 / `feature/map-asset-relinker-20260525` | ROM runtime ではなく map tooling / GUI / Rust core lane | runtime-dev には混ぜない。tooling PR として継続 |
+| [x] 取り込み済み | #65 / `feature/map-asset-relinker-20260525` | ROM runtime ではないが、今回の runtime-dev 作業導線に必要な map tooling / GUI / Rust core lane | integration lane に tool source、Windows artifact workflow、汎用 Fly icon `palette-blink` runtime support を取り込み。Route301 / sample map 実験データは分離。`master` へは runtime/source と同じく入れない |
 | [-] 別 lane | `feature/EX/ex-rz-upstream1` | randomizer / trainer rank / generated headers / graphics / tools を含む大規模 lane | 別の randomizer integration として再計画 |
 | [-] 別 lane | `feature/ex-rz-upstream1` | 旧 randomizer branch | `feature/EX/ex-rz-upstream1` 優先。参照のみ |
 | [-] 別 lane | `feature/new-map`, `feature/new-map-test-v15` | map / region map / Fly / route draft 実験 | map relinker / map tooling lane で扱う |
@@ -77,6 +86,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | `codex review --base master "<prompt>"` | CLI 制約で失敗。`--base` と prompt positional は併用不可 |
 | `codex review --base master` | 完了。レビュー内で `rtk make -j16 -O check` も実行され、既存の expected / known-failing marker込みで exit 0 |
 | `codex review --base master` after blocker fixes | usage limit で中断。直前の完了レビューで残った P2 は修正済みのため、以降は local make / mGBA Live evidence を handoff 証跡にした |
+| `codex review --uncommitted` 2026-05-31 follow-up | Map Relinker の共有 layout rename と Rust scan の生成 map 出力 directory warning を指摘。共有 layout 参照更新と生成-only directory skip を実装し、fixture / Rust dry-run で検証済み |
 
 ### Review Findings
 
@@ -115,6 +125,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | mGBA Live `integration-review-blocker-smoke` | Pass。debug ROM boot、START input、continue menu screenshot `/tmp/integration-review-blocker-smoke.png` |
 | mGBA Live `integration-review-final-smoke` | Pass。ROM boot、START input、continue menu screenshot `/tmp/integration-review-final-smoke.png` |
 | mGBA Live `runtime-integration-review-20260530` | Pass。debug ROM boot、START input、screenshot `/tmp/runtime-integration-review-20260530.png` |
+| mGBA Live `runtime-dev-followup-20260531` | Pass。`pokeemerald.gba` boot、screenshot `/tmp/runtime-dev-followup-20260531.png`、clean stop、`status --all` `[]` |
 | mGBA Live cleanup | Pass。`stop` は `alive_after:false`、`status --all` は `[]` |
 
 ### Final Validation
@@ -136,7 +147,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 |---|---|
 | 主要 1.15.3 runtime feature の集約 | ほぼ完了 |
 | 未取り込み runtime shelf | 明確な主要 runtime 残りは見当たらない。open の旧 implementation shelf #47/#48/#51/#54/#57/#60/#62 は #68 の integration evidence に採用済みで、独立 merge 対象ではない |
-| 別 lane | Map Asset Relinker、randomizer、map / Fly 実験は分離継続 |
+| 一部統合 | Map Asset Relinker は integration lane に tool source / Windows artifact workflow を取り込み。randomizer、map / Fly 実験データは分離継続 |
 | PR #68 merge readiness | P1/P2/P2/P3 と追加 P2 群は修正済み。full validation と mGBA Live smoke は Pass。runtime integration candidate として ready |
 | `master` 反映 | 不可。runtime 実装は docs-only master policy の対象外 |
 
@@ -144,7 +155,9 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 
 1. PR #68 を実装 integration branch として review する。
 2. `master` 反映が必要な場合は、別途 docs / Lua-only branch で対象 docs だけを cherry-pick する。
-3. Map Asset Relinker / randomizer / map-Fly 実験は runtime-dev に混ぜず、それぞれの lane で継続する。
+3. Map Asset Relinker は tool source と exe artifact workflow を runtime-dev
+   integration lane に取り込む。randomizer / map-Fly 実験データはそれぞれの
+   lane で継続する。
 
 ## 残リスク
 

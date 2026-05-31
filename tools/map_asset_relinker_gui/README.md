@@ -24,6 +24,8 @@ opening a browser or remembering a localhost URL.
   `data/layouts/layouts.json`, and
   `src/data/region_map/region_map_sections.json`.
 - Show map, group, layout, mapsec, map type, popup, and audit warning state.
+- Show map BGM / music, weather, battle scene, and run/bike/escape movement
+  settings in the selected-map detail pane.
 - Flag temporary-looking map names such as `test1` and mixed-case mapsec ids
   such as `MAPSEC_Jongle`.
 - Let map-linked audit warnings in the right pane select the affected map.
@@ -181,6 +183,10 @@ It runs on a Windows GitHub Actions runner and uploads two artifacts:
 `map-asset-relinker-windows` for the full build output. Prefer the portable
 artifact and run `map-asset-relinker-gui.exe` directly; MSI is not the primary
 distribution path for this tool.
+
+The workflow is also enabled for `integration/runtime-dev-*` pushes so the
+runtime integration PR can publish a fresh Windows executable artifact without
+committing generated `.exe` files into the repository.
 
 ## Notes
 

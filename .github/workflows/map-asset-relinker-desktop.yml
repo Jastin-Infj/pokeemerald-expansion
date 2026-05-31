@@ -1,0 +1,72 @@
+name: Map Asset Relinker Desktop
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/map-asset-relinker-desktop.yml"
+      - "tools/map_asset_relinker/**"
+      - "tools/map_asset_relinker_core/**"
+      - "tools/map_asset_relinker_gui/**"
+  push:
+    branches:
+      - "feature/map-asset-relinker-*"
+      - "integration/runtime-dev-*"
+    paths:
+      - ".github/workflows/map-asset-relinker-desktop.yml"
+      - "tools/map_asset_relinker/**"
+      - "tools/map_asset_relinker_core/**"
+      - "tools/map_asset_relinker_gui/**"
+
+jobs:
+  windows:
+    name: Windows GUI executable
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/map_asset_relinker_gui/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tools/map_asset_relinker_core/target
+            tools/map_asset_relinker_gui/src-tauri/target
+          key: map-relinker-windows-${{ runner.os }}-${{ hashFiles('tools/map_asset_relinker_core/Cargo.lock', 'tools/map_asset_relinker_gui/src-tauri/Cargo.lock') }}
+
+      - name: Build Windows desktop bundle
+        run: tools/map_asset_relinker_gui/scripts/build_windows.ps1
+
+      - name: Upload Windows executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-asset-relinker-windows
+          if-no-files-found: error
+          path: |
+            tools/map_asset_relinker_gui/dist-windows/portable/**
+            tools/map_asset_relinker_core/target/release/map-asset-relinker-core.exe
+            tools/map_asset_relinker_gui/src-tauri/target/release/map-asset-relinker-gui.exe
+            tools/map_asset_relinker_gui/src-tauri/target/release/bundle/**/*.exe
+            tools/map_asset_relinker_gui/src-tauri/target/release/bundle/**/*.msi
+
+      - name: Upload portable Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-asset-relinker-portable-windows
+          if-no-files-found: error
+          path: tools/map_asset_relinker_gui/dist-windows/portable/**

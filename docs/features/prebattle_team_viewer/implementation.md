@@ -45,9 +45,9 @@ This branch implements the Phase 2 runtime slice of the team viewer:
 - exposes `PreBattleTeamViewer_CanOpenInBattle()` and uses it for the action-menu hint,
   so `TEAM INFO` only appears when the in-battle viewer cache and eligibility are present;
 - lets `B` from the downstream party selection menu return to the team viewer;
-- adds a debug-only `Team Viewer Battle` party-menu route so the full viewer -> selection
+- adds a debug-only `Selection Battle` party-menu route so the full viewer -> selection
   -> battle -> in-battle viewer path can be rechecked without hunting for a save route,
-  plus a `Team Viewer W` route for 4-of-6 double battle validation;
+  plus a `Selection Double` route for 4-of-6 double battle validation;
 - keeps opponent moves / ability / held item hidden in the detail view;
 - keeps player party restoration owned by the battle selection module.
 
@@ -180,7 +180,7 @@ half. This keeps first-open `POKEMON SKILLS` intact and prevents the skills back
 covering `POKEMON INFO` when the player presses left.
 
 Fourteenth 2026-05-10 follow-up: added the W / double debug route and aligned the
-double action-menu hint position with MoveInfo. `Party -> Team Viewer W` reuses the same
+double action-menu hint position with MoveInfo. `Party -> Selection Double` reuses the same
 six-mon debug player party as the single route but starts Amy & Liv's normal double trainer
 battle, so the integrated viewer must select 4/4 before battle start. The `TEAM INFO`
 action-menu sprite keeps the same slide animation and uses
@@ -201,7 +201,7 @@ coordinate while leaving the single-battle Y at 92.
 | `src/battle_main.c`, `include/battle_main.h` | Refactors trainer party generation so preview can build a party without `gBattleStruct`, then battle init can consume the cached party. |
 | `src/battle_controller_player.c` | Opens the read-only viewer from `HandleInputChooseAction()` when `B_TEAM_VIEWER_BUTTON` is pressed. |
 | `src/party_menu.c`, `include/party_menu.h` | Restores selection MVP choose-half hooks for fallback / non-viewer paths. Phase 2 viewer-owned selection no longer enters the party menu before battle. |
-| `src/debug.c` | Adds debug-only `Party -> Team Viewer Battle` and `Party -> Team Viewer W`, which create a six-mon player party with moves and start normal single / double trainer battle routes for repeatable runtime validation. |
+| `src/debug.c` | Adds debug-only `Party -> Selection Battle` and `Party -> Selection Double`, which create a six-mon player party with moves and start normal single / double trainer battle routes for repeatable runtime validation. `Party -> Start Debug Battle` still uses the direct debug-battle path and intentionally bypasses Trainer Battle Selection. |
 
 ## Runtime Contract
 
