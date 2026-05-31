@@ -2314,6 +2314,18 @@ bool32 CheckRelearnerStateFlag(enum MoveRelearnerStates state)
     }
 }
 
+static enum Ability GetSummarySelectableAbilitySlotAbility(u16 species, u8 slot)
+{
+    enum Ability ability = GetSpeciesAbility(species, slot);
+
+    if (ability == ABILITY_NONE && slot == 1
+     && GetSpeciesAbility(species, 0) != ABILITY_NONE
+     && GetSpeciesAbility(species, 2) != ABILITY_NONE)
+        ability = GetSpeciesAbility(species, 0);
+
+    return ability;
+}
+
 #if P_SUMMARY_SCREEN_STATE_EDITOR
 #define tStateEditorPage     data[0]
 #define tStateEditorRow      data[1]
@@ -5198,10 +5210,10 @@ static u32 GetSummaryAbilityDisplaySlot(void)
     u32 slot = sMonSummaryScreen->abilityDisplaySlot;
     u32 representativeSlot = sMonSummaryScreen->summary.abilityNum < NUM_ABILITY_SLOTS ? sMonSummaryScreen->summary.abilityNum : 0;
 
-    if (slot < NUM_ABILITY_SLOTS && GetSpeciesAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
+    if (slot < NUM_ABILITY_SLOTS && GetSummarySelectableAbilitySlotAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
         return slot;
 
-    if (GetSpeciesAbility(sMonSummaryScreen->summary.species, representativeSlot) != ABILITY_NONE)
+    if (GetSummarySelectableAbilitySlotAbility(sMonSummaryScreen->summary.species, representativeSlot) != ABILITY_NONE)
     {
         sMonSummaryScreen->abilityDisplaySlot = representativeSlot;
         return representativeSlot;
@@ -5209,7 +5221,7 @@ static u32 GetSummaryAbilityDisplaySlot(void)
 
     for (slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
     {
-        if (GetSpeciesAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
+        if (GetSummarySelectableAbilitySlotAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
         {
             sMonSummaryScreen->abilityDisplaySlot = slot;
             return slot;
@@ -5240,7 +5252,7 @@ static bool32 TryChangeSummaryAbilityDisplaySlot(s8 delta)
         else if (slot >= NUM_ABILITY_SLOTS)
             slot = 0;
 
-        if (GetSpeciesAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
+        if (GetSummarySelectableAbilitySlotAbility(sMonSummaryScreen->summary.species, slot) != ABILITY_NONE)
         {
             if (slot == sMonSummaryScreen->abilityDisplaySlot)
                 return FALSE;
@@ -5269,7 +5281,7 @@ static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
     u32 selectedSlot = GetSummaryAbilityDisplaySlot();
-    enum Ability selectedAbility = GetSpeciesAbility(sMonSummaryScreen->summary.species, selectedSlot);
+    enum Ability selectedAbility = GetSummarySelectableAbilitySlotAbility(sMonSummaryScreen->summary.species, selectedSlot);
     u32 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
     u8 topText[(ABILITY_NAME_LENGTH + 5) * NUM_ABILITY_SLOTS];
     u32 topFontId = FONT_NORMAL;
@@ -5295,7 +5307,7 @@ static void PrintMonAbilityDescription(void)
 
     if (GetConfig(B_ALL_ABILITY_SLOTS))
     {
-        ability = GetSpeciesAbility(sMonSummaryScreen->summary.species, GetSummaryAbilityDisplaySlot());
+        ability = GetSummarySelectableAbilitySlotAbility(sMonSummaryScreen->summary.species, GetSummaryAbilityDisplaySlot());
         PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].description, 0, 17, 0, 0);
         return;
     }

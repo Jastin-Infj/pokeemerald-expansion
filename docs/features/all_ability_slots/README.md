@@ -85,8 +85,10 @@ refactor rather than a data-only change.
   `B_ALL_ABILITY_SLOTS` is disabled. When the config is enabled, Summary shows
   the currently selected direct slot label (`1`, `2`, or `3`) plus ability name,
   marks it with a right arrow, and lets `L` / `R` cycle which active slot's
-  description is shown in the lower ability-detail area. The same flow is used
-  for both `1/2/3` and sparse `1/3` species.
+  description is shown in the lower ability-detail area. Species whose normal
+  slot 2 is omitted while hidden slot 3 exists mirror slot 1 into slot 2 for
+  this UI, so the selector reads as `1/2/3`; battle evaluation still dedupes the
+  duplicate ability.
 - `P_SUMMARY_SCREEN_ALL_ABILITY_SLOT_SWITCH` controls only the Summary `L` / `R`
   selector. If it is disabled, Summary still shows the representative / initial
   active slot in all-slot mode, but the player cannot cycle descriptions from the
