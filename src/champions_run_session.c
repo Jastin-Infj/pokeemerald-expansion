@@ -4,6 +4,7 @@
 #include "event_data.h"
 #include "fieldmap.h"
 #include "item.h"
+#include "load_save.h"
 #include "main.h"
 #include "money.h"
 #include "overworld.h"
@@ -170,6 +171,7 @@ static void WarpToStartLocation(const struct ChampionsRunSession *session)
     SetWarpDestinationToDynamicWarp(0);
     WarpIntoMap();
     ResetInitialPlayerAvatarState();
+    SetContinueGameWarpStatus();
 }
 
 static void ClearSavedMapViewForRestore(void)
@@ -544,6 +546,7 @@ bool32 ChampionsRun_EndByBattleOutcome(u8 battleOutcome)
     session->outcome = battleOutcome;
 
     saveStatus = TrySavingData(SAVE_NORMAL);
+    ClearContinueGameWarpStatus();
     (void)saveStatus;
     return TRUE;
 }
@@ -569,13 +572,16 @@ u8 ChampionsRun_RestoreNormalStateAndSave(u8 outcome)
 
 u8 ChampionsRun_RetireAndSave(void)
 {
+    u8 saveStatus;
     struct ChampionsRunSession *session = GetSession();
 
     if (!ChampionsRun_IsActive())
         return SAVE_STATUS_ERROR;
 
     RestoreNormalState(session, CHAMPIONS_RUN_STATUS_RETIRED, TRUE);
-    return TrySavingData(SAVE_NORMAL);
+    saveStatus = TrySavingData(SAVE_NORMAL);
+    ClearContinueGameWarpStatus();
+    return saveStatus;
 }
 
 bool32 ChampionsRun_CompleteClear(void)

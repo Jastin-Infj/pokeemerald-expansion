@@ -448,7 +448,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
                 PlaySE(SE_SELECT);
                 ArrowsChangeColorLastBallCycle(FALSE);
                 TryHideLastUsedBall();
-                HideTeamViewerActionHint();
+                DestroyTeamViewerActionHint();
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_THROW_BALL, 0);
                 BtlController_Complete(battler);
             }
@@ -460,7 +460,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
     {
         PlaySE(SE_SELECT);
         TryHideLastUsedBall();
-        HideTeamViewerActionHint();
+        DestroyTeamViewerActionHint();
 
         switch (gActionSelectionCursor[battler])
         {
@@ -532,7 +532,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
                 AddBagItem(itemId, 1);
             }
             PlaySE(SE_SELECT);
-            HideTeamViewerActionHint();
+            DestroyTeamViewerActionHint();
             BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_CANCEL_PARTNER, 0);
             BtlController_Complete(battler);
         }
@@ -553,7 +553,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
     }
     else if (DEBUG_BATTLE_MENU == TRUE && JOY_NEW(SELECT_BUTTON))
     {
-        HideTeamViewerActionHint();
+        DestroyTeamViewerActionHint();
         BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_DEBUG, 0);
         BtlController_Complete(battler);
     }
@@ -562,7 +562,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
     {
         PlaySE(SE_SELECT);
         TryHideLastUsedBall();
-        HideTeamViewerActionHint();
+        DestroyTeamViewerActionHint();
         BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_THROW_BALL, 0);
         BtlController_Complete(battler);
     }
@@ -2276,6 +2276,8 @@ static void PlayerHandleChooseAction(enum BattlerId battler)
 
 static void PlayerHandleYesNoBox(enum BattlerId battler)
 {
+    DestroyTeamViewerActionHint();
+
     if (IsOnPlayerSide(battler))
     {
         HandleBattleWindow(YESNOBOX_X_Y, 0);
@@ -2314,6 +2316,8 @@ static void PlayerChooseMoveInBattlePalace(enum BattlerId battler)
 
 void PlayerHandleChooseMove(enum BattlerId battler)
 {
+    DestroyTeamViewerActionHint();
+
     if (gBattleTypeFlags & BATTLE_TYPE_PALACE)
     {
         gBattleStruct->arenaMindPoints[battler] = 8;
@@ -2359,6 +2363,7 @@ static void PlayerHandleChooseItem(enum BattlerId battler)
 {
     s32 i;
 
+    DestroyTeamViewerActionHint();
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
     gBattlerControllerFuncs[battler] = OpenBagAndChooseItem;
     gBattlerInMenuId = battler;
@@ -2371,6 +2376,7 @@ static void PlayerHandleChoosePokemon(enum BattlerId battler)
 {
     s32 i;
 
+    DestroyTeamViewerActionHint();
     for (i = 0; i < ARRAY_COUNT(gBattlePartyCurrentOrder); i++)
         gBattlePartyCurrentOrder[i] = gBattleResources->bufferA[battler][4 + i];
 

@@ -187,6 +187,15 @@ action-menu sprite keeps the same slide animation and uses
 `TEAM_VIEWER_ACTION_HINT_Y_DOUBLE = 102`, matching the existing double `MOVE INFO` Y
 coordinate while leaving the single-battle Y at 92.
 
+2026-05-31 runtime integration follow-up: the action-menu `TEAM INFO` sprite is
+now destroyed immediately when a normal action leaves the action menu, and again
+when the player controller enters the yes/no box, move menu, bag menu, or party
+selection handler. This targets the reported shift-style "switch Pokemon?"
+prompt and later party-switch paths where the Team Viewer affordance could
+remain visible over a non-action-menu screen. The viewer itself remains gated by
+`PreBattleTeamViewer_CanOpenInBattle()`; this follow-up only tightens cleanup of
+the hint sprite between battle controller screens.
+
 ## Files Changed
 
 | File | Change |
@@ -288,6 +297,8 @@ species, type, and level, then explicitly hide private details.
 | 2026-05-30 integration `rtk make -j16 -O all` | Pass | Normal ROM built on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
 | 2026-05-30 integration `rtk make -j16 -O check` | Pass | Full check target passed on `integration/runtime-dev-20260529`; existing linker RWX warning only. |
 | 2026-05-30 review-blocker follow-up | Pass | Action-menu `TEAM INFO` hint is now gated by `PreBattleTeamViewer_CanOpenInBattle()`, which requires battle-started viewer cache state and the same eligibility as opening the viewer. |
+| 2026-05-31 shift-prompt hint cleanup | Pass | Source follow-up destroys the action-menu hint before action dispatch and on entry to yes/no, move, bag, and party-selection handlers, preventing `TEAM INFO` from bleeding into the switch prompt / party swap surfaces. |
+| 2026-05-31 review / boot smoke | Pass | `codex review --uncommitted` reported no discrete Team Viewer source issues after the cleanup change. mGBA Live `runtime-followup-20260531b` booted the regenerated debug ROM, captured `/tmp/runtime-followup-20260531b-boot.png`, and stopped cleanly. The exact shift-prompt overlay route was not replayed in mGBA this turn; cleanup is source-audited and should be manually rechecked on the reported prompt. |
 | 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` used `Party -> Team Viewer Battle`, opened player Summary with `SELECT`, returned to the viewer, selected 3/3 Pokemon, reached the trainer battle, confirmed the action-menu `R / TEAM / INFO` hint, opened the in-battle read-only viewer with `R`, and returned to the action menu with `B`. |
 | 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
 | 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |

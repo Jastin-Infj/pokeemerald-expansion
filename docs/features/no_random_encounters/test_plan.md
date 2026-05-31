@@ -219,6 +219,22 @@ cave step encounters were not separately walked, and Fishing, Sweet Scent, Rock
 Smash, static `setwildbattle` / `dowildbattle`, DexNav, and option UI are out of
 MVP scope.
 
+## Runtime Integration Source Audit: 2026-05-31
+
+Checked on `integration/runtime-dev-20260529` while preparing the 1.15.3 runtime
+rollup:
+
+| Check | Result |
+|---|---|
+| `include/config/overworld.h` | `OW_FLAG_NO_ENCOUNTER` is assigned to `FLAG_NO_ENCOUNTER`. |
+| `include/constants/flags.h` | `FLAG_NO_ENCOUNTER` is allocated at `SYSTEM_FLAGS + 0x85`. |
+| `src/field_control_avatar.c` | `CheckStandardWildEncounter` short-circuits when `FlagGet(OW_FLAG_NO_ENCOUNTER)` is true. |
+| `include/constants/flags_frlg.h` | FRLG keeps `FLAG_NO_ENCOUNTER 0`, so the Emerald integration target owns this runtime flag. |
+
+No new mGBA walking pass was repeated in this source-audit follow-up; the
+previous Route 101 OFF / ON / OFF-restored evidence remains the runtime oracle
+for the step-only MVP.
+
 ## Integration Runtime Record: 2026-05-30
 
 Branch checked: `integration/runtime-dev-20260529`

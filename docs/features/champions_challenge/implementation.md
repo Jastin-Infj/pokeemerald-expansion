@@ -41,6 +41,13 @@
   restore.
 - The Champions loss map-load handoff resets `gMain.state` before entering
   `CB2_LoadMap`, so returning from battle starts a fresh map-load state machine.
+- Loss / retire restore now also marks the restored run-start warp as the
+  Continue warp after `WarpIntoMap()`. This covers the reported sequence where
+  the player loses, returns to the correct start point, then closes the game
+  without writing another report; the next Continue should use the restored
+  start location instead of stale post-battle / checkpoint map state. After the
+  restore save finishes, the live RAM copy clears the one-shot Continue flag so
+  any later normal save is allowed to own its current location normally.
 - Normal Pokemon Storage access through PC scripts is blocked while
   `ChampionsRun_IsActive()` is true.
 - Active Champions runs suppress normal battle EXP, hide field / battle bag
@@ -131,6 +138,22 @@ scripts in the integration branch.
   - Opening the party menu after loss showed the restored normal party entry
     `Buffie Lv100`; no Bad Egg screen or blue-screen crash occurred. Screenshot:
     `/tmp/champions_loss_test_restore_after_fix.png`.
+- 2026-05-31 loss-restore Continue warp follow-up:
+  - `rtk make -j16 -O check TESTS=Champions` passes 8 tests after adding a
+    regression that simulates leaving the run map, losing, restoring to the
+    start location, and then checking that `continueGameWarp` points at the
+    restored run start while the live one-shot flag is cleared after the save.
+  - This is intended to cover the manual report that loss restore looked correct
+    in-session, but a later power-off / Continue without another save could land
+    on an unexpected map.
+  - `codex review --uncommitted` first found the stale in-RAM one-shot warp
+    flag; the follow-up clears that flag after the restore save, and a second
+    review pass reported no discrete correctness issues.
+  - mGBA Live `runtime-followup-20260531b` booted the regenerated debug ROM,
+    captured `/tmp/runtime-followup-20260531b-boot.png`, stopped cleanly, and
+    `mgba-live-cli status --all` returned `[]`. The exact loss -> close
+    without another report route was not replayed in this turn; it is covered by
+    the focused regression test plus the previous manual loss-restore evidence.
 - Clear carryover check:
   - mGBA Live MCP booted the debug ROM, loaded the existing save, and ran
     `Scripts... > Champs: Start`, `Champs: Give Mon`, and `Champs: Clear`.
