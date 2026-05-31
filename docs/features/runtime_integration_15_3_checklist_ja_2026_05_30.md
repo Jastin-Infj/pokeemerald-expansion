@@ -51,7 +51,7 @@ allocation 指摘は、2026-05-30 の follow-up で実装修正済みです。�
 | [x] 取り込み済み | Party / Status UI 2x3 | #54 / `feature/party-status-ui-overhaul-20260521` | `4eadc80062` | 2x3 party menu baseline として採用済み |
 | [x] 取り込み済み | Scout Selection | #51 / `feature/scout-selection-runtime-20260520` | `96366478fd` | Pokemon Champions 型の最大 12 枠 scout UI を採用済み |
 | [x] 取り込み済み | Friendly Shop Pokemon Vendor / Global No Evolution | #57 / `feature/global-no-evolution-20260523` | `7f15d175c7` | Pokemon vendor、sealed recruit、global no evolution policy を採用済み |
-| [x] 取り込み済み | All Ability Slots | #60 / `feature/all-ability-slots-runtime-20260523` | `3161fb963e` | default `FALSE` の opt-in で採用済み。field / side ability helper と end-turn weather paired ability queue は修正済み |
+| [x] 取り込み済み | All Ability Slots | #60 / `feature/all-ability-slots-runtime-20260523` | `3161fb963e` + 2026-05-31 follow-up | default を `TRUE` に切り替え、通常バトルでも all-slot rule を使う状態に変更。focused All Ability / `all` / `debug` は通過、full `check` は既存の単一特性前提テストにより expected-red。field / side ability helper と end-turn weather paired ability queue は修正済み |
 | [x] 取り込み済み | Champions Run Session | #62 / `feature/champions-run-session-runtime-20260524` | `29f5f11ca8` | run session save / restore MVP を採用済み |
 | [x] 取り込み済み | No Random Encounters | #41 / `feature/no-random-encounters-step-only-runtime-20260517` | `6d20de9357` | step-only random encounter suppression を採用済み |
 | [x] 取り込み済み | TM Shop Migration | #31 / `feature/tm-shop-migration` | `dc352ebd34` | TM/HM acquisition retirement と reusable TM policy を採用済み |
