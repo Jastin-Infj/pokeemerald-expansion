@@ -19,10 +19,12 @@ Pokemon to use all non-empty species ability slots in battle while keeping
 `abilityNum` as the saved representative / operation slot. The branch is guarded
 by `B_ALL_ABILITY_SLOTS`, with separate balance toggles for non-representative
 Mold Breaker-family bypass and Neutralizing Gas suppression. The original
-feature branch defaults `B_ALL_ABILITY_SLOTS` to `TRUE`; the runtime integration
-branch now also defaults it to `TRUE` so normal battles use all active ability
-slots. Temporary single-ability validation remains available through the config
-system and focused tests.
+feature branch defaulted `B_ALL_ABILITY_SLOTS` to `TRUE`; the runtime
+integration branch now defaults it to `FALSE` and adds a per-save runtime
+override in Debug -> `Flags/Vars` -> `All Abilities`. The override cycles
+`DEFAULT`, `OFF`, and `ON`, so normal battles can use all active ability slots
+without rebuilding while full upstream-style validation remains single-ability
+by default.
 
 Summary UI now shows the selected active slot label plus ability name on the
 Info page, and the lower ability area shows that slot's description. `L` / `R`
@@ -63,7 +65,7 @@ Checked against the runtime integration order on 2026-05-29:
 
 | PR | Branch | Overlap / action |
 |---|---|---|
-| #47 Battle Item Restore | `feature/battle-item-restore-current-master-20260519` | Resolved before #60 adoption. Rechecked `TESTS='Battle item restore'` after #60 and during the earlier default-`FALSE` integration point; the 2026-05-31 follow-up switches the integration default to `B_ALL_ABILITY_SLOTS TRUE`. |
+| #47 Battle Item Restore | `feature/battle-item-restore-current-master-20260519` | Resolved before #60 adoption. Rechecked `TESTS='Battle item restore'` after #60 and during the default-`FALSE` integration point; the 2026-05-31 follow-up keeps the integration default `FALSE` and adds the per-save runtime override. |
 | #48 Held Item Ownership Tokens | `feature/held-item-catalog-current-master-20260519` | Resolved before #60 adoption. `src/party_menu.c` retains held-item catalog assignment hooks; future Ability Capsule / Patch UX changes should still recheck Give / Take paths. |
 | #51 Scout Selection Runtime | `feature/scout-selection-runtime-20260520` | Resolved before #60 adoption. `src/debug.c` menu entries coexist; Scout remains `Script 2` and All Ability debug battles live under `Party` -> `All Ability...`. |
 | #54 Party / Status UI Overhaul | `feature/party-status-ui-overhaul-20260521` | Resolved before #60 adoption. Summary entry / return remains the key manual UI regression point. |
@@ -97,13 +99,11 @@ Known warning / caveat:
 - `arm-none-eabi-ld` reports the existing RWX segment warning.
 - `mdbook` reports existing warnings for missing root `CHANGELOG.md`, existing
   `CREDITS.md` `</img>`, and large search index.
-- The integration branch now uses the global `TRUE` build. Focused feature
-  validation is the acceptance gate because parts of the upstream full suite
-  still encode single-ability assumptions.
-- 2026-05-31 default-`TRUE` validation passes focused All Ability, `all`,
-  `debug`, docs, and mGBA Live boot. Full `rtk make -j16 -O check` fails under
-  global `TRUE` with 264 failed / 4289 passed / 5203 total because the remaining
-  upstream tests still expect single-ability default behavior.
+- The integration branch uses the default-`FALSE` build plus a runtime override.
+  Full `check` stays green under `DEFAULT`; focused All Ability tests and debug
+  battle routes still force the mode on for validation.
+- 2026-05-31 runtime-toggle validation passes focused All Ability, `all`,
+  `debug`, full `check`, docs, and mGBA Live boot.
 
 ## Integration Checklist
 

@@ -4918,7 +4918,7 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
 
 u32 AbilityBattleEffectsSingleAbility(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger)
 {
-#if B_ALL_ABILITY_SLOTS != FALSE || TESTING || DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS != FALSE || B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE || TESTING || DEBUG_OVERWORLD_MENU
     bool8 savedIteratingAllAbilitySlots = sIteratingAllAbilitySlots;
     u32 effect;
 
@@ -4977,7 +4977,7 @@ bool32 IsMoldBreakerTypeAbility(enum BattlerId battler, enum Ability ability)
 
 static bool32 IsAnyMoldBreakerTypeAbilityActive(enum BattlerId battler)
 {
-#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS == FALSE && !B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE && !TESTING && !DEBUG_OVERWORLD_MENU
     return IsMoldBreakerTypeAbility(battler, GetBattlerAbility(battler));
 #else
     if (gAllAbilitySlotsBattle && GetConfig(B_ALL_ABILITY_SLOTS_MOLD_BREAKER))
@@ -5007,7 +5007,7 @@ static inline bool32 CanBreakThroughAbility(enum BattlerId battlerAtk, enum Batt
 
 static inline bool32 IsAllAbilitySlotsEnabled(void)
 {
-#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS == FALSE && !B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE && !TESTING && !DEBUG_OVERWORLD_MENU
     return FALSE;
 #else
     return gAllAbilitySlotsBattle;
@@ -5016,7 +5016,7 @@ static inline bool32 IsAllAbilitySlotsEnabled(void)
 
 static inline bool32 BattlerHasAdditionalAbility(enum BattlerId battler, enum Ability representativeAbility, enum Ability ability)
 {
-#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS == FALSE && !B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE && !TESTING && !DEBUG_OVERWORLD_MENU
     return FALSE;
 #else
     return gAllAbilitySlotsBattle
@@ -5030,7 +5030,7 @@ static inline bool32 BattlerHasAbilityForCalc(enum BattlerId battler, enum Abili
     if (representativeAbility == ability)
         return TRUE;
 
-#if B_ALL_ABILITY_SLOTS == FALSE && !TESTING && !DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS == FALSE && !B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE && !TESTING && !DEBUG_OVERWORLD_MENU
     return FALSE;
 #else
     return gAllAbilitySlotsBattle && BattlerHasAbility(battler, ability);

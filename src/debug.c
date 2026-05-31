@@ -19,6 +19,7 @@
 #include "field_screen_effect.h"
 #include "field_weather.h"
 #include "follower_npc.h"
+#include "config_changes.h"
 #include "international_string_util.h"
 #include "item.h"
 #include "item_icon.h"
@@ -110,6 +111,7 @@ enum FlagsVarsDebugMenu
     DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_TRAINER_SEE,
     DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_CATCHING,
     DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_BAG_USE,
+    DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_ALL_ABILITY_SLOTS,
 };
 
 enum DebugBattleType
@@ -358,6 +360,7 @@ static void DebugAction_FlagsVars_TrainerSeeOnOff(u8 taskId);
 static void DebugAction_FlagsVars_BagUseOnOff(u8 taskId);
 static void DebugAction_FlagsVars_CatchingOnOff(u8 taskId);
 static void DebugAction_FlagsVars_RunningShoes(u8 taskId);
+static void DebugAction_FlagsVars_AllAbilitySlotsMode(u8 taskId);
 
 static void DebugAction_Give_Item(u8 taskId);
 static void DebugAction_Give_Item_SelectId(u8 taskId);
@@ -811,6 +814,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Flags[] =
     [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_TRAINER_SEE]   = { COMPOUND_STRING("Toggle {STR_VAR_1}Trainer See OFF"), DebugAction_ToggleFlag, DebugAction_FlagsVars_TrainerSeeOnOff },
     [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_CATCHING]      = { COMPOUND_STRING("Toggle {STR_VAR_1}Catching OFF"),    DebugAction_ToggleFlag, DebugAction_FlagsVars_CatchingOnOff },
     [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_BAG_USE]       = { COMPOUND_STRING("Toggle {STR_VAR_1}Bag Use OFF"),     DebugAction_ToggleFlag, DebugAction_FlagsVars_BagUseOnOff },
+    [DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_ALL_ABILITY_SLOTS] = { COMPOUND_STRING("All Abilities: {STR_VAR_1}Default"), DebugAction_ToggleFlag, DebugAction_FlagsVars_AllAbilitySlotsMode },
     { NULL }
 };
 
@@ -820,6 +824,14 @@ static const u8 *const sDebugMenu_Actions_BagUse_Options[] =
     COMPOUND_STRING("No Bag: {STR_VAR_1}VS Trainers"),
     COMPOUND_STRING("No Bag: {STR_VAR_1}Active"),
     COMPOUND_STRING("No Bag: {STR_VAR_1}Invalid value"),
+};
+
+static const u8 *const sDebugMenu_Actions_AllAbilitySlots_Options[] =
+{
+    [OPTIONS_ALL_ABILITY_SLOTS_DEFAULT] = COMPOUND_STRING("All Abilities: {STR_VAR_1}Default"),
+    [OPTIONS_ALL_ABILITY_SLOTS_OFF]     = COMPOUND_STRING("All Abilities: {STR_VAR_1}OFF"),
+    [OPTIONS_ALL_ABILITY_SLOTS_ON]      = COMPOUND_STRING("All Abilities: {STR_VAR_1}ON"),
+    [OPTIONS_ALL_ABILITY_SLOTS_COUNT]   = COMPOUND_STRING("All Abilities: {STR_VAR_1}Invalid"),
 };
 
 static const struct DebugMenuOption sDebugMenu_Actions_Main[] =
@@ -1351,6 +1363,9 @@ static u32 Debug_CheckToggleFlags(u8 id)
         if (result >= NO_BAG_INVALID_VALUE)
             result = NO_BAG_INVALID_VALUE;
         break;
+    case DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_ALL_ABILITY_SLOTS:
+        result = GetConfig(B_ALL_ABILITY_SLOTS);
+        break;
     default:
         result = DEBUG_OPTION_CANT_BE_TOGGLED;
         break;
@@ -1374,6 +1389,14 @@ static u32 Debug_GenerateListFlagsMenu(const struct DebugMenuOption *items)
         flagResult = Debug_CheckToggleFlags(i);
         if (i == DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_BAG_USE)
             name = sDebugMenu_Actions_BagUse_Options[flagResult];
+        else if (i == DEBUG_FLAGVAR_MENU_ITEM_TOGGLE_ALL_ABILITY_SLOTS)
+        {
+            u8 mode = gSaveBlock2Ptr->optionsAllAbilitySlotsMode;
+
+            if (mode >= OPTIONS_ALL_ABILITY_SLOTS_COUNT)
+                mode = OPTIONS_ALL_ABILITY_SLOTS_COUNT;
+            name = sDebugMenu_Actions_AllAbilitySlots_Options[mode];
+        }
         else
             name = sDebugMenu_Actions_Flags[i].text;
 
@@ -2680,6 +2703,20 @@ static void DebugAction_FlagsVars_BagUseOnOff(u8 taskId)
     PlaySE(SE_SELECT);
     VarSet(B_VAR_NO_BAG_USE, (VarGet(B_VAR_NO_BAG_USE) + 1) % 3);
 #endif
+}
+
+static void DebugAction_FlagsVars_AllAbilitySlotsMode(u8 taskId)
+{
+    u8 mode = gSaveBlock2Ptr->optionsAllAbilitySlotsMode;
+
+    (void)taskId;
+    PlaySE(SE_SELECT);
+    if (mode >= OPTIONS_ALL_ABILITY_SLOTS_COUNT - 1)
+        mode = OPTIONS_ALL_ABILITY_SLOTS_DEFAULT;
+    else
+        mode++;
+
+    gSaveBlock2Ptr->optionsAllAbilitySlotsMode = mode;
 }
 
 static void DebugAction_FlagsVars_CatchingOnOff(u8 taskId)

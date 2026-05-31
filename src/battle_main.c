@@ -4727,7 +4727,7 @@ void SwapTurnOrder(u8 id1, u8 id2)
 u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum HoldEffect holdEffect)
 {
     u32 speed = gBattleMons[battler].speed;
-#if B_ALL_ABILITY_SLOTS != FALSE || TESTING || DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS != FALSE || B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE || TESTING || DEBUG_OVERWORLD_MENU
     bool32 allAbilitySlots = gAllAbilitySlotsBattle && ability == GetBattlerAbility(battler);
 #else
     const bool32 allAbilitySlots = FALSE;
@@ -4813,7 +4813,7 @@ s32 GetChosenMovePriority(enum BattlerId battler, enum Ability ability)
 s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Move move)
 {
     s32 priority = 0;
-#if B_ALL_ABILITY_SLOTS != FALSE || TESTING || DEBUG_OVERWORLD_MENU
+#if B_ALL_ABILITY_SLOTS != FALSE || B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE || TESTING || DEBUG_OVERWORLD_MENU
     bool32 allAbilitySlots = gAllAbilitySlotsBattle && ability == GetBattlerAbility(battler);
 #else
     const bool32 allAbilitySlots = FALSE;

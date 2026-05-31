@@ -15,10 +15,10 @@ When implementation starts on a feature branch, run:
 
 - `rtk make -j16 -O all`
 - `rtk make -j16 -O debug`
-- `rtk make -j16 -O check` under the integration default when feasible. The
-  runtime integration branch now defaults `B_ALL_ABILITY_SLOTS` to `TRUE`; use
-  the focused all-ability suite plus `all` / `debug` as the green gate because
-  many upstream tests still assert old single-ability default semantics.
+- `rtk make -j16 -O check` under the integration default. The runtime
+  integration branch defaults `B_ALL_ABILITY_SLOTS` to `FALSE` and uses a
+  per-save runtime override for manual ON/OFF playtesting, so full upstream-style
+  validation should stay green under `DEFAULT`.
 - focused `TESTS=...` checks for new all-active ability tests
 - one focused mGBA Live validation route when available
 
@@ -46,13 +46,14 @@ Completed on `feature/all-ability-slots-runtime-20260523`:
 - `rtk make -j16 -O debug`
 - `rtk mdbook build docs`
 
-The final `B_ALL_ABILITY_SLOTS TRUE` build passes `all`, `debug`, and the
-focused All Ability Slots suite with the existing RWX linker warning. `mdbook`
-passes with existing warnings for the missing root `CHANGELOG.md` include,
-existing `CREDITS.md` `</img>` warning, and large search index. The full
-`rtk make -j16 -O check` suite currently fails under global `TRUE` because many
-upstream tests still encode single-ability default expectations; see the
-2026-05-24 final-TRUE notes below.
+The focused `B_ALL_ABILITY_SLOTS TRUE` path passes `all`, `debug`, and the
+focused All Ability Slots suite with the existing RWX linker warning. The
+integration default is now `FALSE`, with `B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE`
+keeping the code compiled and Debug -> `Flags/Vars` -> `All Abilities` able to
+force `DEFAULT`, `OFF`, or `ON` per save. `mdbook` passes with existing warnings
+for the missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>`
+warning, and large search index. Full `check` passes under the default-`FALSE`
+build.
 
 During full-suite validation, the damaging-move Poison Puppeteer test exposed a
 stale partner-slot side ability issue: a prior double battle could leave Pastel
@@ -574,10 +575,9 @@ Additional debug-route validation added on 2026-05-24:
 
 #60 was adopted into `integration/runtime-dev-20260529` after #47 Battle Item
 Restore, #48 Held Item Catalog, #54 Party / Status UI, #51 Scout Selection, and
-#57 Friendly Shop Pokemon Vendor. The integration branch originally kept
-`B_ALL_ABILITY_SLOTS` default `FALSE`; as of 2026-05-31 it defaults to `TRUE`
-so normal battles also use the all-slot rule. Tests can still force `FALSE`
-where single-ability regression coverage is needed.
+#57 Friendly Shop Pokemon Vendor. The integration branch keeps
+`B_ALL_ABILITY_SLOTS` default `FALSE` and uses a per-save runtime override for
+manual all-slot playtesting. Tests can still force `TRUE` / `FALSE` directly.
 
 Local validation passed:
 
@@ -628,7 +628,7 @@ mGBA Live validation:
   `Party` -> `All Ability...`, selected `A Recoil Battle`, used Clefable's
   `Double-Edge`, and returned to the move menu with Clefable still at
   `317/317`. This confirmed the debug override enabled all-slot behavior before
-  the integration default was switched to `TRUE`.
+  the save-backed runtime override was added.
 - Screenshots:
   `/tmp/integration-all-ability-optin-submenu.png`,
   `/tmp/integration-all-ability-optin-move-menu.png`, and
@@ -636,19 +636,23 @@ mGBA Live validation:
 - Cleanup was clean: `mgba_live_stop` reported `alive_after:false` and
   `mgba-live-cli status --all` returned `[]`.
 
-## Runtime Default Switch Validation 2026-05-31
+## Runtime Toggle Validation 2026-05-31
 
-`include/config/battle.h` now sets `B_ALL_ABILITY_SLOTS` to `TRUE`. This makes
-normal battles initialize `gAllAbilitySlotsBattle` as enabled through
-`BattleStartClearSetData()`; the debug route no longer needs to be the only path
-that exercises all-slot mechanics. Focused validation should prioritize:
+`include/config/battle.h` keeps `B_ALL_ABILITY_SLOTS` `FALSE`, keeps
+`B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE` `TRUE`, and
+`SaveBlock2.optionsAllAbilitySlotsMode` adds a per-save override. Debug ->
+`Flags/Vars` -> `All Abilities` cycles `DEFAULT`, `OFF`, and `ON`.
+`DEFAULT` keeps the build config, `OFF` forces single-ability behavior, and
+`ON` makes normal battles initialize `gAllAbilitySlotsBattle` as enabled through
+`BattleStartClearSetData()`. Focused validation should prioritize:
 
 - `rtk make -j16 -O check TESTS='All Ability Slots'`
 - `rtk make -j16 -O all`
 - `rtk make -j16 -O debug`
+- `rtk make -j16 -O check`
 - one mGBA Live smoke from a non-All-Ability debug trainer or normal trainer
-  route, confirming a non-representative slot effect applies without the debug
-  override.
+  route after setting the save override to `ON`, confirming a
+  non-representative slot effect applies without the debug battle override.
 
 Validation result on `integration/runtime-dev-20260529`:
 
@@ -659,14 +663,14 @@ Validation result on `integration/runtime-dev-20260529`:
 - `rtk make -j16 -O check TESTS='All Ability Slots'` passed.
 - `rtk make -j16 -O all` passed.
 - `rtk make -j16 -O debug` passed.
-- mGBA Live session `all-ability-default-true-20260531` booted
-  `pokeemerald.gba`, captured `/tmp/all-ability-default-true-20260531.png`,
-  stopped cleanly, and `status --all` returned `[]`.
-- Full `rtk make -j16 -O check` fails under global `TRUE` with 264 failed /
-  4289 passed / 5203 total. This is expected until upstream single-ability
-  expectation tests are either config-pinned to `FALSE` or rewritten for the
-  all-slot runtime. The detailed log from this run is
-  `/tmp/all-ability-global-true-full-check.log`.
+- `rtk make -j16 -O check` passed under the default-`FALSE` build.
+- mGBA Live session `all-ability-runtime-toggle-final-20260531` booted
+  `pokeemerald.gba`; Lua read `gSaveBlock2Ptr`, changed
+  `SaveBlock2.optionsAllAbilitySlotsMode` from `DEFAULT` (`0`) to `ON` (`2`),
+  and read it back as `afterMode = 2`.
+- Screenshot session `all-ability-runtime-toggle-final-20260531` captured
+  `/tmp/all-ability-runtime-toggle-final-20260531.png`; cleanup returned
+  `status --all` to `[]`.
 
 ## Required Focused Tests
 
