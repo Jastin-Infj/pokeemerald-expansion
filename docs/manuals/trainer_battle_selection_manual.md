@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
-| Implementation branch | `feature/battle-selection-mvp` |
-| Code status | Validated branch, not on `master` |
+| Last reviewed | 2026-05-31 |
+| Implementation branch | `feature/battle-selection-mvp`; adopted and extended on `integration/runtime-dev-20260529` |
+| Code status | Validated branch; runtime integration branch has short-party policy follow-up, not on `master` |
 | Primary docs | `docs/features/battle_selection/` |
 
 この manual は、通常 trainer battle 前に player party から battle 参加 Pokémon を
@@ -18,6 +18,7 @@
 |---|---|
 | normal single trainer battle | party に eligible Pokémon が 4 匹以上いる場合、3 匹を選出して battle に入る。 |
 | normal double trainer battle | party に eligible Pokémon が 5 匹以上いる場合、4 匹を選出して battle に入る。 |
+| short eligible party | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE` なら、eligible Pokémon が通常要求数より少ない場合も `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT` 以上なら eligible 数を選出数にして UI を開く。例: single で eligible 2 匹なら `2/2` 選出。 |
 | eligible Pokémon | empty slot、Egg、fainted Pokémon は選出不可。 |
 | selection UI | 既存の `PARTY_MENU_TYPE_CHOOSE_HALF` を trainer battle 用 mode で流用する。 |
 | Cancel / B | trainer encounter の script 復帰先が曖昧なため無効。 |
@@ -32,12 +33,19 @@ MVP では opponent preview、custom selection UI、battle 中 party status summ
 
 ```c
 #define B_TRAINER_BATTLE_SELECTION TRUE
+#define B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY TRUE
+#define B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT 2
 ```
 
 | Value | Result |
 |---|---|
 | `TRUE` | 通常 trainer battle 前に selection gate を有効化する。 |
 | `FALSE` | selection gate は no-op。既存の trainer battle flow を維持する。 |
+
+`B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` は、eligible 数が通常要求数
+3/4 未満の時だけ効く。`TRUE` なら configured minimum 以上で `2/2` などの
+縮小選出を行い、`FALSE` なら UI を出さず既存 trainer battle flow へ fallback
+する。
 
 設定場所:
 
@@ -63,6 +71,8 @@ MVP では新しい SaveBlock field、saved flag、saved var は使わない。
 | selected original slots | same EWRAM state | battle end restore まで |
 | existing selection order | `gSelectedOrderFromParty` | selection confirm まで |
 | enable / disable | `B_TRAINER_BATTLE_SELECTION` | build-time |
+| short-party policy | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` | build-time |
+| short-party minimum | `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT` | build-time |
 
 通常 trainer battle の勝敗 flag や script return は既存 flow に任せる。
 selection state は save に残さないため、save migration は不要。
@@ -79,8 +89,10 @@ selection UI を出す条件:
 
 - `B_TRAINER_BATTLE_SELECTION == TRUE`
 - normal trainer battle
-- required count より party count が多い
-- eligible Pokémon が required count 以上いる
+- 通常 policy では required count より party count が多い
+- 通常 policy では eligible Pokémon が required count 以上いる
+- short-party policy が有効な場合、eligible Pokémon が required count 未満でも
+  configured minimum 以上なら eligible 数がそのまま選出数になる
 
 除外する flow:
 

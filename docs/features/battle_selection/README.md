@@ -60,6 +60,7 @@ Validated branch on `feature/battle-selection-mvp`.
 | `B_TRAINER_BATTLE_SELECTION == FALSE` | 通常 trainer battle flow を維持する no-op。 |
 | normal single trainer battle | eligible party が 4 匹以上なら 3 匹を選出してから battle を開始する。 |
 | normal double trainer battle | eligible party が 5 匹以上なら 4 匹を選出してから battle を開始する。 |
+| short eligible party | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE` なら、eligible party が通常要求数 3/4 未満でも、`B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT` 以上なら実際の eligible 数を選出数として UI を開く。例: single で eligible 2 匹なら `2/2` 選出。 |
 | egg / fainted / empty slot | 通常 trainer battle selection では選出不可。 |
 | selected mons | battle 中だけ `gPlayerParty[0..selectedCount-1]` に詰める。 |
 | Cancel / B button | standalone selection では無効。`prebattle_team_viewer` owner 経由で開いた場合のみ、`B` は cached team viewer へ戻る。 |
