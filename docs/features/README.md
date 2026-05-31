@@ -4,25 +4,36 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-23 |
-| Baseline | `master` `de310ef9eb`; `git describe` = `expansion/1.15.2-96-gde310ef9eb` |
+| Last reviewed | 2026-05-31 |
+| Baseline | `integration/runtime-dev-20260529` for 1.15.3 runtime integration; `master` remains docs / Lua-only |
 | Code status | Docs-only navigation |
-| Provenance | Local project overlay, 2026-05-18 comprehensive feature inventory, 2026-05-23 all-ability-slots investigation |
+| Provenance | Local project overlay, 2026-05-18 comprehensive feature inventory, 2026-05-23 all-ability-slots investigation, 2026-05-31 1.15.3 runtime integration tree |
 
 この directory は local feature の planning / implementation handoff / validation
-evidence を置く場所。新しい作業に入る時は、feature folder を直接読む前に
+evidence を置く場所。1.15.3 以降は、個別 feature folder に加えて version tree
+で現在の完了 / 未完了を管理する。
+
+## Version Trees
+
+| Version | Tree | Purpose |
+|---|---|---|
+| 1.15.3 | [15.3 CompleteTree](15_3/complete_tree/) | #68 に集約済みの runtime / tooling feature を完了扱いで束ねる。 |
+| 16.0 | [16.0 OpenTree](16_0/open_tree/) | 16.0 へ持ち越す CI 整備、upstream resync、未実装 / 別 lane を管理する。 |
+
+新しい作業に入る時は、feature folder を直接読む前に version tree と
 [Feature Registry](feature_registry.md) を先に読む。
 
 ## Read Order
 
 1. [Feature Registry](feature_registry.md)
-2. [Comprehensive Feature Inventory 2026-05-18](comprehensive_feature_inventory_2026_05_18.md)
-3. [Feature Branch Audit 2026-05-18](feature_branch_audit_2026_05_18.md)
-4. [Next Runtime Triage 2026-05-18](next_runtime_triage_2026_05_18.md)
-5. [Runtime Integration Gate](../manuals/runtime_integration_gate.md)
-6. [Validation Evidence Matrix](../manuals/validation_evidence_matrix.md)
-7. [Open Investigation Queue](../manuals/open_investigation_queue.md)
-8. 対象 feature folder の `README.md`
+2. [15.3 CompleteTree](15_3/complete_tree/) or [16.0 OpenTree](16_0/open_tree/)
+3. [Comprehensive Feature Inventory 2026-05-18](comprehensive_feature_inventory_2026_05_18.md)
+4. [Feature Branch Audit 2026-05-18](feature_branch_audit_2026_05_18.md)
+5. [Next Runtime Triage 2026-05-18](next_runtime_triage_2026_05_18.md)
+6. [Runtime Integration Gate](../manuals/runtime_integration_gate.md)
+7. [Validation Evidence Matrix](../manuals/validation_evidence_matrix.md)
+8. [Open Investigation Queue](../manuals/open_investigation_queue.md)
+9. 対象 feature folder の `README.md`
 
 feature folder 内は次の順で読む。
 
@@ -69,13 +80,13 @@ implementation shelf PRs and have no source changes on `master`.
 - [Comprehensive Feature Inventory 2026-05-18](comprehensive_feature_inventory_2026_05_18.md)
 - [Feature Branch Audit 2026-05-18](feature_branch_audit_2026_05_18.md)
 - [Next Runtime Triage 2026-05-18](next_runtime_triage_2026_05_18.md)
-- [Jukebox / Sound Archive](jukebox_sound_archive/README.md)
-- [Battle BGM Selector / Sound Archive](battle_bgm_selector/README.md)
-- [Weather Lab Terminal](weather_lab_terminal/README.md)
-- [Bounty Board / Request Board](bounty_board/README.md)
-- [Field Notes / Lore Codex](field_notes_codex/README.md)
-- [Route Mastery Passport](route_mastery_passport/README.md)
-- [Trainer Titles / Achievement Badges](trainer_titles_achievement_badges/README.md)
+- [Jukebox / Sound Archive](jukebox_sound_archive/)
+- [Battle BGM Selector / Sound Archive](battle_bgm_selector/)
+- [Weather Lab Terminal](weather_lab_terminal/)
+- [Bounty Board / Request Board](bounty_board/)
+- [Field Notes / Lore Codex](field_notes_codex/)
+- [Route Mastery Passport](route_mastery_passport/)
+- [Trainer Titles / Achievement Badges](trainer_titles_achievement_badges/)
 
 ## Policy Feature Candidates
 
@@ -83,9 +94,9 @@ These docs track larger gameplay policy candidates that are not source changes
 on `master`. They often depend on existing implementation shelves but should be
 adopted through fresh runtime branches.
 
-- [Nonconsumable Held Items](nonconsumable_held_items/README.md)
-- [Scout Selection](scout_selection/README.md)
-- [All Ability Slots Runtime](all_ability_slots/README.md)
+- [Nonconsumable Held Items](nonconsumable_held_items/)
+- [Scout Selection](scout_selection/)
+- [All Ability Slots Runtime](all_ability_slots/)
 
 ## Current Runtime Shelves
 

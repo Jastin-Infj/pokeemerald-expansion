@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1.15.3 Runtime Integration Summary</title>
+  <style>
+    :root {
+      --bg: #f6f7f3;
+      --ink: #17211d;
+      --muted: #58655f;
+      --line: #d8ded7;
+      --paper: #ffffff;
+      --green: #1f7a5b;
+      --green-2: #dff1e9;
+      --blue: #2c5f8f;
+      --blue-2: #e0edf8;
+      --gold: #9a6a12;
+      --gold-2: #f7ecd2;
+      --red: #9a3d31;
+      --red-2: #f4dfdc;
+      --shadow: 0 12px 32px rgba(23, 33, 29, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    code {
+      background: #eef1ed;
+      border: 1px solid #d9dfd8;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 54px; }
+    header {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--green);
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 1.08;
+      margin: 0 0 14px;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 880px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      margin: 0;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .meta div {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfa;
+    }
+    .meta strong {
+      display: block;
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      margin: 16px 0 22px;
+      padding: 10px;
+      background: rgba(246, 247, 243, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      backdrop-filter: blur(8px);
+    }
+    nav a {
+      display: inline-block;
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      margin: 3px;
+      background: var(--paper);
+      font-size: 0.92rem;
+    }
+    section {
+      margin-top: 22px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 8px 18px rgba(23, 33, 29, 0.06);
+      padding: 24px;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.45rem;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 1.05rem;
+    }
+    .section-note {
+      color: var(--muted);
+      margin: -6px 0 18px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .tile {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfa;
+    }
+    .tile strong { display: block; margin-bottom: 6px; }
+    .tile p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-right: 6px;
+      white-space: nowrap;
+    }
+    .added { background: var(--green-2); color: var(--green); }
+    .changed { background: var(--blue-2); color: var(--blue); }
+    .config { background: var(--gold-2); color: var(--gold); }
+    .risk { background: var(--red-2); color: var(--red); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: #f1f4f0;
+      color: #26342f;
+      font-weight: 700;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .wide-table { overflow-x: auto; }
+    .callout {
+      border: 1px solid #d8c590;
+      background: #fff8e8;
+      border-radius: 8px;
+      padding: 13px 15px;
+      color: #5b4310;
+      margin-top: 14px;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    .footer {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 22px 0 0;
+    }
+    @media (max-width: 840px) {
+      .meta, .grid, .two-col { grid-template-columns: 1fr; }
+      .wrap { padding: 16px 12px 38px; }
+      header, section { padding: 18px; }
+      nav { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">1.15.3 runtime integration / Japanese summary</div>
+      <h1>1.15.3 でこちらが追加・統合したもの</h1>
+      <p class="lead">
+        <code>integration/runtime-dev-20260529</code> は、1.15.3 期間に個別 feature branch で作った runtime / tooling をまとめた統合候補です。
+        <code>master</code> は docs / Lua-only のまま維持し、この branch に実装を集約しています。
+      </p>
+      <div class="meta">
+        <div><strong>Branch</strong><code>integration/runtime-dev-20260529</code></div>
+        <div><strong>PR</strong><a href="https://github.com/Jastin-Infj/pokeemerald-expansion/pull/68">#68 Runtime integration staging</a></div>
+        <div><strong>Release tag</strong><code>map-asset-relinker-v0.1.0</code></div>
+        <div><strong>Policy</strong>runtime source は master に直接入れない</div>
+      </div>
+    </header>
+
+    <nav aria-label="sections">
+      <a href="#overview">概要</a>
+      <a href="#added">Added</a>
+      <a href="#changed">Changed</a>
+      <a href="#config">Config</a>
+      <a href="#debug">Debug</a>
+      <a href="#tools">Tools</a>
+      <a href="#validation">Validation</a>
+      <a href="#next">Next</a>
+    </nav>
+
+    <section id="overview">
+      <h2>概要</h2>
+      <p class="section-note">個別 feature の細かい履歴ではなく、今の runtime-dev に実際に見えている追加点をまとめています。</p>
+      <div class="grid">
+        <div class="tile"><strong>Battle / Team</strong><p>選出、Team Viewer、All Ability、BGM、aftercare、item restore を統合。</p></div>
+        <div class="tile"><strong>Pokemon / Shop</strong><p>Pokemon Vendor、sealed recruit、held item token、State Editor、進化停止。</p></div>
+        <div class="tile"><strong>Challenge</strong><p>Champions run session の開始、checkpoint、retire、lose、clear restore。</p></div>
+        <div class="tile"><strong>Summary UX</strong><p>Unified Move Relearner、Tera badge、ability slot 表示切替を Summary に集約。</p></div>
+        <div class="tile"><strong>Field / Map</strong><p>Field Kit、no encounter flag、Map Asset Relinker、Fly icon style support。</p></div>
+        <div class="tile"><strong>Tooling</strong><p>partygen、scout pool generator、learnset generator、Tauri GUI release workflow。</p></div>
+      </div>
+    </section>
+
+    <section id="added">
+      <h2>Added</h2>
+      <p class="section-note">新しく使えるようになったもの。詳細は各 feature docs に追跡できます。</p>
+      <div class="wide-table">
+        <table>
+          <thead><tr><th>分類</th><th>追加したもの</th><th>要点</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill added">Added</span>Battle</td><td>Trainer Battle Selection</td><td>通常 trainer battle 前に 3/4 選出。短い手持ちなら single 1匹は <code>1/1</code>、double は default 2匹から <code>2/2</code>。</td></tr>
+            <tr><td><span class="pill added">Added</span>Battle</td><td>Pre-Battle / In-Battle Team Viewer</td><td>相手手持ち preview、Summary 確認、選出、battle 中の read-only viewer。</td></tr>
+            <tr><td><span class="pill added">Added</span>Battle</td><td>All Ability Slots</td><td>特性 1 / 2 / hidden を battle 中に同時適用できる opt-in mode。代表 slot は維持。</td></tr>
+            <tr><td><span class="pill added">Added</span>Battle</td><td>Battle BGM Selector</td><td>Trainer / Wild BGM を debug で選択・preview。DPPt / Platinum / HGSS / BW 系 battle tracks を import。</td></tr>
+            <tr><td><span class="pill added">Added</span>Battle</td><td>Battle Item Restore / Aftercare</td><td>berry restore と trainer win heal hook を integration default で有効化。</td></tr>
+            <tr><td><span class="pill added">Added</span>Pokemon</td><td>Friendly Shop Pokemon Vendor</td><td>Pokemon 商品、sealed recruit、one-time / repeat、icon list、PC fallback、bond EXP reward。</td></tr>
+            <tr><td><span class="pill added">Added</span>Pokemon</td><td>Nonconsumable Held Item Catalog</td><td>持ち物を Z crystal 的な ownership token として扱い、数量 drift を抑える。</td></tr>
+            <tr><td><span class="pill added">Added</span>Pokemon</td><td>Pokemon State Editor</td><td>Summary Skills page から level / state を編集。</td></tr>
+            <tr><td><span class="pill added">Added</span>Summary</td><td>Unified Move Relearner</td><td>level / egg / TM / tutor / special candidates を Summary-first の長リストに統合。</td></tr>
+            <tr><td><span class="pill added">Added</span>Summary</td><td>Tera Type Badge</td><td>Summary Info page に Tera badge を表示。</td></tr>
+            <tr><td><span class="pill added">Added</span>Challenge</td><td>Champions Run Session</td><td>run 開始で snapshot、checkpoint、一時レポート、retire / lose restore、clear deposit / carryover。</td></tr>
+            <tr><td><span class="pill added">Added</span>Field</td><td>Field Kit / HM-free Field Moves</td><td>Field Kit item と capability flag で field move を modern 化。</td></tr>
+            <tr><td><span class="pill added">Added</span>Field</td><td>No Random Encounters</td><td><code>FLAG_NO_ENCOUNTER</code> を割り当て、debug toggle で step encounter を止められる。</td></tr>
+            <tr><td><span class="pill added">Added</span>Scout</td><td>Scout Selection</td><td>最大 12 候補、6 表示、scroll、Summary preview、1/N pick、partygen JSON 由来 pool。</td></tr>
+            <tr><td><span class="pill added">Added</span>Tools</td><td>Map Asset Relinker</td><td>CUI、Rust core、Tauri GUI、Windows portable zip release workflow。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="changed">
+      <h2>Changed</h2>
+      <p class="section-note">既存挙動から変わった部分。バランスや将来移行時に見るべきところです。</p>
+      <div class="wide-table">
+        <table>
+          <thead><tr><th>分類</th><th>変更</th><th>影響</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill changed">Changed</span>Branch</td><td>runtime integration lane を作成</td><td><code>master</code> には runtime source を入れず、PR #68 を統合候補にする。</td></tr>
+            <tr><td><span class="pill changed">Changed</span>Party UI</td><td>Party screen を 2x3 に変更</td><td>右下 slot、switch redraw、Summary return、held-item operation を重点確認済み。</td></tr>
+            <tr><td><span class="pill changed">Changed</span>Items</td><td>TM reusable / held item token</td><td>TM は消費しない。held-effect item は 1 個所有で複数 Pokemon に割り当てる思想。</td></tr>
+            <tr><td><span class="pill changed">Changed</span>Pokemon</td><td>通常進化を停止</td><td>Vendor / challenge 前提で final evolution や伝説を固定運用しやすくする。</td></tr>
+            <tr><td><span class="pill changed">Changed</span>Battle</td><td>Ability helper を all-slot aware に変更</td><td>field / side / popup / end-turn / redirect / modifier 系を広く修正。</td></tr>
+            <tr><td><span class="pill changed">Changed</span>Save</td><td>Champions run snapshot 用に SaveBlock1 を調整</td><td>Mystery Event / Mystery Gift buffer を free して session snapshot を収める。</td></tr>
+            <tr><td><span class="pill changed">Changed</span>Debug</td><td>Script labels を feature 名に整理</td><td>Scout / Vendor / Champs / Field Kit / TM Shop を直接選べるようにした。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="config">
+      <h2>Config / Toggle</h2>
+      <p class="section-note">切り替え可能なもの。完全版は <code>config_debug_matrix.md</code> を参照。</p>
+      <div class="wide-table">
+        <table>
+          <thead><tr><th>Area</th><th>Config</th><th>Value</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td>All Ability</td><td><code>B_ALL_ABILITY_SLOTS</code></td><td><code>FALSE</code></td><td>default は通常特性。debug toggle で ON にできる。</td></tr>
+            <tr><td>All Ability</td><td><code>B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE</code></td><td><code>TRUE</code></td><td>save ごとに Default / OFF / ON を切替可能。</td></tr>
+            <tr><td>Battle Selection</td><td><code>B_TRAINER_BATTLE_SELECTION</code></td><td><code>TRUE</code></td><td>通常 trainer battle 前の選出を有効化。</td></tr>
+            <tr><td>Battle Selection</td><td><code>B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT</code></td><td><code>1</code></td><td>single は 1 匹で参加可能。</td></tr>
+            <tr><td>Battle Selection</td><td><code>B_TRAINER_BATTLE_SELECTION_SHORT_DOUBLE_MIN_COUNT</code></td><td><code>2</code></td><td>double は default 2 匹から。1v2 は実験扱い。</td></tr>
+            <tr><td>Team Viewer</td><td><code>B_PREBATTLE_TEAM_VIEWER</code> / <code>B_IN_BATTLE_TEAM_VIEWER</code></td><td><code>TRUE</code></td><td>battle 前後の viewer を有効化。</td></tr>
+            <tr><td>Items</td><td><code>I_HELD_ITEM_CATALOG_ASSIGNMENT</code></td><td><code>TRUE</code></td><td>held item ownership token。</td></tr>
+            <tr><td>Items</td><td><code>I_REUSABLE_TMS</code></td><td><code>TRUE</code></td><td>TM reusable。</td></tr>
+            <tr><td>Field</td><td><code>OW_FIELD_MOVE_MODERNIZATION</code></td><td><code>TRUE</code></td><td>HM-free field move。</td></tr>
+            <tr><td>Field</td><td><code>OW_FIELD_MOVE_TOOLKIT_REQUIRED</code></td><td><code>TRUE</code></td><td>Field Kit と capability flag を要求。</td></tr>
+            <tr><td>Encounter</td><td><code>OW_FLAG_NO_ENCOUNTER</code></td><td><code>FLAG_NO_ENCOUNTER</code></td><td>debug toggle で random encounter を止める。</td></tr>
+            <tr><td>Pokemon</td><td><code>P_EVOLUTIONS_ENABLED</code></td><td><code>FALSE</code></td><td>通常進化停止。</td></tr>
+            <tr><td>Summary</td><td><code>P_UNIFIED_MOVE_RELEARNER</code></td><td><code>TRUE</code></td><td>Unified relearner。</td></tr>
+            <tr><td>Summary</td><td><code>P_SUMMARY_SCREEN_STATE_EDITOR</code></td><td><code>TRUE</code></td><td>State Editor。</td></tr>
+            <tr><td>Champions</td><td><code>SAVE_CHAMPIONS_RUN_SESSION</code></td><td><code>TRUE</code></td><td>run snapshot / restore。</td></tr>
+            <tr><td>Champions</td><td><code>CHAMPIONS_RUN_ENTRY_PARTY_MODE</code></td><td><code>EMPTY</code></td><td>run 開始は 0 匹。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="debug">
+      <h2>Debug Commands</h2>
+      <p class="section-note">検証導線。できるだけ feature 名で探せるように整理済みです。</p>
+      <div class="two-col">
+        <div class="tile">
+          <h3>Party...</h3>
+          <ul>
+            <li><code>Selection Battle</code>: single selection / viewer</li>
+            <li><code>Selection Double</code>: double selection / viewer</li>
+            <li><code>All Ability...</code>: A-U の能力別 test battle</li>
+            <li><code>Move Relearner</code>: unified route の確認</li>
+          </ul>
+        </div>
+        <div class="tile">
+          <h3>Scripts...</h3>
+          <ul>
+            <li><code>Scout Selection</code> / <code>Scout Pick 6</code></li>
+            <li><code>Pokemon Vendor</code> / <code>Vendor Reward</code></li>
+            <li><code>TM Shop Test</code></li>
+            <li><code>Champs: Start</code> / <code>Give Mon</code> / <code>Checkpoint</code> / <code>Retire</code> / <code>Lose Test</code> / <code>Clear</code></li>
+            <li><code>Field Kit Full</code> / <code>Item</code> / <code>Flags</code> / <code>Clear</code></li>
+          </ul>
+        </div>
+      </div>
+      <div class="wide-table">
+        <table>
+          <thead><tr><th>Menu</th><th>Command</th><th>主な確認内容</th></tr></thead>
+          <tbody>
+            <tr><td>Flags & Vars</td><td><code>All Abilities: Default/OFF/ON</code></td><td>All Ability Slots を runtime で切替。</td></tr>
+            <tr><td>Flags & Vars</td><td><code>Toggle Encounter OFF</code></td><td>No Random Encounters。</td></tr>
+            <tr><td>Sound</td><td><code>Trainer BGM...</code> / <code>Wild BGM...</code></td><td>Battle BGM selector。</td></tr>
+            <tr><td>ROM Info</td><td><code>Save Block space</code> / <code>ROM space</code></td><td>SaveBlock / ROM budget。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tools">
+      <h2>Tools / Release</h2>
+      <p class="section-note">ROM runtime 以外に、今後の制作を楽にする tool も integration lane に置いています。</p>
+      <div class="wide-table">
+        <table>
+          <thead><tr><th>Tool</th><th>Path</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td>Map Asset Relinker CUI</td><td><code>tools/map_asset_relinker/map_relink.sh</code></td><td>map / layout / mapsec / group の relink と backup。</td></tr>
+            <tr><td>Map Asset Relinker Rust core</td><td><code>tools/map_asset_relinker_core/</code></td><td>大量 map file の fast scan / dry-run / apply。</td></tr>
+            <tr><td>Map Asset Relinker GUI</td><td><code>tools/map_asset_relinker_gui/</code></td><td>Tauri desktop GUI。CUI と同じコア思想で scan / warning / apply。</td></tr>
+            <tr><td>Windows release</td><td><code>.github/workflows/map-asset-relinker-desktop.yml</code></td><td><code>map-asset-relinker-v*</code> tag で portable zip を Release に添付。</td></tr>
+            <tr><td>Trainer partygen</td><td><code>tools/champions_partygen/</code></td><td>Champions / Scout 用 catalog と generated party pool。</td></tr>
+            <tr><td>Scout pool generator</td><td><code>tools/scout_selection/make_scout_pools.py</code></td><td>partygen JSON から scout pool を作成。</td></tr>
+            <tr><td>Unified relearner generator</td><td><code>tools/learnset_helpers/</code></td><td>move source candidates の header 生成。</td></tr>
+            <tr><td>Sound tools</td><td><code>tools/aif2pcm/</code>, <code>tools/mid2agb/</code></td><td>imported battle BGM asset pipeline。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        Map Asset Relinker は <code>map-asset-relinker-v0.1.0</code> tag を push 済みです。Actions 完了後、GitHub Releases に <code>map-asset-relinker-windows-portable.zip</code> が作成されます。
+      </div>
+    </section>
+
+    <section id="validation">
+      <h2>Validation</h2>
+      <p class="section-note">統合時に走らせた主な確認。長い Actions は待ち切らず、local build / check / mGBA evidence を優先しています。</p>
+      <div class="wide-table">
+        <table>
+          <thead><tr><th>Check</th><th>Status</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>rtk make -j16 -O all</code></td><td>Pass</td><td>既存 RWX linker warning のみ。</td></tr>
+            <tr><td><code>rtk make -j16 -O debug</code></td><td>Pass</td><td>debug routes を含む ROM build。</td></tr>
+            <tr><td><code>rtk make -j16 -O check</code></td><td>Pass</td><td>expected / known-failing marker を含んで exit 0。</td></tr>
+            <tr><td><code>rtk mdbook build docs</code></td><td>Pass</td><td>既存の CHANGELOG include / CREDITS HTML / large search index warning のみ。</td></tr>
+            <tr><td>mGBA Live</td><td>Pass</td><td>boot smoke と feature-focused smoke を owning feature docs に記録。</td></tr>
+            <tr><td><code>codex review</code></td><td>Pass / fixed</td><td>統合 blocker は修正済み。short-party split は no introduced bug。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="next">
+      <h2>次の判定ポイント</h2>
+      <div class="two-col">
+        <div class="tile">
+          <strong>見るべき順番</strong>
+          <p>この HTML で全体像を確認し、次に <code>config_debug_matrix.md</code> で config / debug route を確認する。</p>
+        </div>
+        <div class="tile">
+          <strong>次の branch 判断</strong>
+          <p>PR #68 を 16.x 移行前の staging baseline にするか、さらに feature 別に narrow するかを決める。</p>
+        </div>
+      </div>
+      <p class="footer">
+        Related docs:
+        <code>runtime_integration_15_3_checklist_ja_2026_05_30.md</code>,
+        <code>runtime_integration_branch_audit_2026_05_29.md</code>,
+        <code>local_config_and_flag_ledger.md</code>.
+      </p>
+    </section>
+  </div>
+</body>
+</html>
