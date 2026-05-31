@@ -22,6 +22,7 @@ selection, battle start, and party restore.
 | 2026-05-09 | user manual single battle after fix | Pass | 3 匹選出、battle start、battle end、party restore を確認。 |
 | 2026-05-09 | user manual double battle after fix | Pass | 4 匹選出、battle start、battle end、party restore を確認。 |
 | 2026-05-09 | transition animation visual note | Accepted cosmetic issue | battle transition 中に player / NPC trainer sprite が一瞬黒い影のように見える。進行不能ではない。 |
+| 2026-05-31 | short party selection config | Build pass; manual pending | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY` と `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT` を追加。eligible が通常要求数未満かつ minimum 以上なら、例として single 2 匹 party で `2/2` 選出 UI を開く。`rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed on `integration/runtime-dev-20260529`; `codex review --uncommitted` reported no actionable defects; mGBA Live boot smoke `runtime-short-selection-package-20260531b` captured `/tmp/runtime-short-selection-package-20260531b-boot.png` and stopped cleanly. Exact `2/2` selection remains a manual check. |
 
 初回 mGBA attempt は direct `mgba_path` 指定で `DISPLAY` が無く SIGABRT した。
 script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成功した。
@@ -41,7 +42,9 @@ script-capable wrapper `/home/jastin/.local/bin/mgba-qt` に切り替えて成�
 | Win trainer flag | battle 勝利 | trainer flag が立ち、post battle script が正しく進む |
 | Already beaten trainer | 既戦闘 trainer | 選出 UI は出ず、post battle script へ進む |
 | Cancel behavior | 選出 UI で B / Cancel | Cancel は無効。選出画面に留まり、encounter を中断しない |
-| Insufficient party | 2 匹以下で single trainer | 仕様通りの message / fallback |
+| Insufficient party allowed | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == TRUE`、eligible 2 匹で single trainer | `2/2` 選出 UI が開き、選出順を決めて battle に入れる |
+| Insufficient party blocked | `B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY == FALSE`、eligible 2 匹で single trainer | 選出 UI は開かず、既存 trainer battle flow へ fallback |
+| Below short minimum | `B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT == 2`、eligible 1 匹 | 選出 UI は開かず、既存 trainer battle flow へ fallback |
 | Fainted mons | fainted を含む party | 選出可否が仕様通り |
 | Egg | egg を含む party | 既存 eligibility または仕様通り |
 | Rematch trainer | rematch script | battle 前後 script が壊れない |

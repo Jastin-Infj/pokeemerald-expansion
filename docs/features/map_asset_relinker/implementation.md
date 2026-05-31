@@ -112,6 +112,13 @@ expected source for `map-asset-relinker-gui.exe` and
 `map-asset-relinker-core.exe`; for local handoff it was expanded into ignored
 `tools/map_asset_relinker_gui/dist-windows/portable/`.
 
+Follow-up packaging on `integration/runtime-dev-20260529` makes the workflow
+create `map-asset-relinker-windows-portable.zip` from that portable folder.
+Branch / PR runs expose the zip as an Actions artifact; tag pushes named
+`map-asset-relinker-v*` publish the same zip as a GitHub Release asset via
+`gh release upload --clobber`. Generated `.exe` / `.zip` files remain artifact
+output and are not committed to source.
+
 The Rust core and GUI scan summary now expose map `music`, `weather`,
 `battle_scene`, and movement flags in addition to map/group/layout/mapsec
 links. This does not make the relinker a full map settings editor yet, but it

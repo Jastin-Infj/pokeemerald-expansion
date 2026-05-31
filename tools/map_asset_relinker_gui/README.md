@@ -184,6 +184,10 @@ It runs on a Windows GitHub Actions runner and uploads two artifacts:
 artifact and run `map-asset-relinker-gui.exe` directly; MSI is not the primary
 distribution path for this tool.
 
+The workflow also creates `map-asset-relinker-windows-portable.zip`. Push a tag
+named `map-asset-relinker-v*` to publish that zip as a GitHub Release asset.
+Normal branch and PR runs keep the same zip as a downloadable Actions artifact.
+
 The workflow is also enabled for `integration/runtime-dev-*` pushes so the
 runtime integration PR can publish a fresh Windows executable artifact without
 committing generated `.exe` files into the repository.

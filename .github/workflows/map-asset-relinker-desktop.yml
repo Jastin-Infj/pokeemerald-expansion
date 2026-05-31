@@ -12,11 +12,16 @@ on:
     branches:
       - "feature/map-asset-relinker-*"
       - "integration/runtime-dev-*"
+    tags:
+      - "map-asset-relinker-v*"
     paths:
       - ".github/workflows/map-asset-relinker-desktop.yml"
       - "tools/map_asset_relinker/**"
       - "tools/map_asset_relinker_core/**"
       - "tools/map_asset_relinker_gui/**"
+
+permissions:
+  contents: read
 
 jobs:
   windows:
@@ -70,3 +75,43 @@ jobs:
           name: map-asset-relinker-portable-windows
           if-no-files-found: error
           path: tools/map_asset_relinker_gui/dist-windows/portable/**
+
+      - name: Package portable Windows zip
+        run: |
+          $PackageDir = "tools/map_asset_relinker_gui/dist-windows/package"
+          $ZipPath = Join-Path $PackageDir "map-asset-relinker-windows-portable.zip"
+          New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
+          Compress-Archive -Path "tools/map_asset_relinker_gui/dist-windows/portable/*" -DestinationPath $ZipPath -Force
+
+      - name: Upload portable Windows zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-asset-relinker-windows-portable-zip
+          if-no-files-found: error
+          path: tools/map_asset_relinker_gui/dist-windows/package/map-asset-relinker-windows-portable.zip
+
+  publish-release:
+    name: Publish Windows zip release asset
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/map-asset-relinker-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download portable Windows zip
+        uses: actions/download-artifact@v4
+        with:
+          name: map-asset-relinker-windows-portable-zip
+          path: dist
+
+      - name: Publish portable Windows zip to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          zip_path="dist/map-asset-relinker-windows-portable.zip"
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release create "$TAG_NAME" --title "Map Asset Relinker $TAG_NAME" --notes "Portable Windows build for Map Asset Relinker."
+          fi
+          gh release upload "$TAG_NAME" "$zip_path" --clobber

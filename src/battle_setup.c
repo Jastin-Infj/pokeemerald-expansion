@@ -91,6 +91,7 @@ static void CB2_EndTrainerBattle(void);
 static void SetMainCallback2ToChampionsRunStartLocation(void);
 static bool32 TrainerBattleSelection_ShouldOffer(void);
 static u8 TrainerBattleSelection_GetRequiredCount(void);
+static u8 TrainerBattleSelection_GetBaseRequiredCount(void);
 #if B_TRAINER_BATTLE_SELECTION
 static u8 TrainerBattleSelection_CountEligibleMons(void);
 #endif
@@ -1490,6 +1491,7 @@ static bool32 TrainerBattleSelection_ShouldOffer(void)
 {
 #if B_TRAINER_BATTLE_SELECTION
     u8 requiredCount;
+    u8 eligibleCount;
 
     if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
         return FALSE;
@@ -1510,10 +1512,19 @@ static bool32 TrainerBattleSelection_ShouldOffer(void)
         return FALSE;
 
     requiredCount = TrainerBattleSelection_GetRequiredCount();
+    eligibleCount = TrainerBattleSelection_CountEligibleMons();
+    if (eligibleCount == 0)
+        return FALSE;
+
+#if B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY
+    if (eligibleCount < TrainerBattleSelection_GetBaseRequiredCount())
+        return eligibleCount >= B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT;
+#endif
+
     if (CalculatePlayerPartyCount() <= requiredCount)
         return FALSE;
 
-    if (TrainerBattleSelection_CountEligibleMons() < requiredCount)
+    if (eligibleCount < requiredCount)
         return FALSE;
 
     return TRUE;
@@ -1523,6 +1534,20 @@ static bool32 TrainerBattleSelection_ShouldOffer(void)
 }
 
 static u8 TrainerBattleSelection_GetRequiredCount(void)
+{
+    u8 requiredCount = TrainerBattleSelection_GetBaseRequiredCount();
+
+#if B_TRAINER_BATTLE_SELECTION && B_TRAINER_BATTLE_SELECTION_ALLOW_SHORT_PARTY
+    u8 eligibleCount = TrainerBattleSelection_CountEligibleMons();
+
+    if (eligibleCount >= B_TRAINER_BATTLE_SELECTION_SHORT_PARTY_MIN_COUNT && eligibleCount < requiredCount)
+        return eligibleCount;
+#endif
+
+    return requiredCount;
+}
+
+static u8 TrainerBattleSelection_GetBaseRequiredCount(void)
 {
     if (gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
         return FRONTIER_DOUBLES_PARTY_SIZE;
