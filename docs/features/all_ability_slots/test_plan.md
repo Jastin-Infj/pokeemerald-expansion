@@ -671,6 +671,27 @@ Validation result on `integration/runtime-dev-20260529`:
 - Screenshot session `all-ability-runtime-toggle-final-20260531` captured
   `/tmp/all-ability-runtime-toggle-final-20260531.png`; cleanup returned
   `status --all` to `[]`.
+- KO-popup follow-up on `integration/runtime-dev-20260529`: compared the
+  original `feature/all-ability-slots-runtime-20260523` move-end KO path and
+  confirmed it did not bind `gBattleScripting.battler` /
+  `abilityPopupOverwrite` before script execution. The integration fix adds a
+  non-left-battler hidden-slot `Moxie` regression plus Pattern U `Moxie Popup`.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed after the
+  KO-popup follow-up.
+- `rtk make -j16 -O check TESTS='Moxie'` passed after the KO-popup follow-up.
+- `rtk make -j16 -O all` passed after the KO-popup follow-up.
+- `rtk make -j16 -O debug` passed after adding Pattern U `Moxie Popup`.
+- mGBA Live session `all-ability-moxie-popup-20260531` booted the debug ROM,
+  continued from the local save, opened `Party` -> `All Ability...`, confirmed
+  Pattern U `Moxie Popup` appears at the bottom of the submenu, started the
+  trainer battle, selected Mightyena's `Quick Attack`, and reached the KO /
+  EXP flow. Screenshots:
+  `/tmp/all-ability-moxie-popup-submenu-bottom-20260531.png`,
+  `/tmp/all-ability-moxie-popup-battle-20260531.png`, and
+  `/tmp/all-ability-moxie-popup-after-a2-20260531.png`. The exact popup
+  assertion is covered by the focused `All Ability Slots` test because the
+  high-speed live session advanced through the KO follow-up quickly. Cleanup
+  returned `status --all` to `[]`.
 
 ## Required Focused Tests
 
@@ -709,6 +730,10 @@ Validation result on `integration/runtime-dev-20260529`:
   stack, Hustle accuracy / damage, Lightning Rod / Storm Drain redirection,
   Toxtricity modifier stack, Dragonite guard modifiers, and partner modifier
   behavior.
+- Start Pattern U `Moxie Popup` from the same submenu. Use Mightyena's
+  `Quick Attack` into the level-1 target and confirm the KO follow-up popup
+  displays `Moxie`, even though Mightyena's representative slot is
+  `Intimidate`.
 - Recheck Pattern I specifically and confirm Weavile's initial popup is
   `Pressure`, not hidden-slot `Pickpocket`, before testing Muk's Sticky Hold
   item-retention flow.

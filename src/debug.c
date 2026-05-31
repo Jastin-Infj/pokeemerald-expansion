@@ -320,6 +320,7 @@ static void DebugAction_Party_AllAbilityQ(u8 taskId);
 static void DebugAction_Party_AllAbilityR(u8 taskId);
 static void DebugAction_Party_AllAbilityS(u8 taskId);
 static void DebugAction_Party_AllAbilityT(u8 taskId);
+static void DebugAction_Party_AllAbilityU(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, u32 selection);
@@ -677,6 +678,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party_AllAbility[] =
     { COMPOUND_STRING("R Mod Stack"),          DebugAction_Party_AllAbilityR },
     { COMPOUND_STRING("S Guard Mods"),         DebugAction_Party_AllAbilityS },
     { COMPOUND_STRING("T Partner Mods"),       DebugAction_Party_AllAbilityT },
+    { COMPOUND_STRING("U Moxie Popup"),        DebugAction_Party_AllAbilityU },
     { NULL }
 };
 
@@ -5172,6 +5174,8 @@ enum DebugTrainerIds
     DEBUG_TRAINER_ALL_ABILITY_S_AI,
     DEBUG_TRAINER_ALL_ABILITY_T_PLAYER,
     DEBUG_TRAINER_ALL_ABILITY_T_AI,
+    DEBUG_TRAINER_ALL_ABILITY_U_PLAYER,
+    DEBUG_TRAINER_ALL_ABILITY_U_AI,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -5329,6 +5333,11 @@ static void DebugAction_Party_AllAbilityS(u8 taskId)
 static void DebugAction_Party_AllAbilityT(u8 taskId)
 {
     DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_T_PLAYER, DEBUG_TRAINER_ALL_ABILITY_T_AI);
+}
+
+static void DebugAction_Party_AllAbilityU(u8 taskId)
+{
+    DebugAction_Party_AllAbilityBattlePattern(taskId, DEBUG_TRAINER_ALL_ABILITY_U_PLAYER, DEBUG_TRAINER_ALL_ABILITY_U_AI);
 }
 
 static void DebugAction_Party_TeamViewerBattle(u8 taskId)

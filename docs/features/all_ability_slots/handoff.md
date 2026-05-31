@@ -104,6 +104,9 @@ Known warning / caveat:
   battle routes still force the mode on for validation.
 - 2026-05-31 runtime-toggle validation passes focused All Ability, `all`,
   `debug`, full `check`, docs, and mGBA Live boot.
+- 2026-05-31 KO-popup follow-up fixes non-representative move-end KO ability
+  popup binding for `Moxie` / neigh / `Beast Boost` / `Battle Bond`, adds the
+  hidden-slot `Moxie` regression, and adds debug Pattern U `Moxie Popup`.
 
 ## Integration Checklist
 

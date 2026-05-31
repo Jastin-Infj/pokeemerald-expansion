@@ -577,6 +577,31 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Storm Drain abso
     }
 }
 
+DOUBLE_BATTLE_TEST("All Ability Slots shows a non-representative Moxie popup after a non-left battler KO")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_HERACROSS, 0) == ABILITY_SWARM);
+        ASSUME(GetSpeciesAbility(SPECIES_HERACROSS, 1) == ABILITY_GUTS);
+        ASSUME(GetSpeciesAbility(SPECIES_HERACROSS, 2) == ABILITY_MOXIE);
+        PLAYER(SPECIES_WOBBUFFET);
+        PLAYER(SPECIES_HERACROSS) { Ability(ABILITY_SWARM); Moves(MOVE_QUICK_ATTACK); }
+        OPPONENT(SPECIES_SNORUNT) { HP(1); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(playerRight, MOVE_QUICK_ATTACK, target: opponentLeft); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_QUICK_ATTACK, playerRight);
+        MESSAGE("The opposing Snorunt fainted!");
+        ABILITY_POPUP(playerRight, ABILITY_MOXIE);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_STATS_CHANGE, playerRight);
+        MESSAGE("Heracross's Attack rose!");
+    } THEN {
+        EXPECT_EQ(playerRight->statStages[STAT_ATK], DEFAULT_STAT_STAGE + 1);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT), ABILITY_MOXIE));
+    }
+}
+
 SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Sticky Hold keep held items")
 {
     GIVEN {

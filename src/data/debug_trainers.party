@@ -889,3 +889,60 @@ EVs: 252 HP / 252 Def / 6 SpD
 - Celebrate
 - Celebrate
 - Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_U_PLAYER ===
+Name: U-Moxie
+Class: Pkmn Trainer 1
+Battle Type: Doubles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+DummyU (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+MoxieU (Mightyena)
+Adamant Nature
+Level: 80
+Ability: Intimidate
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 Atk / 6 Def / 252 Spe
+- Quick Attack
+- Crunch
+- Celebrate
+- Celebrate
+
+=== DEBUG_TRAINER_ALL_ABILITY_U_AI ===
+Name: U-Moxie
+Class: Rival
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Male
+
+KO-U (Snorunt)
+Calm Nature
+Level: 1
+IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate
+
+DummyU (Wobbuffet)
+Calm Nature
+Level: 80
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Celebrate

@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-29 |
+| Last reviewed | 2026-05-31 |
 | Branch | `feature/all-ability-slots-runtime-20260523`; adopted into `integration/runtime-dev-20260529` |
 | Baseline | `master` `4e48ff993f` |
 | Code status | Runtime implementation adopted into integration; source remains off `master` |
@@ -140,6 +140,14 @@ dependence on stale `gBattlerAbility` state for non-representative entry effects
 such as `Unnerve`, `Drizzle`, `Sand Stream`, `Snow Warning`, terrain setters,
 `Download`, `Frisk`, `Trace`, `Pressure`, ruin abilities, and stat-raise /
 form-change switch-in scripts.
+
+Move-end KO abilities now follow the same popup binding rule. `Moxie`,
+`Chilling Neigh`, `Grim Neigh`, `Beast Boost`, and `Battle Bond` bind both
+`gBattleScripting.battler` and `gBattlerAbility` before their battle script
+runs, and set `abilityPopupOverwrite` to the actual triggering ability. This
+fixes non-representative KO popups such as Mightyena's hidden-slot `Moxie`
+showing the representative ability or using stale popup state when All Ability
+Slots is enabled.
 
 End-turn weather and third-block ability handlers now have all-slot entry
 points for non-representative abilities that would otherwise be skipped when
@@ -334,6 +342,9 @@ source dependencies.
     such as hidden-slot `Multiscale`.
   - Pattern T `Partner Mods` provides a doubles route for partner-side
     `Plus` / `Minus` style modifier checks.
+  - Pattern U `Moxie Popup` provides a doubles route where Mightyena keeps
+    representative `Intimidate`; after KOing the level-1 target with
+    `Quick Attack`, the follow-up popup should show hidden-slot `Moxie`.
   - Battle entries use the debug all-slot override for the next battle only.
     In the current `TRUE` implementation build the override is redundant, but
     it keeps temporary `FALSE` validation builds able to exercise the mode.
@@ -749,6 +760,26 @@ Validation result on `integration/runtime-dev-20260529`:
   Screenshot session `all-ability-runtime-toggle-final-20260531` captured
   `/tmp/all-ability-runtime-toggle-final-20260531.png`. Cleanup returned
   `status --all` to `[]`.
+
+KO-popup follow-up on `integration/runtime-dev-20260529`:
+
+- Compared the original `feature/all-ability-slots-runtime-20260523` move-end
+  KO path and confirmed it set `gLastUsedAbility` but did not bind
+  `gBattleScripting.battler` / `abilityPopupOverwrite` before the battle script
+  ran.
+- Added a non-left-battler hidden-slot `Moxie` regression and debug Pattern U
+  `Moxie Popup`.
+- `rtk git diff --check` passed.
+- `rtk make -j16 -O check TESTS='All Ability Slots'` passed.
+- `rtk make -j16 -O check TESTS='Moxie'` passed.
+- `rtk make -j16 -O all` passed.
+- `rtk make -j16 -O debug` passed.
+- mGBA Live session `all-ability-moxie-popup-20260531` booted the debug ROM,
+  confirmed Pattern U `Moxie Popup` is reachable from `Party` ->
+  `All Ability...`, started the battle, and reached the Mightyena KO flow.
+  Cleanup returned `status --all` to `[]`. The popup identity itself is covered
+  by the focused test-runner assertion because the high-speed live session
+  advanced through the short KO follow-up quickly.
 
 ## Remaining Risks
 

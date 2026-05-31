@@ -4680,10 +4680,13 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                         gBattleScripting.abilityPopupOverwrite = gLastUsedAbility = ABILITY_CHILLING_NEIGH;
                     else if (ability == ABILITY_AS_ONE_SHADOW_RIDER)
                         gBattleScripting.abilityPopupOverwrite = gLastUsedAbility = ABILITY_GRIM_NEIGH;
+                    else
+                        gBattleScripting.abilityPopupOverwrite = gLastUsedAbility;
 
                     SET_STATCHANGER(stat, numMonsFainted, FALSE);
                     PREPARE_STAT_BUFFER(gBattleTextBuff1, stat);
                     gBattleScripting.animArg1 = GET_STAT_BUFF_ID(stat) + (numMonsFainted > 1 ? STAT_ANIM_PLUS2 : STAT_ANIM_PLUS1);
+                    gBattleScripting.battler = gBattlerAbility = battler;
                     BattleScriptCall(BattleScript_RaiseStatOnFaintingTarget);
                     effect = TRUE;
                 }
@@ -4703,6 +4706,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                 {
                     // Can't use TryBattleFormChange as we can't test form change const data changes.
                     gLastUsedAbility = ability;
+                    gBattleScripting.battler = gBattlerAbility = battler;
+                    gBattleScripting.abilityPopupOverwrite = gLastUsedAbility;
                     GetBattlerPartyState(battler)->battleBondBoost = TRUE;
                     PREPARE_SPECIES_BUFFER(gBattleTextBuff1, gBattleMons[battler].species);
                     GetBattlerPartyState(battler)->changedSpecies = gBattleMons[battler].species;
@@ -4735,7 +4740,8 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                             gBattleScripting.animArg1 = STAT_ANIM_MULTIPLE_PLUS1;
 
                         gLastUsedAbility = ability;
-                        gBattlerAbility = battler;
+                        gBattleScripting.battler = gBattlerAbility = battler;
+                        gBattleScripting.abilityPopupOverwrite = gLastUsedAbility;
                         GetBattlerPartyState(battler)->battleBondBoost = TRUE;
                         BattleScriptCall(BattleScript_EffectBattleBondStatIncrease);
                         effect = TRUE;
