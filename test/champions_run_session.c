@@ -3,6 +3,7 @@
 #include "coins.h"
 #include "event_data.h"
 #include "item.h"
+#include "load_save.h"
 #include "money.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
@@ -11,6 +12,7 @@
 #include "test/test.h"
 #include "constants/battle.h"
 #include "constants/items.h"
+#include "constants/maps.h"
 #include "constants/species.h"
 
 static void InitNormalStateForChampionsRunTest(void)
@@ -119,8 +121,22 @@ TEST("Champions run enables run restrictions only while active")
 TEST("Champions run defeat restores the normal party before clearing the session")
 {
     InitNormalStateForChampionsRunTest();
+    gSaveBlock1Ptr->location.mapGroup = MAP_GROUP(MAP_LITTLEROOT_TOWN);
+    gSaveBlock1Ptr->location.mapNum = MAP_NUM(MAP_LITTLEROOT_TOWN);
+    gSaveBlock1Ptr->location.warpId = WARP_ID_NONE;
+    gSaveBlock1Ptr->location.x = 7;
+    gSaveBlock1Ptr->location.y = 8;
+    gSaveBlock1Ptr->pos.x = 7;
+    gSaveBlock1Ptr->pos.y = 8;
     EXPECT_EQ(ChampionsRun_BeginEntry(), TRUE);
 
+    gSaveBlock1Ptr->location.mapGroup = MAP_GROUP(MAP_ROUTE101);
+    gSaveBlock1Ptr->location.mapNum = MAP_NUM(MAP_ROUTE101);
+    gSaveBlock1Ptr->location.warpId = WARP_ID_NONE;
+    gSaveBlock1Ptr->location.x = 10;
+    gSaveBlock1Ptr->location.y = 10;
+    gSaveBlock1Ptr->pos.x = 10;
+    gSaveBlock1Ptr->pos.y = 10;
     CreateMon(&gPlayerParty[0], SPECIES_MAGIKARP, 1, 0, OTID_STRUCT_PRESET(2));
     CalculatePlayerPartyCount();
     EXPECT_EQ(gPlayerPartyCount, 1);
@@ -135,6 +151,13 @@ TEST("Champions run defeat restores the normal party before clearing the session
     EXPECT_EQ(CheckBagHasItem(ITEM_POTION, 3), TRUE);
     EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 12345);
     EXPECT_EQ(GetCoins(), 123);
+    EXPECT_EQ(gSaveBlock1Ptr->location.mapGroup, MAP_GROUP(MAP_LITTLEROOT_TOWN));
+    EXPECT_EQ(gSaveBlock1Ptr->location.mapNum, MAP_NUM(MAP_LITTLEROOT_TOWN));
+    EXPECT_EQ(gSaveBlock1Ptr->pos.x, 7);
+    EXPECT_EQ(gSaveBlock1Ptr->pos.y, 8);
+    EXPECT_EQ(gSaveBlock1Ptr->continueGameWarp.mapGroup, MAP_GROUP(MAP_LITTLEROOT_TOWN));
+    EXPECT_EQ(gSaveBlock1Ptr->continueGameWarp.mapNum, MAP_NUM(MAP_LITTLEROOT_TOWN));
+    EXPECT_EQ(UseContinueGameWarp(), FALSE);
 }
 
 TEST("Champions run retire restores the normal state and clears the run")
@@ -156,6 +179,7 @@ TEST("Champions run retire restores the normal state and clears the run")
     EXPECT_EQ(gPlayerPartyCount, 2);
     EXPECT_EQ(GetMonData(&gPlayerParty[0], MON_DATA_SPECIES), SPECIES_PIKACHU);
     EXPECT_EQ(GetMonData(&gPlayerParty[1], MON_DATA_SPECIES), SPECIES_DRAGONITE);
+    EXPECT_EQ(UseContinueGameWarp(), FALSE);
     EXPECT_EQ(CheckBagHasItem(ITEM_POTION, 3), TRUE);
     EXPECT_EQ(CheckBagHasItem(ITEM_RARE_CANDY, 1), FALSE);
     for (i = 0; i < ARRAY_COUNT(gSaveBlock1Ptr->mapView); i++)

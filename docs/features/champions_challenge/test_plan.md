@@ -63,6 +63,7 @@ into `integration/runtime-dev-20260529`:
 | PC access guard | `test/champions_run_session.c` confirms `ChampionsRun_CanUseNormalPc` blocks access while active. |
 | Active-run restrictions | `test/champions_run_session.c` confirms Bag, held-item changes, and normal EXP suppression toggle only while active. |
 | Loss restore path | `test/champions_run_session.c` confirms `ChampionsRun_EndByBattleOutcome(B_OUTCOME_LOST)` restores the normal party / bag / money and clears active state. |
+| Loss restore Continue warp | `test/champions_run_session.c` confirms loss restore returns to the saved run-start location, writes that restored warp as the one-shot Continue target for the restore save, then clears the live RAM flag so later normal saves do not inherit a stale run-start warp. |
 | Retire restore path | `test/champions_run_session.c` confirms `ChampionsRun_RetireAndSave()` restores the normal state, clears active state, and saves through the normal path. |
 | Clear carryover path | `test/champions_run_session.c` confirms `ChampionsRun_CompleteClearAndSave()` deposits the live run party into storage, applies configured held-item carryover, restores normal state, and follows the configured next-start party mode. |
 | SaveBlock budget | `test/save.c` expects `sizeof(struct SaveBlock1) == 15664`. |
@@ -85,6 +86,22 @@ Latest local evidence:
   and losing to Steven, the party menu showed restored `Buffie Lv100` instead
   of Bad Egg data. No blue-screen crash occurred. Screenshot:
   `/tmp/champions_loss_test_restore_after_fix.png`.
+- 2026-05-31 focused loss-restore Continue warp check:
+  `rtk make -j16 -O check TESTS=Champions` passes after extending the loss
+  restore test to simulate a run-map location before loss and assert that the
+  restored start location is written to `continueGameWarp` while the live
+  one-shot flag is cleared after the restore save. This targets the manual
+  issue where the in-session loss restore worked, but closing the game without
+  another report could resume on an unexpected map, while avoiding stale warp
+  inheritance on later normal saves.
+- `codex review --uncommitted` was run twice. The first pass found stale
+  in-memory one-shot Continue warp state after restore save; the source and
+  tests were updated, and the second pass found no discrete issues.
+- mGBA Live smoke after the final debug rebuild booted `pokeemerald.gba`,
+  captured `/tmp/runtime-followup-20260531b-boot.png`, stopped cleanly, and
+  `status --all` returned `[]`. The exact loss -> close without another report
+  path was not replayed in mGBA this turn; use the focused unit regression plus
+  previous manual loss-restore evidence as the current oracle.
 - mGBA Live follow-up confirmed the default fresh-start mode after restore:
   `Scripts... > Champs: Start` opened the party menu with the no-Pokemon party
   message.

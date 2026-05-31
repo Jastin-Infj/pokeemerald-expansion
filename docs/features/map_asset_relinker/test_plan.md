@@ -40,6 +40,7 @@ Implemented on `feature/map-asset-relinker-20260525`:
 | GUI Windows native build helper | On Windows: `tools/map_asset_relinker_gui/scripts/build_windows.ps1` | Builds `map-asset-relinker-core.exe`, then Tauri builds the direct GUI `.exe` and NSIS setup `.exe`. The helper also creates `dist-windows/portable/` with the GUI exe, CUI exe, and README. On Linux this is covered by the GitHub Actions Windows runner because local Windows WebView/Tauri packaging is not available. |
 | GUI Windows artifact workflow | `.github/workflows/map-asset-relinker-desktop.yml` on `windows-latest` | Runs the Windows build helper and uploads `map-asset-relinker-portable-windows` for normal direct-exe use plus `map-asset-relinker-windows` for full build output. MSI is intentionally not the primary path because local Windows testing showed `.msi` opening can fail. Run `26553513425` passed for commit `95f19ffc0f` and uploaded portable artifact id `7257355989`. |
 | Integration Windows artifact workflow | Push / PR update on `integration/runtime-dev-*` | Runs the same Windows workflow from the runtime integration branch and uploads a fresh portable Windows artifact containing `map-asset-relinker-gui.exe`, `map-asset-relinker-core.exe`, and `README.txt`. The exe is expected under workflow artifacts, not committed into source. |
+| 2026-05-31 integration Windows artifact check | `gh api repos/Jastin-Infj/pokeemerald-expansion/actions/runs/26705337993/artifacts` | Latest checked successful desktop workflow for `integration/runtime-dev-20260529` uploaded `map-asset-relinker-portable-windows` artifact id `7314429373` and `map-asset-relinker-windows` artifact id `7314429256`; both are unexpired. |
 | GUI/CUI map settings scan | Rust core `scan --pretty` and GUI map detail | Each map summary includes `music`, `weather`, `battle_scene`, `allow_running`, `allow_cycling`, and `allow_escaping` so BGM and movement settings are visible while relinking. |
 | Runtime palette-blink source support | `tools/map_asset_relinker/map_relink.sh plan --map LittlerootTown:LittlerootTown --no-layout-rename --set-fly-icon-style MAPSEC_LITTLEROOT_TOWN:palette-blink --out <tmp>`; then `apply --dry-run <tmp>` | On `integration/runtime-dev-20260529`, dry-run reports `EDIT src/region_map.c` instead of failing on a missing `sPaletteBlinkFlyDestinations` array. This confirms the generic Fly icon palette-blink runtime support is present even though Route301 experiment data is not adopted. |
 | GUI Playwright scan smoke | Start `npm run dev -- --host 127.0.0.1`, open `http://127.0.0.1:1420/`, wait for `Loaded 945 maps` | Dev-only `/api/scan` returns real repo data. Metrics show 945 maps, 78 groups, 791 layouts, 213 mapsecs, and 5 warnings. |
@@ -137,6 +138,10 @@ palette-blink Fly icon support:
 - Windows `.exe` output is expected from the GitHub Actions artifact
   `map-asset-relinker-portable-windows` after the integration branch is pushed;
   generated executables are not committed to source.
+- Latest checked integration artifact evidence: workflow run `26705337993`
+  uploaded `map-asset-relinker-portable-windows` artifact id `7314429373` and
+  `map-asset-relinker-windows` artifact id `7314429256`, both unexpired as of
+  2026-05-31.
 
 ## Latest Branch Validation (2026-05-27)
 
