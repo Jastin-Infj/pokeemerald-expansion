@@ -69,6 +69,25 @@
   source changes that consume them; record source URLs and credit in docs, but
   do not include the image files themselves in a docs / Lua-only PR.
 
+## 16.0 Runtime Lineage
+
+- Treat `integration/runtime-dev-16-20260531` / PR #69 as the completed
+  15.3-to-16.0 runtime port snapshot. It is the comparison baseline and
+  evidence shelf for that replay, not the branch where future runtime features
+  should keep accumulating.
+- New runtime features, 16.0-native reworks, map/content work, generated-data
+  changes, and gameplay edits start from current `master` on a fresh
+  `feature/*` or `integration/*` branch.
+- If a playable "16.0 port snapshot plus new work" branch is needed, duplicate
+  the completed snapshot into a new `integration/*` branch first, then apply the
+  new work there. Keep the original snapshot available so reviewers can compare
+  `master`, the completed 15.3-to-16.0 port, and the new dev branch separately.
+- Historical 15.3 branches and docs are references only after the snapshot is
+  complete. Future 16.0 work owns its own branch, docs, validation evidence, and
+  PR.
+- Publish 15.3 / 16.0 handoff docs to `master` only through a docs / Lua-only
+  branch. Do not merge the runtime snapshot into `master`.
+
 ## GitHub PR Staging
 
 - Open PRs are review / staging shelves, not permission to merge into

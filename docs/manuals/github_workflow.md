@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-09 |
+| Last reviewed | 2026-06-02 |
 | Baseline | `master` `5591163a09`; GitHub PR queue checked 2026-05-09 |
 | Code status | Docs-only workflow manual |
 | Provenance | Local project overlay |
@@ -60,6 +60,35 @@ GitHub の fork sync や upstream merge は便利だが、local implementation �
 `master` で実行すると source baseline が壊れやすい。sync 前に `master` が
 docs / Lua-only baseline であることを確認する。local 実装を遊べる状態で残したい場合は
 `integration/*` に積み、upstream 更新後に current `master` から作り直す。
+
+### 16.0 Runtime Lineage
+
+`integration/runtime-dev-16-20260531` / PR #69 は、1.15.3 runtime integration
+を upstream 16.0 baseline へ replay した completed snapshot として扱う。これは
+「15.3 で完成扱いにした実装が、16.0 の API / config / generated-data 方針へ
+変換された状態」を保存する branch であり、今後の新規 runtime 実装を直接積み続ける
+dev branch ではない。
+
+この分け方の目的は、レビュー時に次の 3 点を分けて比較できるようにすること。
+
+- current `master`: upstream 16.0 source baseline + docs / Lua-only overlay。
+- completed 16.0 port snapshot: 15.3 から 16.0 へ移植済みの runtime 集合。
+- future 16.0 dev branch: snapshot 以後の新規実装や再実装を載せた差分。
+
+今後の作業では、 clean PR / clean review が必要な runtime feature は current
+`master` から fresh `feature/*` または `integration/*` branch を作る。過去の 15.3
+branch や PR #69 snapshot は参考元であって、絶対にそのまま再採用するものではない。
+16.0-native に最適化し直した実装は、新しい branch、docs、validation evidence、PR を
+持つ。
+
+一方で、すでに移植済みの runtime 集合を遊べる dev 環境として維持したい場合は、
+completed snapshot を複製して別名の `integration/*` branch を作り、その複製に新規差分を
+積む。元の snapshot は比較対象として残す。これにより、問題が出たときに
+`master` vs completed snapshot vs new dev branch の差分を切り分けやすくなる。
+
+`master` へ入れるのは、15.3 / 16.0 の handoff docs、branch policy、validation
+evidence などの docs / Lua-only 差分だけにする。PR #69 の runtime source / data /
+tools / generated output を `master` へ merge しない。
 
 ## Work Type Labels
 
