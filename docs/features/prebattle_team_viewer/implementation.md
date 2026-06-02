@@ -196,6 +196,14 @@ remain visible over a non-action-menu screen. The viewer itself remains gated by
 `PreBattleTeamViewer_CanOpenInBattle()`; this follow-up only tightens cleanup of
 the hint sprite between battle controller screens.
 
+2026-06-02 shift-prompt follow-up: the player-controller cleanup above did not cover
+the script-driven shift prompt. The trainer "Will you switch Pokemon?" flow uses
+`Cmd_yesnobox()` directly after the opponent sends the next Pokemon, so no
+`PlayerHandleYesNoBox()` cleanup ran and the action-menu `TEAM INFO` sprite could
+remain visible. `TryDestroyTeamViewerActionHint()` now exposes the existing hint
+destroy path to battle scripts, and `Cmd_yesnobox()` destroys the hint before drawing
+the yes/no window.
+
 ## Files Changed
 
 | File | Change |
@@ -321,6 +329,7 @@ species, type, and level, then explicitly hide private details.
 | 2026-05-31 shift-prompt hint cleanup | Pass | Source follow-up destroys the action-menu hint before action dispatch and on entry to yes/no, move, bag, and party-selection handlers, preventing `TEAM INFO` from bleeding into the switch prompt / party swap surfaces. |
 | 2026-05-31 review / boot smoke | Pass | `codex review --uncommitted` reported no discrete Team Viewer source issues after the cleanup change. mGBA Live `runtime-followup-20260531b` booted the regenerated debug ROM, captured `/tmp/runtime-followup-20260531b-boot.png`, and stopped cleanly. The exact shift-prompt overlay route was not replayed in mGBA this turn; cleanup is source-audited and should be manually rechecked on the reported prompt. |
 | 2026-06-02 Team Info repeat reopen fix | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. mGBA Live first reproduced the reset: after removing the one-open guard, session `teaminfo-repeat-fixed-20260602` still opened `TEAM INFO` twice but reset to the Game Freak boot screen on the second `B` close. Source audit found the missing `CloseMainBattleScreen()` call before Team Viewer entry, which leaked battle gfx buffers across each `ReshowBattleScreenAfterMenu()` return. After the fix, session `teaminfo-repeat-gfxfix-20260602` used `Party -> Selection Battle`, reached the in-battle action menu, opened and closed `TEAM INFO` three times in the same battle, and returned to the action menu after the third close with no title reset, blue screen, command timeout, or heartbeat stall. Evidence: `/tmp/teaminfo-repeat-gfxfix-action-menu-20260602.png`, `/tmp/teaminfo-repeat-gfxfix-second-open-20260602.png`, `/tmp/teaminfo-repeat-gfxfix-after-third-return-20260602.png`; stop returned `alive_after:false`. |
+| 2026-06-02 shift prompt script yes/no cleanup | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. mGBA Live session `teaminfo-shift-prompt-20260602` used `Party -> Selection Battle`, selected 3/3, entered Gabrielle battle, picked a move from an action menu with `TEAM INFO` visible, KO'd Skitty, and confirmed both the next-Pokemon shift prompt and follow-up party menu had no `TEAM INFO` sprite. Evidence: `/tmp/teaminfo-shift-prompt-clean-20260602.png`, `/tmp/teaminfo-shift-party-menu-clean-20260602.png`; stop returned `alive_after:false`. |
 | 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` used `Party -> Team Viewer Battle`, opened player Summary with `SELECT`, returned to the viewer, selected 3/3 Pokemon, reached the trainer battle, confirmed the action-menu `R / TEAM / INFO` hint, opened the in-battle read-only viewer with `R`, and returned to the action menu with `B`. |
 | 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
 | 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |

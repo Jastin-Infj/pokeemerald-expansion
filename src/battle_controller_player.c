@@ -2065,6 +2065,11 @@ void TryShowTeamViewerActionHint(void)
     ShowTeamViewerActionHint(gBattlerInMenuId);
 }
 
+void TryDestroyTeamViewerActionHint(void)
+{
+    DestroyTeamViewerActionHint();
+}
+
 static void PrintLinkStandbyMsg(void)
 {
     if (gBattleTypeFlags & BATTLE_TYPE_LINK)
