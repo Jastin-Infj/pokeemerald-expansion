@@ -32,6 +32,7 @@
 | Check | Steps | Expected |
 |---|---|---|
 | Summary entry | Open Pokemon Summary moves page and press START. | Unified relearner opens and returns to the same Summary context on cancel / learn. This is the canonical player-facing route when integrated with the 2x3 party grid. |
+| Summary first-move-page prompt redraw | Open Party -> Summary for a Pokemon with relearnable moves, page right from Skills to Battle Moves for the first time, then press START. | `START RELEARN` is visible on the first Battle Moves visit, and START opens the unified relearner without needing a Pokemon switch or second page redraw. |
 | Party menu entry | Open field party menu and select Move Relearner action if that route is intentionally enabled. | Relearner opens and returns to party menu coherently. If the party grid command bar is active, verify the direct route is optional/debug or uses a vertical/fallback menu rather than becoming the primary command-bar UX. |
 | NPC script entry | Use a relearner NPC. | Cost / condition is checked by script, and item removal only happens after successful learning. |
 | Source overlap | Use a move present in both virtual TM and tutor / tower pools. | Both source entries appear and teach the same move; labels make the source clear. |
@@ -66,6 +67,7 @@
 | 2026-05-30 | `rtk make -j16 -O all` on `integration/runtime-dev-20260529` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
 | 2026-05-30 | `rtk make -j16 -O check` on `integration/runtime-dev-20260529` | Pass | Existing linker warning on test ROM link; command exited 0. |
 | 2026-05-30 | mGBA Live integration smoke | Pass | Started `pokeemerald.gba`, continued local save, opened Party menu and confirmed no direct `RELEARN` action with `P_PARTY_MOVE_RELEARNER FALSE`, opened Summary moves page, confirmed `START RELEARN`, entered unified list, and page-scrolled right to a `TM` source row. Screenshots: `/tmp/integration-unified-party-actions.png`, `/tmp/integration-unified-summary-moves.png`, `/tmp/integration-unified-relearner-list.png`, `/tmp/integration-unified-relearner-page.png`. Stop succeeded and `status --all` returned `[]`. |
+| 2026-06-02 | Summary first-move-page prompt redraw | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. mGBA Live session `summary-relearn-prompt-20260602` continued the local save, opened Party -> Summary for Moxiel, paged right from Info to Skills and then to the first Battle Moves visit, confirmed `START RELEARN` was visible immediately, then pressed START and confirmed the unified relearner list opened. Evidence: `/tmp/summary-relearn-prompt-first-battle-moves-20260602.png`, `/tmp/summary-relearn-prompt-relearner-open-20260602.png`; stop returned `alive_after:false`. |
 
 ## Feature Complete Gate
 

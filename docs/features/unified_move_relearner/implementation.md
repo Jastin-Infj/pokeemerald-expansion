@@ -45,6 +45,19 @@ direct party action until that UX is intentionally reopened.
 - Preserved All Ability Slots Summary config and kept Summary ability slot
   switching independent from the `START RELEARN` moves-page prompt.
 
+## 2026-06-02 Summary Prompt Follow-Up
+
+- User screenshots `pokeemerald-23.png` through `pokeemerald-33.png` showed that
+  the first visit to the Summary moves page could hide the `START RELEARN`
+  prompt even though pressing `START` still opened the Move Relearner.
+- Root cause: Summary initialization calculated the relearner state while the
+  current page was not a move page, so `UpdateRelearnPrompt()` cleared the prompt
+  buffer. The first page transition into `PSS_PAGE_BATTLE_MOVES` did not refresh
+  that prompt buffer; later Pokemon/page redraw paths did, which is why the
+  prompt reappeared after switching.
+- Fix: `ChangePage()` now refreshes the relearn prompt after updating
+  `currPageIndex`, before the scroll-end tilemap put exposes the page.
+
 Candidate generation details are recorded in
 [Candidate Data Flow](candidate_data_flow.md).
 
@@ -114,6 +127,7 @@ still making normal builds reproducible.
 | 2026-05-30 integration `rtk make -j16 -O all` | Pass | Existing linker warning: `LOAD segment with RWX permissions`. |
 | 2026-05-30 integration `rtk make -j16 -O check` | Pass | Existing linker warning on test ROM link; suite exits 0. |
 | 2026-05-30 integration mGBA Live | Pass | Continue-loaded save, confirmed Party menu does not expose direct `RELEARN`, Summary moves page shows `START RELEARN`, unified list opens, and D-pad right page-scroll reaches `TM` source labels. Cleanup returned `status --all` to `[]`. |
+| 2026-06-02 Summary first-move-page prompt redraw | Pass | `rtk git diff --check`, `rtk make -j16 -O debug`, `rtk make -j16 -O all`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. mGBA Live session `summary-relearn-prompt-20260602` continued the local save, opened Party -> Summary for Moxiel, paged right from Info to Skills and then to the first Battle Moves visit, confirmed `START RELEARN` was visible immediately, then pressed START and confirmed the unified relearner list opened. Evidence: `/tmp/summary-relearn-prompt-first-battle-moves-20260602.png`, `/tmp/summary-relearn-prompt-relearner-open-20260602.png`; stop returned `alive_after:false`. |
 | Runtime special JSON audit | Pass | 32 source refs, 178 candidate blocks, 229 moves, and no unknown species or move constants. |
 | mGBA Live boot / Continue | Pass | Debug ROM loaded the temporary Mew save via Continue. |
 | mGBA party entry | Pass | Start menu -> Pokemon -> Mew showed direct `RELEARN` action and opened unified list. |

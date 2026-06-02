@@ -3837,6 +3837,8 @@ static void ChangePage(u8 taskId, s8 delta)
     {
         ShowUtilityPrompt(SUMMARY_MODE_NORMAL);
     }
+
+    UpdateRelearnPrompt();
 }
 
 static void PssScrollRight(u8 taskId) // Scroll right
