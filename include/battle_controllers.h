@@ -402,7 +402,6 @@ void CB2_SetUpReshowBattleScreenAfterMenu(void);
 void CB2_SetUpReshowBattleScreenAfterMenu2(void);
 void CB2_ReturnToChooseActionFromTeamViewer(void);
 void TryRedrawChooseActionFromTeamViewer(void);
-void TryShowTeamViewerActionHint(void);
 void TryDestroyTeamViewerActionHint(void);
 void Task_PlayerController_RestoreBgmAfterCry(u8 taskId);
 void ActionSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum);

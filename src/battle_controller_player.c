@@ -2060,11 +2060,6 @@ void TryRedrawChooseActionFromTeamViewer(void)
     gBattlerControllerFuncs[gBattlerInMenuId] = HandleChooseActionAfterTeamViewerInputRelease;
 }
 
-void TryShowTeamViewerActionHint(void)
-{
-    ShowTeamViewerActionHint(gBattlerInMenuId);
-}
-
 void TryDestroyTeamViewerActionHint(void)
 {
     DestroyTeamViewerActionHint();
