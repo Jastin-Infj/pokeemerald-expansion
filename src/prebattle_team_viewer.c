@@ -142,6 +142,8 @@ static void CreateTeamIcons(void);
 static void CreateTeamIcon(struct Pokemon *party, enum TeamViewerSide side, u8 slot);
 static void CloseTeamViewer(void);
 static void FreeTeamViewerWindows(void);
+static void ClearInBattleViewerInput(void);
+static bool32 IsSingleInBattleViewerCloseInput(u16 keys);
 static void OpenSelectedMonSummary(void);
 static void CB2_ReturnToPreBattleTeamViewerFromSummary(void);
 static void PrintText(u8 windowId, const u8 *str, u8 x, u8 y);
@@ -232,6 +234,7 @@ bool32 PreBattleTeamViewer_Begin(u8 selectedCount, MainCallback callback)
     sTeamViewerState.playerCount = CalculatePlayerPartyCount();
     sTeamViewerState.callback = callback;
     ClearSelectedPartyOrder();
+    gMain.state = 0;
     SetMainCallback2(CB2_PreBattleTeamViewer);
     return TRUE;
 #else
@@ -255,6 +258,7 @@ bool32 PreBattleTeamViewer_Reopen(u8 selectedCount, MainCallback callback)
     sTeamViewerState.callback = callback;
     InitTeamIconSpriteIds();
     ClearSelectedPartyOrder();
+    gMain.state = 0;
     SetMainCallback2(CB2_PreBattleTeamViewer);
     return TRUE;
 #else
@@ -295,7 +299,9 @@ bool32 PreBattleTeamViewer_TryOpenInBattle(u32 battler)
     sTeamViewerState.playerCount = CalculatePlayerPartyCount();
     sTeamViewerState.callback = CB2_ReturnToChooseActionFromTeamViewer;
     sTeamViewerState.callback1 = gMain.callback1;
+    CloseMainBattleScreen();
     gMain.callback1 = NULL;
+    gMain.state = 0;
     SetMainCallback2(CB2_PreBattleTeamViewer);
     return TRUE;
 #else
@@ -307,6 +313,8 @@ bool32 PreBattleTeamViewer_CanOpenInBattle(u32 battler)
 {
 #if B_IN_BATTLE_TEAM_VIEWER
     if (battler >= gBattlersCount)
+        return FALSE;
+    if (gMain.callback1 == NULL || sTeamViewerState.callback1 != NULL)
         return FALSE;
 
     return IsEligibleInBattleViewer();
@@ -439,7 +447,11 @@ static void CB2_PreBattleTeamViewer(void)
         BuildOamBuffer();
         if (sTeamViewerState.mode == TEAM_VIEWER_MODE_IN_BATTLE)
         {
-            if (JOY_NEW(A_BUTTON | B_BUTTON | B_TEAM_VIEWER_BUTTON))
+            u16 closeKeys = gMain.newKeys & (A_BUTTON | B_BUTTON | B_TEAM_VIEWER_BUTTON);
+
+            if (closeKeys != 0)
+                ClearInBattleViewerInput();
+            if (IsSingleInBattleViewerCloseInput(closeKeys))
             {
                 PlaySE(SE_SELECT);
                 BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
@@ -580,14 +592,29 @@ static void VBlankCB_PreBattleTeamViewer(void)
 static void CloseTeamViewer(void)
 {
     MainCallback callback = sTeamViewerState.callback;
+    enum TeamViewerMode mode = sTeamViewerState.mode;
 
     DestroyTeamIcons();
     FreeMonIconPalettes();
     FreeTeamViewerWindows();
     SetVBlankCallback(NULL);
+    if (mode == TEAM_VIEWER_MODE_IN_BATTLE)
+        ClearInBattleViewerInput();
     if (callback == NULL)
         callback = CB2_ReturnToField;
     SetMainCallback2(callback);
+}
+
+static void ClearInBattleViewerInput(void)
+{
+    gMain.newKeys = 0;
+    gMain.newKeysRaw = 0;
+    gMain.newAndRepeatedKeys = 0;
+}
+
+static bool32 IsSingleInBattleViewerCloseInput(u16 keys)
+{
+    return keys != 0 && (keys & (keys - 1)) == 0;
 }
 
 static void FreeTeamViewerWindows(void)

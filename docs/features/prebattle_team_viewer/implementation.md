@@ -278,8 +278,29 @@ In-battle:
 
 - same party data source;
 - `A`, `B`, or `R`: close and return to action menu;
+- simultaneous close buttons such as `A+B+R` are consumed and ignored; the viewer
+  only enters the battle-screen return path on a single close-button press;
+- the in-battle viewer can be reopened from the action menu throughout the same
+  battle. After it returns to the action menu, `TEAM INFO` is recreated only after
+  held close input is released and the short reopen block has expired;
 - D-pad and `SELECT` are ignored by design. This mode is display-only so battle action /
   move / target cursors cannot move behind the viewer.
+
+2026-06-02 follow-up: user testing found that pressing multiple buttons while the
+in-battle `TEAM INFO` viewer was open, then reopening `TEAM INFO`, could lead to a blue
+screen / invalid transition. The source issue was not a missing first-open path; it was
+the repeated full-screen transition from battle action menu -> Team Viewer -> battle
+screen reshow. A temporary one-open guard avoided the crash but made the button unusable
+after the first close. The underlying reset was the in-battle Team Viewer entry path not
+calling `CloseMainBattleScreen()`: each return through `ReshowBattleScreenAfterMenu()`
+allocated fresh battle gfx buffers without freeing the previous `gBattleAnimBgTileBuffer`
+and `gBattleAnimBgTilemapBuffer`. The viewer now closes the battle screen before entering
+the Team Viewer, refuses to open while battle `callback1` is still paused or already
+captured, clears close-input `newKeys` before returning to the battle screen, validates
+`gBattlerInMenuId` before reprinting action selection, resets the viewer state-machine
+entry state before every viewer entry, suppresses `TEAM INFO` hint recreation during the
+return / reopen block, checks stale hint sprite state before hiding it, and treats
+multi-button close input as ambiguous rather than starting the return path.
 
 Player-side details use the standard Summary skills/status page. Opponent-side details show
 species, type, and level, then explicitly hide private details.
@@ -299,6 +320,7 @@ species, type, and level, then explicitly hide private details.
 | 2026-05-30 review-blocker follow-up | Pass | Action-menu `TEAM INFO` hint is now gated by `PreBattleTeamViewer_CanOpenInBattle()`, which requires battle-started viewer cache state and the same eligibility as opening the viewer. |
 | 2026-05-31 shift-prompt hint cleanup | Pass | Source follow-up destroys the action-menu hint before action dispatch and on entry to yes/no, move, bag, and party-selection handlers, preventing `TEAM INFO` from bleeding into the switch prompt / party swap surfaces. |
 | 2026-05-31 review / boot smoke | Pass | `codex review --uncommitted` reported no discrete Team Viewer source issues after the cleanup change. mGBA Live `runtime-followup-20260531b` booted the regenerated debug ROM, captured `/tmp/runtime-followup-20260531b-boot.png`, and stopped cleanly. The exact shift-prompt overlay route was not replayed in mGBA this turn; cleanup is source-audited and should be manually rechecked on the reported prompt. |
+| 2026-06-02 Team Info repeat reopen fix | Pass | `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. mGBA Live first reproduced the reset: after removing the one-open guard, session `teaminfo-repeat-fixed-20260602` still opened `TEAM INFO` twice but reset to the Game Freak boot screen on the second `B` close. Source audit found the missing `CloseMainBattleScreen()` call before Team Viewer entry, which leaked battle gfx buffers across each `ReshowBattleScreenAfterMenu()` return. After the fix, session `teaminfo-repeat-gfxfix-20260602` used `Party -> Selection Battle`, reached the in-battle action menu, opened and closed `TEAM INFO` three times in the same battle, and returned to the action menu after the third close with no title reset, blue screen, command timeout, or heartbeat stall. Evidence: `/tmp/teaminfo-repeat-gfxfix-action-menu-20260602.png`, `/tmp/teaminfo-repeat-gfxfix-second-open-20260602.png`, `/tmp/teaminfo-repeat-gfxfix-after-third-return-20260602.png`; stop returned `alive_after:false`. |
 | 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` used `Party -> Team Viewer Battle`, opened player Summary with `SELECT`, returned to the viewer, selected 3/3 Pokemon, reached the trainer battle, confirmed the action-menu `R / TEAM / INFO` hint, opened the in-battle read-only viewer with `R`, and returned to the action menu with `B`. |
 | 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
 | 2026-05-30 mGBA cleanup | Pass | `mgba-live-cli stop` returned `alive_after:false`; `status --all` returned `[]`. |

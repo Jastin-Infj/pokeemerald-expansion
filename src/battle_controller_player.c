@@ -106,6 +106,8 @@ static u32 CheckTargetTypeEffectiveness(enum BattlerId battler);
 static void MoveSelectionDisplayMoveEffectiveness(u32 foeEffectiveness, enum BattlerId battler);
 
 static bool8 sRedrawChooseActionFromTeamViewer;
+static u8 sTeamViewerReturnInputBlockFrames;
+static u8 sTeamViewerReopenBlockFrames;
 static bool8 sTeamViewerActionHintSpriteActive;
 static u8 sTeamViewerActionHintSpriteId;
 
@@ -295,14 +297,20 @@ static u32 GetNextBall(u32 ballId)
 static void ShowTeamViewerActionHint(enum BattlerId battler)
 {
 #if B_IN_BATTLE_TEAM_VIEWER
-    if (!PreBattleTeamViewer_CanOpenInBattle(battler))
+    if (sTeamViewerActionHintSpriteActive && GetSpriteTileStartByTag(TEAM_VIEWER_ACTION_HINT_TAG) == 0xFFFF)
+        sTeamViewerActionHintSpriteActive = FALSE;
+
+    if (sTeamViewerReturnInputBlockFrames != 0 || sTeamViewerReopenBlockFrames != 0)
     {
         HideTeamViewerActionHint();
         return;
     }
 
-    if (sTeamViewerActionHintSpriteActive && GetSpriteTileStartByTag(TEAM_VIEWER_ACTION_HINT_TAG) == 0xFFFF)
-        sTeamViewerActionHintSpriteActive = FALSE;
+    if (!PreBattleTeamViewer_CanOpenInBattle(battler))
+    {
+        HideTeamViewerActionHint();
+        return;
+    }
 
     if (!sTeamViewerActionHintSpriteActive)
     {
@@ -383,6 +391,15 @@ static void HandleInputChooseAction(enum BattlerId battler)
 
     DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
     DoBounceEffect(battler, BOUNCE_MON, 7, 1);
+    if (sTeamViewerReopenBlockFrames != 0)
+    {
+        sTeamViewerReopenBlockFrames--;
+        gMain.newKeys = 0;
+        gMain.newKeysRaw = 0;
+        gMain.newAndRepeatedKeys = 0;
+        HideTeamViewerActionHint();
+        return;
+    }
     ShowTeamViewerActionHint(battler);
 
     if (JOY_REPEAT(DPAD_ANY) && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A)
@@ -2025,6 +2042,7 @@ void CB2_SetUpReshowBattleScreenAfterMenu2(void)
 void CB2_ReturnToChooseActionFromTeamViewer(void)
 {
     sRedrawChooseActionFromTeamViewer = TRUE;
+    sTeamViewerReturnInputBlockFrames = 8;
     SetMainCallback2(ReshowBattleScreenAfterMenu);
 }
 
@@ -2035,6 +2053,9 @@ void TryRedrawChooseActionFromTeamViewer(void)
 
     sRedrawChooseActionFromTeamViewer = FALSE;
     PreBattleTeamViewer_RestoreBattleCallback1();
+    if (gBattlerInMenuId >= gBattlersCount)
+        return;
+
     PlayerHandleChooseAction(gBattlerInMenuId);
     gBattlerControllerFuncs[gBattlerInMenuId] = HandleChooseActionAfterTeamViewerInputRelease;
 }
@@ -2212,6 +2233,12 @@ static void HandleChooseActionAfterTeamViewerInputRelease(enum BattlerId battler
     gMain.newKeys = 0;
     gMain.newKeysRaw = 0;
     gMain.newAndRepeatedKeys = 0;
+    if (sTeamViewerReturnInputBlockFrames != 0)
+    {
+        sTeamViewerReturnInputBlockFrames--;
+        return;
+    }
+    sTeamViewerReopenBlockFrames = 18;
     gBattlerControllerFuncs[battler] = HandleInputChooseAction;
 }
 

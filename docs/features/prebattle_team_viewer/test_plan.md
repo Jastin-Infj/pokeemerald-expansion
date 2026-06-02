@@ -51,6 +51,7 @@
 | 2026-05-30 review-blocker follow-up | Pass | `TEAM INFO` hint now uses the same `PreBattleTeamViewer_CanOpenInBattle()` eligibility as the actual `R` shortcut, avoiding stale hints in battles without viewer cache. |
 | 2026-05-31 shift / party prompt hint cleanup | Pass | Source follow-up destroys the `TEAM INFO` action-menu hint before normal action dispatch and on entry to the yes/no, move, bag, and party-selection handlers. This covers the reported case where the Team Viewer affordance remained visible during the opponent-next-Pokemon switch prompt or party switch screen. |
 | 2026-05-31 review / boot smoke | Pass | `codex review --uncommitted` reported no discrete source issue after cleanup. mGBA Live booted the regenerated debug ROM and captured `/tmp/runtime-followup-20260531b-boot.png`; the exact shift prompt / party-switch overlay path remains a manual prompt-specific recheck. |
+| 2026-06-02 Team Info repeat reopen fix | Pass | User repro was `R` to open Team Info and `B` to return, repeated from the battle action menu. Removing the one-open guard reproduced the reset in `teaminfo-repeat-fixed-20260602`: second open displayed correctly, but the second `B` close reset to the Game Freak boot screen. Root cause was missing `CloseMainBattleScreen()` before in-battle Team Viewer entry, leaving battle gfx buffers allocated while each return path allocated new ones. After the fix, `rtk git diff --check`, `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and `rtk make -j16 -O check` passed with the existing RWX linker warning. mGBA Live session `teaminfo-repeat-gfxfix-20260602` opened and closed Team Info three times in the same battle and returned to the action menu after the third close with no title reset, blue screen, command timeout, or heartbeat stall. Evidence: `/tmp/teaminfo-repeat-gfxfix-action-menu-20260602.png`, `/tmp/teaminfo-repeat-gfxfix-second-open-20260602.png`, `/tmp/teaminfo-repeat-gfxfix-after-third-return-20260602.png`; stop returned `alive_after:false`. |
 | 2026-05-30 integration mGBA Live smoke | Pass | Session `integration-prebattle-team-viewer-smoke` opened `Party -> Team Viewer Battle` before the 2026-05-31 menu rename, confirmed pre-battle viewer rendering, player Summary on `SELECT`, 3/3 pick-order selection, trainer battle start, action-menu `R / TEAM / INFO` hint, in-battle viewer on `R`, and action-menu return on `B`. The current route label is `Party -> Selection Battle`. |
 | 2026-05-30 review-blocker mGBA smoke | Pass | Session `integration-review-blocker-smoke` booted the debug ROM, accepted START input, reached the continue menu, captured `/tmp/integration-review-blocker-smoke.png`, and stopped cleanly. |
 | 2026-05-30 integration screenshots | Pass | `/tmp/integration-teamviewer-boot.png`, `/tmp/integration-teamviewer-inbattle.png`, `/tmp/integration-teamviewer-action-return.png`. |
@@ -115,6 +116,8 @@
 | In-battle labels | open in-battle viewer | Pokemon grid labels are hidden; D-pad does not produce colored block artifacts or cursor movement. |
 | In-battle viewer close | press A / B / configured button | Returns to a visible action menu with cursor and pending command unchanged; no hidden move-selection input should remain active. |
 | In-battle held close input | hold A / B / R while closing viewer | Returns to action menu and waits for key release; held input must not choose Fight, Bag, Pokémon, Run, move, or target. |
+| In-battle simultaneous close input | press multiple close buttons such as `A+B+R` while viewer is open | Multi-button close input is consumed and ignored. Viewer stays open until a single close button is pressed, preventing the action-menu return path from starting on ambiguous input. |
+| In-battle repeat after close | close with a single close button, release, then press `R` again | The same battle reopens Team Info from the action menu. Repeated `R -> B` cycles return to the action menu without leaking battle commands, resetting to title, or showing a blue screen. |
 | In-battle move menu | open Fight then press viewer button | MVP does not open viewer from move menu unless explicitly implemented. Existing move description / gimmick behavior remains. |
 | Selection restore | choose non-leading slots | Battle end restores player party to original order with selected mons updated. |
 | Whiteout / loss | lose after selecting | Team viewer state clears; selection restore still occurs before whiteout / return flow. |
@@ -154,8 +157,8 @@ Implementation handoff should record:
 
 - Add an automated test for "preview cache copied to `gEnemyParty`" once helper boundaries exist.
 - Add a test-only debug assertion that cached preview species/order equals battle species/order.
-- Add a test hook that opens and closes in-battle viewer without emitting a battle command,
-  including held-key release gating.
+- Add a test hook that opens, closes, and reopens the in-battle viewer without emitting a
+  battle command, including held-key release gating and repeated `R -> B` cycles.
 - Add a screenshot check for `Y` detail overlay once the layout is stable.
 - Decide whether type icon rendering needs a screenshot pixel check or manual screenshot is enough.
 - Add double-battle focused runtime evidence for the 4-of-6 path.

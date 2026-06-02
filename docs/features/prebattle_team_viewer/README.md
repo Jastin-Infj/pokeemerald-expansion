@@ -103,7 +103,7 @@ GBA の 240x160 screen では添付 reference の Switch 画面をそのまま�
 | opponent side | 相手の最大 6 匹。Pokemon icon と slot number を 3x2 grid で表示。 |
 | center / footer | `A` pick / unpick、`START` confirm、player-side `SELECT` Summary、single 3 / double 4 の required count。 |
 | selection | Phase 2 は viewer と selection を統合。player side で `A` pick / unpick、`START` confirm。 |
-| in-battle mode | display-only。`R` / `B` / `A` close。D-pad / `SELECT` は無視し、選択や party mutation はしない。 |
+| in-battle mode | display-only。`R` / `B` / `A` close。D-pad / `SELECT` は無視し、選択や party mutation はしない。戦闘中 Team Info は action menu に戻るたびに再表示でき、同じ戦闘中に何度でも再オープンできる。 |
 
 player-side `SELECT` は独自 detail ではなく通常の Pokemon Summary を開き、
 `POKEMON SKILLS` page から開始する。`TEAM_VIEWER_SUMMARY_ALLOW_MOVE_REORDER`
