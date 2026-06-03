@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-06-02 |
+| Last reviewed | 2026-06-03 |
 | Upstream baseline | `master` `4faec7cb08` / `expansion/1.16.0-104-g4faec7cb08` |
 | Runtime branch | `integration/runtime-dev-16-20260531` |
 | Runtime PR | PR #69 / `[codex] Port runtime integration to 16.0 baseline` |
@@ -85,6 +85,20 @@ booted `pokeemerald.gba`, returned `true` through Lua, captured
 `status --all` returned `[]`. The exact old-save Cozmo dialogue branch remains
 a source-level migration audit unless a save fixture with old `0xE5` set is
 prepared.
+
+Commit `010b15058c` (`Address runtime integration follow-up fixes`) was pushed
+to PR #69 on 2026-06-03 after repeating `rtk git diff --check`,
+`rtk make -j16 -O all`, `rtk make -j16 -O debug`, full
+`rtk make -j16 -O check`, and `rtk mdbook build docs`; all exit 0 with the same
+existing RWX linker warning, expected / known-failing test markers, missing root
+`CHANGELOG.md` include warning, `CREDITS.md` `</img>` warning, and large search
+index warning. The mGBA MCP attempt failed before boot because Qt could not
+connect to `DISPLAY`; the required script-capable mGBA was then validated with
+`DISPLAY=:0` through `mgba-live-cli` session `runtime-dev-16-followup-cli`.
+That session booted `pokeemerald.gba`, accepted START input, captured
+`/tmp/runtime_dev_16_followup_boot.png` and
+`/tmp/runtime_dev_16_followup_after_start.png`, stopped cleanly, and final
+`status --all` returned `[]`.
 
 ## 2026-06-02 Completeness Audit
 
