@@ -5583,6 +5583,10 @@ enum Obedience GetAttackerObedienceForAction(void)
         return OBEYS;
     if (gBattleTypeFlags & BATTLE_TYPE_RECORDED)
         return OBEYS;
+#if B_CHAMPIONS_PARTYGEN_TRAINERS && !B_CHAMPIONS_PARTYGEN_OBEDIENCE_CHECKS
+    if (IsOnPlayerSide(gBattlerAttacker))
+        return OBEYS;
+#endif
     if (B_OBEDIENCE_MECHANICS < GEN_8 && !IsOtherTrainer(gBattleMons[gBattlerAttacker].otId, gBattleMons[gBattlerAttacker].otName))
         return OBEYS;
     if (FlagGet(FLAG_BADGE08_GET)) // Rain Badge, ignore obedience altogether

@@ -1,3 +1,5 @@
+#include "config/champions_partygen.h"
+
 /*
 Trainers and their parties defined with Competetive Syntax.
 Compatible with Pokemon Showdown exports.
@@ -4586,6 +4588,7 @@ IVs: 4 HP / 4 Atk / 4 Def / 4 SpA / 4 SpD / 4 Spe
 - Odor Sleuth
 - Roar
 
+#if !B_CHAMPIONS_PARTYGEN_TRAINERS
 === TRAINER_SIDNEY ===
 Name: SIDNEY
 Class: Elite Four
@@ -4789,6 +4792,7 @@ IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 - Dragon Claw
 - Rock Slide
 - Crunch
+#endif
 
 === TRAINER_ROXANNE_1 ===
 Name: ROXANNE
@@ -6242,6 +6246,7 @@ Electrike
 Level: 13
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
 
+#if !B_CHAMPIONS_PARTYGEN_TRAINERS
 === TRAINER_WALLACE ===
 Name: WALLACE
 Class: Champion
@@ -6300,6 +6305,11 @@ IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 - Surf
 - Ice Beam
 - Toxic
+#endif
+
+#if B_CHAMPIONS_PARTYGEN_TRAINERS
+#include "src/data/champions_partygen/trainers.party.inc"
+#endif
 
 === TRAINER_ANDREW ===
 Name: ANDREW

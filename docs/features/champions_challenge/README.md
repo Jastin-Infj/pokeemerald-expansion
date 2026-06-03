@@ -4,13 +4,13 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-25 |
-| Baseline | `master` `5b8ced1883`; partygen implementation exists on `feature/trainer-partygen-catalog-expansion` |
-| Code status | Runtime not on `master`; run session restore MVP is implemented on `feature/champions-run-session-runtime-20260524` |
+| Last reviewed | 2026-06-03 |
+| Baseline | current 16.0 `master`; PartyGen 16.0 port exists on `feature/champions-partygen-16-20260603` |
+| Code status | Runtime not on `master`; run session restore MVP is implemented on `feature/champions-run-session-runtime-20260524`; PartyGen 16.0 port is implemented on `feature/champions-partygen-16-20260603` |
 | Provenance | Local project feature docs |
 
 Status: Run session restore MVP implemented on feature branch
-Code status: runtime not on `master`; run session restore MVP exists on `feature/champions-run-session-runtime-20260524`; partygen CLI / catalog implementation exists on `feature/trainer-partygen-catalog-expansion`
+Code status: runtime not on `master`; run session restore MVP exists on `feature/champions-run-session-runtime-20260524`; partygen CLI / catalog implementation exists on `feature/champions-partygen-16-20260603`
 
 ## Goal
 
@@ -138,12 +138,14 @@ MVP は debug route まで実装済み。次の優先は **実施設 script へ�
 
 ### Party Generator Baseline Summary
 
-まだ実装はしないが、generator の初期方針は以下で固定する。
+16.0 PartyGen port は `feature/champions-partygen-16-20260603` で実装済み。
+現行方針は、生成済み include を `B_CHAMPIONS_PARTYGEN_TRAINERS` で有効化する
+config-gated 方式とする。
 
 | Topic | Decision |
 |---|---|
-| First artifact | copy-paste 可能な `champions_trainers.party` を出す。 |
-| Build integration | 最初は自動 include しない。generated file は予約出力として扱う。 |
+| First artifact | `src/data/champions_partygen/trainers.party.inc` を生成してレビュー対象にする。 |
+| Build integration | `src/data/trainers.party` が `B_CHAMPIONS_PARTYGEN_TRAINERS` 有効時だけ generated include を読む。 |
 | Trainer identity | `.party` の `=== TRAINER_XXXX ===` と `include/constants/opponents.h` を対応させる。 |
 | Journey order | MVP は `.party` の現行 block 出現順を `sourceOrder` として使う。必要な trainer だけ `catalog/journey.json` の `order` で上書きする。 |
 | MVP inputs | `catalog/journey.json`, `catalog/groups/*.json`, `catalog/blueprints/*.json`, `catalog/sets/*.json`, `catalog/rulesets.*`, `catalog/overrides/*.json`, `weights/*.json`, `notes/species_roles.*`, `sources/*.json`。 |

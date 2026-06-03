@@ -74,11 +74,12 @@ work. The catalog marks owned trainers with journey-level tags such as
 so reviewers can tell which generated blocks are intentionally managed by this
 feature.
 
-Generated includes remain deferred. `apply` keeps doing direct block
-replacement into `src/data/trainers.party`, with `diff`, audit logs, and mGBA
-checks as the review path. Generated includes can be revisited only after drift
-checks exist and reviewers can prove that included data still matches the ROM
-source expected by scripts and constants.
+Generated includes are now the 16.0 integration path. The current branch keeps
+vanilla trainer blocks in `src/data/trainers.party` for default builds and
+includes `src/data/champions_partygen/trainers.party.inc` only when
+`B_CHAMPIONS_PARTYGEN_TRAINERS` is `1`. Use `diff`, audit logs, local make,
+and mGBA checks as the review path before enabling the config for a playable
+branch.
 
 NPC deletion / replacement is a separate feature boundary. Removing or
 replacing field NPCs requires a map-script audit of `events.inc`,
@@ -108,11 +109,12 @@ Confirmed checks:
 
 ## Current Boundaries
 
-This PR is trainer party generation only. It does not implement:
+The 16.0 PartyGen port implements trainer party generation, a config gate, and
+the explicit no-EXP / badge boost / obedience knobs needed for the Lv50
+challenge path. It does not implement:
 
 - Champions Challenge runtime state.
 - challenge party / bag save-restore.
-- no-EXP challenge mode.
 - reward / prize policy.
 - Champions Challenge runtime player profile state.
 - ROM-side adaptive difficulty.
@@ -123,9 +125,10 @@ This PR is trainer party generation only. It does not implement:
 
 Because the current partygen output is ordinary `trainers.party` data, the
 generated Elite Four and Wallace blocks still enter the normal trainer battle
-runtime. Until Champions Challenge runtime exists, aftercare, held item
-restore, and battle selection features must treat those trainers as normal
-trainers unless their own config says otherwise.
+runtime. The no-EXP, badge-boost, and obedience behavior only changes when the
+explicit PartyGen config is enabled. Until Champions Challenge runtime exists,
+aftercare, held item restore, and battle selection features must treat those
+trainers as normal trainers unless their own config says otherwise.
 
 Do not use `partygen_owned` or `champions_challenge` catalog tags as ROM-side
 guards. Those tags are emitted to audit logs for tooling and review only. When
@@ -189,7 +192,8 @@ Player style logging:
 Data management:
 
 - Keep `config.local.toml`, raw logs, generated reports, and generated fragments out of commits unless they are intended review artifacts.
-- Commit source catalog changes and applied `.party` changes together when the data is meant to ship.
+- Commit source catalog changes and the generated include together when the
+  data is meant to ship.
 - Prefer `partygen diff` before `partygen apply`.
 - `tools/champions_partygen/local/` is gitignored for logs, audit files, and
   active profiles.
@@ -242,7 +246,16 @@ Current EXP flow is in `src/battle_script_commands.c`, `Cmd_getexp`:
 
 `include/config/battle.h` currently sets `B_TRAINER_EXP_MULTIPLIER` to `GEN_LATEST`, whose comment says Gen 7+ no longer gives the 1.5 trainer EXP multiplier.
 
-Challenge-specific EXP on/off or EXP multiplier should be a separate runtime battle-rule branch. Partygen can still include expected EXP impact in reports because generated levels and species affect reward volume.
+The 16.0 PartyGen port adds a narrow no-EXP branch:
+`B_CHAMPIONS_PARTYGEN_TRAINERS == 1` plus
+`B_CHAMPIONS_PARTYGEN_EXP_MODE == B_CHAMPIONS_PARTYGEN_EXP_NONE` skips EXP for
+trainer battles in `Cmd_getexp`. Default PartyGen-disabled builds keep normal
+EXP behavior.
+
+Challenge-specific half-EXP, double-EXP, or profile-based EXP multipliers
+remain separate runtime battle-rule work. Partygen can still include expected
+EXP impact in reports because generated levels and species affect reward
+volume.
 
 ## Open Questions
 

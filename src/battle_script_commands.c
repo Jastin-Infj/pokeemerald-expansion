@@ -3866,6 +3866,15 @@ static bool32 BattleTypeAllowsExp(void)
         return TRUE;
 }
 
+static bool32 ShouldSuppressChampionsPartygenExp(void)
+{
+#if B_CHAMPIONS_PARTYGEN_TRAINERS && (B_CHAMPIONS_PARTYGEN_EXP_MODE == B_CHAMPIONS_PARTYGEN_EXP_NONE)
+    return (gBattleTypeFlags & BATTLE_TYPE_TRAINER) != 0;
+#else
+    return FALSE;
+#endif
+}
+
 static u32 GetMonHoldEffect(struct Pokemon *mon)
 {
     enum HoldEffect holdEffect;
@@ -3899,6 +3908,7 @@ static void Cmd_getexp(void)
     case 0: // check if should receive exp at all
         if (IsOnPlayerSide(gBattlerFainted)
             || IsAiVsAiBattle()
+            || ShouldSuppressChampionsPartygenExp()
             || !BattleTypeAllowsExp())
         {
             gBattleScripting.getexpState = 6; // goto last case
@@ -13979,4 +13989,3 @@ void BS_RestoreStatChangeQueue(void)
     ClearOtherStatChangeValues(gBattlerAttacker);
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
-

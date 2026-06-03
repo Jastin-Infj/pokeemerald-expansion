@@ -38,9 +38,9 @@
 | config 基準が曖昧になる | Medium | `config.example.toml`, `config.local.toml`, profiles | コメント付き sample を commit し、local override は review / CI で読まない。 |
 | raw log が巨大化して扱えなくなる | Medium | mGBA logs, parser, profiles | raw / normalized / profile を分け、generator は raw log を直接読まない。 |
 | generator 先行で仕様が散らばる | Medium | docs, catalog, generated output | 未確定案は docs-first parking lot に置き、contract / MVP / risk / test へ分類してから実装する。 |
-| copy-paste fragment と build integration がずれる | Medium | generated `.party`, trainerproc, make rules | 予約出力段階でも `trainerproc` validation と diff report を必須にし、自動 include は設計確定後に行う。 |
+| generated include と config gate がずれる | Medium | generated `.party`, trainerproc, make rules | `B_CHAMPIONS_PARTYGEN_TRAINERS` の default / enabled 両方で preprocessing と trainerproc validation を行い、`partygen diff` と audit log を確認する。 |
 | trainer ID 追加で flag 領域が溢れる | High | `include/constants/opponents.h`, `TRAINER_FLAGS_START`, SaveBlock flags | MVP は既存 `TRAINER_*` の置き換えに限定する。新規 ID 追加は別 task。 |
-| generated fragment の Make dependency が漏れる | Medium | `trainer_rules.mk`, `src/data/generated/*.party` | include integration 前に dependency / clean / CI drift check を追加する。 |
+| generated include の Make dependency が漏れる | Medium | `trainer_rules.mk`, `src/data/champions_partygen/*.party.inc` | `trainers.party` CPP include と normal make build で検出する。必要なら drift check / explicit dependency を追加する。 |
 | fixed-order trainer が pool path に入る | Medium | `Party Size`, `trainerproc`, `DoTrainerPartyPool` | source 順固定を意図する trainer には `Party Size` を出さない。候補数同数でも pool ordering を意図する trainer は許可する。 |
 | gimmick / ball field が無視または不正になる | Medium | `Ball`, `Tera Type`, `Dynamax Level`, `Gigantamax` | `BALL_*` validation と Tera / Dynamax 排他を入れる。 |
 | generator-only と team display 要件が混ざる | High | partygen, opponent preview, UI, RNG | MVP は display 変更なし。preview / team display は別 phase にし、source path / seed / post-pool result の扱いを決めてから実装する。 |
@@ -240,8 +240,11 @@ MVP では、別 project tool が `--rom-repo` でこの repo を読み、genera
 | `src/data/generated/trainers.party` があればそちらを使う | 便利だが hidden switch になりやすい。build log に source path を出す必要がある。 |
 | 明示変数 `TRAINERS_PARTY_SOURCE` で切替 | source-of-truth が明示的。Makefile rule を追加する必要がある。 |
 | copy-paste / `partygen apply --mode replace-blocks` | 初期検証向き。手順漏れを防ぐため diff と validate を必須にする。 |
+| `src/data/trainers.party` から generated include を config で読む | 16.0 採用案。default disabled が分かりやすいが、config true の preprocess / trainerproc validation を忘れると include 側の破損に気づきにくい。 |
 
-MVP は copy-paste / apply で十分。自動化するなら hidden fallback より、`TRAINERS_PARTY_SOURCE` を明示する方が事故が少ない。
+16.0 PartyGen port は generated include gate を採用した。default disabled
+なので upstream trainer data を保ちやすいが、enabled build の確認を review
+checklist に含める。
 
 team display / opponent preview を同時にやる場合は、generated source integration だけでは足りない。UI が raw `TrainerMon` を表示するのか、Trainer Party Pool 選出後の result を表示するのかを決める必要がある。MVP は generator-only とし、表示系は別 phase に分ける。
 

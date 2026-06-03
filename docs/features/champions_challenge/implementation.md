@@ -1,5 +1,84 @@
 # Champions Challenge Implementation
 
+## Runtime Slice: Config-Gated PartyGen 16.0 Port
+
+| Field | Value |
+|---|---|
+| Branch | `feature/champions-partygen-16-20260603` |
+| Status | Source / tool implementation on feature branch; not for direct `master` merge |
+| Primary files | `include/config/champions_partygen.h`, `include/config/battle.h`, `src/data/trainers.party`, `src/data/champions_partygen/trainers.party.inc`, `src/battle_script_commands.c`, `src/battle_util.c`, `tools/champions_partygen/` |
+| Last updated | 2026-06-03 |
+
+### Implemented Contract
+
+- Ported the `tools/champions_partygen` Rust CLI, catalog, lint data, Lua log
+  helper, profile fixture, and wrapper scripts onto the current 16.0 master
+  line.
+- Kept the 16.0 trainer pool parser/runtime already present on master instead
+  of restoring the stale 15.3-era `tools/trainerproc/main.c` implementation.
+- Added `B_CHAMPIONS_PARTYGEN_TRAINERS` in
+  `include/config/champions_partygen.h`, with `include/config/battle.h`
+  including that header for C runtime use. Default is `0`, so normal builds
+  keep the vanilla Elite Four and Wallace fixed parties.
+- `src/data/trainers.party` now includes battle config for CPP and wraps the
+  vanilla `TRAINER_SIDNEY`, `TRAINER_PHOEBE`, `TRAINER_GLACIA`,
+  `TRAINER_DRAKE`, and `TRAINER_WALLACE` blocks in
+  `#if !B_CHAMPIONS_PARTYGEN_TRAINERS`.
+- When PartyGen trainers are enabled, `src/data/trainers.party` includes
+  `src/data/champions_partygen/trainers.party.inc`, which materializes Lv50
+  Trainer Party Pool blocks for the same trainer IDs.
+- Added explicit PartyGen challenge config:
+  `B_CHAMPIONS_PARTYGEN_LEVEL`,
+  `B_CHAMPIONS_PARTYGEN_EXP_NORMAL`,
+  `B_CHAMPIONS_PARTYGEN_EXP_NONE`,
+  `B_CHAMPIONS_PARTYGEN_EXP_MODE`,
+  `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS`, and
+  `B_CHAMPIONS_PARTYGEN_OBEDIENCE_CHECKS`.
+- `Cmd_getexp` suppresses EXP only when PartyGen trainers are enabled and
+  `B_CHAMPIONS_PARTYGEN_EXP_MODE` is `B_CHAMPIONS_PARTYGEN_EXP_NONE`.
+  Default disabled PartyGen builds keep normal EXP behavior.
+- Player-side obedience checks return `OBEYS` only when PartyGen trainers are
+  enabled and `B_CHAMPIONS_PARTYGEN_OBEDIENCE_CHECKS` is `0`.
+- Gen3 badge stat boost flags are zeroed only when PartyGen trainers are
+  enabled and `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS` is `0`.
+- Catalog set JSON accepts top-level `"defaultExp": "none"` and per-set
+  `"exp": "normal" | "none"` metadata. Invalid values fail tool parsing.
+- The Elite Four and Wallace catalog files use `"defaultExp": "none"` to match
+  the Lv50 no-EXP challenge intent.
+- The Wallace demo catalog item spread was adjusted so the current lint pass is
+  clean instead of carrying the old Sitrus Berry duplication warning.
+
+### Current Boundaries
+
+- This slice does not implement the full Champions run-session facility on the
+  new 16.0 master branch. It provides the PartyGen-owned trainer data and
+  challenge battle-rule gates needed by the next facility branch.
+- `B_CHAMPIONS_PARTYGEN_LEVEL` documents the catalog target level. The current
+  generated include contains literal `Level: 50` data; changing the target
+  level still requires regenerating catalog output.
+- `defaultExp` / `exp` in catalog JSON are validation metadata. Actual no-EXP
+  behavior is controlled by `B_CHAMPIONS_PARTYGEN_EXP_MODE`.
+- The generated include is intentionally committed as reviewable source data.
+  `tools/champions_partygen/local/` audit logs and raw player logs remain
+  ignored local artifacts.
+- Future 16.0-native Champions facility work should start from current
+  `master` on a fresh `feature/*` or `integration/*` branch and use this branch
+  as the PartyGen reference.
+
+### Validation Evidence
+
+Detailed evidence is recorded in
+`docs/features/champions_challenge/partygen_validation_report.md`.
+
+- PartyGen Rust tests, `doctor`, generated include `validate`, and `diff`
+  passed.
+- Default config and a temporary `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` override
+  both preprocess through trainerproc; the enabled override emits generated
+  `partySize` / `poolSize` data for Sidney and Wallace.
+- Focused EXP check, normal ROM build, debug ROM build, and full check passed.
+- mGBA Live CLI with `DISPLAY=:0` booted the normal ROM, accepted START input,
+  captured screenshots, and stopped cleanly.
+
 ## Runtime Slice: Run Session Restore MVP
 
 | Field | Value |

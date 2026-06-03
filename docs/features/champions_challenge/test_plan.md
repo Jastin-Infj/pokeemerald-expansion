@@ -68,6 +68,33 @@ Implemented on `feature/champions-run-session-runtime-20260524`:
 
 Latest local evidence:
 
+- 16.0 PartyGen config-gated branch
+  `feature/champions-partygen-16-20260603`:
+  - `rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml`
+    passes 17 tests.
+  - `rtk tools/champions_partygen/partygen.sh doctor` passes with 5 journey
+    trainers, 5 blueprints, 31 sets, and 855 source trainer blocks.
+  - `rtk tools/champions_partygen/partygen.sh validate --input src/data/champions_partygen/trainers.party.inc`
+    passes with 0 errors, 0 warnings, 0 notes.
+  - `rtk tools/champions_partygen/partygen.sh diff --input src/data/champions_partygen/trainers.party.inc --against src/data/trainers.party`
+    reports generated pool replacements for Sidney, Phoebe, Glacia, Drake, and
+    Wallace.
+  - Default `B_CHAMPIONS_PARTYGEN_TRAINERS = 0` CPP/trainerproc output keeps
+    vanilla fixed Sidney / Wallace parties.
+  - Temporary `/tmp` override with `B_CHAMPIONS_PARTYGEN_TRAINERS = 1`
+    CPP/trainerproc output emits generated Trainer Party Pool data for the same
+    trainer IDs.
+  - `rtk make -j16 -O check TESTS=test/battle/exp.c` passes.
+  - `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
+    `rtk make -j16 -O check` pass with existing RWX linker warning and existing
+    test-runner expected-failure markers.
+  - `rtk mdbook build docs` passes with existing missing `CHANGELOG.md`,
+    `CREDITS.md` `</img>`, and large search-index warnings.
+  - mGBA Live MCP start failed once because Qt had no `DISPLAY`; CLI start with
+    `DISPLAY=:0` booted `pokeemerald.gba`, accepted START input, saved
+    screenshots at `/tmp/partygen_16_boot.png` and
+    `/tmp/partygen_16_after_start.png`, then stopped cleanly with
+    `status --all` returning `[]`.
 - `rtk make -j16 -O all` passes with the existing RWX linker warning.
 - `rtk make -j16 -O debug` passes with the existing RWX linker warning.
 - `rtk make -j16 -O check` exits 0 with existing `EXPECTED_FAIL` / crash-resume markers.

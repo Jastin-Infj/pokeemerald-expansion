@@ -35,7 +35,7 @@ Draft. 実装はまだ行わない。
 
 - generator は ROM runtime state を壊しにくく、map / NPC / save state が未確定でも進められる。
 - 旅順、difficulty、trainer role、pool rule は後で変わっても catalog を差し替えれば応用しやすい。
-- 生成物を copy-paste 可能な `.party` fragment にしておけば、build integration 前でも人間が review できる。
+- 生成物を review 可能な `.party` fragment にしておけば、build integration 前でも人間が確認できる。
 - validation / diff / deterministic seed を先に固めると、後で challenge facility に接続する時の事故が減る。
 
 最初の generator MVP:
@@ -44,7 +44,7 @@ Draft. 実装はまだ行わない。
 2. `doctor` で repo root、config、trainerproc、constants、output path を確認する。
 3. 仮 catalog から stage / trainer role / level band / party style を読む。
 4. global set library から trainer blueprint に合う候補を選び、local pool に materialize する。通常 trainer は party size 3-4、pool 6-12 程度。party size 6 trainer は明示した場合だけ pool 20 程度まで許可する。
-5. deterministic seed で generated `.party` fragment を出す。
+5. deterministic seed で generated `.party` fragment / include を出す。
 6. species / move / item / ability / trainer constants の存在を検査する。
 7. role / archetype / constraint の concept validation を report する。
 8. `trainerproc` が読める DSL として validation report / diff report を出す。
@@ -61,7 +61,9 @@ Draft. 実装はまだ行わない。
 - 起動は CLI を正にする。Linux / WSL は `tools/champions_partygen/partygen.sh`、Windows は `tools\champions_partygen\partygen.cmd` の thin wrapper を用意する。
 - `config.example.toml` はコメント付きの基準 config として commit し、個人用の `config.local.toml` は local override として扱う。
 
-この段階では generated file を ROM build に自動 include しない。`src/data/generated/champions_trainers.party` 相当を予約出力にし、設計確定後に build integration へ進む。
+16.0 port では `src/data/champions_partygen/trainers.party.inc` を
+`B_CHAMPIONS_PARTYGEN_TRAINERS` で有効化する include gate 方式へ進んだ。
+default `0` のため通常 build は vanilla trainer blocks を使う。
 
 ### Catalog Schema (MVP draft)
 

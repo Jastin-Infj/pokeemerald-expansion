@@ -1,5 +1,95 @@
 # Champions Partygen Validation Report
 
+## 2026-06-03 16.0 Config-Gated Port Addendum
+
+Branch: `feature/champions-partygen-16-20260603`
+
+Scope:
+
+- Ported `tools/champions_partygen` and catalog data onto the current 16.0
+  master baseline.
+- Added config-gated generated trainer include:
+  `src/data/champions_partygen/trainers.party.inc`.
+- Added `include/config/champions_partygen.h` as the single PartyGen runtime /
+  data config owner, included by `include/config/battle.h` for C runtime use
+  and by `src/data/trainers.party` for trainerproc preprocessing.
+- Added no-EXP / badge boost / obedience config knobs for the Lv50 challenge
+  path.
+
+Static and tool checks:
+
+```sh
+rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml
+rtk tools/champions_partygen/partygen.sh doctor
+rtk tools/champions_partygen/partygen.sh validate --input src/data/champions_partygen/trainers.party.inc
+rtk tools/champions_partygen/partygen.sh diff --input src/data/champions_partygen/trainers.party.inc --against src/data/trainers.party
+rtk git diff --check
+rtk mdbook build docs
+```
+
+Results:
+
+- `cargo test`: passed, 17 tests.
+- `doctor`: passed; catalog found 5 journey trainers, 5 blueprints, 31 sets,
+  and 855 source trainer blocks.
+- `validate`: passed with 0 errors, 0 warnings, 0 notes.
+- `diff`: Sidney, Phoebe, Glacia, Drake changed from fixed 5 mons to generated
+  6-mon pools; Wallace changed from fixed 6 mons to a generated 6-mon pool with
+  `Party Size: 3`.
+- `git diff --check`: passed.
+- `mdbook build docs`: passed with existing warnings for missing root
+  `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
+
+Trainerproc / config-gate checks:
+
+- Default config (`B_CHAMPIONS_PARTYGEN_TRAINERS = 0`) preprocesses
+  `src/data/trainers.party` and trainerproc emits the vanilla Sidney and Wallace
+  fixed parties.
+- A temporary `/tmp` override with `B_CHAMPIONS_PARTYGEN_TRAINERS = 1`
+  preprocesses and trainerproc emits generated Trainer Party Pool data:
+  Sidney has `.partySize = 5`, `.poolSize = 6`; Wallace has `.partySize = 3`,
+  `.poolSize = 6`.
+- This check was done without changing repo source by overriding
+  `include/config/champions_partygen.h` from `/tmp/partygen-true-include`.
+
+Build / test checks:
+
+```sh
+rtk make -j16 -O check TESTS=test/battle/exp.c
+rtk make -j16 -O all
+rtk make -j16 -O debug
+rtk make -j16 -O check
+```
+
+Results:
+
+- Focused EXP check: passed.
+- Normal ROM build: passed with existing RWX linker warning.
+- Debug ROM build: passed with existing RWX linker warning.
+- Full check: passed with existing `EXPECTED_FAIL`, `KNOWN_FAILING`, and
+  crash-resume test-runner markers.
+
+mGBA Live evidence:
+
+- MCP start first failed because Qt had no `DISPLAY`.
+- CLI start with `DISPLAY=:0` succeeded using the script-capable mGBA build:
+  `/home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/mgba-qt`.
+- Boot screenshot: `/tmp/partygen_16_boot.png`.
+- START input was accepted and the next screenshot reached the title demo:
+  `/tmp/partygen_16_after_start.png`.
+- `mgba-live-cli stop` returned `alive_after: false`, and
+  `mgba-live-cli status --all` returned `[]`.
+
+Remaining validation boundary:
+
+- The committed normal ROM keeps `B_CHAMPIONS_PARTYGEN_TRAINERS = 0`, so mGBA
+  runtime evidence confirms boot/input on the default build. Generated pool
+  expansion for `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` is confirmed through
+  CPP/trainerproc output, not through a separate enabled ROM build in this
+  pass.
+
+---
+
 Date: 2026-05-06
 
 Branch: `feature/trainer-partygen-catalog-expansion`

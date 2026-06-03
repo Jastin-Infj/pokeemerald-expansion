@@ -5,7 +5,7 @@
 
 The MVP is intentionally build-adjacent rather than build-required:
 
-- `generate` writes a copy-pasteable `.party` fragment.
+- `generate` writes a reviewable `.party` fragment for the generated include.
 - `validate` checks constants and trainerproc-facing syntax constraints.
 - `diff` reports trainer blocks changed by a generated fragment.
 - `apply` replaces matching trainer blocks in a target `.party` file when a
@@ -24,16 +24,22 @@ pledge-side concepts that should be linted but should not be emitted to
 trainerproc `Tags`.
 
 The default catalog currently owns the Elite Four run-up
-(`TRAINER_SIDNEY` through `TRAINER_DRAKE`) plus the Wallace demo slot.
+(`TRAINER_SIDNEY` through `TRAINER_DRAKE`) plus the Wallace demo slot. The ROM
+uses this data only when `B_CHAMPIONS_PARTYGEN_TRAINERS` is enabled in
+`include/config/champions_partygen.h`.
+
+Lv50 challenge catalogs may set top-level `"defaultExp": "none"` and per-set
+`"exp": "normal"` or `"exp": "none"`. The tool validates this metadata. Actual
+ROM EXP suppression is controlled by `B_CHAMPIONS_PARTYGEN_EXP_MODE`.
 
 Examples:
 
 ```sh
 tools/champions_partygen/partygen.sh doctor
 tools/champions_partygen/partygen.sh scan
-tools/champions_partygen/partygen.sh generate --seed 1234 --out /tmp/champions_trainers.party
-tools/champions_partygen/partygen.sh validate --input /tmp/champions_trainers.party
-tools/champions_partygen/partygen.sh diff --input /tmp/champions_trainers.party --against src/data/trainers.party
+tools/champions_partygen/partygen.sh generate --seed 1234 --out src/data/champions_partygen/trainers.party.inc
+tools/champions_partygen/partygen.sh validate --input src/data/champions_partygen/trainers.party.inc
+tools/champions_partygen/partygen.sh diff --input src/data/champions_partygen/trainers.party.inc --against src/data/trainers.party
 tools/champions_partygen/partygen.sh apply --input /tmp/champions_trainers.party --target src/data/trainers.party --out /tmp/trainers.party
 tools/champions_partygen/partygen.sh audit list
 tools/champions_partygen/partygen.sh logs normalize --input tools/champions_partygen/tests/fixtures/raw_log_example.log --out /tmp/partygen_logs.jsonl

@@ -41,6 +41,36 @@ Generated / temporary output:
 Applied ROM source:
 
 - `src/data/trainers.party`
+- `src/data/champions_partygen/trainers.party.inc`
+
+## ROM Config Gate
+
+The 16.0 PartyGen integration is config-gated and disabled by default.
+
+`include/config/champions_partygen.h` owns the ROM-side switches. The file is
+also included by `include/config/battle.h` for C runtime use:
+
+- `B_CHAMPIONS_PARTYGEN_TRAINERS`: when `1`, the vanilla Elite Four /
+  Wallace blocks in `src/data/trainers.party` are skipped and
+  `src/data/champions_partygen/trainers.party.inc` is included instead.
+- `B_CHAMPIONS_PARTYGEN_LEVEL`: documented target level for the generated
+  Champions catalog, currently 50.
+- `B_CHAMPIONS_PARTYGEN_EXP_MODE`: set to
+  `B_CHAMPIONS_PARTYGEN_EXP_NONE` to suppress normal trainer battle EXP while
+  PartyGen trainers are enabled.
+- `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS`: when `0`, PartyGen-enabled builds
+  zero the Gen3 badge stat boost flags even if global badge-boost mechanics are
+  set back to Gen3.
+- `B_CHAMPIONS_PARTYGEN_OBEDIENCE_CHECKS`: when `0`, PartyGen-enabled
+  builds skip player-side obedience checks for the Lv50 challenge path.
+
+Catalog set files may declare `"defaultExp": "none"` and individual sets may
+override with `"exp": "normal"` or `"exp": "none"`. This is tool-side metadata
+and validation. The ROM behavior comes from `B_CHAMPIONS_PARTYGEN_EXP_MODE`.
+
+When `B_CHAMPIONS_PARTYGEN_TRAINERS` is `0`, normal builds use the
+upstream fixed Elite Four / Wallace party blocks and the PartyGen include is
+not compiled into trainer data.
 
 ## Basic Workflow
 
@@ -53,13 +83,13 @@ rtk tools/champions_partygen/partygen.sh doctor
 2. Render the generated fragment:
 
 ```sh
-rtk tools/champions_partygen/partygen.sh generate --seed 1234 --out /tmp/champions_trainers.party
+rtk tools/champions_partygen/partygen.sh generate --seed 1234 --out src/data/champions_partygen/trainers.party.inc
 ```
 
 3. Validate the fragment:
 
 ```sh
-rtk tools/champions_partygen/partygen.sh validate --input /tmp/champions_trainers.party
+rtk tools/champions_partygen/partygen.sh validate --input src/data/champions_partygen/trainers.party.inc
 ```
 
 4. Inspect the latest audit log if lint output needs detail:
@@ -72,29 +102,22 @@ rtk tools/champions_partygen/partygen.sh audit show --run RUN_ID
 5. Review the diff:
 
 ```sh
-rtk tools/champions_partygen/partygen.sh diff --input /tmp/champions_trainers.party --against src/data/trainers.party
+rtk tools/champions_partygen/partygen.sh diff --input src/data/champions_partygen/trainers.party.inc --against src/data/trainers.party
 ```
 
-6. Apply to a temp file first:
+6. Build and runtime-check:
 
 ```sh
-rtk tools/champions_partygen/partygen.sh apply --input /tmp/champions_trainers.party --target src/data/trainers.party --out /tmp/trainers.party
-```
-
-7. Apply to source only after review:
-
-```sh
-rtk tools/champions_partygen/partygen.sh apply --input /tmp/champions_trainers.party --target src/data/trainers.party --out src/data/trainers.party
-```
-
-8. Build and runtime-check:
-
-```sh
-rtk make -j4
-rtk make debug -j4
+rtk make -j16 -O all
+rtk make -j16 -O debug
 ```
 
 Use mGBA Live when generated party data changes battle behavior. A memory check of `gTrainers[DIFFICULTY_NORMAL][TRAINER_*]` is acceptable for confirming that trainerproc output reached ROM data.
+
+The older direct replacement flow still exists for analysis branches:
+`partygen apply --input FRAGMENT --target src/data/trainers.party --out OUT`.
+Do not use it for the current 16.0 config-gated branch unless the branch
+explicitly stops using the include gate.
 
 ## Catalog Editing
 
@@ -250,7 +273,9 @@ effects, see
 
 ## EXP
 
-EXP is not a partygen-owned rule.
+Partygen catalog data does not directly award or suppress EXP. The current
+16.0 branch adds a ROM-side no-EXP config for the generated Lv50 challenge
+path.
 
 The current trainer multiplier is in `src/battle_script_commands.c`, `Cmd_getexp`:
 
@@ -263,7 +288,14 @@ if trainer battle and B_TRAINER_EXP_MULTIPLIER <= GEN_7:
 
 `include/config/battle.h` currently sets `B_TRAINER_EXP_MULTIPLIER` to `GEN_LATEST`.
 
-Challenge no-EXP, half-EXP, double-EXP, or profile-based EXP rules should be implemented in a separate runtime rule branch. Partygen may report expected EXP pressure, but it should not silently change EXP logic.
+When `B_CHAMPIONS_PARTYGEN_TRAINERS` is `1` and
+`B_CHAMPIONS_PARTYGEN_EXP_MODE` is `B_CHAMPIONS_PARTYGEN_EXP_NONE`,
+`Cmd_getexp` skips EXP for trainer battles. Wild battle EXP and normal builds
+remain unchanged.
+
+Challenge half-EXP, double-EXP, or profile-based EXP rules remain future
+runtime work. Partygen may report expected EXP pressure, but only the explicit
+ROM config should change actual EXP behavior.
 
 ## Player Style Logs
 
@@ -294,9 +326,12 @@ Before committing generated trainer data:
 - `partygen validate` passes.
 - `partygen diff` is reviewed.
 - `Party Size` is present only for intended pool trainers.
+- `B_CHAMPIONS_PARTYGEN_TRAINERS` is intentionally `1` or `0` for the
+  branch being built.
 - singles / doubles header matches intended blueprint.
 - generated species, move, item, ability, and nature constants exist.
+- `defaultExp` / set `exp` values are `normal` or `none`.
 - prize money impact is understood for major trainers.
-- expected EXP impact is understood for major trainers.
-- `make` and `make debug` pass.
+- EXP, badge-boost, and obedience config impact is understood for the branch.
+- `rtk make -j16 -O all` and `rtk make -j16 -O debug` pass.
 - mGBA Live confirms ROM data or battle behavior when party behavior changed.
