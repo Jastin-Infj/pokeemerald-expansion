@@ -1,6 +1,28 @@
 #include "global.h"
 #include "test/battle.h"
 
+#if B_CHAMPIONS_PARTYGEN_TRAINERS && (B_CHAMPIONS_PARTYGEN_EV_MODE == B_CHAMPIONS_PARTYGEN_EV_NONE)
+
+SINGLE_BATTLE_TEST("Champions PartyGen EV none prevents trainer battle EV gains")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_CATERPIE) { HP(1); }
+        ASSUME(gSpeciesInfo[SPECIES_CATERPIE].evYield_HP == 1);
+    } WHEN {
+        TURN { MOVE(player, MOVE_SCRATCH); }
+    } THEN {
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_HP_EV), 0);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_ATK_EV), 0);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_DEF_EV), 0);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPEED_EV), 0);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPATK_EV), 0);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPDEF_EV), 0);
+    }
+}
+
+#endif
+
 WILD_BATTLE_TEST("Pokemon gain experience after catching a Pokemon (Gen6+)")
 {
     u8 level = 0;

@@ -58,6 +58,9 @@ also included by `include/config/battle.h` for C runtime use:
 - `B_CHAMPIONS_PARTYGEN_EXP_MODE`: set to
   `B_CHAMPIONS_PARTYGEN_EXP_NONE` to suppress normal trainer battle EXP while
   PartyGen trainers are enabled.
+- `B_CHAMPIONS_PARTYGEN_EV_MODE`: set to
+  `B_CHAMPIONS_PARTYGEN_EV_NONE` to suppress trainer battle EV gains while
+  PartyGen trainers are enabled.
 - `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS`: when `0`, PartyGen-enabled builds
   zero the Gen3 badge stat boost flags even if global badge-boost mechanics are
   set back to Gen3.
@@ -293,6 +296,11 @@ When `B_CHAMPIONS_PARTYGEN_TRAINERS` is `1` and
 `Cmd_getexp` skips EXP for trainer battles. Wild battle EXP and normal builds
 remain unchanged.
 
+When `B_CHAMPIONS_PARTYGEN_TRAINERS` is `1` and
+`B_CHAMPIONS_PARTYGEN_EV_MODE` is `B_CHAMPIONS_PARTYGEN_EV_NONE`,
+the trainer battle reward path skips EV gains. Wild battle EVs and normal
+builds remain unchanged.
+
 Challenge half-EXP, double-EXP, or profile-based EXP rules remain future
 runtime work. Partygen may report expected EXP pressure, but only the explicit
 ROM config should change actual EXP behavior.
@@ -332,6 +340,7 @@ Before committing generated trainer data:
 - generated species, move, item, ability, and nature constants exist.
 - `defaultExp` / set `exp` values are `normal` or `none`.
 - prize money impact is understood for major trainers.
-- EXP, badge-boost, and obedience config impact is understood for the branch.
+- EXP, EV, badge-boost, and obedience config impact is understood for the
+  branch.
 - `rtk make -j16 -O all` and `rtk make -j16 -O debug` pass.
 - mGBA Live confirms ROM data or battle behavior when party behavior changed.

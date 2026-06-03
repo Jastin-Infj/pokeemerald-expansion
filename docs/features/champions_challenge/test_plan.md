@@ -85,16 +85,17 @@ Latest local evidence:
     CPP/trainerproc output emits generated Trainer Party Pool data for the same
     trainer IDs.
   - `rtk make -j16 -O check TESTS=test/battle/exp.c` passes.
-  - `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
-    `rtk make -j16 -O check` pass with existing RWX linker warning and existing
-    test-runner expected-failure markers.
-  - `rtk mdbook build docs` passes with existing missing `CHANGELOG.md`,
-    `CREDITS.md` `</img>`, and large search-index warnings.
-  - mGBA Live MCP start failed once because Qt had no `DISPLAY`; CLI start with
-    `DISPLAY=:0` booted `pokeemerald.gba`, accepted START input, saved
-    screenshots at `/tmp/partygen_16_boot.png` and
-    `/tmp/partygen_16_after_start.png`, then stopped cleanly with
-    `status --all` returning `[]`.
+  - `rtk make -j16 -O check TESTS='Champions PartyGen EV none'` passes with
+    `B_CHAMPIONS_PARTYGEN_TRAINERS = 1`, confirming trainer battle EV gains
+    stay at zero when `B_CHAMPIONS_PARTYGEN_EV_MODE` is none.
+  - After the EV suppression update, `rtk make -j16 -O check`,
+    `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
+    `rtk mdbook build docs` pass. The mdbook build still reports the existing
+    missing `CHANGELOG.md`, `CREDITS.md` `</img>`, and large search-index
+    warnings.
+  - mGBA Live MCP direct binary launch failed without `DISPLAY`; retrying
+    through `/home/jastin/.local/bin/mgba-qt` booted the debug ROM to the
+    title screen and `mgba_live_stop` returned `stopped: true`.
 - `rtk make -j16 -O all` passes with the existing RWX linker warning.
 - `rtk make -j16 -O debug` passes with the existing RWX linker warning.
 - `rtk make -j16 -O check` exits 0 with existing `EXPECTED_FAIL` / crash-resume markers.

@@ -30,7 +30,8 @@ uses this data only when `B_CHAMPIONS_PARTYGEN_TRAINERS` is enabled in
 
 Lv50 challenge catalogs may set top-level `"defaultExp": "none"` and per-set
 `"exp": "normal"` or `"exp": "none"`. The tool validates this metadata. Actual
-ROM EXP suppression is controlled by `B_CHAMPIONS_PARTYGEN_EXP_MODE`.
+ROM EXP suppression is controlled by `B_CHAMPIONS_PARTYGEN_EXP_MODE`; trainer
+battle EV suppression is controlled by `B_CHAMPIONS_PARTYGEN_EV_MODE`.
 
 Examples:
 

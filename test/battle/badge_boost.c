@@ -12,9 +12,9 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_ATTACK boost Attack", s16 dmg)
         PARAMETRIZE { badge = TRUE; genConfig = gen; }
     }
     GIVEN {
-        if (badge)
+        if (badge && B_FLAG_BADGE_BOOST_ATTACK != 0)
             FlagSet(B_FLAG_BADGE_BOOST_ATTACK);
-        else
+        else if (B_FLAG_BADGE_BOOST_ATTACK != 0)
             FlagClear(B_FLAG_BADGE_BOOST_ATTACK);
         WITH_CONFIG(B_BADGE_BOOST, genConfig);
         PLAYER(SPECIES_WOBBUFFET);
@@ -26,7 +26,7 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_ATTACK boost Attack", s16 dmg)
     } FINALLY {
         for (u32 gen = GEN_1; gen <= GEN_LATEST; gen++)
         {
-            if (gen <= GEN_3)
+            if (gen <= GEN_3 && B_FLAG_BADGE_BOOST_ATTACK != 0)
                 EXPECT_GT(results[2 * gen + 1].dmg, results[2 * gen].dmg);
             else
                 EXPECT_EQ(results[2 * gen + 1].dmg, results[2 * gen].dmg);
@@ -44,9 +44,9 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_SPATK boost Special Attack", s
         PARAMETRIZE { badge = TRUE; genConfig = gen; }
     }
     GIVEN {
-        if (badge)
+        if (badge && B_FLAG_BADGE_BOOST_SPATK != 0)
             FlagSet(B_FLAG_BADGE_BOOST_SPATK);
-        else
+        else if (B_FLAG_BADGE_BOOST_SPATK != 0)
             FlagClear(B_FLAG_BADGE_BOOST_SPATK);
         WITH_CONFIG(B_BADGE_BOOST, genConfig);
         PLAYER(SPECIES_WOBBUFFET);
@@ -58,7 +58,7 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_SPATK boost Special Attack", s
     } FINALLY {
         for (u32 gen = GEN_1; gen <= GEN_LATEST; gen++)
         {
-            if (gen <= GEN_3)
+            if (gen <= GEN_3 && B_FLAG_BADGE_BOOST_SPATK != 0)
                 EXPECT_GT(results[2 * gen + 1].dmg, results[2 * gen].dmg);
             else
                 EXPECT_EQ(results[2 * gen + 1].dmg, results[2 * gen].dmg);
@@ -77,9 +77,9 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_DEFENSE boost Defense", s16 dm
     }
 
     GIVEN {
-        if (badge)
+        if (badge && B_FLAG_BADGE_BOOST_DEFENSE != 0)
             FlagSet(B_FLAG_BADGE_BOOST_DEFENSE);
-        else
+        else if (B_FLAG_BADGE_BOOST_DEFENSE != 0)
             FlagClear(B_FLAG_BADGE_BOOST_DEFENSE);
         WITH_CONFIG(B_BADGE_BOOST, genConfig);
         PLAYER(SPECIES_WOBBUFFET);
@@ -91,7 +91,7 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_DEFENSE boost Defense", s16 dm
     } FINALLY {
         for (u32 gen = GEN_1; gen <= GEN_LATEST; gen++)
         {
-            if (gen <= GEN_3)
+            if (gen <= GEN_3 && B_FLAG_BADGE_BOOST_DEFENSE != 0)
                 EXPECT_LT(results[2 * gen + 1].dmg, results[2 * gen].dmg);
             else
                 EXPECT_EQ(results[2 * gen + 1].dmg, results[2 * gen].dmg);
@@ -110,9 +110,9 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_SPDEF boost Special Defense", 
     }
 
     GIVEN {
-        if (badge)
+        if (badge && B_FLAG_BADGE_BOOST_SPDEF != 0)
             FlagSet(B_FLAG_BADGE_BOOST_SPDEF);
-        else
+        else if (B_FLAG_BADGE_BOOST_SPDEF != 0)
             FlagClear(B_FLAG_BADGE_BOOST_SPDEF);
         WITH_CONFIG(B_BADGE_BOOST, genConfig);
         PLAYER(SPECIES_WOBBUFFET);
@@ -124,7 +124,7 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_SPDEF boost Special Defense", 
     } FINALLY {
         for (u32 gen = GEN_1; gen <= GEN_LATEST; gen++)
         {
-            if (gen <= GEN_3)
+            if (gen <= GEN_3 && B_FLAG_BADGE_BOOST_SPDEF != 0)
                 EXPECT_LT(results[2 * gen + 1].dmg, results[2 * gen].dmg);
             else
                 EXPECT_EQ(results[2 * gen + 1].dmg, results[2 * gen].dmg);
@@ -142,9 +142,9 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_SPEED boost Speed", s16 dmg)
         PARAMETRIZE { badge = TRUE; genConfig = gen; }
     }
     GIVEN {
-        if (badge)
+        if (badge && B_FLAG_BADGE_BOOST_SPEED != 0)
             FlagSet(B_FLAG_BADGE_BOOST_SPEED);
-        else
+        else if (B_FLAG_BADGE_BOOST_SPEED != 0)
             FlagClear(B_FLAG_BADGE_BOOST_SPEED);
         WITH_CONFIG(B_BADGE_BOOST, genConfig);
         PLAYER(SPECIES_WOBBUFFET) { Speed(100); HP(1); }
@@ -152,7 +152,7 @@ WILD_BATTLE_TEST("Badge boost: B_FLAG_BADGE_BOOST_SPEED boost Speed", s16 dmg)
     } WHEN {
         TURN { MOVE(player, MOVE_SCRATCH); MOVE(opponent, MOVE_SCRATCH); }
     } THEN {
-        if (badge && genConfig <= GEN_3)
+        if (badge && genConfig <= GEN_3 && B_FLAG_BADGE_BOOST_SPEED != 0)
         {
             EXPECT_EQ(opponent->hp, 0);
             EXPECT_EQ(player->hp, 1);

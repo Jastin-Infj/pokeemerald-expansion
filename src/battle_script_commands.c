@@ -3875,6 +3875,15 @@ static bool32 ShouldSuppressChampionsPartygenExp(void)
 #endif
 }
 
+static bool32 ShouldSuppressChampionsPartygenEVs(void)
+{
+#if B_CHAMPIONS_PARTYGEN_TRAINERS && (B_CHAMPIONS_PARTYGEN_EV_MODE == B_CHAMPIONS_PARTYGEN_EV_NONE)
+    return (gBattleTypeFlags & BATTLE_TYPE_TRAINER) != 0;
+#else
+    return FALSE;
+#endif
+}
+
 static u32 GetMonHoldEffect(struct Pokemon *mon)
 {
     enum HoldEffect holdEffect;
@@ -4017,7 +4026,7 @@ static void Cmd_getexp(void)
             {
                 gBattleScripting.getexpState = 5;
                 gBattleStruct->battlerExpReward = 0;
-                if (B_MAX_LEVEL_EV_GAINS >= GEN_5)
+                if (B_MAX_LEVEL_EV_GAINS >= GEN_5 && !ShouldSuppressChampionsPartygenEVs())
                     MonGainEVs(&gParties[B_TRAINER_PLAYER][*expMonId], gBattleMons[gBattlerFainted].species);
             }
             else
@@ -4105,7 +4114,8 @@ static void Cmd_getexp(void)
                         gBattleStruct->teamGotExpMsgPrinted = TRUE;
                     }
 
-                    MonGainEVs(&gParties[B_TRAINER_PLAYER][*expMonId], gBattleMons[gBattlerFainted].species);
+                    if (!ShouldSuppressChampionsPartygenEVs())
+                        MonGainEVs(&gParties[B_TRAINER_PLAYER][*expMonId], gBattleMons[gBattlerFainted].species);
                 }
                 gBattleScripting.getexpState++;
             }

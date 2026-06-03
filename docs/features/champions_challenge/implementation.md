@@ -32,11 +32,18 @@
   `B_CHAMPIONS_PARTYGEN_EXP_NORMAL`,
   `B_CHAMPIONS_PARTYGEN_EXP_NONE`,
   `B_CHAMPIONS_PARTYGEN_EXP_MODE`,
+  `B_CHAMPIONS_PARTYGEN_EV_NORMAL`,
+  `B_CHAMPIONS_PARTYGEN_EV_NONE`,
+  `B_CHAMPIONS_PARTYGEN_EV_MODE`,
   `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS`, and
   `B_CHAMPIONS_PARTYGEN_OBEDIENCE_CHECKS`.
 - `Cmd_getexp` suppresses EXP only when PartyGen trainers are enabled and
   `B_CHAMPIONS_PARTYGEN_EXP_MODE` is `B_CHAMPIONS_PARTYGEN_EXP_NONE`.
   Default disabled PartyGen builds keep normal EXP behavior.
+- `Cmd_getexp` suppresses trainer battle EV gains when PartyGen trainers are
+  enabled and `B_CHAMPIONS_PARTYGEN_EV_MODE` is
+  `B_CHAMPIONS_PARTYGEN_EV_NONE`.
+  Wild battle EVs and default disabled PartyGen builds keep normal behavior.
 - Player-side obedience checks return `OBEYS` only when PartyGen trainers are
   enabled and `B_CHAMPIONS_PARTYGEN_OBEDIENCE_CHECKS` is `0`.
 - Gen3 badge stat boost flags are zeroed only when PartyGen trainers are
@@ -75,7 +82,8 @@ Detailed evidence is recorded in
 - Default config and a temporary `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` override
   both preprocess through trainerproc; the enabled override emits generated
   `partySize` / `poolSize` data for Sidney and Wallace.
-- Focused EXP check, normal ROM build, debug ROM build, and full check passed.
+- Focused EXP / EV checks, normal ROM build, debug ROM build, and full check
+  passed.
 - mGBA Live CLI with `DISPLAY=:0` booted the normal ROM, accepted START input,
   captured screenshots, and stopped cleanly.
 
