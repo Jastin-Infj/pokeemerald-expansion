@@ -5,6 +5,7 @@ FallarborTown_CozmosHouse_EventScript_ProfCozmo::
 	lock
 	faceplayer
 	goto_if_set FLAG_RETURNED_METEORITE_TO_COZMO, FallarborTown_CozmosHouse_EventScript_GaveMeteorite
+	goto_if_set FLAG_LEGACY_RECEIVED_TM_RETURN, FallarborTown_CozmosHouse_EventScript_MigrateReturnedMeteorite
 	checkitem ITEM_METEORITE
 	goto_if_eq VAR_RESULT, TRUE, FallarborTown_CozmosHouse_EventScript_PlayerHasMeteorite
 	msgbox FallarborTown_CozmosHouse_Text_MeteoriteWillNeverBeMineNow, MSGBOX_DEFAULT
@@ -43,14 +44,23 @@ FallarborTown_CozmosHouse_EventScript_GaveMeteorite::
 	release
 	end
 
+FallarborTown_CozmosHouse_EventScript_MigrateReturnedMeteorite::
+	setflag FLAG_RETURNED_METEORITE_TO_COZMO
+	goto FallarborTown_CozmosHouse_EventScript_GaveMeteorite
+
 FallarborTown_CozmosHouse_EventScript_CozmosWife::
 	lock
 	faceplayer
 	goto_if_set FLAG_RETURNED_METEORITE_TO_COZMO, FallarborTown_CozmosHouse_EventScript_CozmoIsHappy
+	goto_if_set FLAG_LEGACY_RECEIVED_TM_RETURN, FallarborTown_CozmosHouse_EventScript_MigrateCozmoIsHappy
 	goto_if_set FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY, FallarborTown_CozmosHouse_EventScript_CozmoIsSad
 	msgbox FallarborTown_CozmosHouse_Text_CozmoWentToMeteorFalls, MSGBOX_DEFAULT
 	release
 	end
+
+FallarborTown_CozmosHouse_EventScript_MigrateCozmoIsHappy::
+	setflag FLAG_RETURNED_METEORITE_TO_COZMO
+	goto FallarborTown_CozmosHouse_EventScript_CozmoIsHappy
 
 FallarborTown_CozmosHouse_EventScript_CozmoIsSad::
 	msgbox FallarborTown_CozmosHouse_Text_FeelSorryForCozmo, MSGBOX_DEFAULT

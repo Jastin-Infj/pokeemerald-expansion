@@ -259,6 +259,7 @@
 #define FLAG_RECEIVED_GOOD_ROD               0xE3
 #define FLAG_REGI_DOORS_OPENED               0xE4
 #define FLAG_UNUSED_0x0E5                    0xE5 // Unused Flag
+#define FLAG_LEGACY_RECEIVED_TM_RETURN       FLAG_UNUSED_0x0E5 // Save compatibility: old Meteorite return / TM Return reward flag.
 #define FLAG_UNUSED_0x0E6                    0xE6 // Unused Flag
 #define FLAG_UNUSED_0x0E7                    0xE7 // Unused Flag
 #define FLAG_UNUSED_0x0E8                    0xE8 // Unused Flag

@@ -52,10 +52,10 @@ static bool32 FieldMove_HasToolkitCapability(enum FieldMove fieldMove)
     if (!hasLegacyReceiptFlag)
         return FALSE;
 
-    if (!CheckBagHasItem(ITEM_FIELD_KIT, 1))
-        AddBagItem(ITEM_FIELD_KIT, 1);
+    if (CheckBagHasItem(ITEM_FIELD_KIT, 1))
+        return TRUE;
 
-    return TRUE;
+    return AddBagItem(ITEM_FIELD_KIT, 1);
 }
 
 static bool32 FieldMove_CheckModernUnlock(enum FieldMove fieldMove, bool32 badgeUnlocked)

@@ -4,6 +4,7 @@
 #include "constants/move_relearner.h"
 
 void TeachMoveRelearnerMove(void);
+void Special_HasMoveToRelearn(void);
 void MoveRelearnerShowHideHearts(s32 move);
 void MoveRelearnerShowHideCategoryIcon(s32);
 s32 MoveRelearnerGetMoveForMenuId(s32 menuId);

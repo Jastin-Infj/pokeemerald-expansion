@@ -1206,7 +1206,7 @@ void Special_HasMoveToRelearn(void)
     struct BoxPokemon *boxmon = GetSelectedBoxMonFromPcOrParty();
 
     gRelearnMode = RELEARN_MODE_SCRIPT;
-    if (CanBoxMonRelearnMoves(boxmon, gMoveRelearnerState))
+    if (!GetBoxMonData(boxmon, MON_DATA_IS_EGG) && HasMoveToRelearn(boxmon, gMoveRelearnerState))
         gSpecialVar_Result = TRUE;
     else
         gSpecialVar_Result = FALSE;

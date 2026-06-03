@@ -100,6 +100,7 @@ static bool32 HandleEndTurnWeather(enum BattlerId battler)
 static void AdvanceEndTurnWeatherBattler(void)
 {
     gBattleStruct->eventState.endTurnBlock = 0;
+    gBattleStruct->eventState.endTurnSubBlock = 0;
     gBattleStruct->eventState.endTurnBattler++;
 }
 
@@ -148,6 +149,71 @@ static bool32 TryHandleEndTurnWeatherAbilities(enum BattlerId battler, enum Abil
     return FALSE;
 }
 
+static bool32 IsFirstEventBlockAbility(enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_HEALER:
+    case ABILITY_HYDRATION:
+    case ABILITY_SHED_SKIN:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 HasPendingFirstEventBlockAbility(const enum Ability *abilities, u32 count)
+{
+    for (u32 i = gBattleStruct->eventState.endTurnSubBlock; i < count; i++)
+    {
+        if (IsFirstEventBlockAbility(abilities[i]))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 TryHandleFirstEventBlockAbility(enum BattlerId battler)
+{
+    enum Ability ability = GetBattlerAbility(battler);
+
+#if B_ALL_ABILITY_SLOTS != FALSE || B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE || TESTING || DEBUG_OVERWORLD_MENU
+    if (gAllAbilitySlotsBattle)
+    {
+        enum Ability abilities[NUM_ABILITY_SLOTS];
+        u32 count = GetBattlerAbilitySet(battler, abilities, ARRAY_COUNT(abilities));
+
+        while (gBattleStruct->eventState.endTurnSubBlock < count)
+        {
+            enum Ability slotAbility = abilities[gBattleStruct->eventState.endTurnSubBlock++];
+
+            if (IsFirstEventBlockAbility(slotAbility)
+             && AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, slotAbility, MOVE_NONE, TRUE))
+            {
+                if (!HasPendingFirstEventBlockAbility(abilities, count))
+                {
+                    gBattleStruct->eventState.endTurnSubBlock = 0;
+                    gBattleStruct->eventState.endTurnBlock++;
+                }
+                return TRUE;
+            }
+        }
+
+        gBattleStruct->eventState.endTurnSubBlock = 0;
+        return FALSE;
+    }
+#endif
+
+    if (IsFirstEventBlockAbility(ability)
+     && AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
+    {
+        gBattleStruct->eventState.endTurnBlock++;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static bool32 IsThirdEventBlockAbility(enum Ability ability)
 {
     switch (ability)
@@ -167,17 +233,20 @@ static bool32 IsThirdEventBlockAbility(enum Ability ability)
     }
 }
 
+static bool32 HasPendingThirdEventBlockAbility(const enum Ability *abilities, u32 count)
+{
+    for (u32 i = gBattleStruct->eventState.endTurnSubBlock; i < count; i++)
+    {
+        if (IsThirdEventBlockAbility(abilities[i]))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 static bool32 TryHandleThirdEventBlockAbility(enum BattlerId battler)
 {
-    bool32 effect = FALSE;
     enum Ability ability = GetBattlerAbility(battler);
-    enum Ability triggeredLastUsedAbility = ABILITY_NONE;
-    enum BattlerId triggeredBattleScriptingBattler = gBattleScripting.battler;
-    enum BattlerId triggeredBattlerAbility = gBattlerAbility;
-    u16 triggeredAbilityPopupOverwrite = gBattleScripting.abilityPopupOverwrite;
-
-    if (IsThirdEventBlockAbility(ability))
-        return AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE);
 
 #if B_ALL_ABILITY_SLOTS != FALSE || B_ALL_ABILITY_SLOTS_RUNTIME_TOGGLE || TESTING || DEBUG_OVERWORLD_MENU
     if (gAllAbilitySlotsBattle)
@@ -185,32 +254,37 @@ static bool32 TryHandleThirdEventBlockAbility(enum BattlerId battler)
         enum Ability abilities[NUM_ABILITY_SLOTS];
         u32 count = GetBattlerAbilitySet(battler, abilities, ARRAY_COUNT(abilities));
 
-        for (u32 i = 0; i < count; i++)
+        while (gBattleStruct->eventState.endTurnSubBlock < count)
         {
-            if (abilities[i] != ability
-             && IsThirdEventBlockAbility(abilities[i]))
+            enum Ability slotAbility = abilities[gBattleStruct->eventState.endTurnSubBlock++];
+
+            if (IsThirdEventBlockAbility(slotAbility)
+             && AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, slotAbility, MOVE_NONE, TRUE))
             {
-                if (AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, abilities[i], MOVE_NONE, TRUE))
+                if (!HasPendingThirdEventBlockAbility(abilities, count))
                 {
-                    effect = TRUE;
-                    triggeredLastUsedAbility = gLastUsedAbility;
-                    triggeredBattleScriptingBattler = gBattleScripting.battler;
-                    triggeredBattlerAbility = gBattlerAbility;
-                    triggeredAbilityPopupOverwrite = gBattleScripting.abilityPopupOverwrite;
+                    gBattleStruct->eventState.endTurnSubBlock = 0;
+                    gBattleStruct->eventState.endTurnBlock++;
                 }
-                else if (effect)
-                {
-                    gLastUsedAbility = triggeredLastUsedAbility;
-                    gBattleScripting.battler = triggeredBattleScriptingBattler;
-                    gBattlerAbility = triggeredBattlerAbility;
-                    gBattleScripting.abilityPopupOverwrite = triggeredAbilityPopupOverwrite;
-                }
+                return TRUE;
             }
         }
+
+        gBattleStruct->eventState.endTurnSubBlock = 0;
+        return FALSE;
     }
 #endif
 
-    return effect;
+    if (IsThirdEventBlockAbility(ability))
+    {
+        if (AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
+        {
+            gBattleStruct->eventState.endTurnBlock++;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
@@ -509,22 +583,15 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
         gBattleStruct->eventState.endTurnBlock++;
         break;
     case FIRST_EVENT_BLOCK_ABILITIES:
-    {
-        enum Ability ability = GetBattlerAbility(battler);
-        switch (ability)
+        if (TryHandleFirstEventBlockAbility(battler))
         {
-        case ABILITY_HEALER:
-        case ABILITY_HYDRATION:
-        case ABILITY_SHED_SKIN:
-            if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
-                effect = TRUE;
-            break;
-        default:
-            break;
+            effect = TRUE;
         }
-        gBattleStruct->eventState.endTurnBlock++;
+        else
+        {
+            gBattleStruct->eventState.endTurnBlock++;
+        }
         break;
-    }
     case FIRST_EVENT_BLOCK_HEAL_ITEMS:
         if (ItemBattleEffects(battler, 0, GetBattlerHoldEffect(battler), IsLeftoversActivation))
             effect = TRUE;
@@ -1365,6 +1432,7 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
 
     if (!IsBattlerPresent(battler))
     {
+        gBattleStruct->eventState.endTurnSubBlock = 0;
         gBattleStruct->eventState.endTurnBattler++;
         return effect;
     }
@@ -1422,7 +1490,8 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
     case THIRD_EVENT_BLOCK_ABILITIES:
         if (TryHandleThirdEventBlockAbility(battler))
             effect = TRUE;
-        gBattleStruct->eventState.endTurnBlock++;
+        else
+            gBattleStruct->eventState.endTurnBlock++;
         break;
     case THIRD_EVENT_BLOCK_ITEMS:
     {
@@ -1444,6 +1513,7 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
             break;
         }
         gBattleStruct->eventState.endTurnBlock = 0;
+        gBattleStruct->eventState.endTurnSubBlock = 0;
         gBattleStruct->eventState.endTurnBattler++;
         break;
     }
@@ -1729,6 +1799,7 @@ bool32 DoEndTurnEffects(void)
             gBattleStruct->eventState.endTurnBattler = 0;
             gBattleStruct->eventState.battlerSide = 0;
             gBattleStruct->eventState.endTurnBlock = 0;
+            gBattleStruct->eventState.endTurnSubBlock = 0;
             gBattleStruct->eventState.endTurn++;
         }
 

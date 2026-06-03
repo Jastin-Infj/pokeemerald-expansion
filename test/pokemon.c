@@ -2,10 +2,12 @@
 #include "battle.h"
 #include "egg_hatch.h"
 #include "event_data.h"
+#include "move_relearner.h"
 #include "new_game.h"
 #include "pokemon.h"
 #include "test/overworld_script.h"
 #include "test/test.h"
+#include "config/summary_screen.h"
 #include "constants/characters.h"
 #include "constants/daycare.h"
 #include "constants/move_relearner.h"
@@ -94,6 +96,25 @@ TEST("Global no-evolution runtime blocks evolution targets")
     CreateMon(&mon, SPECIES_HAUNTER, 50, 0, OTID_STRUCT_PRESET(0));
     CreateMon(&tradePartner, SPECIES_PIDGEY, 50, 0, OTID_STRUCT_PRESET(0));
     EXPECT_EQ(GetEvolutionTargetSpecies(&mon, EVO_MODE_TRADE, ITEM_NONE, &tradePartner, NULL, CHECK_EVO), SPECIES_NONE);
+}
+
+TEST("Scripted move relearners bypass summary activation gates")
+{
+    ASSUME(P_TM_MOVES_RELEARNER == FALSE);
+
+    ZeroMonData(&gParties[B_TRAINER_PLAYER][0]);
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_PIKACHU, 50, 0, OTID_STRUCT_PLAYER_ID);
+
+    gSpecialVar_0x8004 = 0;
+    gMoveRelearnerState = MOVE_RELEARNER_TM_MOVES;
+    gRelearnMode = RELEARN_MODE_SCRIPT;
+    ASSUME(HasMoveToRelearn(&gParties[B_TRAINER_PLAYER][0].box, MOVE_RELEARNER_TM_MOVES));
+
+    gSpecialVar_Result = FALSE;
+    Special_HasMoveToRelearn();
+
+    EXPECT(gSpecialVar_Result);
+    gRelearnMode = RELEARN_MODE_NONE;
 }
 
 TEST("Shininess independent from PID and OTID")

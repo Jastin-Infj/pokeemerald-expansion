@@ -51,6 +51,7 @@
 | New game | Legacy TM acquisition routes が初期状態から残っていない。 |
 | Existing save with `FLAG_RECEIVED_TM_*` unset | NPC/gym scripts が意図通り動き、TM gift path に入らない。 |
 | Existing save with `FLAG_RECEIVED_TM_*` set | 会話分岐が壊れない。Retired flag bit が set 済みでも新 content の条件に使わない。 |
+| Existing save with old `FLAG_RECEIVED_TM_RETURN` / `0xE5` set | Prof. Cozmo / wife dialogue treats the Meteorite as already returned, sets `FLAG_RETURNED_METEORITE_TO_COZMO`, and does not give TM Return again. |
 | Existing save with item ball flags set | field object の hide state が不自然に戻らない。 |
 | Existing save holding a TM | TM/HM pocket の表示・使用が意図せず壊れない。 |
 | Existing save holding a HM | HM item を既に持っている save は従来通り表示・使用できる。新規通常進行では HM item を渡さない。 |
@@ -84,6 +85,9 @@
 - 退役後の reward を no reward にするか replacement item にするかは source ごとに未決定。
 - Retired flag values を `FLAG_UNUSED_0x...` へ hard-rename するタイミングは、参照が
   完全に消えた後に限定する。
+- `FLAG_LEGACY_RECEIVED_TM_RETURN` is intentionally retained as an alias for
+  the retired `0xE5` Meteorite / TM Return bit. Do not reuse that flag value
+  until the project deliberately drops old-save migration support.
 
 ## 2026-05-16 Validation Results
 
@@ -151,9 +155,13 @@ reapplying the TM / HM source retirement.
 | Check | Result | Notes |
 |---|---|---|
 | `rtk codex review --base master` | Fixed | Review found that `MauvilleCity_OnTransition` moved Wattson back to the Gym as soon as `VAR_NEW_MAUVILLE_STATE` reached `2`, which skipped the New Mauville completion conversation. The transition-time move was removed; `MauvilleCity_EventScript_CompletedNewMauville` remains the place that moves Wattson back after the player receives the payoff dialogue. |
-| `rtk make -j16 -O all` | Passed | Existing RWX linker warning only. |
-| `rtk make -j16 -O debug` | Passed | Existing RWX linker warning only. |
-| `rtk make -j16 -O check` | Passed | Existing expected / known-failing markers only. |
+| `rtk codex review --base master` on 2026-06-02 | Fixed | Review found that old saves with the retired `0xE5` TM Return flag would not satisfy the new `FLAG_RETURNED_METEORITE_TO_COZMO` check. Cozmo and his wife now migrate `FLAG_LEGACY_RECEIVED_TM_RETURN` to the new story flag without restoring the removed TM reward. |
+| `rtk git diff --check` on 2026-06-02 | Passed | No whitespace errors after the Meteorite compatibility fix. |
+| `rtk make -j16 -O all` | Passed | Repeated on 2026-06-02 after the Meteorite compatibility fix; existing RWX linker warning only. |
+| `rtk make -j16 -O debug` | Passed | Repeated on 2026-06-02 after the Meteorite compatibility fix; existing RWX linker warning only. |
+| `rtk make -j16 -O check` | Passed | Repeated on 2026-06-02 after the Meteorite compatibility fix; existing expected / known-failing markers only. |
+| `rtk mdbook build docs` on 2026-06-02 | Passed | Existing `CHANGELOG.md` include, `CREDITS.md </img>`, and large search-index warnings only. |
+| mGBA Live boot smoke on 2026-06-02 | Passed | Session `runtime-dev-16-audit-20260602` booted `pokeemerald.gba`, returned `true` through Lua, captured `/tmp/runtime-dev-16-audit-20260602.png`, stopped cleanly, and final `status --all` returned `[]`. |
 
 Remaining manual check:
 

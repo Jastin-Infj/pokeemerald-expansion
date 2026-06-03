@@ -4788,7 +4788,8 @@ u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum 
         speed *= 2;
 
     // paralysis drop
-    if (gBattleMons[battler].status1 & STATUS1_PARALYSIS && !BattlerHasAbility(battler, ABILITY_QUICK_FEET))
+    if (gBattleMons[battler].status1 & STATUS1_PARALYSIS
+     && !(ability == ABILITY_QUICK_FEET || (allAbilitySlots && BattlerHasAbility(battler, ABILITY_QUICK_FEET))))
         speed /= GetConfig(B_PARALYSIS_SPEED) >= GEN_7 ? 2 : 4;
 
     if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_SWAMP)
@@ -4840,8 +4841,9 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
     {
         priority++;
     }
-    else if (IsBattleMoveStatus(move) && IsAbilityAndRecord(battler, ability, ABILITY_PRANKSTER))
+    else if (IsBattleMoveStatus(move) && HAS_PRIORITY_ABILITY(ABILITY_PRANKSTER))
     {
+        RecordAbilityBattle(battler, ABILITY_PRANKSTER);
         gProtectStructs[battler].pranksterElevated = 1;
         priority++;
     }

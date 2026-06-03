@@ -2961,11 +2961,24 @@ static void BattleScriptCallWithBattlerAbility(enum BattlerId battler, enum Abil
     BattleScriptCall(battleScript);
 }
 
-static u32 AbilityBattleEffectsAllSlots(enum AbilityEffect caseID, enum BattlerId battler, enum Move move, bool32 shouldAbilityTrigger)
+static bool32 ShouldUseAllAbilitySlots(enum BattlerId battler, enum Ability ability)
+{
+    return gAllAbilitySlotsBattle
+        && IsBattlerAlive(battler)
+        && (ability == ABILITY_NONE || ability == GetBattlerAbility(battler));
+}
+
+static bool32 DidAbilityEffectQueueBattleScript(const u8 *savedBattleScript, u8 savedBattleScriptStackSize)
+{
+    return gBattlescriptCurrInstr != savedBattleScript
+        || gBattleResources->battleScriptsStack->size != savedBattleScriptStackSize;
+}
+
+u32 AbilityBattleEffectsAllSlotsStep(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger, u8 *nextSlot)
 {
     u32 effect = 0;
     enum Ability abilities[NUM_ABILITY_SLOTS];
-    u32 count = GetBattlerAbilitySet(battler, abilities, ARRAY_COUNT(abilities));
+    u32 count;
     enum Ability savedLastUsedAbility = gLastUsedAbility;
     enum Ability triggeredLastUsedAbility = ABILITY_NONE;
     enum BattlerId savedBattleScriptingBattler = gBattleScripting.battler;
@@ -2975,10 +2988,28 @@ static u32 AbilityBattleEffectsAllSlots(enum AbilityEffect caseID, enum BattlerI
     u16 savedAbilityPopupOverwrite = gBattleScripting.abilityPopupOverwrite;
     u16 triggeredAbilityPopupOverwrite = gBattleScripting.abilityPopupOverwrite;
 
-    sIteratingAllAbilitySlots = TRUE;
-    for (u32 slot = 0; slot < count; slot++)
+    if (nextSlot == NULL)
+        return AbilityBattleEffectsSingleAbility(caseID, battler, ability, move, shouldAbilityTrigger);
+
+    if (!ShouldUseAllAbilitySlots(battler, ability))
     {
-        u32 slotEffect = AbilityBattleEffects(caseID, battler, abilities[slot], move, shouldAbilityTrigger);
+        *nextSlot = 0;
+        return AbilityBattleEffectsSingleAbility(caseID, battler, ability, move, shouldAbilityTrigger);
+    }
+
+    count = GetBattlerAbilitySet(battler, abilities, ARRAY_COUNT(abilities));
+    if (*nextSlot >= count)
+    {
+        *nextSlot = 0;
+        return 0;
+    }
+
+    for (u32 slot = *nextSlot; slot < count; slot++)
+    {
+        const u8 *savedBattleScript = gBattlescriptCurrInstr;
+        u8 savedBattleScriptStackSize = gBattleResources->battleScriptsStack->size;
+        u32 slotEffect = AbilityBattleEffectsSingleAbility(caseID, battler, abilities[slot], move, shouldAbilityTrigger);
+
         if (slotEffect != 0)
         {
             effect += slotEffect;
@@ -2986,6 +3017,12 @@ static u32 AbilityBattleEffectsAllSlots(enum AbilityEffect caseID, enum BattlerI
             triggeredBattleScriptingBattler = gBattleScripting.battler;
             triggeredBattlerAbility = gBattlerAbility;
             triggeredAbilityPopupOverwrite = gBattleScripting.abilityPopupOverwrite;
+
+            if (DidAbilityEffectQueueBattleScript(savedBattleScript, savedBattleScriptStackSize))
+            {
+                *nextSlot = slot + 1;
+                return effect;
+            }
         }
         else if (effect != 0)
         {
@@ -2995,7 +3032,8 @@ static u32 AbilityBattleEffectsAllSlots(enum AbilityEffect caseID, enum BattlerI
             gBattleScripting.abilityPopupOverwrite = triggeredAbilityPopupOverwrite;
         }
     }
-    sIteratingAllAbilitySlots = FALSE;
+
+    *nextSlot = 0;
     if (effect == 0)
     {
         gLastUsedAbility = savedLastUsedAbility;
@@ -3005,6 +3043,12 @@ static u32 AbilityBattleEffectsAllSlots(enum AbilityEffect caseID, enum BattlerI
     }
 
     return effect;
+}
+
+static u32 AbilityBattleEffectsAllSlots(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger)
+{
+    u8 nextSlot = 0;
+    return AbilityBattleEffectsAllSlotsStep(caseID, battler, ability, move, shouldAbilityTrigger, &nextSlot);
 }
 
 u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger)
@@ -3019,12 +3063,9 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
     if (gBattleTypeFlags & BATTLE_TYPE_SAFARI)
         return 0;
 
-    if (gAllAbilitySlotsBattle
-     && !sIteratingAllAbilitySlots
-     && IsBattlerAlive(battler)
-     && (ability == ABILITY_NONE || ability == GetBattlerAbility(battler)))
+    if (!sIteratingAllAbilitySlots && ShouldUseAllAbilitySlots(battler, ability))
     {
-        return AbilityBattleEffectsAllSlots(caseID, battler, move, shouldAbilityTrigger);
+        return AbilityBattleEffectsAllSlots(caseID, battler, ability, move, shouldAbilityTrigger);
     }
 
     if (gBattlerAttacker >= gBattlersCount)

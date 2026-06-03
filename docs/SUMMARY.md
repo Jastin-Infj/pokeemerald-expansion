@@ -57,6 +57,7 @@
     - [Runtime Integration Gate](manuals/runtime_integration_gate.md)
     - [Local Config And Flag Ledger](manuals/local_config_and_flag_ledger.md)
     - [Validation Evidence Matrix](manuals/validation_evidence_matrix.md)
+    - [Codex Review / Validation Log Runner](manuals/codex_review_validation_logs.md)
     - [Data Editing Overview](manuals/data_editing_overview.md)
     - [Rebuild and Test Manual](manuals/rebuild_and_test_manual.md)
     - [mGBA Live MCP Manual](manuals/mgba_live_mcp_manual.md)

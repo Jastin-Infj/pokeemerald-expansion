@@ -36,15 +36,18 @@ static void PrepareLiveRunState(const struct ChampionsRunSession *session);
 static void ClearCarryoverSlots(struct ChampionsRunSession *session);
 static void LoadLastClearPartyIntoLiveRun(const struct ChampionsRunSession *session);
 static bool32 DepositLiveRunPartyForClear(struct ChampionsRunSession *session);
-static void CarryOrStripHeldItemForClear(struct ChampionsRunSession *session, struct Pokemon *mon);
-static void CarryRunBagItemsIntoNormalSnapshot(struct ChampionsRunSession *session);
+static void CarryOrStripHeldItemForClear(struct Pokemon *mon);
+static bool32 TryBuildClearNormalBagSnapshot(struct ChampionsRunSession *session, struct Bag *bag);
 static void CopyBagToSnapshot(struct Bag *dst, const struct Bag *src);
 static void CopyBagFromSnapshot(struct Bag *dst, const struct Bag *src);
 static void CopyItemSlotsToSnapshot(struct ItemSlot *dst, const struct ItemSlot *src, u32 count);
 static void CopyItemSlotsFromSnapshot(struct ItemSlot *dst, const struct ItemSlot *src, u32 count);
+static u16 GetSnapshotItemQuantity(const struct ItemSlot *slot);
+static void SetSnapshotItemSlot(struct ItemSlot *slot, enum Item itemId, u16 quantity);
 static bool32 AddItemToSnapshotBag(struct Bag *bag, enum Item itemId, u16 count);
 static bool32 AddItemToSnapshotSlots(struct ItemSlot *slots, u32 capacity, bool32 singleStack, enum Item itemId, u16 count);
-static void CarryItemSlotsIntoNormalSnapshot(struct ChampionsRunSession *session, const struct ItemSlot *slots, u32 count);
+static bool32 AddHeldItemsToClearNormalBagSnapshot(struct Bag *bag);
+static bool32 CarryItemSlotsIntoNormalSnapshot(struct Bag *bag, const struct ItemSlot *slots, u32 count);
 static bool32 ShouldCarryRunBagItem(enum Item itemId);
 static u32 CountFreePokemonStorageSlots(void);
 static bool32 IsDefeatOutcome(u8 battleOutcome);
@@ -139,6 +142,28 @@ static void CopyBagFromSnapshot(struct Bag *dst, const struct Bag *src)
     CopyItemSlotsFromSnapshot(dst->pokeBalls, src->pokeBalls, ARRAY_COUNT(dst->pokeBalls));
     CopyItemSlotsFromSnapshot(dst->TMsHMs, src->TMsHMs, ARRAY_COUNT(dst->TMsHMs));
     CopyItemSlotsFromSnapshot(dst->berries, src->berries, ARRAY_COUNT(dst->berries));
+}
+
+static u16 GetSnapshotItemQuantity(const struct ItemSlot *slot)
+{
+    // Champions snapshots store decoded quantities; live bag encryption is only applied at copy boundaries.
+    if (slot->itemId == ITEM_NONE)
+        return 0;
+    return slot->quantity;
+}
+
+static void SetSnapshotItemSlot(struct ItemSlot *slot, enum Item itemId, u16 quantity)
+{
+    if (itemId == ITEM_NONE || quantity == 0)
+    {
+        slot->itemId = ITEM_NONE;
+        slot->quantity = 0;
+    }
+    else
+    {
+        slot->itemId = itemId;
+        slot->quantity = quantity;
+    }
 }
 
 static void SnapshotNormalState(struct ChampionsRunSession *session)
@@ -271,10 +296,9 @@ static u32 CountFreePokemonStorageSlots(void)
     return count;
 }
 
-static void CarryOrStripHeldItemForClear(struct ChampionsRunSession *session, struct Pokemon *mon)
+static void CarryOrStripHeldItemForClear(struct Pokemon *mon)
 {
     u16 noItem = ITEM_NONE;
-    u16 heldItem = GetMonData(mon, MON_DATA_HELD_ITEM);
 
     switch (CHAMPIONS_RUN_CLEAR_HELD_ITEM_MODE)
     {
@@ -282,8 +306,6 @@ static void CarryOrStripHeldItemForClear(struct ChampionsRunSession *session, st
         break;
     case CHAMPIONS_RUN_HELD_ITEM_CARRY_TO_BAG:
         SetMonData(mon, MON_DATA_HELD_ITEM, &noItem);
-        if (heldItem != ITEM_NONE)
-            AddItemToSnapshotBag(&session->normalBag, heldItem, 1);
         break;
     case CHAMPIONS_RUN_HELD_ITEM_CARRY_NONE:
     default:
@@ -315,7 +337,7 @@ static bool32 DepositLiveRunPartyForClear(struct ChampionsRunSession *session)
             continue;
 
         mon = gParties[B_TRAINER_PLAYER][i];
-        CarryOrStripHeldItemForClear(session, &mon);
+        CarryOrStripHeldItemForClear(&mon);
         if (CopyMonToPC(&mon) != MON_GIVEN_TO_PC)
             return FALSE;
 
@@ -330,6 +352,29 @@ static bool32 DepositLiveRunPartyForClear(struct ChampionsRunSession *session)
     return TRUE;
 }
 
+static bool32 AddHeldItemsToClearNormalBagSnapshot(struct Bag *bag)
+{
+#if CHAMPIONS_RUN_CLEAR_DEPOSIT_PARTY == TRUE && CHAMPIONS_RUN_CLEAR_HELD_ITEM_MODE == CHAMPIONS_RUN_HELD_ITEM_CARRY_TO_BAG
+    u32 i;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        u16 heldItem;
+
+        if (GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIES) == SPECIES_NONE)
+            continue;
+
+        heldItem = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_HELD_ITEM);
+        if (heldItem != ITEM_NONE && !AddItemToSnapshotBag(bag, heldItem, 1))
+            return FALSE;
+    }
+#else
+    (void)bag;
+#endif
+
+    return TRUE;
+}
+
 static bool32 AddItemToSnapshotSlots(struct ItemSlot *slots, u32 capacity, bool32 singleStack, enum Item itemId, u16 count)
 {
     u32 i;
@@ -338,10 +383,11 @@ static bool32 AddItemToSnapshotSlots(struct ItemSlot *slots, u32 capacity, bool3
     {
         if (slots[i].itemId == itemId)
         {
-            u16 space = MAX_BAG_ITEM_CAPACITY - min(slots[i].quantity, MAX_BAG_ITEM_CAPACITY);
+            u16 quantity = min(GetSnapshotItemQuantity(&slots[i]), MAX_BAG_ITEM_CAPACITY);
+            u16 space = MAX_BAG_ITEM_CAPACITY - quantity;
             u16 toAdd = min(count, space);
 
-            slots[i].quantity += toAdd;
+            SetSnapshotItemSlot(&slots[i], itemId, quantity + toAdd);
             count -= toAdd;
             if (singleStack)
                 return count == 0;
@@ -350,12 +396,11 @@ static bool32 AddItemToSnapshotSlots(struct ItemSlot *slots, u32 capacity, bool3
 
     for (i = 0; i < capacity && count > 0; i++)
     {
-        if (slots[i].itemId == ITEM_NONE || slots[i].quantity == 0)
+        if (slots[i].itemId == ITEM_NONE || GetSnapshotItemQuantity(&slots[i]) == 0)
         {
             u16 toAdd = min(count, MAX_BAG_ITEM_CAPACITY);
 
-            slots[i].itemId = itemId;
-            slots[i].quantity = toAdd;
+            SetSnapshotItemSlot(&slots[i], itemId, toAdd);
             count -= toAdd;
             if (singleStack)
                 return count == 0;
@@ -403,7 +448,7 @@ static bool32 ShouldCarryRunBagItem(enum Item itemId)
     }
 }
 
-static void CarryItemSlotsIntoNormalSnapshot(struct ChampionsRunSession *session, const struct ItemSlot *slots, u32 count)
+static bool32 CarryItemSlotsIntoNormalSnapshot(struct Bag *bag, const struct ItemSlot *slots, u32 count)
 {
     u32 i;
     u32 key = gSaveBlock2Ptr->encryptionKey;
@@ -422,17 +467,23 @@ static void CarryItemSlotsIntoNormalSnapshot(struct ChampionsRunSession *session
         if (quantity == 0)
             continue;
 
-        AddItemToSnapshotBag(&session->normalBag, itemId, quantity);
+        if (!AddItemToSnapshotBag(bag, itemId, quantity))
+            return FALSE;
     }
+
+    return TRUE;
 }
 
-static void CarryRunBagItemsIntoNormalSnapshot(struct ChampionsRunSession *session)
+static bool32 TryBuildClearNormalBagSnapshot(struct ChampionsRunSession *session, struct Bag *bag)
 {
-    CarryItemSlotsIntoNormalSnapshot(session, gSaveBlock1Ptr->bag.items, ARRAY_COUNT(gSaveBlock1Ptr->bag.items));
-    CarryItemSlotsIntoNormalSnapshot(session, gSaveBlock1Ptr->bag.keyItems, ARRAY_COUNT(gSaveBlock1Ptr->bag.keyItems));
-    CarryItemSlotsIntoNormalSnapshot(session, gSaveBlock1Ptr->bag.pokeBalls, ARRAY_COUNT(gSaveBlock1Ptr->bag.pokeBalls));
-    CarryItemSlotsIntoNormalSnapshot(session, gSaveBlock1Ptr->bag.TMsHMs, ARRAY_COUNT(gSaveBlock1Ptr->bag.TMsHMs));
-    CarryItemSlotsIntoNormalSnapshot(session, gSaveBlock1Ptr->bag.berries, ARRAY_COUNT(gSaveBlock1Ptr->bag.berries));
+    *bag = session->normalBag;
+
+    return AddHeldItemsToClearNormalBagSnapshot(bag)
+        && CarryItemSlotsIntoNormalSnapshot(bag, gSaveBlock1Ptr->bag.items, ARRAY_COUNT(gSaveBlock1Ptr->bag.items))
+        && CarryItemSlotsIntoNormalSnapshot(bag, gSaveBlock1Ptr->bag.keyItems, ARRAY_COUNT(gSaveBlock1Ptr->bag.keyItems))
+        && CarryItemSlotsIntoNormalSnapshot(bag, gSaveBlock1Ptr->bag.pokeBalls, ARRAY_COUNT(gSaveBlock1Ptr->bag.pokeBalls))
+        && CarryItemSlotsIntoNormalSnapshot(bag, gSaveBlock1Ptr->bag.TMsHMs, ARRAY_COUNT(gSaveBlock1Ptr->bag.TMsHMs))
+        && CarryItemSlotsIntoNormalSnapshot(bag, gSaveBlock1Ptr->bag.berries, ARRAY_COUNT(gSaveBlock1Ptr->bag.berries));
 }
 
 bool32 ChampionsRun_IsActive(void)
@@ -587,13 +638,16 @@ u8 ChampionsRun_RetireAndSave(void)
 bool32 ChampionsRun_CompleteClear(void)
 {
     struct ChampionsRunSession *session = GetSession();
+    struct Bag normalBagWithCarryover;
 
     if (!ChampionsRun_IsActive())
+        return FALSE;
+    if (!TryBuildClearNormalBagSnapshot(session, &normalBagWithCarryover))
         return FALSE;
     if (!DepositLiveRunPartyForClear(session))
         return FALSE;
 
-    CarryRunBagItemsIntoNormalSnapshot(session);
+    session->normalBag = normalBagWithCarryover;
     RestoreSnapshotToLive(session);
     InitSession(session);
     session->status = CHAMPIONS_RUN_STATUS_WON;

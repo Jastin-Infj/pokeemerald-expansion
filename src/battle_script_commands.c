@@ -95,6 +95,8 @@
 #define CMD_ARGS(...) const struct __attribute__((packed)) { u8 opcode; RECURSIVELY(R_FOR_EACH(APPEND_SEMICOLON, __VA_ARGS__)) const u8 nextInstr[0]; } *const cmd UNUSED = (const void *)gBattlescriptCurrInstr
 #define NATIVE_ARGS(...) CMD_ARGS(void (*func)(void), ##__VA_ARGS__)
 
+static bool32 TryBattleScriptAbilityEffect(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger, const u8 *resumeInstr, const u8 *nextInstr);
+
 // table to avoid ugly powing on gba (courtesy of doesnt)
 // this returns (i^2.5)/4
 // the quarters cancel so no need to re-quadruple them in actual calculation
@@ -11941,6 +11943,64 @@ void BS_CheckTeaTimeTargets(void)
         gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+static bool32 ShouldUseBattleScriptAllAbilitySlots(enum BattlerId battler, enum Ability ability)
+{
+    return gAllAbilitySlotsBattle
+        && IsBattlerAlive(battler)
+        && (ability == ABILITY_NONE || ability == GetBattlerAbility(battler));
+}
+
+static u8 GetBattleScriptAbilityCursorIndex(void)
+{
+    u8 cursorIndex = gBattleResources->battleScriptsStack->size;
+    u8 maxIndex = ARRAY_COUNT(gBattleStruct->eventState.battleScriptAbilitySubBlockStack) - 1;
+
+    if (cursorIndex > maxIndex)
+        cursorIndex = maxIndex;
+    return cursorIndex;
+}
+
+static bool32 TryBattleScriptAbilityEffect(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger, const u8 *resumeInstr, const u8 *nextInstr)
+{
+    u32 effect;
+    u8 nextSlot;
+    u8 savedBattleScriptStackSize;
+    u8 cursorIndex;
+    u8 *subBlock;
+    u8 *abilityEffect;
+
+    if (!ShouldUseBattleScriptAllAbilitySlots(battler, ability))
+    {
+        gBattlescriptCurrInstr = nextInstr;
+        return AbilityBattleEffects(caseID, battler, ability, move, shouldAbilityTrigger) != 0;
+    }
+
+    cursorIndex = GetBattleScriptAbilityCursorIndex();
+    subBlock = &gBattleStruct->eventState.battleScriptAbilitySubBlockStack[cursorIndex];
+    abilityEffect = &gBattleStruct->eventState.battleScriptAbilityEffectStack[cursorIndex];
+
+    if (*subBlock != 0 && *abilityEffect != caseID + 1)
+        return FALSE;
+
+    nextSlot = *subBlock;
+    savedBattleScriptStackSize = gBattleResources->battleScriptsStack->size;
+    *abilityEffect = caseID + 1;
+    gBattlescriptCurrInstr = resumeInstr;
+    effect = AbilityBattleEffectsAllSlotsStep(caseID, battler, ability, move, shouldAbilityTrigger, &nextSlot);
+    *subBlock = nextSlot;
+    if (*subBlock == 0)
+        *abilityEffect = 0;
+
+    if (effect == 0)
+        return FALSE;
+
+    if (gBattlescriptCurrInstr == resumeInstr
+     && gBattleResources->battleScriptsStack->size == savedBattleScriptStackSize)
+        gBattlescriptCurrInstr = nextInstr;
+
+    return TRUE;
+}
+
 void BS_TryWindRiderPower(void)
 {
     NATIVE_ARGS(u8 battler, const u8 *failInstr);
@@ -11951,7 +12011,7 @@ void BS_TryWindRiderPower(void)
     {
         if (BattlerHasAbility(battler, ABILITY_WIND_RIDER))
         {
-            AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, ABILITY_WIND_RIDER, MOVE_NONE, TRUE);
+            AbilityBattleEffectsSingleAbility(ABILITYEFFECT_ON_SWITCHIN, battler, ABILITY_WIND_RIDER, MOVE_NONE, TRUE);
         }
         else if (BattlerHasAbility(battler, ABILITY_WIND_POWER))
         {
@@ -11968,8 +12028,9 @@ void BS_ActivateWeatherChangeAbilities(void)
     NATIVE_ARGS(u8 battler);
 
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
+    if (TryBattleScriptAbilityEffect(ABILITYEFFECT_ON_WEATHER, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr))
+        return;
     gBattlescriptCurrInstr = cmd->nextInstr;
-    AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE);
 }
 
 void BS_ActivateTerrainChangeAbilities(void)
@@ -11977,8 +12038,9 @@ void BS_ActivateTerrainChangeAbilities(void)
     NATIVE_ARGS(u8 battler);
 
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
+    if (TryBattleScriptAbilityEffect(ABILITYEFFECT_ON_TERRAIN, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr))
+        return;
     gBattlescriptCurrInstr = cmd->nextInstr;
-    AbilityBattleEffects(ABILITYEFFECT_ON_TERRAIN, battler, GetBattlerAbility(battler), MOVE_NONE, TRUE);
 }
 
 void BS_ResetTerrainAbilityFlags(void)
@@ -12932,17 +12994,17 @@ void BS_SwitchinAbilities(void)
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
     enum Ability ability = GetBattlerAbility(battler);
-    gBattlescriptCurrInstr = cmd->nextInstr;
-    if (AbilityBattleEffects(ABILITYEFFECT_TERA_SHIFT, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_NEUTRALIZINGGAS, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_UNNERVE, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_ON_SWITCHIN, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_IMMUNITY, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_DEPENDS_ON_ALLY, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_ON_WEATHER, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_ON_TERRAIN, battler, ability, MOVE_NONE, TRUE)
-     || AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, ability, MOVE_NONE, TRUE))
+    if (TryBattleScriptAbilityEffect(ABILITYEFFECT_TERA_SHIFT, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_NEUTRALIZINGGAS, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_UNNERVE, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_ON_SWITCHIN, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_IMMUNITY, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_DEPENDS_ON_ALLY, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_ON_WEATHER, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_ON_TERRAIN, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr)
+     || TryBattleScriptAbilityEffect(ABILITYEFFECT_OPPORTUNIST, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr))
         return;
+    gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
 void BS_AbilityOnFormChange(void)
@@ -12950,9 +13012,9 @@ void BS_AbilityOnFormChange(void)
     NATIVE_ARGS(u8 battler);
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
     enum Ability ability = GetBattlerAbility(battler);
-    gBattlescriptCurrInstr = cmd->nextInstr;
-    if (AbilityBattleEffects(ABILITYEFFECT_ON_FORM_CHANGE, battler, ability, MOVE_NONE, TRUE))
+    if (TryBattleScriptAbilityEffect(ABILITYEFFECT_ON_FORM_CHANGE, battler, ability, MOVE_NONE, TRUE, (const u8 *)cmd, cmd->nextInstr))
         return;
+    gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
 void BS_InstantHpDrop(void)

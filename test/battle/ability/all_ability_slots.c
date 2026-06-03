@@ -262,6 +262,29 @@ SINGLE_BATTLE_TEST("All Ability Slots shows non-representative Trace before copy
     }
 }
 
+SINGLE_BATTLE_TEST("All Ability Slots scopes nested Trace switch-in abilities independently")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_GARDEVOIR, 0) == ABILITY_SYNCHRONIZE);
+        ASSUME(GetSpeciesAbility(SPECIES_GARDEVOIR, 1) == ABILITY_TRACE);
+        ASSUME(GetSpeciesAbility(SPECIES_EKANS, 0) == ABILITY_INTIMIDATE);
+        ASSUME(GetSpeciesAbility(SPECIES_EKANS, 1) == ABILITY_SHED_SKIN);
+        PLAYER(SPECIES_GARDEVOIR) { Ability(ABILITY_SYNCHRONIZE); Speed(100); }
+        OPPONENT(SPECIES_EKANS) { Ability(ABILITY_SHED_SKIN); Speed(1); }
+    } WHEN {
+        TURN {}
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_TRACE);
+        ABILITY_POPUP(player, ABILITY_INTIMIDATE);
+        ABILITY_POPUP(opponent, ABILITY_INTIMIDATE);
+        NOT ABILITY_POPUP(player, ABILITY_SYNCHRONIZE);
+    } THEN {
+        EXPECT_EQ(opponent->statStages[STAT_ATK], DEFAULT_STAT_STAGE - 1);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_INTIMIDATE));
+    }
+}
+
 DOUBLE_BATTLE_TEST("All Ability Slots lets non-representative Commander activate with Dondozo")
 {
     GIVEN {
@@ -299,6 +322,83 @@ SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Rain Dish heal in 
         ABILITY_POPUP(player, ABILITY_RAIN_DISH);
         NOT ABILITY_POPUP(player, ABILITY_SWIFT_SWIM);
         HP_BAR(player, damage: -(100 / 16));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Hydration cure end-turn status in rain")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_VAPOREON, 0) == ABILITY_WATER_ABSORB);
+        ASSUME(GetSpeciesAbility(SPECIES_VAPOREON, 2) == ABILITY_HYDRATION);
+        PLAYER(SPECIES_VAPOREON) { Ability(ABILITY_WATER_ABSORB); Status1(STATUS1_BURN); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_RAIN_DANCE); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_HYDRATION);
+        MESSAGE("Vaporeon's burn was cured!");
+        STATUS_ICON(player, none: TRUE);
+    } THEN {
+        EXPECT_EQ(player->status1, STATUS1_NONE);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_HYDRATION));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Magic Guard block rock hazards")
+{
+    u16 startingHazard;
+
+    PARAMETRIZE { startingHazard = STARTING_STATUS_STEALTH_ROCK_PLAYER; }
+    PARAMETRIZE { startingHazard = STARTING_STATUS_SHARP_STEEL_PLAYER; }
+
+    SetStartingStatus(startingHazard);
+
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_CLEFABLE, 0) == ABILITY_CUTE_CHARM);
+        ASSUME(GetSpeciesAbility(SPECIES_CLEFABLE, 1) == ABILITY_MAGIC_GUARD);
+        PLAYER(SPECIES_WOBBUFFET) { Speed(50); }
+        PLAYER(SPECIES_CLEFABLE) { Ability(ABILITY_CUTE_CHARM); Speed(60); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(40); }
+    } WHEN {
+        TURN { SWITCH(player, 1); }
+    } SCENE {
+        MESSAGE("Go! Clefable!");
+        NOT HP_BAR(player);
+    } THEN {
+        ResetStartingStatuses();
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_MAGIC_GUARD));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots does not reveal Magic Guard when Heavy-Duty Boots block rock hazards")
+{
+    u16 startingHazard;
+
+    PARAMETRIZE { startingHazard = STARTING_STATUS_STEALTH_ROCK_PLAYER; }
+    PARAMETRIZE { startingHazard = STARTING_STATUS_SHARP_STEEL_PLAYER; }
+
+    SetStartingStatus(startingHazard);
+
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(gItemsInfo[ITEM_HEAVY_DUTY_BOOTS].holdEffect == HOLD_EFFECT_HEAVY_DUTY_BOOTS);
+        ASSUME(GetSpeciesAbility(SPECIES_CLEFABLE, 0) == ABILITY_CUTE_CHARM);
+        ASSUME(GetSpeciesAbility(SPECIES_CLEFABLE, 1) == ABILITY_MAGIC_GUARD);
+        PLAYER(SPECIES_WOBBUFFET) { Speed(50); }
+        PLAYER(SPECIES_CLEFABLE) { Ability(ABILITY_CUTE_CHARM); Item(ITEM_HEAVY_DUTY_BOOTS); Speed(60); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(40); }
+    } WHEN {
+        TURN { SWITCH(player, 1); }
+    } SCENE {
+        MESSAGE("Go! Clefable!");
+        NONE_OF {
+            ABILITY_POPUP(player, ABILITY_MAGIC_GUARD);
+            HP_BAR(player);
+        }
+    } THEN {
+        ResetStartingStatuses();
     }
 }
 
@@ -489,6 +589,35 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Intimidate trigg
     } THEN {
         EXPECT_EQ(opponent->statStages[STAT_ATK], DEFAULT_STAT_STAGE - 1);
         EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_INTIMIDATE));
+    }
+}
+
+DOUBLE_BATTLE_TEST("All Ability Slots resumes later switch-in slots after Neutralizing Gas ends")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS_NEUTRALIZING_GAS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_STANTLER, 0) == ABILITY_INTIMIDATE);
+        ASSUME(GetSpeciesAbility(SPECIES_STANTLER, 1) == ABILITY_FRISK);
+        ASSUME(GetSpeciesAbility(SPECIES_WEEZING, 1) == ABILITY_NEUTRALIZING_GAS);
+        PLAYER(SPECIES_WEEZING) { Ability(ABILITY_NEUTRALIZING_GAS); Speed(120); }
+        PLAYER(SPECIES_WYNAUT) { Item(ITEM_POTION); Speed(70); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WOBBUFFET) { Speed(60); }
+        OPPONENT(SPECIES_STANTLER) { Ability(ABILITY_INTIMIDATE); Speed(100); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(90); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { SWITCH(playerLeft, 2); MOVE(playerRight, MOVE_CELEBRATE); MOVE(opponentLeft, MOVE_CELEBRATE); MOVE(opponentRight, MOVE_CELEBRATE); }
+    } SCENE {
+        ABILITY_POPUP(playerLeft, ABILITY_NEUTRALIZING_GAS);
+        MESSAGE("Neutralizing gas filled the area!");
+        SWITCH_OUT_MESSAGE("Weezing");
+        MESSAGE("The effects of the neutralizing gas wore off!");
+        ABILITY_POPUP(opponentLeft, ABILITY_INTIMIDATE);
+        ABILITY_POPUP(opponentLeft, ABILITY_FRISK);
+        SEND_IN_MESSAGE("Wobbuffet");
+    } THEN {
+        EXPECT_EQ(playerRight->statStages[STAT_ATK], DEFAULT_STAT_STAGE - 1);
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), ABILITY_FRISK));
     }
 }
 
@@ -781,6 +910,24 @@ SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Queenly Majesty 
     }
 }
 
+SINGLE_BATTLE_TEST("All Ability Slots lets a non-representative Prankster increase status move priority")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_MURKROW, 0) == ABILITY_INSOMNIA);
+        ASSUME(GetSpeciesAbility(SPECIES_MURKROW, 2) == ABILITY_PRANKSTER);
+        PLAYER(SPECIES_WOBBUFFET) { Speed(10); }
+        OPPONENT(SPECIES_MURKROW) { Speed(5); Ability(ABILITY_INSOMNIA); }
+    } WHEN {
+        TURN { MOVE(opponent, MOVE_CONFUSE_RAY); MOVE(player, MOVE_CELEBRATE, WITH_RNG(RNG_CONFUSION, FALSE)); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_CONFUSE_RAY, opponent);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_CELEBRATE, player);
+    } THEN {
+        EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), ABILITY_PRANKSTER));
+    }
+}
+
 SINGLE_BATTLE_TEST("All Ability Slots stacks Conkeldurr's Guts, Sheer Force, and Iron Fist", s16 damage)
 {
     bool32 allAbilitySlots;
@@ -822,6 +969,22 @@ SINGLE_BATTLE_TEST("All Ability Slots lets non-representative Sheer Force suppre
         NOT STATUS_ICON(opponent, paralysis: TRUE);
     } THEN {
         EXPECT(IsBattlerAbilityActive(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT), ABILITY_SHEER_FORCE));
+    }
+}
+
+SINGLE_BATTLE_TEST("All Ability Slots queues multiple third-block end-turn ability scripts")
+{
+    GIVEN {
+        WITH_CONFIG(B_ALL_ABILITY_SLOTS, TRUE);
+        ASSUME(GetSpeciesAbility(SPECIES_OCTILLERY, 2) == ABILITY_MOODY);
+        PLAYER(SPECIES_OCTILLERY) { Ability(ABILITY_SPEED_BOOST); }
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN {}
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_SPEED_BOOST);
+        MESSAGE("Octillery's Speed rose!");
+        ABILITY_POPUP(player, ABILITY_MOODY);
     }
 }
 

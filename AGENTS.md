@@ -19,6 +19,17 @@
 - Do not block a turn waiting for long GitHub Actions runs. They can take
   roughly 20-30 minutes; use local `make` and mGBA Live evidence for the agent
   handoff, and note that Actions were not re-waited when applicable.
+- `tools/validation/run_review_checks.sh` defaults to local validation only.
+  Codex review is still useful for large integration and runtime-risk changes,
+  but any review invocation, including `run_review_checks.sh
+  --with-codex-review` or `--review-mode uncommitted|base|commit`, can consume
+  substantial remote-review context. Do not run Codex review unless the user
+  explicitly asks for it, or the current task instructions explicitly require
+  it. Reading an already-generated
+  `logs/validation/<run-id>/ACTIONABLE_FINDINGS.md` is always allowed and is
+  preferred before opening full validation logs. If the user manually provides
+  review logs, use `run_review_checks.sh --summarize-only <log-dir>` to
+  regenerate the actionable summary without running new review.
 - Stop mGBA Live sessions after validation. If `mgba-live-cli stop` leaves a
   stale entry or zombie child, record that cleanup state in the relevant docs
   instead of treating the runtime check as fully clean.
@@ -68,6 +79,25 @@
   artifacts. Keep them on a feature / integration implementation PR with the
   source changes that consume them; record source URLs and credit in docs, but
   do not include the image files themselves in a docs / Lua-only PR.
+
+## 16.0 Runtime Lineage
+
+- Treat `integration/runtime-dev-16-20260531` / PR #69 as the completed
+  15.3-to-16.0 runtime port snapshot. It is the comparison baseline and
+  evidence shelf for that replay, not the branch where future runtime features
+  should keep accumulating.
+- New runtime features, 16.0-native reworks, map/content work, generated-data
+  changes, and gameplay edits start from current `master` on a fresh
+  `feature/*` or `integration/*` branch.
+- If a playable "16.0 port snapshot plus new work" branch is needed, duplicate
+  the completed snapshot into a new `integration/*` branch first, then apply the
+  new work there. Keep the original snapshot available so reviewers can compare
+  `master`, the completed 15.3-to-16.0 port, and the new dev branch separately.
+- Historical 15.3 branches and docs are references only after the snapshot is
+  complete. Future 16.0 work owns its own branch, docs, validation evidence, and
+  PR.
+- Publish 15.3 / 16.0 handoff docs to `master` only through a docs / Lua-only
+  branch. Do not merge the runtime snapshot into `master`.
 
 ## GitHub PR Staging
 

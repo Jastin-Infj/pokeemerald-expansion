@@ -31,6 +31,28 @@ static void InitNormalStateForChampionsRunTest(void)
     gSaveBlock1Ptr->registeredItem = ITEM_POTION;
 }
 
+static void FillItemsPocketForChampionsRunTest(enum Item cappedItem, u16 cappedQuantity)
+{
+    enum Item itemId;
+    u32 filled = 0;
+
+    ClearBag();
+    if (cappedItem != ITEM_NONE)
+        BagPocket_SetSlotItemIdAndCount(&gBagPockets[POCKET_ITEMS], filled++, cappedItem, cappedQuantity);
+
+    for (itemId = ITEM_NONE + 1; itemId < ITEMS_COUNT && filled < BAG_ITEMS_COUNT; itemId++)
+    {
+        if (itemId == cappedItem)
+            continue;
+        if (GetItemPocket(itemId) != POCKET_ITEMS)
+            continue;
+
+        BagPocket_SetSlotItemIdAndCount(&gBagPockets[POCKET_ITEMS], filled++, itemId, MAX_BAG_ITEM_CAPACITY);
+    }
+
+    EXPECT_EQ(filled, BAG_ITEMS_COUNT);
+}
+
 TEST("Champions run entry snapshots normal state and clears live challenge state")
 {
     InitNormalStateForChampionsRunTest();
@@ -236,3 +258,30 @@ TEST("Champions run clear deposits run party and follows configured next-start c
 
     ChampionsRun_RestoreNormalState(CHAMPIONS_RUN_STATUS_RETIRED);
 }
+
+#if CHAMPIONS_RUN_CLEAR_CARRY_ITEMS == TRUE
+TEST("Champions run clear keeps run rewards when the normal item pocket cannot fit them")
+{
+    ResetPokemonStorageSystem();
+    InitNormalStateForChampionsRunTest();
+    FillItemsPocketForChampionsRunTest(ITEM_RARE_CANDY, MAX_BAG_ITEM_CAPACITY - 1);
+
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_RARE_CANDY), MAX_BAG_ITEM_CAPACITY - 1);
+    EXPECT_EQ(ChampionsRun_BeginEntry(), TRUE);
+
+    CreateMon(&gParties[B_TRAINER_PLAYER][0], SPECIES_MAGIKARP, 10, 0, OTID_STRUCT_PRESET(2));
+    CalculatePlayerPartyCount();
+    EXPECT_EQ(AddBagItem(ITEM_RARE_CANDY, 2), TRUE);
+
+    EXPECT_EQ(ChampionsRun_CompleteClearAndSave(), SAVE_STATUS_ERROR);
+    EXPECT_EQ(ChampionsRun_IsActive(), TRUE);
+    EXPECT_EQ(gPartiesCount[B_TRAINER_PLAYER], 1);
+    EXPECT_EQ(CheckBagHasItem(ITEM_RARE_CANDY, 2), TRUE);
+    EXPECT_EQ(CountAllStorageMons(), 0);
+
+    ChampionsRun_RestoreNormalState(CHAMPIONS_RUN_STATUS_RETIRED);
+
+    EXPECT_EQ(ChampionsRun_IsActive(), FALSE);
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_RARE_CANDY), MAX_BAG_ITEM_CAPACITY - 1);
+}
+#endif

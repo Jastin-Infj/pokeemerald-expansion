@@ -72,3 +72,4 @@ __pycache__
 .playwright-mcp/
 map-asset-relinker-*-dry-run.png
 tools/map_asset_relinker_gui/dist-windows/
+logs/validation/

@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-05-31 |
+| Last reviewed | 2026-06-02 |
 | Purpose | 15.3 runtime integration docs を、今後の 15.6 / 16.0 upstream baseline と混ぜないための同期方針 |
 | Previous complete tree | [15.3 CompleteTree](../15_3/complete_tree/) |
 | Carryover list | [16.0 Carryover Items](open_tree/carryover_items.md) |
@@ -17,6 +17,7 @@
 | `15_3/complete_tree` | 1.15.3 期間にこの branch へ統合した runtime / tooling の完了棚。 | 実装済み feature、検証済み debug route、config 一覧、#68 に supersede された旧 PR 情報。 |
 | `15.6` | 15.x 系の中間 upstream intake 想定。正式な local tree ではなく、master が 15.x 内で動いた時の比較対象。 | upstream README / docs / config / generated data の差分確認。15.3 完了棚をそのまま戻さない。 |
 | `16_0/open_tree` | 16.0 移行時に再調査・再実装・CI 整備する棚。 | CI cleanup、upstream resync、未実装 candidate、別 lane。 |
+| `integration/runtime-dev-16-20260531` | 1.15.3 runtime integration を 16.0 baseline へ replay した completed snapshot。 | 15.3 から移植済みの runtime 集合、16.0 API / config 変換の証跡、PR #69 validation evidence。新規 runtime 実装を積み続ける branch ではない。 |
 
 ## Why This Split Exists
 
@@ -25,6 +26,30 @@
 3. `15.6` は folder を作らず、sync 時の一時 baseline として扱う。必要になったら `16_0/open_tree` に差分を記録する。
 
 この分け方にしないと、master が upstream 15.6 / 16.0 に更新された時に、古い 15.3 docs をまとめて戻してしまい、README や feature status が逆戻りする。
+
+## Completed Snapshot Policy
+
+`integration/runtime-dev-16-20260531` / PR #69 は、15.3 で完成扱いにした runtime
+実装を 16.0 の source / config / generated-data 方針へ移植した completed snapshot
+として凍結する。この branch は「16.0 に移植できた完成形」を示す比較基準であり、
+今後の新規 feature を直接積み続ける開発 branch ではない。
+
+今後の 16.0 作業は次の 3 層を分ける。
+
+| Layer | Role | Handling |
+|---|---|---|
+| `master` | upstream 16.0 source baseline + docs / Lua-only overlay | 新規 clean implementation branch の起点。runtime source は直接入れない。 |
+| completed 16.0 port snapshot | 15.3 から 16.0 へ移植済みの runtime 集合 | 比較対象 / reference / evidence shelf として残す。新規実装を直接積まない。 |
+| future 16.0 dev branch | snapshot 以後の新規実装、再実装、map / content work、generated-data work | clean review が必要なら `master` から作る。全部入り playable branch が必要なら snapshot を複製してから積む。 |
+
+過去の 15.3 branch / docs は reference であり、今後の 16.0 実装の絶対解ではない。
+たとえば partygen や map content を 16.0-native に作り直す場合は、15.3 実装と PR #69
+snapshot を読み、current `master` から新しい branch を作って最適化し直す。その新 branch
+が source、docs、validation evidence、PR を所有する。
+
+completed snapshot をベースに遊べる dev 環境を作る場合は、まず snapshot と同じ地点から
+別名の `integration/*` branch を作る。これにより、問題が出たときに `master`、
+completed snapshot、future dev branch の差分を分けてレビューできる。
 
 ## Sync Rules
 
@@ -36,6 +61,7 @@
 | Feature docs が conflict した | canonical `docs/features/<feature>/` は upstream との conflict を解いて残す。完了判定は `completed_features.md` を正とする。 |
 | CI workflow が conflict した | runtime feature と混ぜず、[carryover_items.md](open_tree/carryover_items.md) の CI cleanup として別作業にする。 |
 | 15.3 docs を master へ入れたい | source / data / tools を含めず、docs / Lua-only branch で `features/15_3/` と `features/16_0/` の必要分だけ cherry-pick する。 |
+| PR #69 completed snapshot 以後に新規 16.0 runtime work を始める | current `master` から clean branch を切る。全部入り runtime dev が必要な場合だけ、completed snapshot を複製した別 `integration/*` branch に積む。 |
 
 ## Recommended Sync Procedure
 

@@ -29,6 +29,40 @@ static void UpdateStallMons(void);
 static enum Ability GetRedirectAbilityForMove(enum BattlerId battler, enum Type moveType);
 static bool32 TrySetBattlerAbilityForPopup(enum BattlerId battler, enum Ability representativeAbility, enum Ability ability);
 
+static u32 MoveEndAbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum Ability ability, enum Move move, bool32 shouldAbilityTrigger)
+{
+    u32 effect;
+    u8 nextSlot = gBattleStruct->eventState.moveEndSubBlock;
+
+    if (gBattleStruct->eventState.moveEndSubBlock != 0 && gBattleStruct->eventState.moveEndAbilityEffect != caseID + 1)
+        return 0;
+
+    gBattleStruct->eventState.moveEndAbilityEffect = caseID + 1;
+    effect = AbilityBattleEffectsAllSlotsStep(caseID, battler, ability, move, shouldAbilityTrigger, &nextSlot);
+    gBattleStruct->eventState.moveEndSubBlock = nextSlot;
+    if (gBattleStruct->eventState.moveEndSubBlock == 0)
+        gBattleStruct->eventState.moveEndAbilityEffect = 0;
+
+    return effect;
+}
+
+static bool32 MoveEndAbilityEffectsPending(void)
+{
+    return gBattleStruct->eventState.moveEndSubBlock != 0;
+}
+
+static void ClearMoveEndAbilityEffectsPending(void)
+{
+    gBattleStruct->eventState.moveEndSubBlock = 0;
+    gBattleStruct->eventState.moveEndAbilityEffect = 0;
+}
+
+static void AdvanceMoveEndState(void)
+{
+    gBattleScripting.moveendState++;
+    ClearMoveEndAbilityEffectsPending();
+}
+
 // Submoves
 static enum Move GetMirrorMoveMove(void);
 static enum Move GetMetronomeMove(void);
@@ -2551,6 +2585,7 @@ static enum MoveEndResult MoveEndSetValues(struct BattleCalcValues *cv)
     gBattleScripting.savedDmg += gBattleStruct->moveDamage[cv->battlerDef];
     gBattleStruct->eventState.moveEndBattler = 0;
     gBattleStruct->eventState.moveEndBlock = 0;
+    ClearMoveEndAbilityEffectsPending();
     gBattleScripting.moveendState++;
     return MOVEEND_RESULT_CONTINUE;
 }
@@ -2752,12 +2787,15 @@ static enum MoveEndResult MoveEndAbilities(struct BattleCalcValues *cv)
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
     enum Ability targetAbility = cv->abilities[cv->battlerDef];
 
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END, cv->battlerDef, targetAbility, 0, TRUE))
+    bool32 wasPending = MoveEndAbilityEffectsPending();
+
+    if (MoveEndAbilityBattleEffects(ABILITYEFFECT_MOVE_END, cv->battlerDef, targetAbility, 0, TRUE))
         result = MOVEEND_RESULT_RUN_SCRIPT;
-    else if (TryClearIllusion(cv->battlerDef, targetAbility))
+    else if (!wasPending && TryClearIllusion(cv->battlerDef, targetAbility))
         result = MOVEEND_RESULT_RUN_SCRIPT;
 
-    gBattleScripting.moveendState++;
+    if (!MoveEndAbilityEffectsPending())
+        AdvanceMoveEndState();
     return result;
 }
 
@@ -2765,10 +2803,11 @@ static enum MoveEndResult MoveEndFormChangeOnHit(struct BattleCalcValues *cv)
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_FORM_CHANGE_ON_HIT, cv->battlerDef, cv->abilities[cv->battlerDef], 0, TRUE))
+    if (MoveEndAbilityBattleEffects(ABILITYEFFECT_FORM_CHANGE_ON_HIT, cv->battlerDef, cv->abilities[cv->battlerDef], 0, TRUE))
         result = MOVEEND_RESULT_RUN_SCRIPT;
 
-    gBattleScripting.moveendState++;
+    if (!MoveEndAbilityEffectsPending())
+        AdvanceMoveEndState();
     return result;
 }
 
@@ -2776,10 +2815,11 @@ static enum MoveEndResult MoveEndAbilitiesAttacker(struct BattleCalcValues *cv)
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, cv->battlerAtk, 0, 0, TRUE))
+    if (MoveEndAbilityBattleEffects(ABILITYEFFECT_MOVE_END_ATTACKER, cv->battlerAtk, 0, 0, TRUE))
         result = MOVEEND_RESULT_RUN_SCRIPT;
 
-    gBattleScripting.moveendState++;
+    if (!MoveEndAbilityEffectsPending())
+        AdvanceMoveEndState();
     return result;
 }
 
@@ -2813,14 +2853,22 @@ static enum MoveEndResult MoveEndStatusImmunityAbilities(struct BattleCalcValues
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    while (gBattleStruct->eventState.moveEndBattler < gBattlersCount)
     {
-        if (AbilityBattleEffects(ABILITYEFFECT_IMMUNITY, battler, 0, 0, TRUE))
-            result = MOVEEND_RESULT_RUN_SCRIPT;
+        enum BattlerId battler = gBattleStruct->eventState.moveEndBattler;
+
+        if (MoveEndAbilityBattleEffects(ABILITYEFFECT_IMMUNITY, battler, 0, 0, TRUE))
+        {
+            if (!MoveEndAbilityEffectsPending())
+                gBattleStruct->eventState.moveEndBattler++;
+            return MOVEEND_RESULT_RUN_SCRIPT;
+        }
+
+        gBattleStruct->eventState.moveEndBattler++;
     }
 
-    if (result == MOVEEND_RESULT_CONTINUE)
-        gBattleScripting.moveendState++;
+    gBattleStruct->eventState.moveEndBattler = 0;
+    AdvanceMoveEndState();
     return result;
 }
 
@@ -3724,10 +3772,11 @@ static enum MoveEndResult MoveEndAbilityEffectFoesFainted(struct BattleCalcValue
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_MOVE_END_FOES_FAINTED, cv->battlerAtk, cv->abilities[cv->battlerAtk], cv->move, TRUE))
+    if (MoveEndAbilityBattleEffects(ABILITYEFFECT_MOVE_END_FOES_FAINTED, cv->battlerAtk, cv->abilities[cv->battlerAtk], cv->move, TRUE))
         result = MOVEEND_RESULT_RUN_SCRIPT;
 
-    gBattleScripting.moveendState++;
+    if (!MoveEndAbilityEffectsPending())
+        AdvanceMoveEndState();
     return result;
 }
 
@@ -3758,16 +3807,24 @@ static enum MoveEndResult MoveEndColorChange(struct BattleCalcValues *cv)
 {
     while (gBattleStruct->eventState.moveEndBattler < gBattlersCount)
     {
-        enum BattlerId battler = gBattleStruct->eventState.moveEndBattler++;
+        enum BattlerId battler = gBattleStruct->eventState.moveEndBattler;
 
         if (battler == cv->battlerAtk)
+        {
+            gBattleStruct->eventState.moveEndBattler++;
             continue;
-        if (AbilityBattleEffects(ABILITYEFFECT_COLOR_CHANGE, battler, cv->abilities[battler], 0, TRUE))
+        }
+        if (MoveEndAbilityBattleEffects(ABILITYEFFECT_COLOR_CHANGE, battler, cv->abilities[battler], 0, TRUE))
+        {
+            if (!MoveEndAbilityEffectsPending())
+                gBattleStruct->eventState.moveEndBattler++;
             return MOVEEND_RESULT_RUN_SCRIPT;
+        }
+        gBattleStruct->eventState.moveEndBattler++;
     }
 
     gBattleStruct->eventState.moveEndBattler = 0;
-    gBattleScripting.moveendState++;
+    AdvanceMoveEndState();
     return MOVEEND_RESULT_CONTINUE;
 }
 
@@ -4076,14 +4133,19 @@ static enum MoveEndResult MoveEndOpportunist(struct BattleCalcValues *cv)
 {
     while (gBattleStruct->eventState.moveEndBattler < gBattlersCount)
     {
-        enum BattlerId battler = gBattlersByRawSpeed[gBattleStruct->eventState.moveEndBattler++];
+        enum BattlerId battler = gBattlersByRawSpeed[gBattleStruct->eventState.moveEndBattler];
 
-        if (AbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, cv->abilities[battler], 0, TRUE))
+        if (MoveEndAbilityBattleEffects(ABILITYEFFECT_OPPORTUNIST, battler, cv->abilities[battler], 0, TRUE))
+        {
+            if (!MoveEndAbilityEffectsPending())
+                gBattleStruct->eventState.moveEndBattler++;
             return MOVEEND_RESULT_RUN_SCRIPT;
+        }
+        gBattleStruct->eventState.moveEndBattler++;
     }
 
     gBattleStruct->eventState.moveEndBattler = 0;
-    gBattleScripting.moveendState++;
+    AdvanceMoveEndState();
     return MOVEEND_RESULT_CONTINUE;
 }
 
@@ -4384,10 +4446,11 @@ static enum MoveEndResult MoveEndDancer(struct BattleCalcValues *cv)
 {
     enum MoveEndResult result = MOVEEND_RESULT_CONTINUE;
 
-    if (AbilityBattleEffects(ABILITYEFFECT_DANCER, cv->battlerAtk, ABILITY_DANCER, cv->move, TRUE))
+    if (MoveEndAbilityBattleEffects(ABILITYEFFECT_DANCER, cv->battlerAtk, ABILITY_DANCER, cv->move, TRUE))
         result = MOVEEND_RESULT_RUN_SCRIPT;
 
-    gBattleScripting.moveendState++;
+    if (!MoveEndAbilityEffectsPending())
+        AdvanceMoveEndState();
     return result;
 }
 

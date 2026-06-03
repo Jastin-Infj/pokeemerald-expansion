@@ -1,6 +1,6 @@
 # TM Shop Migration Implementation
 
-更新日: 2026-05-16
+更新日: 2026-06-02
 
 ## Summary
 
@@ -22,6 +22,10 @@ Implemented:
 - Added a replacement story flag, `FLAG_RETURNED_METEORITE_TO_COZMO`, at the
   previously unused `0xE9` slot so Prof. Cozmo no longer depends on
   `FLAG_RECEIVED_TM_RETURN`.
+- Preserved old-save compatibility for the Meteorite return path by keeping
+  the retired `0xE5` bit as `FLAG_LEGACY_RECEIVED_TM_RETURN`. Cozmo and his
+  wife migrate that bit to `FLAG_RETURNED_METEORITE_TO_COZMO` on contact, but
+  the removed TM Return reward is not restored.
 - Added a debug-only `TM Shop Test` route under Debug menu `Scripts...` using
   `pokemart` and `.2byte ITEM_TM_*` entries. This route is for item-id-width /
   shop UI validation only and is not normal progression.
@@ -150,6 +154,29 @@ Validation after the fix:
 | `rtk make -j16 -O all` | Passed with existing RWX linker warning. |
 | `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
 | `rtk make -j16 -O check` | Passed with existing expected / known-failing markers. |
+
+`codex review --base master` on 2026-06-02 found one additional 16.0 replay
+compatibility issue: saves that had already returned the Meteorite in 15.3 used
+the old `0xE5` TM Return reward flag, while the replay only checked the new
+`FLAG_RETURNED_METEORITE_TO_COZMO` bit. The script now checks the legacy alias
+first and sets the new story flag before continuing to the normal "Meteorite
+already returned" dialogue. This keeps 16.0's new story flag authoritative
+without sending old saves back into the removed reward branch.
+
+Validation after the Meteorite compatibility fix:
+
+| Check | Result |
+|---|---|
+| `rtk git diff --check` | Passed. |
+| `rtk make -j16 -O all` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O debug` | Passed with existing RWX linker warning. |
+| `rtk make -j16 -O check` | Passed with existing expected / known-failing markers. |
+| `rtk mdbook build docs` | Passed with existing `CHANGELOG.md` include, `CREDITS.md </img>`, and large search-index warnings. |
+| mGBA Live boot smoke | Passed. Session `runtime-dev-16-audit-20260602` booted `pokeemerald.gba`, returned `true` through Lua, captured `/tmp/runtime-dev-16-audit-20260602.png`, stopped cleanly, and final `status --all` returned `[]`. |
+
+The exact legacy Cozmo dialogue branch was source-audited but not walked in
+mGBA; validating that path directly requires a save fixture with old flag
+`0xE5` set and `FLAG_RETURNED_METEORITE_TO_COZMO` clear.
 
 ## Remaining Risks
 

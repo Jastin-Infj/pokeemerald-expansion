@@ -546,10 +546,13 @@ struct EventStates
 {
     enum EndTurnResolutionOrder endTurn:8;
     u32 endTurnBlock:8; // FirstEventBlock, SecondEventBlock, ThirdEventBlock
+    u32 endTurnSubBlock:8;
     enum BattlerId endTurnBattler:4;
     u32 arenaTurn:8;
     enum BattleSide battlerSide:4;
     enum BattlerId moveEndBattler:4;
+    u32 moveEndSubBlock:8;
+    u32 moveEndAbilityEffect:8;
     enum FirstTurnEventsStates beforeFirstTurn:8;
     enum FaintedActions faintedAction:8;
     enum BattlerId faintedActionBattler:4;
@@ -558,6 +561,10 @@ struct EventStates
     enum BattleIntroStates battleIntro:8;
     enum SwitchInEvents switchIn:8;
     u32 battlerSwitchIn:8; // SwitchInFirstEventBlock, SwitchInSecondEventBlock
+    u32 switchInSubBlock:8;
+    u32 switchInAbilityEffect:8;
+    u8 battleScriptAbilitySubBlockStack[8];
+    u8 battleScriptAbilityEffectStack[8];
     u32 moveEndBlock:8;
     enum StatChangeResolution resolution:8;
 };
