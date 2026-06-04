@@ -16967,16 +16967,14 @@ Brave Nature
 Level: 100
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Atk / 6 Def
-Tera Type: Grass
+Tera Type: Water
 - Aqua Tail
-- Seed Bomb
 
 Wobbuffet
 Brave Nature
 Level: 100
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Def / 6 SpD
-Tera Type: Fire
 - Celebrate
 
 === TRAINER_SMART_GIMMICK_DMAX_TERA ===
@@ -16993,9 +16991,8 @@ Brave Nature
 Level: 100
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Atk / 6 Def
-Tera Type: Grass
+Tera Type: Water
 - Aqua Tail
-- Seed Bomb
 
 Wobbuffet
 Brave Nature
@@ -17003,7 +17000,6 @@ Level: 100
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Def / 6 SpD
 Dynamax Level: 10
-Tera Type: Fire
 - Scratch
 
 === TRAINER_SMART_GIMMICK_ALL_SINGLE ===
@@ -17020,9 +17016,16 @@ Calm Nature
 Level: 100
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Def / 6 SpD
-Tera Type: Grass
 - Growth
 - Sludge Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Water
+- Aqua Tail
 
 Wobbuffet
 Brave Nature
@@ -17053,9 +17056,16 @@ Calm Nature
 Level: 100
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Def / 6 SpD
-Tera Type: Grass
 - Growth
 - Sludge Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Water
+- Aqua Tail
 
 Wobbuffet
 Brave Nature

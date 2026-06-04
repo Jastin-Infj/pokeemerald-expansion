@@ -17,6 +17,7 @@
 #include "pokemon.h"
 #include "random.h"
 #include "recorded_battle.h"
+#include "test_runner.h"
 #include "util.h"
 #include "constants/abilities.h"
 #include "constants/battle_ai.h"
@@ -5324,6 +5325,25 @@ static bool32 TrySmartFallbackTerastal(enum BattlerId battler)
     return FALSE;
 }
 
+static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId opposingBattler);
+
+static bool32 IsIntendedTeraCandidate(enum BattlerId battler, u32 monIndex, struct Pokemon *party)
+{
+    if (GetMonData(&party[monIndex], MON_DATA_HP) == 0
+     || GetMonData(&party[monIndex], MON_DATA_SPECIES_OR_EGG) == SPECIES_NONE
+     || GetMonData(&party[monIndex], MON_DATA_SPECIES_OR_EGG) == SPECIES_EGG)
+        return FALSE;
+
+#if TESTING
+    return TestRunner_Battle_GetChosenGimmick(GetBattlerTrainer(battler), monIndex) == GIMMICK_TERA;
+#else
+    if (!IsOnPlayerSide(battler))
+        return (gBattleStruct->opponentMonCanTera & (1u << monIndex)) != 0;
+
+    return GetMonData(&party[monIndex], MON_DATA_TERA_TYPE) > 0;
+#endif
+}
+
 void DecideGimmickBeforeMoveSelection(enum BattlerId battler)
 {
     enum Gimmick gimmick = gBattleStruct->gimmick.usableGimmick[battler];
@@ -5351,8 +5371,6 @@ void DecideGimmickBeforeMoveSelection(enum BattlerId battler)
     {
         if (IsBattle1v1())
             DecideTerastal(battler);
-        else
-            SetAIUsingGimmick(battler, NO_GIMMICK);
     }
 }
 
@@ -5381,6 +5399,16 @@ void ReconsiderSmartGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef
         {
             SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
             TrySmartFallbackTerastal(battlerAtk);
+        }
+        break;
+    case GIMMICK_TERA:
+        if (!IsBattle1v1())
+        {
+            battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
+            if (battlerDef == SMART_GIMMICK_NO_TARGET)
+                SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
+            else
+                DecideTerastalAgainstTarget(battlerAtk, battlerDef);
         }
         break;
     case GIMMICK_Z_MOVE:
@@ -5415,20 +5443,22 @@ enum AIConsiderGimmick ShouldTeraFromCalcs(enum BattlerId battler, enum BattlerI
 
 void DecideTerastal(enum BattlerId battler)
 {
+    DecideTerastalAgainstTarget(battler, GetOppositeBattler(battler));
+}
+
+static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId opposingBattler)
+{
     if (gBattleStruct->gimmick.usableGimmick[battler] != GIMMICK_TERA)
         return;
 
     if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_SMART_TERA))
         return;
 
-    // TODO: Currently only single battles are considered.
-    if (!IsBattle1v1())
-        return;
-
     // TODO: A lot of these checks are most effective for an omnicient ai.
     // If we don't have enough information about the opponent's moves, consider simpler checks based on type effectivness.
 
-    enum BattlerId opposingBattler = GetOppositeBattler(battler);
+    if (opposingBattler >= gBattlersCount || !IsBattlerAlive(opposingBattler) || IsBattlerAlly(battler, opposingBattler))
+        return;
 
     // Default calculations automatically assume gimmicks for the attacker, but not the defender.
     // Consider calcs for the other possibilities.
@@ -5501,10 +5531,7 @@ enum AIConsiderGimmick ShouldTeraFromCalcs(enum BattlerId battler, enum BattlerI
     int numPossibleTera = 0;
     for (u32 monIndex = 0; monIndex < PARTY_SIZE; monIndex++)
     {
-        if (GetMonData(&party[monIndex], MON_DATA_HP) != 0
-         && GetMonData(&party[monIndex], MON_DATA_SPECIES_OR_EGG) != SPECIES_NONE
-         && GetMonData(&party[monIndex], MON_DATA_SPECIES_OR_EGG) != SPECIES_EGG
-         && GetMonData(&party[monIndex], MON_DATA_TERA_TYPE) > 0)
+        if (IsIntendedTeraCandidate(battler, monIndex, party))
             numPossibleTera++;
     }
 

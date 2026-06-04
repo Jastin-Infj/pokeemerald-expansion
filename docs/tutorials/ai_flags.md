@@ -41,16 +41,20 @@ The gimmick environment presets are convenience groups for common rulesets: `AI_
 
 Smart gimmick behavior also has fixed trainer-ID fixtures for debug validation. Use the debug menu's trainer battle flow, set Trainer 1 to the listed ID, then start `Try Battle`. The debug player party is still the active player party, so use a passive or non-lethal player lead when validating "conserve" or "delay" behavior. These fixtures use the remaining Emerald trainer-flag slots, IDs 855-863, so add more standard trainer fixtures only after moving trainer flags or increasing `MAX_TRAINERS_COUNT_EMERALD` intentionally.
 
+Smart Tera conservation counts only explicit trainer-party `Tera Type` entries as future AI Tera candidates. Default generated Tera types are not treated as trainer intent. A Pokemon holding a Mega Stone or Z-Crystal cannot be the visible Tera validation slot, so all-gimmick fixtures keep Mega, Tera, Dynamax, and Z-Move candidates on separate Pokemon.
+
+Current smart timing is still calculation-local. Tera considers explicit offensive and defensive payoff against the selected target, including doubles, but does not fully model every partner threat. Dynamax currently spends for last-Pokemon pressure, immediate KO pressure, or when Max damage converts the chosen move into a KO; future tuning should add distinct offensive and defensive Dynamax modes for Max Move secondary effects such as Speed, weather, terrain, and defensive boosts. Mega Evolution currently delays only selected setup turns without immediate KO pressure; weather or terrain re-control from Mega abilities should be modeled as a separate future heuristic.
+
 | Trainer ID | Constant | Expected first-turn validation |
 | --- | --- | --- |
 | 855 | `TRAINER_SMART_GIMMICK_DMAX_CONSERVE` | Uses `Scratch` without Dynamax because another Dynamax user remains and the turn has no immediate payoff. |
 | 856 | `TRAINER_SMART_GIMMICK_DMAX_LAST` | Uses `Scratch` with Dynamax because it is the trainer's last available Pokemon. |
 | 857 | `TRAINER_SMART_GIMMICK_MEGA_SETUP` | Uses `Growth` without Mega Evolution when it is not under immediate KO pressure. |
 | 858 | `TRAINER_SMART_GIMMICK_Z_MOVE` | Uses `Quick Attack` as a Normalium Z move when the Z-Move viability check accepts it. |
-| 859 | `TRAINER_SMART_GIMMICK_TERA_ONLY` | Validates a Tera-only ruleset; Tera should be considered only when the smart Tera calculation finds an offensive or defensive payoff. |
-| 860 | `TRAINER_SMART_GIMMICK_DMAX_TERA` | Validates a Dynamax plus Tera ruleset on the same trainer; the first turn should choose the best available smart gimmick instead of spending one only because it is present. |
-| 861 | `TRAINER_SMART_GIMMICK_ALL_SINGLE` | Validates the all-gimmick single-battle preset with Mega, Dynamax, Tera, and Z-Move candidates in one party. |
-| 862 | `TRAINER_SMART_GIMMICK_ALL_DOUBLE` | Validates the all-gimmick double-battle preset and confirms the trainer can be launched through a trainer-ID double battle. |
+| 859 | `TRAINER_SMART_GIMMICK_TERA_ONLY` | Uses `Aqua Tail` with Water Tera for an offensive Tera payoff. |
+| 860 | `TRAINER_SMART_GIMMICK_DMAX_TERA` | Uses Water Tera on the lead `Aqua Tail` user, then keeps a separate Dynamax `Scratch` user in reserve. |
+| 861 | `TRAINER_SMART_GIMMICK_ALL_SINGLE` | Validates the all-gimmick single-battle preset with separate Mega, Tera, Dynamax, and Z-Move candidates in one party. |
+| 862 | `TRAINER_SMART_GIMMICK_ALL_DOUBLE` | Validates the all-gimmick double-battle preset with an active Mega candidate and an active Water Tera candidate. |
 | 863 | `TRAINER_SMART_GIMMICK_NO_GIMMICK` | Control trainer with the same AI baseline but no gimmick-bearing Pokemon. |
 
 `AI_FLAG_PREDICTION` will enable all of the prediction flags at once, so the AI can perform as well as possible. It is best paired with the flags in `AI_FLAG_SMART_TRAINER` for optimal behaviour. This currently includes `AI_FLAG_PREDICT_SWITCH` and `AI_FLAG_PREDICT_INCOMING_MON`, but will likely be expanded in the future.
