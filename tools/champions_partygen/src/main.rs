@@ -399,6 +399,8 @@ fn cmd_generate(opts: &Options) -> Result<i32> {
     }
 
     run_cross_trainer_lints(&mut trainer_audits);
+    output = output.trim_end().to_string();
+    output.push('\n');
 
     if only_trainer.is_some() && trainer_audits.is_empty() {
         return Err(format!(
@@ -1028,6 +1030,19 @@ fn render_set(out: &mut String, set: &Set) {
         out.push_str(&constant_to_title(nature, "NATURE_"));
         out.push('\n');
     }
+    if let Some(dynamax_level) = set.dynamax_level {
+        out.push_str(&format!("Dynamax Level: {dynamax_level}\n"));
+    }
+    if let Some(gigantamax) = set.gigantamax {
+        out.push_str("Gigantamax: ");
+        out.push_str(if gigantamax { "Yes" } else { "No" });
+        out.push('\n');
+    }
+    if let Some(tera_type) = &set.tera_type {
+        out.push_str("Tera Type: ");
+        out.push_str(&constant_to_title(tera_type, "TYPE_"));
+        out.push('\n');
+    }
     if !set.tags.is_empty() {
         out.push_str("Tags: ");
         out.push_str(&set.tags.join(" / "));
@@ -1391,6 +1406,9 @@ fn validate_catalog(
         }
         if let Some(nature) = &set.nature {
             constants.check("nature", nature, report);
+        }
+        if let Some(tera_type) = &set.tera_type {
+            constants.check("type", tera_type, report);
         }
         for mv in &set.moves {
             constants.check("move", mv, report);
@@ -2146,6 +2164,9 @@ struct Set {
     ivs: String,
     evs: String,
     nature: Option<String>,
+    dynamax_level: Option<u16>,
+    gigantamax: Option<bool>,
+    tera_type: Option<String>,
     level: u16,
     roles: Vec<String>,
     archetypes: Vec<String>,
@@ -2596,6 +2617,9 @@ fn parse_sets(json: &Json) -> Result<Vec<Set>> {
             let id = obj.get_string("id")?.to_string();
             let exp = obj.get_string_default("exp", default_exp)?;
             validate_exp_policy(exp).map_err(|err| format!("{id}: {err}"))?;
+            let dynamax_level = parse_optional_dynamax_level(obj, &id)?;
+            let gigantamax = parse_optional_bool(obj, "gigantamax")?;
+            let tera_type = obj.get_optional_string("teraType")?;
             Ok(Set {
                 id,
                 species: obj.get_string("species")?.to_string(),
@@ -2607,6 +2631,9 @@ fn parse_sets(json: &Json) -> Result<Vec<Set>> {
                     .to_string(),
                 evs: obj.get_string_default("evs", "0/0/0/0/0/0")?.to_string(),
                 nature: obj.get_optional_string("nature")?,
+                dynamax_level,
+                gigantamax,
+                tera_type,
                 level: obj.get_usize_default("level", 50)? as u16,
                 roles: obj.get_string_array_default("roles")?,
                 archetypes: obj.get_string_array_default("archetypes")?,
@@ -2620,6 +2647,27 @@ fn parse_sets(json: &Json) -> Result<Vec<Set>> {
             })
         })
         .collect()
+}
+
+fn parse_optional_dynamax_level(obj: &BTreeMap<String, Json>, set_id: &str) -> Result<Option<u16>> {
+    match obj.get_optional("dynamaxLevel") {
+        Some(_) => {
+            let value = obj.get_usize("dynamaxLevel")?;
+            if value > 10 {
+                return Err(format!("{set_id}: dynamaxLevel must be between 0 and 10"));
+            }
+            Ok(Some(value as u16))
+        }
+        None => Ok(None),
+    }
+}
+
+fn parse_optional_bool(obj: &BTreeMap<String, Json>, key: &str) -> Result<Option<bool>> {
+    match obj.get_optional(key) {
+        Some(Json::Bool(value)) => Ok(Some(*value)),
+        Some(Json::Null) | None => Ok(None),
+        Some(_) => Err(format!("{key}: expected boolean")),
+    }
 }
 
 fn validate_exp_policy(value: &str) -> Result<()> {
@@ -3151,6 +3199,7 @@ struct ConstantIndex {
     items: BTreeSet<String>,
     abilities: BTreeSet<String>,
     natures: BTreeSet<String>,
+    types: BTreeSet<String>,
 }
 
 impl ConstantIndex {
@@ -3164,6 +3213,7 @@ impl ConstantIndex {
             natures: collect_prefixed(repo, "include/constants/pokemon.h", "NATURE_")
                 .or_else(|_| collect_prefixed(repo, "include/constants/battle.h", "NATURE_"))
                 .unwrap_or_else(|_| default_natures()),
+            types: collect_prefixed(repo, "include/constants/pokemon.h", "TYPE_")?,
         })
     }
 
@@ -3175,6 +3225,7 @@ impl ConstantIndex {
             "item" => self.items.contains(value),
             "ability" => self.abilities.contains(value),
             "nature" => self.natures.contains(value),
+            "type" => self.types.contains(value),
             _ => true,
         };
         if !ok {
@@ -4256,6 +4307,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level,
             roles: vec![],
             archetypes: vec![],
@@ -4322,6 +4376,23 @@ mod tests {
         let sets = parse_sets(&json).unwrap();
         assert_eq!(sets.len(), 1);
         assert_eq!(sets[0].id, "s.exp");
+    }
+
+    #[test]
+    fn renders_set_gimmick_fields() {
+        let mut set = test_set("s.gimmick", "SPECIES_GARDEVOIR", 50);
+        set.item = Some("ITEM_GARDEVOIRITE".to_string());
+        set.nature = Some("NATURE_MODEST".to_string());
+        set.dynamax_level = Some(7);
+        set.gigantamax = Some(true);
+        set.tera_type = Some("TYPE_FAIRY".to_string());
+        set.moves = vec!["MOVE_MOONBLAST".to_string()];
+
+        let mut out = String::new();
+        render_set(&mut out, &set);
+        assert!(out.contains("Dynamax Level: 7"));
+        assert!(out.contains("Gigantamax: Yes"));
+        assert!(out.contains("Tera Type: Fairy"));
     }
 
     #[test]
@@ -4465,6 +4536,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level: 50,
             roles: vec![],
             archetypes: vec![],
@@ -4514,6 +4588,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level: 50,
             roles: vec![],
             archetypes: vec![],
@@ -4578,6 +4655,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level: 50,
             roles: vec![],
             archetypes: vec![],
@@ -4598,6 +4678,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level: 50,
             roles: vec![],
             archetypes: vec![],
@@ -4644,6 +4727,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level: 50,
             roles: vec![],
             archetypes: vec![],
@@ -4664,6 +4750,9 @@ mod tests {
             ivs: "31/31/31/31/31/31".to_string(),
             evs: "0/0/0/0/0/0".to_string(),
             nature: None,
+            dynamax_level: None,
+            gigantamax: None,
+            tera_type: None,
             level: 50,
             roles: vec![],
             archetypes: vec![],

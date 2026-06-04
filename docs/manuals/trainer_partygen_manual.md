@@ -45,13 +45,16 @@ Applied ROM source:
 
 ## ROM Config Gate
 
-The 16.0 PartyGen integration is config-gated and disabled by default.
+The 16.0 PartyGen integration is config-gated. On
+`feature/champions-partygen-16-20260603`, the gate is intentionally committed
+enabled so the branch builds and validates the generated Lv50 trainer pools by
+default.
 
 `include/config/champions_partygen.h` owns the ROM-side switches. The file is
 also included by `include/config/battle.h` for C runtime use:
 
-- `B_CHAMPIONS_PARTYGEN_TRAINERS`: when `1`, the vanilla Elite Four /
-  Wallace blocks in `src/data/trainers.party` are skipped and
+- `B_CHAMPIONS_PARTYGEN_TRAINERS`: when `1`, the vanilla Elite Four,
+  Tate & Liza, and Wallace blocks in `src/data/trainers.party` are skipped and
   `src/data/champions_partygen/trainers.party.inc` is included instead.
 - `B_CHAMPIONS_PARTYGEN_LEVEL`: documented target level for the generated
   Champions catalog, currently 50.
@@ -71,9 +74,9 @@ Catalog set files may declare `"defaultExp": "none"` and individual sets may
 override with `"exp": "normal"` or `"exp": "none"`. This is tool-side metadata
 and validation. The ROM behavior comes from `B_CHAMPIONS_PARTYGEN_EXP_MODE`.
 
-When `B_CHAMPIONS_PARTYGEN_TRAINERS` is `0`, normal builds use the
-upstream fixed Elite Four / Wallace party blocks and the PartyGen include is
-not compiled into trainer data.
+When `B_CHAMPIONS_PARTYGEN_TRAINERS` is `0`, builds use the upstream fixed
+Elite Four / Tate & Liza / Wallace party blocks and the PartyGen include is not
+compiled into trainer data.
 
 ## Basic Workflow
 
@@ -164,6 +167,21 @@ Sets define:
   Snow` or `Terrain Abuser: Electric`;
 - `minRank` and `maxRank` for rank-band filtering;
 - final `Tags` that trainerproc understands.
+
+Set gimmick fields:
+
+- Mega Evolution and Z-Moves are represented by held items, for example
+  `ITEM_GARDEVOIRITE`, `ITEM_METAGROSSITE`, `ITEM_PSYCHIUM_Z`, or
+  `ITEM_WATERIUM_Z`.
+- `dynamaxLevel` emits `Dynamax Level`.
+- `gigantamax: true` emits `Gigantamax: Yes`.
+- `teraType` emits `Tera Type`.
+
+Combination data is allowed for validation coverage. A set can carry
+Dynamax/Gigantamax plus Tera, or a Z crystal plus Dynamax/Tera, and
+trainerproc now emits all of those fields independently. The actual battle
+runtime still decides which gimmick can be used according to existing priority
+and held-item restrictions.
 
 Only these final pool tags are emitted to `trainers.party`:
 

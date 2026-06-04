@@ -5038,6 +5038,7 @@ IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 - Dragon Dance
 - Aerial Ace
 
+#if !B_CHAMPIONS_PARTYGEN_TRAINERS
 === TRAINER_TATE_AND_LIZA_1 ===
 Name: TATE&LIZA
 Class: Leader
@@ -5079,6 +5080,7 @@ IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
 - Solar Beam
 - Psychic
 - Flamethrower
+#endif
 
 === TRAINER_JUAN_1 ===
 Name: JUAN

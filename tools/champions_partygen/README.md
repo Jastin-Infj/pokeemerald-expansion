@@ -24,14 +24,28 @@ pledge-side concepts that should be linted but should not be emitted to
 trainerproc `Tags`.
 
 The default catalog currently owns the Elite Four run-up
-(`TRAINER_SIDNEY` through `TRAINER_DRAKE`) plus the Wallace demo slot. The ROM
-uses this data only when `B_CHAMPIONS_PARTYGEN_TRAINERS` is enabled in
-`include/config/champions_partygen.h`.
+(`TRAINER_SIDNEY` through `TRAINER_DRAKE`), the Tate & Liza double-battle
+gimmick demo slot, and the Wallace demo slot. The ROM uses this data when
+`B_CHAMPIONS_PARTYGEN_TRAINERS` is enabled in
+`include/config/champions_partygen.h`; the current PartyGen branch commits that
+flag enabled so the generated data is the active validation target.
 
 Lv50 challenge catalogs may set top-level `"defaultExp": "none"` and per-set
 `"exp": "normal"` or `"exp": "none"`. The tool validates this metadata. Actual
 ROM EXP suppression is controlled by `B_CHAMPIONS_PARTYGEN_EXP_MODE`; trainer
 battle EV suppression is controlled by `B_CHAMPIONS_PARTYGEN_EV_MODE`.
+
+Set JSON may also emit trainerproc gimmick fields:
+
+- Mega Evolution and Z-Moves are represented by held items such as
+  `ITEM_GARDEVOIRITE` or `ITEM_PSYCHIUM_Z`.
+- `dynamaxLevel` emits `Dynamax Level`.
+- `gigantamax: true` emits `Gigantamax: Yes`.
+- `teraType` emits `Tera Type`.
+
+The tool and trainerproc allow combination test data, for example
+Mega+Dynamax+Tera or Z-Move+Dynamax+Tera. Actual battle-time gimmick choice
+still follows the ROM's existing runtime priority and item restrictions.
 
 Examples:
 

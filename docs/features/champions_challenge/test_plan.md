@@ -44,7 +44,7 @@
 | Partygen fixed party output | Existing fixed trainer output does not gain `Party Size` or pool fields |
 | Partygen pool output | Pool trainer output uses `Party Size` only when pool behavior is intended |
 | Partygen header preserve | Existing `Name` / `Class` / `Pic` / `Music` / `Items` / `Back Pic` stay unchanged unless explicitly overridden |
-| Partygen field validation | Ball uses `BALL_*` / Pokeball names, and Tera is not emitted together with Dynamax / Gigantamax |
+| Partygen field validation | Ball uses `BALL_*` / Pokeball names, and Tera / Dynamax / Gigantamax combination fields are emitted when intentionally present in test data |
 
 ## Current Automated Coverage
 
@@ -71,23 +71,24 @@ Latest local evidence:
 - 16.0 PartyGen config-gated branch
   `feature/champions-partygen-16-20260603`:
   - `rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml`
-    passes 17 tests.
-  - `rtk tools/champions_partygen/partygen.sh doctor` passes with 5 journey
-    trainers, 5 blueprints, 31 sets, and 855 source trainer blocks.
+    passes 18 tests.
+  - `rtk tools/champions_partygen/partygen.sh doctor` passes with 6 journey
+    trainers, 6 blueprints, 47 sets, and 855 source trainer blocks.
   - `rtk tools/champions_partygen/partygen.sh validate --input src/data/champions_partygen/trainers.party.inc`
     passes with 0 errors, 0 warnings, 0 notes.
   - `rtk tools/champions_partygen/partygen.sh diff --input src/data/champions_partygen/trainers.party.inc --against src/data/trainers.party`
-    reports generated pool replacements for Sidney, Phoebe, Glacia, Drake, and
-    Wallace.
-  - Default `B_CHAMPIONS_PARTYGEN_TRAINERS = 0` CPP/trainerproc output keeps
-    vanilla fixed Sidney / Wallace parties.
-  - Temporary `/tmp` override with `B_CHAMPIONS_PARTYGEN_TRAINERS = 1`
-    CPP/trainerproc output emits generated Trainer Party Pool data for the same
-    trainer IDs.
+    reports generated pool replacements for Sidney, Phoebe, Glacia, Drake,
+    Tate & Liza, and Wallace. Tate & Liza changes from 4 fixed mons to a
+    16-mon double-battle gimmick pool.
+  - Committed `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` CPP/trainerproc output emits
+    generated Trainer Party Pool data for the managed trainer IDs.
   - `rtk make -j16 -O check TESTS=test/battle/exp.c` passes.
   - `rtk make -j16 -O check TESTS='Champions PartyGen EV none'` passes with
     `B_CHAMPIONS_PARTYGEN_TRAINERS = 1`, confirming trainer battle EV gains
     stay at zero when `B_CHAMPIONS_PARTYGEN_EV_MODE` is none.
+  - `rtk make -j16 -O check TESTS='Champions PartyGen trainerproc fixture'`
+    passes, confirming the test fixture keeps Mega, Z-Move, Dynamax,
+    Gigantamax, Tera, combination, and no-gimmick data after trainerproc.
   - After the EV suppression update, `rtk make -j16 -O check`,
     `rtk make -j16 -O all`, `rtk make -j16 -O debug`, and
     `rtk mdbook build docs` pass. The mdbook build still reports the existing

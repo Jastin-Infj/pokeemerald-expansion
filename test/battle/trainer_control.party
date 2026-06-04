@@ -293,3 +293,110 @@ Mew
 Oddish
 
 Aron
+
+=== 15 ===
+Name: Test12
+Class: Leader
+Pic: Red
+Gender: Male
+Music: Male
+Battle Type: Doubles
+Party Size: 4
+Pool Rules: Doubles
+
+SPECIES_ALAKAZAM @ ITEM_ALAKAZITE
+Ability: ABILITY_MAGIC_GUARD
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+Dynamax Level: 10
+Tera Type: Psychic
+- MOVE_PSYCHIC
+- MOVE_SHADOW_BALL
+- MOVE_FOCUS_BLAST
+- MOVE_PROTECT
+
+SPECIES_REUNICLUS @ ITEM_NORMALIUM_Z
+Ability: ABILITY_MAGIC_GUARD
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Dynamax Level: 10
+Tera Type: Psychic
+- MOVE_TRI_ATTACK
+- MOVE_PSYCHIC
+- MOVE_SHADOW_BALL
+- MOVE_PROTECT
+
+SPECIES_LAPRAS @ ITEM_LIFE_ORB
+Ability: ABILITY_WATER_ABSORB
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Dynamax Level: 10
+Gigantamax: Yes
+Tera Type: Water
+- MOVE_SURF
+- MOVE_ICE_BEAM
+- MOVE_PERISH_SONG
+- MOVE_PROTECT
+
+SPECIES_GARDEVOIR @ ITEM_GARDEVOIRITE
+Ability: ABILITY_SYNCHRONIZE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+- MOVE_MOONBLAST
+- MOVE_PSYCHIC
+- MOVE_THUNDERBOLT
+- MOVE_PROTECT
+
+SPECIES_XATU @ ITEM_PSYCHIUM_Z
+Ability: ABILITY_MAGIC_BOUNCE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+- MOVE_PSYCHIC
+- MOVE_AIR_SLASH
+- MOVE_CALM_MIND
+- MOVE_PROTECT
+
+SPECIES_CLAYDOL @ ITEM_EXPERT_BELT
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Dynamax Level: 10
+- MOVE_EARTH_POWER
+- MOVE_PSYCHIC
+- MOVE_ANCIENT_POWER
+- MOVE_PROTECT
+
+SPECIES_LUNATONE @ ITEM_SITRUS_BERRY
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Tera Type: Ice
+- MOVE_POWER_GEM
+- MOVE_PSYCHIC
+- MOVE_ICE_BEAM
+- MOVE_PROTECT
+
+SPECIES_BRONZONG @ ITEM_LEFTOVERS
+Ability: ABILITY_HEATPROOF
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Relaxed
+- MOVE_REFLECT
+- MOVE_LIGHT_SCREEN
+- MOVE_PSYCHIC
+- MOVE_PROTECT

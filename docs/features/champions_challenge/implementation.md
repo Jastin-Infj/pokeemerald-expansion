@@ -7,7 +7,7 @@
 | Branch | `feature/champions-partygen-16-20260603` |
 | Status | Source / tool implementation on feature branch; not for direct `master` merge |
 | Primary files | `include/config/champions_partygen.h`, `include/config/battle.h`, `src/data/trainers.party`, `src/data/champions_partygen/trainers.party.inc`, `src/battle_script_commands.c`, `src/battle_util.c`, `tools/champions_partygen/` |
-| Last updated | 2026-06-03 |
+| Last updated | 2026-06-04 |
 
 ### Implemented Contract
 
@@ -18,15 +18,18 @@
   of restoring the stale 15.3-era `tools/trainerproc/main.c` implementation.
 - Added `B_CHAMPIONS_PARTYGEN_TRAINERS` in
   `include/config/champions_partygen.h`, with `include/config/battle.h`
-  including that header for C runtime use. Default is `0`, so normal builds
-  keep the vanilla Elite Four and Wallace fixed parties.
+  including that header for C runtime use. The branch default is now `1`, so
+  validation builds use the generated PartyGen trainer pools by default.
 - `src/data/trainers.party` now includes battle config for CPP and wraps the
   vanilla `TRAINER_SIDNEY`, `TRAINER_PHOEBE`, `TRAINER_GLACIA`,
-  `TRAINER_DRAKE`, and `TRAINER_WALLACE` blocks in
+  `TRAINER_DRAKE`, `TRAINER_TATE_AND_LIZA_1`, and `TRAINER_WALLACE` blocks in
   `#if !B_CHAMPIONS_PARTYGEN_TRAINERS`.
 - When PartyGen trainers are enabled, `src/data/trainers.party` includes
   `src/data/champions_partygen/trainers.party.inc`, which materializes Lv50
   Trainer Party Pool blocks for the same trainer IDs.
+- Added a Tate & Liza double-battle gimmick demo blueprint with 16 generated
+  pool members covering Mega Evolution, Z-Moves, Dynamax, Gigantamax,
+  Terastallization, combination data, and no-gimmick control sets.
 - Added explicit PartyGen challenge config:
   `B_CHAMPIONS_PARTYGEN_LEVEL`,
   `B_CHAMPIONS_PARTYGEN_EXP_NORMAL`,
@@ -50,8 +53,14 @@
   enabled and `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS` is `0`.
 - Catalog set JSON accepts top-level `"defaultExp": "none"` and per-set
   `"exp": "normal" | "none"` metadata. Invalid values fail tool parsing.
-- The Elite Four and Wallace catalog files use `"defaultExp": "none"` to match
-  the Lv50 no-EXP challenge intent.
+- Catalog set JSON accepts gimmick fields:
+  `"dynamaxLevel"`, `"gigantamax"`, and `"teraType"`. Mega Evolution and
+  Z-Moves are represented by held items.
+- `tools/trainerproc/main.c` now emits `Tera Type` independently from
+  Dynamax/Gigantamax fields, so combination test data reaches `struct
+  TrainerMon` instead of silently dropping the Tera field.
+- The Elite Four, Tate & Liza gimmick demo, and Wallace catalog files use
+  `"defaultExp": "none"` to match the Lv50 no-EXP challenge intent.
 - The Wallace demo catalog item spread was adjusted so the current lint pass is
   clean instead of carrying the old Sitrus Berry duplication warning.
 
@@ -60,6 +69,8 @@
 - This slice does not implement the full Champions run-session facility on the
   new 16.0 master branch. It provides the PartyGen-owned trainer data and
   challenge battle-rule gates needed by the next facility branch.
+- Combination gimmick data is validation data. Actual battle-time gimmick use
+  still follows the ROM's existing priority and held-item restrictions.
 - `B_CHAMPIONS_PARTYGEN_LEVEL` documents the catalog target level. The current
   generated include contains literal `Level: 50` data; changing the target
   level still requires regenerating catalog output.
@@ -79,11 +90,11 @@ Detailed evidence is recorded in
 
 - PartyGen Rust tests, `doctor`, generated include `validate`, and `diff`
   passed.
-- Default config and a temporary `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` override
-  both preprocess through trainerproc; the enabled override emits generated
-  `partySize` / `poolSize` data for Sidney and Wallace.
-- Focused EXP / EV checks, normal ROM build, debug ROM build, and full check
-  passed.
+- The committed `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` config preprocesses
+  through trainerproc and emits generated `partySize` / `poolSize` data for
+  Sidney, Phoebe, Glacia, Drake, Tate & Liza, and Wallace.
+- Focused EXP / EV checks, the PartyGen trainerproc gimmick fixture, normal ROM
+  build, debug ROM build, and full check passed.
 - mGBA Live CLI with `DISPLAY=:0` booted the normal ROM, accepted START input,
   captured screenshots, and stopped cleanly.
 

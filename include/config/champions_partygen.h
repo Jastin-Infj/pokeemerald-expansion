@@ -9,7 +9,7 @@
  * numeric and avoid trailing // comments on macro lines.
  */
 
-#define B_CHAMPIONS_PARTYGEN_TRAINERS           0
+#define B_CHAMPIONS_PARTYGEN_TRAINERS           1
 #define B_CHAMPIONS_PARTYGEN_LEVEL              50
 
 #define B_CHAMPIONS_PARTYGEN_EXP_NORMAL         0

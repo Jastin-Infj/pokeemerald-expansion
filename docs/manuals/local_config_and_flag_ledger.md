@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-06-03 |
+| Last reviewed | 2026-06-04 |
 | Baseline | current 16.0 `master` plus branch-only runtime config shelves |
 | Code status | Docs-only ledger |
 | Provenance | Local source read and feature docs |
@@ -32,7 +32,7 @@ capability flag、save state の索引。`master` の値と branch-only の値�
 | `B_IN_BATTLE_TEAM_VIEWER` | Branch-only battle config | `docs/features/prebattle_team_viewer/` | Not present on `master`。 | Enables read-only action-menu viewer in PR #20 branch. |
 | `B_TEAM_VIEWER_BUTTON` | Branch-only button config | `docs/features/prebattle_team_viewer/` | Not present on `master`。 | Current branch docs use `R_BUTTON`. Check conflicts with Move Info / L=A before adoption. |
 | `B_TEAM_VIEWER_DETAILS_BUTTON` | Branch-only button config | `docs/features/prebattle_team_viewer/` | Not present on `master`。 | Current branch docs use `SELECT_BUTTON` for Champions-style detail / Summary because GBA has no Y button. |
-| `B_CHAMPIONS_PARTYGEN_TRAINERS` | Branch-only battle / data config | `docs/features/champions_challenge/` | Not present on `master` before the 16.0 PartyGen branch. | `feature/champions-partygen-16-20260603` default is `0`; when `1`, Elite Four / Wallace fixed blocks are skipped and `src/data/champions_partygen/trainers.party.inc` is included. |
+| `B_CHAMPIONS_PARTYGEN_TRAINERS` | Branch-only battle / data config | `docs/features/champions_challenge/` | Not present on `master` before the 16.0 PartyGen branch. | `feature/champions-partygen-16-20260603` default is now `1`; when enabled, Elite Four / Tate & Liza / Wallace fixed blocks are skipped and `src/data/champions_partygen/trainers.party.inc` is included. Set to `0` only when explicitly validating upstream fixed trainer blocks. |
 | `B_CHAMPIONS_PARTYGEN_LEVEL` | Branch-only battle / data config | `docs/features/champions_challenge/` | Not present on `master` before the 16.0 PartyGen branch. | Documents target generated level, currently `50`; generated `.party` still contains literal levels and must be regenerated when this target changes. |
 | `B_CHAMPIONS_PARTYGEN_EXP_MODE` | Branch-only battle config | `docs/features/champions_challenge/` | Not present on `master` before the 16.0 PartyGen branch. | Default is `B_CHAMPIONS_PARTYGEN_EXP_NONE`; only takes effect when PartyGen trainers are enabled and suppresses trainer battle EXP. |
 | `B_CHAMPIONS_PARTYGEN_BADGE_BOOSTS` | Branch-only battle config | `docs/features/champions_challenge/` | Not present on `master` before the 16.0 PartyGen branch. | Default `0`; when PartyGen trainers are enabled, Gen3 badge stat boost flags are zeroed even if global badge boosts are set back to Gen3. |

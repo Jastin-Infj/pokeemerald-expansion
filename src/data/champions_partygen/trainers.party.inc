@@ -424,3 +424,216 @@ Tags: Support
 - MOVE_MIRROR_COAT
 - MOVE_SAFEGUARD
 - MOVE_DESTINY_BOND
+
+
+=== TRAINER_TATE_AND_LIZA_1 ===
+Name: TATE&LIZA
+Class: Leader
+Pic: Leader Tate And Liza
+Gender: Male
+Music: Female
+Items: Hyper Potion / Hyper Potion / Hyper Potion / Hyper Potion
+Double Battle: Yes
+AI: Basic Trainer
+Party Size: 4
+Pool Rules: Doubles
+
+SPECIES_CLAYDOL @ ITEM_EXPERT_BELT
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Dynamax Level: 10
+Tags: Lead
+- MOVE_EARTH_POWER
+- MOVE_PSYCHIC
+- MOVE_ANCIENT_POWER
+- MOVE_PROTECT
+
+SPECIES_REUNICLUS @ ITEM_NORMALIUM_Z
+Ability: ABILITY_MAGIC_GUARD
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Dynamax Level: 10
+Tera Type: Psychic
+Tags: Ace
+- MOVE_TRI_ATTACK
+- MOVE_PSYCHIC
+- MOVE_SHADOW_BALL
+- MOVE_PROTECT
+
+SPECIES_MR_MIME @ ITEM_WISE_GLASSES
+Ability: ABILITY_FILTER
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Tera Type: Fairy
+Tags: Support
+- MOVE_REFLECT
+- MOVE_LIGHT_SCREEN
+- MOVE_DAZZLING_GLEAM
+- MOVE_PROTECT
+
+SPECIES_ORBEETLE @ ITEM_LIGHT_CLAY
+Ability: ABILITY_SWARM
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Bold
+Dynamax Level: 10
+Gigantamax: Yes
+Tags: Lead / Support
+- MOVE_BUG_BUZZ
+- MOVE_PSYCHIC
+- MOVE_REFLECT
+- MOVE_PROTECT
+
+SPECIES_ALAKAZAM @ ITEM_ALAKAZITE
+Ability: ABILITY_MAGIC_GUARD
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+Dynamax Level: 10
+Tera Type: Psychic
+- MOVE_PSYCHIC
+- MOVE_SHADOW_BALL
+- MOVE_FOCUS_BLAST
+- MOVE_PROTECT
+
+SPECIES_SOLROCK @ ITEM_LUM_BERRY
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+- MOVE_ROCK_SLIDE
+- MOVE_ZEN_HEADBUTT
+- MOVE_WILL_O_WISP
+- MOVE_PROTECT
+
+SPECIES_MEDICHAM @ ITEM_FOCUS_SASH
+Ability: ABILITY_PURE_POWER
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tags: Support
+- MOVE_PSYCHO_CUT
+- MOVE_CLOSE_COMBAT
+- MOVE_WIDE_GUARD
+- MOVE_PROTECT
+
+SPECIES_STARMIE @ ITEM_WATERIUM_Z
+Ability: ABILITY_ANALYTIC
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+Dynamax Level: 10
+- MOVE_MUDDY_WATER
+- MOVE_PSYCHIC
+- MOVE_ICE_BEAM
+- MOVE_PROTECT
+
+SPECIES_LAPRAS @ ITEM_LIFE_ORB
+Ability: ABILITY_WATER_ABSORB
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Dynamax Level: 10
+Gigantamax: Yes
+Tera Type: Water
+- MOVE_SURF
+- MOVE_ICE_BEAM
+- MOVE_PERISH_SONG
+- MOVE_PROTECT
+
+SPECIES_LUNATONE @ ITEM_SITRUS_BERRY
+Ability: ABILITY_LEVITATE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 0 Spe
+Nature: Modest
+Tera Type: Ice
+- MOVE_POWER_GEM
+- MOVE_PSYCHIC
+- MOVE_ICE_BEAM
+- MOVE_PROTECT
+
+SPECIES_GALLADE @ ITEM_MUSCLE_BAND
+Ability: ABILITY_JUSTIFIED
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Dynamax Level: 10
+Tera Type: Fighting
+Tags: Support
+- MOVE_PSYCHO_CUT
+- MOVE_CLOSE_COMBAT
+- MOVE_WIDE_GUARD
+- MOVE_PROTECT
+
+SPECIES_ESPEON @ ITEM_FAIRIUM_Z
+Ability: ABILITY_MAGIC_BOUNCE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+Tera Type: Fairy
+- MOVE_PSYCHIC
+- MOVE_SHADOW_BALL
+- MOVE_DAZZLING_GLEAM
+- MOVE_PROTECT
+
+SPECIES_BRONZONG @ ITEM_LEFTOVERS
+Ability: ABILITY_HEATPROOF
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 0 Atk / 128 Def / 0 SpA / 128 SpD / 0 Spe
+Nature: Relaxed
+Tags: Support
+- MOVE_REFLECT
+- MOVE_LIGHT_SCREEN
+- MOVE_PSYCHIC
+- MOVE_PROTECT
+
+SPECIES_GARDEVOIR @ ITEM_GARDEVOIRITE
+Ability: ABILITY_SYNCHRONIZE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+- MOVE_MOONBLAST
+- MOVE_PSYCHIC
+- MOVE_THUNDERBOLT
+- MOVE_PROTECT
+
+SPECIES_METAGROSS @ ITEM_METAGROSSITE
+Ability: ABILITY_CLEAR_BODY
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 252 Atk / 0 Def / 0 SpA / 4 SpD / 252 Spe
+Nature: Jolly
+Tera Type: Steel
+- MOVE_IRON_HEAD
+- MOVE_ZEN_HEADBUTT
+- MOVE_EARTHQUAKE
+- MOVE_PROTECT
+
+SPECIES_XATU @ ITEM_PSYCHIUM_Z
+Ability: ABILITY_MAGIC_BOUNCE
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 0 HP / 0 Atk / 0 Def / 252 SpA / 4 SpD / 252 Spe
+Nature: Timid
+- MOVE_PSYCHIC
+- MOVE_AIR_SLASH
+- MOVE_CALM_MIND
+- MOVE_PROTECT

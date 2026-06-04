@@ -233,7 +233,9 @@ build path は `trainer_rules.mk` で定義されている:
 - Makefile target は CLI / wrapper / config / generated drift check が安定してから追加する。初期の通常 ROM build には partygen を依存させない。
 - `src/data/trainers_frlg.party`、`src/data/battle_partners.party`、`test/battle/*.party` は default target にしない。
 - source 順固定の trainer には `Party Size` を出さない。候補数と同数でも pool ordering を意図する trainer には `Party Size` を出してよい。
-- `Ball` は Pokeball enum、Tera と Dynamax / Gmax は排他として validate する。
+- `Ball` は Pokeball enum。16.0 PartyGen branch では Tera と
+  Dynamax / Gmax の併用 test data を許可し、trainerproc が両方を出力する
+  ことを focused check で確認する。
 - `roles` / `archetypes` / `constraints` は tool 側 vocabulary とし、Trainer Party Pool の `Tags:` へ直接全流ししない。出力直前に Lead / Ace / Support など少数へ map する。
 - lint / validation は MVP から strict にする。unknown label、archetype 逆向き採用、required slot 不足、weather / terrain / Trick Room の片欠け、local pool simulation fallback、`minLocalPoolSize` / `maxLocalPoolSize` 範囲外、valid combination count 不足は error に寄せ、file:line と fix hint を出す。
 

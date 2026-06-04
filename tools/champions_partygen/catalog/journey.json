@@ -35,6 +35,16 @@
           "tags": ["champions_challenge", "partygen_owned"]
         }
       ]
+    },
+    {
+      "stageId": "stage.gym_tate_liza_demo",
+      "trainers": [
+        {
+          "trainerConst": "TRAINER_TATE_AND_LIZA_1",
+          "blueprintId": "blueprint.gym.tate_liza.gimmick_demo",
+          "tags": ["champions_challenge", "partygen_owned", "double", "gimmick_demo"]
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,85 @@
 # Champions Partygen Validation Report
 
+## 2026-06-04 Enabled PartyGen / Double Gimmick Addendum
+
+Branch: `feature/champions-partygen-16-20260603`
+
+Scope:
+
+- Committed `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` as the branch default.
+- Added `TRAINER_TATE_AND_LIZA_1` to the PartyGen-managed trainer set.
+- Added a 16-member Tate & Liza double-battle gimmick demo pool covering
+  Mega Evolution, Z-Moves, Dynamax, Gigantamax, Terastallization, combination
+  data, and no-gimmick control sets.
+- Added PartyGen JSON support for `dynamaxLevel`, `gigantamax`, and
+  `teraType`.
+- Updated trainerproc so `Tera Type` is emitted independently from
+  Dynamax/Gigantamax fields.
+
+Static and tool checks:
+
+```sh
+rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml
+rtk tools/champions_partygen/partygen.sh doctor
+rtk tools/champions_partygen/partygen.sh generate --seed 1234 --out src/data/champions_partygen/trainers.party.inc
+rtk tools/champions_partygen/partygen.sh validate --input src/data/champions_partygen/trainers.party.inc
+rtk tools/champions_partygen/partygen.sh diff --input src/data/champions_partygen/trainers.party.inc --against src/data/trainers.party
+git diff --check
+rtk mdbook build docs
+```
+
+Results:
+
+- `cargo test`: passed, 18 tests.
+- `doctor`: passed; catalog found 6 journey trainers, 6 blueprints, 47 sets,
+  and 855 source trainer blocks.
+- `generate`: passed with 0 errors, 0 warnings, 0 notes.
+- `validate`: passed with 0 errors, 0 warnings, 0 notes.
+- `diff`: Sidney, Phoebe, Glacia, Drake, Tate & Liza, and Wallace are generated
+  replacements. Tate & Liza changes from 4 fixed mons to a 16-mon generated
+  double-battle pool.
+- `git diff --check`: passed.
+- `mdbook build docs`: passed with existing warnings for missing root
+  `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
+
+Build / test checks:
+
+```sh
+rtk make -j16 -O check TESTS='Champions PartyGen EV none'
+rtk make -j16 -O check TESTS='Champions PartyGen trainerproc fixture'
+rtk make -j16 -O check
+rtk make -j16 -O all
+rtk make -j16 -O debug
+```
+
+Results:
+
+- Focused EV suppression check: passed.
+- Focused trainerproc gimmick fixture: passed, confirming Mega, Z-Move,
+  Dynamax, Gigantamax, Tera, combination, and no-gimmick data survives
+  trainerproc into `struct TrainerMon`.
+- Full check: passed with the existing `EXPECTED_FAIL` and crash-resume
+  test-runner markers.
+- Normal ROM build: passed with the existing RWX linker warning.
+- Debug ROM build: passed with the existing RWX linker warning.
+
+mGBA Live evidence:
+
+- MCP start succeeded through `/home/jastin/.local/bin/mgba-qt` using
+  `pokeemerald.gba`.
+- Session: `partygen-gimmick-check`.
+- Boot screenshot: `/tmp/partygen_gimmick_boot.png`.
+- `mgba_live_stop` returned `alive_after: false` and `stopped: true`.
+
+Remaining validation boundary:
+
+- This pass confirms boot/input-visible ROM startup and trainer data build
+  integration. The specific Tate & Liza battle was not played manually in
+  mGBA; the generated `.party` data, trainerproc fixture, full check, normal
+  build, and debug build cover the data path.
+
+---
+
 ## 2026-06-03 16.0 Config-Gated Port Addendum
 
 Branch: `feature/champions-partygen-16-20260603`

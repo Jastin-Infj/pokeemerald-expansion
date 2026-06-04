@@ -169,7 +169,10 @@ validation の強さは段階化する。copy-paste 後に build が落ちるも
 
 - `Party Size` が候補数と同じでも `.poolSize` が出て pool path に入る。これは必ずしも不正ではない。source 順固定の trainer だけ禁止する。
 - `Ball` は item ではなく `include/constants/pokeball.h` の Pokeball enum。`ITEM_POKE_BALL` ではなく `BALL_POKE` / human ball 名を出す。
-- 現行 `trainerproc` は `Dynamax Level` / `Gigantamax` がある mon では `Tera Type` を C 出力しない。意図しない無視を避けるため、generator は同時指定を hard error にする。
+- 2026-06-04 時点の 16.0 PartyGen branch では、`trainerproc` が
+  `Dynamax Level` / `Gigantamax` と `Tera Type` を独立して C 出力する。
+  combination data は validation 用に許可するが、battle runtime の実使用は
+  既存の gimmick priority / held-item 制約に従う。
 - pool 選出が失敗すると runtime は通常順 party へ fallback する。crash ではないが、生成意図と違うため strict lint では error にする。
 
 source data の扱い:
