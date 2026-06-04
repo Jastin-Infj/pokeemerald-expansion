@@ -16877,3 +16877,213 @@ Double Battle: No
 Kyogre
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+=== TRAINER_SMART_GIMMICK_DMAX_CONSERVE ===
+Name: GIM DMAX1
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Dynamax Only
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+=== TRAINER_SMART_GIMMICK_DMAX_LAST ===
+Name: GIM DMAX2
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Dynamax Only
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+=== TRAINER_SMART_GIMMICK_MEGA_SETUP ===
+Name: GIM MEGA
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Force Setup First Turn / Omniscient / Gimmick Env All
+
+Venusaur @ Venusaurite
+Calm Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Growth
+- Sludge Bomb
+
+=== TRAINER_SMART_GIMMICK_Z_MOVE ===
+Name: GIM Z
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env All
+
+Wobbuffet @ Normalium Z
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Quick Attack
+
+=== TRAINER_SMART_GIMMICK_TERA_ONLY ===
+Name: GIM TERA
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Tera Only
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Grass
+- Aqua Tail
+- Seed Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Tera Type: Fire
+- Celebrate
+
+=== TRAINER_SMART_GIMMICK_DMAX_TERA ===
+Name: GIM DT
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Dynamax Tera
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Grass
+- Aqua Tail
+- Seed Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+Tera Type: Fire
+- Scratch
+
+=== TRAINER_SMART_GIMMICK_ALL_SINGLE ===
+Name: GIM ALL1
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Force Setup First Turn / Omniscient / Gimmick Env All
+
+Venusaur @ Venusaurite
+Calm Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Tera Type: Grass
+- Growth
+- Sludge Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Dynamax Level: 10
+- Scratch
+
+Wobbuffet @ Normalium Z
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Quick Attack
+
+=== TRAINER_SMART_GIMMICK_ALL_DOUBLE ===
+Name: GIM ALL2
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: Yes
+AI: Basic Trainer / Force Setup First Turn / Omniscient / Gimmick Env All
+
+Venusaur @ Venusaurite
+Calm Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Tera Type: Grass
+- Growth
+- Sludge Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Dynamax Level: 10
+- Scratch
+
+Wobbuffet @ Normalium Z
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Quick Attack
+
+=== TRAINER_SMART_GIMMICK_NO_GIMMICK ===
+Name: GIM NONE
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Scratch
