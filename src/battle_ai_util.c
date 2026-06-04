@@ -5015,6 +5015,54 @@ bool32 IsConsideringZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, 
     return gBattleStruct->gimmick.usableGimmick[battlerAtk] == GIMMICK_Z_MOVE && ShouldUseZMove(battlerAtk, battlerDef, move);
 }
 
+static bool32 DoesZMoveImproveChosenMoveKo(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    uq4_12_t effectiveness;
+    struct SimulatedDamage regularDamage;
+    struct SimulatedDamage zMoveDamage;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    regularDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    zMoveDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, USE_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+
+    return regularDamage.minimum < gBattleMons[battlerDef].hp
+        && zMoveDamage.minimum >= gBattleMons[battlerDef].hp;
+}
+
+static bool32 DoesZMoveImproveLowAccuracyKo(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    uq4_12_t effectiveness;
+    struct SimulatedDamage regularDamage;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    regularDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    if (regularDamage.minimum < gBattleMons[battlerDef].hp)
+        return FALSE;
+
+    return gAiLogicData->moveAccuracy[battlerAtk][battlerDef][gAiThinkingStruct->movesetIndex] < LOW_ACCURACY_THRESHOLD;
+}
+
+static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    if (!ShouldUseZMove(battlerAtk, battlerDef, move))
+        return FALSE;
+
+    if (IsBattleMoveStatus(move))
+        return TRUE;
+
+    if (CountUsablePartyMons(battlerAtk) == 0)
+        return TRUE;
+
+    if (DoesZMoveImproveChosenMoveKo(battlerAtk, battlerDef, move))
+        return TRUE;
+
+    return DoesZMoveImproveLowAccuracyKo(battlerAtk, battlerDef, move);
+}
+
 //TODO - this could use some more sophisticated logic
 bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move chosenMove)
 {
@@ -5528,7 +5576,7 @@ void ReconsiderSmartGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef
         }
         break;
     case GIMMICK_Z_MOVE:
-        if (!ShouldUseZMove(battlerAtk, battlerDef, move))
+        if (!ShouldUseSmartZMove(battlerAtk, battlerDef, move))
             SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
         break;
     default:

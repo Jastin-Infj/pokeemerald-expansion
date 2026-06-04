@@ -17,7 +17,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Tera should be held until there is offensive payoff, defensive payoff, or a specific target interaction.
 - Dynamax should be held unless the AI has last-Pokemon pressure, survival pressure, KO conversion, or a Max Move board payoff.
 - Mega Evolution / Ultra Burst may be delayed for setup turns when the current form is not immediately threatened.
-- Z-Moves remain behind the existing Z-Move viability checks instead of firing only because a Z-Crystal exists.
+- Z-Moves remain behind viability and smart timing checks instead of firing only because a Z-Crystal exists.
 
 ## Current Dynamax Payoffs
 
@@ -29,6 +29,16 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Side-wide stat pressure: `Max Knuckle`, `Max Ooze`, `Max Quake`, `Max Steelspike`, `Max Wyrmwind`, `Max Flutterby`, `Max Phantasm`, and `Max Darkness`.
 
 The weather and terrain checks reuse the existing AI field-status evaluators so this feature does not invent a separate weather / terrain opinion system.
+
+## Current Z-Move Payoffs
+
+`AI_FLAG_SMART_Z_MOVE` first applies the existing Z-Move viability checks. Under smart gimmick timing, damaging Z-Moves are then conserved unless one of these is true:
+
+- The AI is on its last available Pokemon.
+- The Z-Move converts the selected move into a KO.
+- The base move already has a KO line, but the Z-Move avoids a low-accuracy miss.
+
+Status Z-Moves keep their existing tactical checks because their value is usually the Z-status effect rather than raw damage.
 
 ## Debug Fixtures
 
