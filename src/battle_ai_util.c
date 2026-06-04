@@ -4,6 +4,7 @@
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_ai_field_statuses.h"
+#include "battle_dynamax.h"
 #include "battle_ai_util.h"
 #include "battle_ai_main.h"
 #include "battle_stat_change.h"
@@ -5285,6 +5286,118 @@ static bool32 DoesDynamaxImproveChosenMoveKo(enum BattlerId battlerAtk, enum Bat
         && dynamaxDamage.minimum >= gBattleMons[battlerDef].hp;
 }
 
+static bool32 CanSmartDynamaxRaiseSideStat(enum BattlerId battlerAtk, enum Stat stat)
+{
+    enum BattlerId partner = BATTLE_PARTNER(battlerAtk);
+
+    if (gBattleMons[battlerAtk].statStages[stat] < MAX_STAT_STAGE)
+        return TRUE;
+
+    return IsDoubleBattle()
+        && partner < gBattlersCount
+        && IsBattlerAlive(partner)
+        && IsBattlerAlly(battlerAtk, partner)
+        && gBattleMons[partner].statStages[stat] < MAX_STAT_STAGE;
+}
+
+static bool32 CanSmartDynamaxLowerSideStat(enum BattlerId battlerDef, enum Stat stat)
+{
+    enum BattlerId partner = BATTLE_PARTNER(battlerDef);
+
+    if (gBattleMons[battlerDef].statStages[stat] > MIN_STAT_STAGE)
+        return TRUE;
+
+    return IsDoubleBattle()
+        && partner < gBattlersCount
+        && IsBattlerAlive(partner)
+        && IsBattlerAlly(battlerDef, partner)
+        && gBattleMons[partner].statStages[stat] > MIN_STAT_STAGE;
+}
+
+static bool32 IsSmartDynamaxTempoTurn(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    if (IsDoubleBattle())
+        return TRUE;
+
+    if (gBattleMons[battlerAtk].speed <= gBattleMons[battlerDef].speed)
+        return TRUE;
+
+    return gBattleMons[battlerAtk].hp <= gBattleMons[battlerAtk].maxHP / 2;
+}
+
+static bool32 ShouldSmartDynamaxSetTerrain(enum BattlerId battlerAtk, u32 terrain)
+{
+    u32 currentTerrain = gFieldStatuses & STATUS_FIELD_TERRAIN_ANY;
+
+    if (ShouldSetFieldStatus(battlerAtk, terrain))
+        return TRUE;
+
+    return currentTerrain != 0 && currentTerrain != terrain && ShouldClearFieldStatus(battlerAtk, currentTerrain);
+}
+
+static bool32 DoesDynamaxOfferStrategicMaxMovePayoff(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    enum Move maxMove;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    maxMove = GetMaxMove(battlerAtk, move);
+
+    switch (maxMove)
+    {
+    case MOVE_MAX_AIRSTREAM:
+        return CanSmartDynamaxRaiseSideStat(battlerAtk, STAT_SPEED)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_STRIKE:
+        return IsDoubleBattle()
+            && CanSmartDynamaxLowerSideStat(battlerDef, STAT_SPEED)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_FLARE:
+        return ShouldSetWeather(battlerAtk, B_WEATHER_SUN);
+    case MOVE_MAX_GEYSER:
+        return ShouldSetWeather(battlerAtk, B_WEATHER_RAIN);
+    case MOVE_MAX_ROCKFALL:
+        return ShouldSetWeather(battlerAtk, B_WEATHER_SANDSTORM);
+    case MOVE_MAX_HAILSTORM:
+        return ShouldSetWeather(battlerAtk, B_WEATHER_ICY_ANY);
+    case MOVE_MAX_LIGHTNING:
+        return ShouldSmartDynamaxSetTerrain(battlerAtk, STATUS_FIELD_ELECTRIC_TERRAIN);
+    case MOVE_MAX_OVERGROWTH:
+        return ShouldSmartDynamaxSetTerrain(battlerAtk, STATUS_FIELD_GRASSY_TERRAIN);
+    case MOVE_MAX_STARFALL:
+        return ShouldSmartDynamaxSetTerrain(battlerAtk, STATUS_FIELD_MISTY_TERRAIN);
+    case MOVE_MAX_MINDSTORM:
+        return ShouldSmartDynamaxSetTerrain(battlerAtk, STATUS_FIELD_PSYCHIC_TERRAIN);
+    case MOVE_MAX_KNUCKLE:
+        return CanSmartDynamaxRaiseSideStat(battlerAtk, STAT_ATK)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_OOZE:
+        return CanSmartDynamaxRaiseSideStat(battlerAtk, STAT_SPATK)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_QUAKE:
+        return CanSmartDynamaxRaiseSideStat(battlerAtk, STAT_SPDEF)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_STEELSPIKE:
+        return CanSmartDynamaxRaiseSideStat(battlerAtk, STAT_DEF)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_WYRMWIND:
+        return CanSmartDynamaxLowerSideStat(battlerDef, STAT_ATK)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_FLUTTERBY:
+        return CanSmartDynamaxLowerSideStat(battlerDef, STAT_SPATK)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_PHANTASM:
+        return CanSmartDynamaxLowerSideStat(battlerDef, STAT_DEF)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    case MOVE_MAX_DARKNESS:
+        return CanSmartDynamaxLowerSideStat(battlerDef, STAT_SPDEF)
+            && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
+    default:
+        return FALSE;
+    }
+}
+
 static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
     battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
@@ -5295,6 +5408,9 @@ static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId ba
         return TRUE;
 
     if (CanTargetFaintAi(battlerDef, battlerAtk))
+        return TRUE;
+
+    if (DoesDynamaxOfferStrategicMaxMovePayoff(battlerAtk, battlerDef, move))
         return TRUE;
 
     return DoesDynamaxImproveChosenMoveKo(battlerAtk, battlerDef, move);

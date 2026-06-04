@@ -35,7 +35,7 @@ Expansion has a few "composite" AI flags. This means that these flags have no un
 
 `AI_FLAG_SMART_TRAINER` is expansion's version of a "smart AI". It includes everything in `AI_FLAG_BASIC_TRAINER` along with `AI_FLAG_SMART_SWITCHING` (make smart decisions about when to switch), `AI_FLAG_SMART_MON_CHOICES` (make smart decisions about what mon to send in after a switch / KO), `AI_FLAG_OMNISCIENT` (awareness of what moves, items, and abilities the player's mons have to better inform decisions), and `AI_FLAG_SMART_TERA` (make smart decisions about when to terastalize). Expansion will keep this updated to represent the most objectively intelligent behaviour our flags are capable of producing.
 
-`AI_FLAG_SMART_GIMMICK` adds smart timing for battle gimmicks. It treats trainer party gimmick data as permission to use a gimmick, not as a command to spend it immediately. This currently covers smart Tera, Dynamax conservation, delayed Mega Evolution / Ultra Burst on setup turns, and Z-Move usage under the existing Z-Move viability checks.
+`AI_FLAG_SMART_GIMMICK` adds smart timing for battle gimmicks. It treats trainer party gimmick data as permission to use a gimmick, not as a command to spend it immediately. This currently covers smart Tera, Dynamax conservation plus Max Move payoff checks, delayed Mega Evolution / Ultra Burst on setup turns, and Z-Move usage under the existing Z-Move viability checks.
 
 The gimmick environment presets are convenience groups for common rulesets: `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, and `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`. These presets do not enable or disable the mechanics themselves; availability still comes from trainer data, held items, battle flags, and config.
 
@@ -43,7 +43,9 @@ Smart gimmick behavior also has fixed trainer-ID fixtures for debug validation. 
 
 Smart Tera conservation counts only explicit trainer-party `Tera Type` entries as future AI Tera candidates. Default generated Tera types are not treated as trainer intent. A Pokemon holding a Mega Stone or Z-Crystal cannot be the visible Tera validation slot, so all-gimmick fixtures keep Mega, Tera, Dynamax, and Z-Move candidates on separate Pokemon.
 
-Current smart timing is still calculation-local. Tera considers explicit offensive and defensive payoff against the selected target, including doubles, but does not fully model every partner threat. Dynamax currently spends for last-Pokemon pressure, immediate KO pressure, or when Max damage converts the chosen move into a KO; future tuning should add distinct offensive and defensive Dynamax modes for Max Move secondary effects such as Speed, weather, terrain, and defensive boosts. Mega Evolution currently delays only selected setup turns without immediate KO pressure; weather or terrain re-control from Mega abilities should be modeled as a separate future heuristic.
+Current smart timing is still calculation-local. Tera considers explicit offensive and defensive payoff against the selected target, including doubles, but does not fully model every partner threat. Dynamax spends for last-Pokemon pressure, immediate KO pressure, when Max damage converts the chosen move into a KO, or when the selected Max Move has a strategic payoff: Speed control, weather control, terrain control, or side-wide offensive / defensive stat pressure. Mega Evolution currently delays selected setup turns without immediate KO pressure; weather or terrain re-control from Mega abilities should be modeled as a separate future heuristic.
+
+Detailed design notes, VGC source timestamps, and validation records live in [Smart Gimmick AI](../features/smart_gimmick_ai/README.md).
 
 | Trainer ID | Constant | Expected first-turn validation |
 | --- | --- | --- |
@@ -225,7 +227,7 @@ AI will make smarter decisions about when to terastalize (over the default behav
 AI treats available gimmicks as strategic resources. Without this flag, trainer-owned gimmicks keep the older eager behavior where an available gimmick is generally selected immediately unless a gimmick-specific check cancels it. With this flag, each gimmick must also have its own smart flag enabled before the AI will spend it.
 
 ## `AI_FLAG_SMART_DYNAMAX`
-AI may conserve Dynamax instead of using it immediately. It currently spends Dynamax when it is on the last available Pokemon, when the current target can otherwise KO it, or when Dynamax turns the chosen move into a KO that the regular move would miss.
+AI may conserve Dynamax instead of using it immediately. It spends Dynamax when it is on the last available Pokemon, when the current target can otherwise KO it, when Dynamax turns the chosen move into a KO that the regular move would miss, or when the selected Max Move has a strong board payoff such as Max Airstream / Max Strike Speed control, weather control, terrain control, or side-wide stat boosts / drops.
 
 ## `AI_FLAG_SMART_MEGA`
 AI may delay Mega Evolution or Ultra Burst on setup turns. For example, if the AI selects a stat-boosting move and is not under immediate KO pressure, it can keep the base form for that turn instead of Mega Evolving automatically.
