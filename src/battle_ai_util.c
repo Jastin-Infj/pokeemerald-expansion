@@ -5196,6 +5196,202 @@ bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum
     return FALSE;
 }
 
+static bool32 HasSmartGimmickTiming(enum BattlerId battler)
+{
+    return (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_SMART_GIMMICK_TIMING) != 0;
+}
+
+static bool32 HasSmartFlagForGimmick(enum BattlerId battler, enum Gimmick gimmick)
+{
+    u64 flags = gAiThinkingStruct->aiFlags[battler];
+
+    switch (gimmick)
+    {
+    case GIMMICK_MEGA:
+    case GIMMICK_ULTRA_BURST:
+        return (flags & AI_FLAG_SMART_MEGA) != 0;
+    case GIMMICK_Z_MOVE:
+        return (flags & AI_FLAG_SMART_Z_MOVE) != 0;
+    case GIMMICK_DYNAMAX:
+        return (flags & AI_FLAG_SMART_DYNAMAX) != 0;
+    case GIMMICK_TERA:
+        return (flags & AI_FLAG_SMART_TERA) != 0;
+    default:
+        return FALSE;
+    }
+}
+
+#define SMART_GIMMICK_NO_TARGET MAX_BATTLERS_COUNT
+
+static enum BattlerId GetSmartGimmickTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    if (battlerDef < gBattlersCount && IsBattlerAlive(battlerDef) && !IsBattlerAlly(battlerAtk, battlerDef))
+        return battlerDef;
+
+    battlerDef = GetOppositeBattler(battlerAtk);
+    if (battlerDef < gBattlersCount && IsBattlerAlive(battlerDef) && !IsBattlerAlly(battlerAtk, battlerDef))
+        return battlerDef;
+
+    return SMART_GIMMICK_NO_TARGET;
+}
+
+static bool32 IsSmartMegaSetupMove(enum Move move)
+{
+    if (!IsBattleMoveStatus(move))
+        return FALSE;
+
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_STAT_CHANGE:
+    case EFFECT_STAT_CHANGE_HALF_HP:
+    case EFFECT_GROWTH:
+    case EFFECT_ACUPRESSURE:
+    case EFFECT_GEOMANCY:
+    case EFFECT_NO_RETREAT:
+    case EFFECT_CLANGOROUS_SOUL:
+    case EFFECT_TIDY_UP:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 ShouldUseSmartMega(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
+    if (battlerDef == SMART_GIMMICK_NO_TARGET)
+        return TRUE;
+
+    if (!IsSmartMegaSetupMove(move))
+        return TRUE;
+
+    return CanTargetFaintAi(battlerDef, battlerAtk);
+}
+
+static bool32 DoesDynamaxImproveChosenMoveKo(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    uq4_12_t effectiveness;
+    struct SimulatedDamage regularDamage;
+    struct SimulatedDamage dynamaxDamage;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    regularDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    dynamaxDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, USE_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+
+    return regularDamage.minimum < gBattleMons[battlerDef].hp
+        && dynamaxDamage.minimum >= gBattleMons[battlerDef].hp;
+}
+
+static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
+    if (battlerDef == SMART_GIMMICK_NO_TARGET)
+        return CountUsablePartyMons(battlerAtk) == 0;
+
+    if (CountUsablePartyMons(battlerAtk) == 0)
+        return TRUE;
+
+    if (CanTargetFaintAi(battlerDef, battlerAtk))
+        return TRUE;
+
+    return DoesDynamaxImproveChosenMoveKo(battlerAtk, battlerDef, move);
+}
+
+static bool32 TrySmartFallbackTerastal(enum BattlerId battler)
+{
+    enum Gimmick previousGimmick = gBattleStruct->gimmick.usableGimmick[battler];
+
+    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_SMART_TERA))
+        return FALSE;
+
+    if (!CanActivateGimmick(battler, GIMMICK_TERA))
+        return FALSE;
+
+    gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+    SetAIUsingGimmick(battler, USE_GIMMICK);
+
+    if (IsBattle1v1())
+        DecideTerastal(battler);
+    else
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+
+    if (IsAIUsingGimmick(battler))
+        return TRUE;
+
+    gBattleStruct->gimmick.usableGimmick[battler] = previousGimmick;
+    return FALSE;
+}
+
+void DecideGimmickBeforeMoveSelection(enum BattlerId battler)
+{
+    enum Gimmick gimmick = gBattleStruct->gimmick.usableGimmick[battler];
+
+    if (gimmick == GIMMICK_NONE)
+    {
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        return;
+    }
+
+    if (!HasSmartGimmickTiming(battler))
+    {
+        if (gimmick == GIMMICK_TERA && (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_SMART_TERA))
+            DecideTerastal(battler);
+        return;
+    }
+
+    if (!HasSmartFlagForGimmick(battler, gimmick))
+    {
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        return;
+    }
+
+    if (gimmick == GIMMICK_TERA)
+    {
+        if (IsBattle1v1())
+            DecideTerastal(battler);
+        else
+            SetAIUsingGimmick(battler, NO_GIMMICK);
+    }
+}
+
+void ReconsiderSmartGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    enum Gimmick gimmick = gBattleStruct->gimmick.usableGimmick[battlerAtk];
+
+    if (!HasSmartGimmickTiming(battlerAtk) || !IsAIUsingGimmick(battlerAtk))
+        return;
+
+    if (!HasSmartFlagForGimmick(battlerAtk, gimmick))
+    {
+        SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
+        return;
+    }
+
+    switch (gimmick)
+    {
+    case GIMMICK_MEGA:
+    case GIMMICK_ULTRA_BURST:
+        if (!ShouldUseSmartMega(battlerAtk, battlerDef, move))
+            SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
+        break;
+    case GIMMICK_DYNAMAX:
+        if (!ShouldUseSmartDynamax(battlerAtk, battlerDef, move))
+        {
+            SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
+            TrySmartFallbackTerastal(battlerAtk);
+        }
+        break;
+    case GIMMICK_Z_MOVE:
+        if (!ShouldUseZMove(battlerAtk, battlerDef, move))
+            SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
+        break;
+    default:
+        break;
+    }
+}
+
 void SetAIUsingGimmick(enum BattlerId battler, enum AIConsiderGimmick use)
 {
     if (use == USE_GIMMICK)

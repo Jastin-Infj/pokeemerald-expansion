@@ -150,6 +150,8 @@ bool32 IsConsideringZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, 
 bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move chosenMove);
 void SetAIUsingGimmick(enum BattlerId battler, enum AIConsiderGimmick use);
 bool32 IsAIUsingGimmick(enum BattlerId battler);
+void DecideGimmickBeforeMoveSelection(enum BattlerId battler);
+void ReconsiderSmartGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move);
 void DecideTerastal(enum BattlerId battler);
 bool32 CanEndureHit(enum BattlerId battler, enum BattlerId battlerTarget, enum Move move);
 bool32 ShouldFinalGambit(enum BattlerId battlerAtk, enum BattlerId battlerDef, bool32 aiIsFaster);

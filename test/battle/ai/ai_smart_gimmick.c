@@ -1,0 +1,39 @@
+#include "global.h"
+#include "test/battle.h"
+#include "battle_ai_util.h"
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI conserves Dynamax when it has no immediate payoff")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+    } WHEN {
+        TURN { EXPECT_MOVE(opponent, MOVE_SCRATCH, gimmick: GIMMICK_NONE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax on its last Pokemon")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+    } WHEN {
+        TURN { EXPECT_MOVE(opponent, MOVE_SCRATCH, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_ALL: AI can delay Mega Evolution for a setup turn")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_FORCE_SETUP_FIRST_TURN | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_ALL);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_VENUSAUR) { Item(ITEM_VENUSAURITE); Moves(MOVE_GROWTH, MOVE_SLUDGE_BOMB); }
+    } WHEN {
+        TURN { EXPECT_MOVE(opponent, MOVE_GROWTH, gimmick: GIMMICK_NONE); }
+    } SCENE {
+        NOT ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_MEGA_EVOLUTION, opponent);
+    }
+}

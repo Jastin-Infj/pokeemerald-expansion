@@ -110,11 +110,11 @@ static s32 (*const sBattleAiFuncTable[])(enum BattlerId, enum BattlerId, enum Mo
     [31] = NULL,                     // Unused
     [32] = NULL,                     // Unused
     [33] = NULL,                     // Unused
-    [34] = NULL,                     // Unused
-    [35] = NULL,                     // Unused
-    [36] = NULL,                     // Unused
-    [37] = NULL,                     // Unused
-    [38] = NULL,                     // Unused
+    [34] = NULL,                     // AI_FLAG_SMART_GIMMICK_TIMING
+    [35] = NULL,                     // AI_FLAG_SMART_DYNAMAX
+    [36] = NULL,                     // AI_FLAG_SMART_MEGA
+    [37] = NULL,                     // AI_FLAG_SMART_Z_MOVE
+    [38] = NULL,                     // AI_FLAG_ENV_INVERSE_BATTLE
     [39] = NULL,                     // Unused
     [40] = NULL,                     // Unused
     [41] = NULL,                     // Unused
@@ -433,6 +433,8 @@ void ReconsiderGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef, enu
 {
     // After choosing a move for battlerAtk assuming that a gimmick will be used, reconsider whether the gimmick is necessary.
 
+    ReconsiderSmartGimmick(battlerAtk, battlerDef, move);
+
     if (gBattleStruct->gimmick.usableGimmick[battlerAtk] == GIMMICK_Z_MOVE && !ShouldUseZMove(battlerAtk, battlerDef, move))
         SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
 
@@ -511,9 +513,7 @@ u32 BattleAI_ChooseMoveIndex(enum BattlerId battler)
 
     SetAIUsingGimmick(battler, USE_GIMMICK);
     SetupRandomRollsForAIMoveSelection(battler);
-
-    if (gBattleStruct->gimmick.usableGimmick[battler] == GIMMICK_TERA && (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_SMART_TERA))
-        DecideTerastal(battler);
+    DecideGimmickBeforeMoveSelection(battler);
 
     chosenMoveIndex = ChooseMoveOrAction(battler);
 

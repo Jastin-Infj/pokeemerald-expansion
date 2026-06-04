@@ -35,6 +35,10 @@ Expansion has a few "composite" AI flags. This means that these flags have no un
 
 `AI_FLAG_SMART_TRAINER` is expansion's version of a "smart AI". It includes everything in `AI_FLAG_BASIC_TRAINER` along with `AI_FLAG_SMART_SWITCHING` (make smart decisions about when to switch), `AI_FLAG_SMART_MON_CHOICES` (make smart decisions about what mon to send in after a switch / KO), `AI_FLAG_OMNISCIENT` (awareness of what moves, items, and abilities the player's mons have to better inform decisions), and `AI_FLAG_SMART_TERA` (make smart decisions about when to terastalize). Expansion will keep this updated to represent the most objectively intelligent behaviour our flags are capable of producing.
 
+`AI_FLAG_SMART_GIMMICK` adds smart timing for battle gimmicks. It treats trainer party gimmick data as permission to use a gimmick, not as a command to spend it immediately. This currently covers smart Tera, Dynamax conservation, delayed Mega Evolution / Ultra Burst on setup turns, and Z-Move usage under the existing Z-Move viability checks.
+
+The gimmick environment presets are convenience groups for common rulesets: `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, and `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`. These presets do not enable or disable the mechanics themselves; availability still comes from trainer data, held items, battle flags, and config.
+
 `AI_FLAG_PREDICTION` will enable all of the prediction flags at once, so the AI can perform as well as possible. It is best paired with the flags in `AI_FLAG_SMART_TRAINER` for optimal behaviour. This currently includes `AI_FLAG_PREDICT_SWITCH` and `AI_FLAG_PREDICT_INCOMING_MON`, but will likely be expanded in the future.
 
 Expansion has LOADS of flags, which will be covered in the rest of this guide. If you don't want to engage with detailed trainer AI tuning though, you can just use these two composite flags, and trust that expansion will keep their contents updated to always represent the most standard and the smartest behaviour we can.
@@ -198,6 +202,21 @@ This flag requires `AI_FLAG_PREDICT_SWITCH` to function. If the AI predicts that
 
 ## `AI_FLAG_SMART_TERA`
 AI will make smarter decisions about when to terastalize (over the default behaviour to always tera when available). This considers factors such as whether tera allows the AI to KO the opponent, whether it can save itself from a KO or a big hit, and how many remaining pokemon could terastalize. This behavior is not currently supported in double battles.
+
+## `AI_FLAG_SMART_GIMMICK_TIMING`
+AI treats available gimmicks as strategic resources. Without this flag, trainer-owned gimmicks keep the older eager behavior where an available gimmick is generally selected immediately unless a gimmick-specific check cancels it. With this flag, each gimmick must also have its own smart flag enabled before the AI will spend it.
+
+## `AI_FLAG_SMART_DYNAMAX`
+AI may conserve Dynamax instead of using it immediately. It currently spends Dynamax when it is on the last available Pokemon, when the current target can otherwise KO it, or when Dynamax turns the chosen move into a KO that the regular move would miss.
+
+## `AI_FLAG_SMART_MEGA`
+AI may delay Mega Evolution or Ultra Burst on setup turns. For example, if the AI selects a stat-boosting move and is not under immediate KO pressure, it can keep the base form for that turn instead of Mega Evolving automatically.
+
+## `AI_FLAG_SMART_Z_MOVE`
+AI keeps Z-Move spending under smart gimmick timing. It still uses the existing Z-Move viability checks, including avoiding Z-Moves that are unnecessary for a KO or invalid for the selected move.
+
+## `AI_FLAG_ENV_INVERSE_BATTLE`
+Marks an AI preset as intended for inverse-battle environments. The actual inverse type matchup still comes from `B_FLAG_INVERSE_BATTLE`; this flag is mainly useful when composing trainer AI flags for an inverse ruleset.
 
 ## `AI_FLAG_PREDICT_MOVE`
 AI will predict what move the player is going to use based on what move it would use in the same situation. Generally works best if also using `AI_FLAG_OMNISCIENT`.
