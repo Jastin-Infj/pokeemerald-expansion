@@ -5,6 +5,9 @@
 #include "battle_interface.h"
 #include "battle_gimmick.h"
 #include "battle_z_move.h"
+#include "constants/battle_ai.h"
+#include "debug.h"
+#include "event_data.h"
 #include "battle_setup.h"
 #include "battle_util.h"
 #include "item.h"
@@ -62,6 +65,22 @@ enum Gimmick GetActiveGimmick(enum BattlerId battler)
     return gBattleStruct->gimmick.activeGimmick[GetBattlerTrainer(battler)][gBattlerPartyIndexes[battler]];
 }
 
+bool32 IsItemlessGimmickBattle(enum BattlerId battler)
+{
+    if (B_FLAG_ITEMLESS_GIMMICK_BATTLE != 0 && FlagGet(B_FLAG_ITEMLESS_GIMMICK_BATTLE))
+        return TRUE;
+
+    if (gIsDebugBattle && (gDebugAIFlags & AI_FLAG_GIMMICK_ENV_ITEMLESS))
+        return TRUE;
+
+    if (BattlerHasAi(battler)
+     && gAiThinkingStruct != NULL
+     && (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_GIMMICK_ENV_ITEMLESS))
+        return TRUE;
+
+    return FALSE;
+}
+
 // Returns whether a trainer mon is intended to use an unrestrictive gimmick via .useGimmick (i.e Tera).
 bool32 ShouldTrainerBattlerUseGimmick(enum BattlerId battler, enum Gimmick gimmick)
 {
@@ -80,6 +99,8 @@ bool32 ShouldTrainerBattlerUseGimmick(enum BattlerId battler, enum Gimmick gimmi
         if (gimmick == GIMMICK_TERA && gBattleStruct->opponentMonCanTera & 1 << gBattlerPartyIndexes[battler])
             return TRUE;
         if (gimmick == GIMMICK_DYNAMAX && gBattleStruct->opponentMonCanDynamax & 1 << gBattlerPartyIndexes[battler])
+            return TRUE;
+        if (gimmick == GIMMICK_Z_MOVE && gBattleStruct->opponentMonCanZMove & 1 << gBattlerPartyIndexes[battler])
             return TRUE;
     }
     #endif

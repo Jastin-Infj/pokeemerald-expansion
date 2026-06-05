@@ -81,10 +81,18 @@ The debug Party menu now exposes four focused runtime fixtures:
 
 - `Battle 3v3 Single` builds a level-50 player team of `Dragonite`, `Gholdengo`, and `Garchomp`, then pits it against a 3-Pokemon AI side selected from a 6-Pokemon weighted singles pool.
 - `Battle 4v4 Double` builds a level-50 player team of `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`, then pits it against a 4-Pokemon AI side selected from a 7-Pokemon weighted doubles pool.
-- `Battle Dmax/Z Single` builds a level-50 player-side Z-Move team, then pits it against a smart AI Dynamax / Gigantamax team.
-- `Battle Dmax/Z Double` builds a level-50 player-side VGC-style Z-Move team, then pits it against a smart AI Dynamax / Gigantamax doubles team with Tailwind / weather pressure.
+- `Battle Dmax/Z Single` builds a level-50 player-side Z-Move team, then pits it against a smart AI Dynamax / Gigantamax / itemless Z-Move team.
+- `Battle Dmax/Z Double` builds a level-50 player-side VGC-style Z-Move team, then pits it against a smart AI Dynamax / Gigantamax / itemless Z-Move doubles team with Tailwind / weather pressure.
 
-These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
+These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Gimmick Env Itemless`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
+
+Itemless Z-Move availability is now split into a runtime environment unlock and explicit trainer intent:
+
+- `B_FLAG_ITEMLESS_GIMMICK_BATTLE` can be assigned to a real event flag for in-game rulesets that intentionally allow itemless gimmick access.
+- `AI_FLAG_GIMMICK_ENV_ITEMLESS` / `AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS` enables the same loosened item requirement for debug / AI environments.
+- `.party` supports `Z Move: Yes`, stored as `TrainerMon.shouldUseZMove` and copied into `gBattleStruct->opponentMonCanZMove` for opponent parties.
+- Normal Z-Crystal behavior remains unchanged. Without the itemless environment, Z-Move availability is still item-based.
+- Itemless Z-Moves use the selected move's type to produce the generic type-based Z-Move or status Z-Move. Signature Z-Moves still require their signature crystal.
 
 Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This prevents the EXP bar, normal EXP gain, and EV gain in debug battles, including the level-100 EV-gain path that would otherwise still occur when EXP is disabled by level.
 
@@ -98,6 +106,7 @@ Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This pr
 - Smart Z conserve: keeps a damaging Z-Move unused when another Pokemon remains and the Z-Move has no immediate payoff.
 - Smart Z last Pokemon: spends a damaging Z-Move when no reserve remains.
 - Smart Z trap pressure: spends a damaging Z-Move when trapped and the Z-Move improves the damage race.
+- Itemless Z environment: a marked trainer candidate can spend a Z-Move without holding a Z-Crystal when `AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS` is active.
 - Smart Mega Shadow Tag: spends Mega Evolution when the target form's ability creates immediate trapping pressure.
 - Smart Switching doubles: can double switch out of bad double positions when neither partner can cover.
 - Smart Switching doubles guard: stays in a bad position when the partner can cover the target.
@@ -121,7 +130,11 @@ Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This pr
 
 - `rtk make -j16 -O check TESTS='AI runtime knowledge'`: pass, 4 tests. Covers move-category, ability-category, item / hold-effect category mapping, and predicted-move immunity bridges.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 10 tests.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_ITEMLESS'`: pass, 1 test. Covers a marked itemless Z-Move candidate without a Z-Crystal.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 11 tests. Includes the itemless Z candidate regression.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI uses Z-Moves'`: failed 1 existing broad Z-Move AI case, `AI uses Z-Moves -- Z-Detect 1/2`, where the AI selected `Detect` without the Z-Move gimmick. The itemless-focused and smart-gimmick filters passed; this broad status-Z Protect heuristic remains a separate follow-up.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'`: pass, 1 test.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
@@ -129,18 +142,20 @@ Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This pr
 - `rtk make -j16 -O check TESTS='Protect: AI'`: pass, 9 tests. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles.
 - `rtk make tools/trainerproc/trainerproc`: pass. Regenerated trainer data from `.party` fixtures, including `Pool Weight`.
 - `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
-- `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
 - `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
 - `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`: pass. Generated 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and a valid summary.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
 - `rtk make -j16 -O check`: attempted again after the Protect / Dmax-vs-Z debug-fixture update and exited 2. The captured output only exposed existing test-runner / known-failing labels (`Tests resume after CRASH`, `Pokemon level up learnsets fit within MAX_LEVEL_UP_MOVES and MAX_RELEARNER_MOVES`); both pass as expected when filtered individually. The focused AI, debug EXP / EV, and Trainer Party Pool checks above are the validation evidence for this update.
 - `rtk make -j1 -O check`: attempted to rule out make-job parallelism, but the run did not progress beyond the initial link warning and was abandoned as non-evidence. The stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed before handoff.
 - `rtk make -j16 -O debug`: pass.
-- `rtk make -j16 -O all`: pass.
-- `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
+- 2026-06-06 `rtk make -j16 -O debug`: pass. Confirms the debug Dmax/Z fixtures build with `Gimmick Env Itemless` and `.party` `Z Move: Yes` candidates.
+- 2026-06-06 `rtk make -j16 -O all`: pass.
+- 2026-06-06 `rtk mdbook build docs`: pass with existing missing-root-`CHANGELOG.md` include warning, `CREDITS.md` `</img>` warning, and large search index warning.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
 - mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
 - mGBA Live: current ROM booted in session `smart-ai-protect-dmaxz-20260605`. `mgba_live_start_with_lua_and_view` reported a Lua bridge invalid-context error after starting, but `mgba_live_get_view` returned a rendered frame, `mgba_live_export_screenshot` saved `/tmp/smart-ai-protect-dmaxz-20260605.png`, and `mgba_live_stop` returned `stopped:true`.
+- 2026-06-06 mGBA Live: MCP startup without `DISPLAY` failed with Qt `xcb` display initialization. CLI startup with `DISPLAY=:0` booted `pokeemerald.gba` to the title / demo screen in session `smart-gimmick-itemless-cli-smoke`, saved `/tmp/smart-gimmick-itemless-smoke.png`, and `mgba-live-cli stop` returned `stopped:true`.
 
 ## Known Gaps
 

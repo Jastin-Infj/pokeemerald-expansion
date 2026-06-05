@@ -140,6 +140,25 @@ The current default is:
 
 With this default, normal player-side Dynamax is not enabled through a runtime flag. Assign a real flag if scripts should allow Dynamax only in selected battles or locations.
 
+## Itemless gimmick battle flag example
+
+Relevant files:
+
+| File | Role |
+|---|---|
+| `include/config/battle.h` | `B_FLAG_ITEMLESS_GIMMICK_BATTLE` config slot. |
+| `src/battle_gimmick.c` | `IsItemlessGimmickBattle` reads the assigned flag. |
+| `src/battle_z_move.c` | Explicit trainer `Z Move: Yes` candidates can use type-based Z-Moves without Z-Crystals while the flag is set. |
+| `src/battle_dynamax.c` | Player-side Dynamax can bypass the Dynamax Band / `B_FLAG_DYNAMAX_BATTLE` requirement while the itemless environment is active. |
+
+The current default is:
+
+```c
+#define B_FLAG_ITEMLESS_GIMMICK_BATTLE 0
+```
+
+With this default, ordinary game battles keep the normal item requirements. Assign a real flag only for rulesets or facilities that intentionally allow itemless gimmick access. Trainer-side itemless Z still needs `Z Move: Yes` in `.party`; the flag does not make every trainer Pokemon a Z-Move candidate.
+
 ## Checklist
 
 - Do not use `TRUE` or `FALSE` for `B_FLAG_*`, `I_*_FLAG`, or `B_VAR_*` slots unless the config comment explicitly says it is a boolean.
@@ -160,6 +179,7 @@ If a feature is already designed as a runtime flag / var, prefer assigning that 
 | No running | `B_FLAG_NO_RUNNING` | Set the assigned flag while wild escape is disallowed. |
 | Sleep Clause | `B_FLAG_SLEEP_CLAUSE` | Use a flag when the clause is optional; use `B_SLEEP_CLAUSE TRUE` only for always-on ROM behavior. |
 | Dynamax allowed | `B_FLAG_DYNAMAX_BATTLE` | Player Dynamax also requires `ITEM_DYNAMAX_BAND`. |
+| Itemless gimmick battle | `B_FLAG_ITEMLESS_GIMMICK_BATTLE` | Explicit trainer `Z Move: Yes` candidates can use type-based Z-Moves without Z-Crystals; player-side supported gimmicks can bypass item gates. |
 | Tera Orb charged | `B_FLAG_TERA_ORB_CHARGED` | `HealPlayerParty` can recharge it once configured. |
 | Tera no cost | `B_FLAG_TERA_ORB_NO_COST` | Prevents Tera Orb charge from being consumed. |
 | Force shiny | `P_FLAG_FORCE_SHINY` | Forces wild / gift Pokemon shiny while the flag is set. |

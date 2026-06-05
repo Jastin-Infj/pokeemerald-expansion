@@ -4,6 +4,7 @@
 #include "pokemon.h"
 #include "battle_ai_record.h"
 #include "battle_controllers.h"
+#include "battle_gimmick.h"
 #include "battle_interface.h"
 #include "battle_message.h"
 #include "battle_z_move.h"
@@ -114,10 +115,12 @@ bool32 CanUseZMove(enum BattlerId battler)
 {
     enum HoldEffect holdEffect = GetBattlerHoldEffectIgnoreNegation(battler);
     enum BattlerPosition position = GetBattlerPosition(battler);
+    bool32 itemlessGimmick = IsItemlessGimmickBattle(battler);
 
     // Check if Player has Z-Power Ring.
     if (!TESTING && (position == B_POSITION_PLAYER_LEFT
         || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && position == B_POSITION_PLAYER_RIGHT))
+        && !itemlessGimmick
         && !CheckBagHasItem(ITEM_Z_POWER_RING, 1))
         return FALSE;
 
@@ -135,7 +138,14 @@ bool32 CanUseZMove(enum BattlerId battler)
 
     // Check if battler isn't holding a Z-Crystal.
     if (holdEffect != HOLD_EFFECT_Z_CRYSTAL)
-        return FALSE;
+    {
+        if (!itemlessGimmick)
+            return FALSE;
+        if (holdEffect == HOLD_EFFECT_MEGA_STONE)
+            return FALSE;
+        if (!ShouldTrainerBattlerUseGimmick(battler, GIMMICK_Z_MOVE))
+            return FALSE;
+    }
 
     // All checks passed!
     return TRUE;
@@ -155,6 +165,12 @@ enum Move GetUsableZMove(enum BattlerId battler, enum Move move)
         if (move != MOVE_NONE && zMove != MOVE_Z_STATUS && GetMoveType(move) == GetItemSecondaryId(item))
             return GetTypeBasedZMove(move);
     }
+    else if (move != MOVE_NONE
+          && IsItemlessGimmickBattle(battler)
+          && ShouldTrainerBattlerUseGimmick(battler, GIMMICK_Z_MOVE))
+    {
+        return GetTypeBasedZMove(move);
+    }
 
     return MOVE_NONE;
 }
@@ -169,6 +185,7 @@ bool32 IsViableZMove(enum BattlerId battler, enum Move move)
     enum Item item;
     enum HoldEffect holdEffect = GetBattlerHoldEffectIgnoreNegation(battler);
     int moveSlotIndex;
+    bool32 itemlessGimmick = IsItemlessGimmickBattle(battler);
 
     item = gBattleMons[battler].item;
 
@@ -184,6 +201,7 @@ bool32 IsViableZMove(enum BattlerId battler, enum Move move)
     enum BattlerPosition position = GetBattlerPosition(battler);
     // Check if Player has Z-Power Ring.
     if ((position == B_POSITION_PLAYER_LEFT || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && position == B_POSITION_PLAYER_RIGHT))
+        && !itemlessGimmick
         && !CheckBagHasItem(ITEM_Z_POWER_RING, 1))
     {
         return FALSE;
@@ -198,6 +216,13 @@ bool32 IsViableZMove(enum BattlerId battler, enum Move move)
 
         if (move != MOVE_NONE && GetMoveType(move) == GetItemSecondaryId(item))
             return TRUE;
+    }
+    else if (move != MOVE_NONE
+          && holdEffect != HOLD_EFFECT_MEGA_STONE
+          && itemlessGimmick
+          && ShouldTrainerBattlerUseGimmick(battler, GIMMICK_Z_MOVE))
+    {
+        return TRUE;
     }
 
     return FALSE;

@@ -405,7 +405,7 @@ EVs: 4 HP / 252 Atk / 252 Spe
 
 === DEBUG_TRAINER_AI_DMAX_Z_SINGLES ===
 Name: Dmax Wall
-AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Gimmick Env Itemless / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
 Class: Champion
 Battle Type: Singles
 Pic: Steven
@@ -436,17 +436,17 @@ EVs: 4 HP / 252 Atk / 252 Spe
 - Bounce
 - Sucker Punch
 
-Tyranitar @ ITEM_WEAKNESS_POLICY
-Ability: Sand Stream
-Adamant Nature
+Mimikyu
+Ability: Disguise
+Jolly Nature
 Level: 50
-Dynamax Level: 10
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-EVs: 252 HP / 252 Atk / 4 SpD
-- Rock Slide
-- Crunch
-- Fire Punch
-- Ice Punch
+EVs: 4 HP / 252 Atk / 252 Spe
+Z Move: Yes
+- Swords Dance
+- Play Rough
+- Shadow Claw
+- Shadow Sneak
 
 === DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES ===
 Name: Z VGC
@@ -502,7 +502,7 @@ EVs: 4 HP / 252 SpA / 252 Spe
 
 === DEBUG_TRAINER_AI_DMAX_Z_DOUBLES ===
 Name: Dmax VGC
-AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Gimmick Env Itemless / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
 Class: Champion
 Battle Type: Doubles
 Pic: Steven
@@ -544,14 +544,14 @@ EVs: 252 HP / 252 Atk / 4 SpD
 - Zen Headbutt
 - Protect
 
-Gyarados @ ITEM_LUM_BERRY
-Ability: Moxie
-Jolly Nature
+Koko (SPECIES_TAPU_KOKO)
+Ability: Electric Surge
+Timid Nature
 Level: 50
-Dynamax Level: 10
-IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-EVs: 4 HP / 252 Atk / 252 Spe
-- Waterfall
-- Bounce
-- Power Whip
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Z Move: Yes
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
 - Protect

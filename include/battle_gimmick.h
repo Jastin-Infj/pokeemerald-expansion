@@ -29,6 +29,7 @@ bool32 IsGimmickSelected(enum BattlerId battler, enum Gimmick gimmick);
 void SetActiveGimmick(enum BattlerId battler, enum Gimmick gimmick);
 enum Gimmick GetActiveGimmick(enum BattlerId battler);
 bool32 ShouldTrainerBattlerUseGimmick(enum BattlerId battler, enum Gimmick gimmick);
+bool32 IsItemlessGimmickBattle(enum BattlerId battler);
 bool32 HasTrainerUsedGimmick(enum BattlerId battler, enum Gimmick gimmick);
 void SetGimmickAsActivated(enum BattlerId battler, enum Gimmick gimmick);
 

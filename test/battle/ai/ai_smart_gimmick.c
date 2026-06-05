@@ -112,6 +112,17 @@ AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI can spend a damaging Z-Move on i
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_ITEMLESS: AI can spend a marked itemless Z-Move candidate")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_TELEPATHY); Moves(MOVE_QUICK_ATTACK); }
+    } WHEN {
+        TURN { EXPECT_MOVE(opponent, MOVE_QUICK_ATTACK, gimmick: GIMMICK_Z_MOVE); }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI can spend a damaging Z-Move to pressure a trapping target")
 {
     GIVEN {

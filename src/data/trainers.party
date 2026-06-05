@@ -56,6 +56,7 @@ Optional fields for Pokemon:
     - Gigantamax (Yes/No, sets to Gigantamax factor)
                  (doesn't do anything to Pokemon without a Gigantamax form, also sets "shouldDynamax" to True)
     - Tera Type (Set to a Type, either Fire or TYPE_FIRE, also sets "shouldTerastal" to True)
+    - Z Move (Yes/No, marks this Pokemon as an explicit trainer Z-Move candidate; itemless use also requires B_FLAG_ITEMLESS_GIMMICK_BATTLE or AI_FLAG_GIMMICK_ENV_ITEMLESS)
 Moves are defined with a - (dash) followed by a single space, then the move name.
 Either "- Tackle" or "- MOVE_TACKLE" works. One move per line.
 Moves have to be the last lines of a Pokemon.

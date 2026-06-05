@@ -37,11 +37,13 @@ Expansion has a few "composite" AI flags. This means that these flags have no un
 
 `AI_FLAG_SMART_GIMMICK` adds smart timing for battle gimmicks. It treats trainer party gimmick data as permission to use a gimmick, not as a command to spend it immediately. This currently covers smart Tera, Dynamax conservation plus Max Move payoff checks, Mega Evolution / Ultra Burst timing for setup, ability, Speed, damage, and defensive payoff, and Z-Move usage under both the existing Z-Move viability checks and smart timing conservation.
 
-The gimmick environment presets are convenience groups for common rulesets: `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, and `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`. These presets do not enable or disable the mechanics themselves; availability still comes from trainer data, held items, battle flags, and config.
+The gimmick environment presets are convenience groups for common rulesets: `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS`, and `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`. These presets do not enable or disable the mechanics themselves; availability still comes from trainer data, held items, battle flags, and config. The itemless preset is intentionally different: it marks debug / configured battles where explicit Z-Move candidates may use type-based Z-Moves without Z-Crystals, matching `B_FLAG_ITEMLESS_GIMMICK_BATTLE` runtime behavior.
 
 Smart gimmick behavior also has fixed trainer-ID fixtures for debug validation. Use the debug menu's trainer battle flow, set Trainer 1 to the listed ID, then start `Try Battle`. The debug player party is still the active player party, so use a passive or non-lethal player lead when validating "conserve" or "delay" behavior. These fixtures use the remaining Emerald trainer-flag slots, IDs 855-863, so add more standard trainer fixtures only after moving trainer flags or increasing `MAX_TRAINERS_COUNT_EMERALD` intentionally.
 
 Smart Tera conservation counts only explicit trainer-party `Tera Type` entries as future AI Tera candidates. Default generated Tera types are not treated as trainer intent. A Pokemon holding a Mega Stone or Z-Crystal cannot be the visible Tera validation slot, so all-gimmick fixtures keep Mega, Tera, Dynamax, and Z-Move candidates on separate Pokemon.
+
+Itemless Z-Move environments still require explicit trainer intent. In `.party` data, use `Z Move: Yes` on the Pokemon that should be allowed to spend the Z-Move. Without `AI_FLAG_GIMMICK_ENV_ITEMLESS` or an assigned and set `B_FLAG_ITEMLESS_GIMMICK_BATTLE`, ordinary Z-Move availability remains item-based through Z-Crystals.
 
 Current smart timing is still calculation-local. Tera considers explicit offensive and defensive payoff against the selected target, including doubles, but does not fully model every partner threat. Dynamax spends for last-Pokemon pressure, immediate KO pressure, when Max damage converts the chosen move into a KO, when the selected Max Move has a strategic payoff, or when known / predicted Fake Out-style flinch or Roar / Whirlwind-style phazing would stop the selected damaging move from resolving. Mega Evolution spends for target-form ability, Speed, damage, and defensive payoff, while still allowing setup-turn delay and pre-Mega `Air Lock` / `Cloud Nine` preservation. Z-Moves can be conserved, but can also be spent early when trap pressure or immediate threat makes the damage race better.
 
@@ -244,6 +246,9 @@ AI may delay Mega Evolution or Ultra Burst on setup turns, but can still spend i
 
 ## `AI_FLAG_SMART_Z_MOVE`
 AI keeps Z-Move spending under smart gimmick timing. It still uses the existing Z-Move viability checks, including avoiding Z-Moves that are unnecessary for a KO or invalid for the selected move. Under `AI_FLAG_SMART_GIMMICK_TIMING`, damaging Z-Moves are conserved unless the AI is on its last available Pokemon, the Z-Move converts the selected move into a KO, the Z-Move improves a damage race under immediate KO or trap pressure, or the Z-Move secures a low-accuracy KO line. Status Z-Moves keep their existing tactical checks.
+
+## `AI_FLAG_GIMMICK_ENV_ITEMLESS`
+Marks a debug or configured gimmick ruleset where explicit trainer Z-Move candidates can use type-based Z-Moves without holding Z-Crystals. This is an environment unlock, not a timing rule. Pair it with `AI_FLAG_SMART_GIMMICK` or use `AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS` when the trainer should also make smart spend / conserve decisions.
 
 ## `AI_FLAG_ENV_INVERSE_BATTLE`
 Marks an AI preset as intended for inverse-battle environments. The actual inverse type matchup still comes from `B_FLAG_INVERSE_BATTLE`; this flag is mainly useful when composing trainer AI flags for an inverse ruleset.
