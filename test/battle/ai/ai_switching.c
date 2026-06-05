@@ -2093,6 +2093,53 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_MON_CHOICES: AI will properly consider immu
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI can double switch out of bad double positions when neither partner can cover")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 0) == TYPE_ROCK);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 1) == TYPE_GROUND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_BLASTOISE) { Level(50); Speed(20); Moves(MOVE_WATER_GUN); }
+        PLAYER(SPECIES_SHUCKLE) { Level(50); Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_GEODUDE) { Level(50); Speed(10); Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Level(50); Speed(10); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_LOMBRE) { Level(50); Speed(10); Moves(MOVE_MEGA_DRAIN); }
+        OPPONENT(SPECIES_LOMBRE) { Level(50); Speed(10); Moves(MOVE_MEGA_DRAIN); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_WATER_GUN, target:opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_SWITCH(opponentLeft, 3);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI stays in a bad double position when partner can cover")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
+        ASSUME(GetMoveType(MOVE_MEGA_DRAIN) == TYPE_GRASS);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 0) == TYPE_ROCK);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 1) == TYPE_GROUND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_BLASTOISE) { Level(50); Speed(20); Moves(MOVE_WATER_GUN); }
+        PLAYER(SPECIES_SHUCKLE) { Level(50); Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_GEODUDE) { Level(50); Speed(10); Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_LOMBRE) { Level(50); Speed(10); Moves(MOVE_MEGA_DRAIN); }
+        OPPONENT(SPECIES_ARON) { Level(50); Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_ARON) { Level(50); Speed(10); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_WATER_GUN, target:opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_SCRATCH);
+            EXPECT_MOVE(opponentRight, MOVE_MEGA_DRAIN, target:playerLeft);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI won't switch out due to bad odds if it can OHKO with a priority move")
 {
     PASSES_RANDOMLY(100, 100, RNG_AI_SWITCH_HASBADODDS);

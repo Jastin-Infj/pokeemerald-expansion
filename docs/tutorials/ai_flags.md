@@ -158,6 +158,7 @@ Affects when the AI chooses to switch. AI will make smarter decisions about when
 * It can take advantage of Natural Cure or Regenerator
 * Its Encore’d into something bad
 * Its primary attacking stats are sufficiently lowered
+* In double battles, one or both active Pokemon are in a bad position: the active Pokemon has no meaningful pressure into either opposing slot, is threatened by either opposing slot, has enough HP to preserve, and its partner cannot cover the threat. This check is deterministic once the strict position conditions are met, and it avoids overriding the existing Intimidate-blocker contract.
 * Its "odds are bad", which is a generic "try to make smart, player-like decisions generally speaking" check. Switches can be triggered if the player has a good switchin candidate (`AI_FLAG_SMART_MON_CHOICES`), and:
 * The current mon has a bad type matchup and doesn’t have a super effective move and has at least ½ HP, or ¼ HP and Regenerator, or
 * The current mon loses the 1v1 quickly and has at least ½ HP, or ¼ and Regenerator

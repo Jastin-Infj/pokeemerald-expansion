@@ -51,6 +51,7 @@ bool32 IsSwitchinTSpikesAffected(enum BattlerId battler);
 static bool32 IsOpponentPhysicalAttacker(enum BattlerId battler, enum BattlerId opposingBattler);
 static bool32 CanIntimidateLowerOpponentAtk(enum BattlerId battler, enum BattlerId opposingBattler);
 static bool32 ShouldSwitchIfIntimidateBenefit(struct SwitchAiContext *switchContext);
+static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
 
@@ -416,6 +417,183 @@ static bool32 ShouldSwitchIfHasBadOdds(struct SwitchAiContext *switchContext)
         }
     }
     return FALSE;
+}
+
+static bool32 CanDoubleBattlerMakeProgress(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId battler = switchContext->battler;
+    enum BattlerId opposingBattler = switchContext->opposingBattler;
+    enum BattlerId opposingPartner = BATTLE_PARTNER(opposingBattler);
+
+    if (CanUseSuperEffectiveMoveAgainstOpponents(battler, opposingBattler))
+        return TRUE;
+
+    if (GetBestNoOfHitsToKO(battler, opposingBattler, AI_ATTACKING) <= 2)
+        return TRUE;
+
+    if (IsBattlerAlive(opposingPartner) && GetBestNoOfHitsToKO(battler, opposingPartner, AI_ATTACKING) <= 2)
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 IsDoubleBattlerUnderPressureFrom(enum BattlerId opposingBattler, enum BattlerId battler)
+{
+    if (!IsBattlerAlive(opposingBattler))
+        return FALSE;
+
+    if (GetBestNoOfHitsToKO(opposingBattler, battler, AI_DEFENDING) == 1)
+        return TRUE;
+
+    if (GetBattlerTypeMatchup(opposingBattler, battler) > UQ_4_12(2.0))
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 IsDoubleBattlerUnderPressure(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId opposingBattler = switchContext->opposingBattler;
+    enum BattlerId opposingPartner = BATTLE_PARTNER(opposingBattler);
+
+    if (IsDoubleBattlerUnderPressureFrom(opposingBattler, switchContext->battler))
+        return TRUE;
+
+    if (IsDoubleBattlerUnderPressureFrom(opposingPartner, switchContext->battler))
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 CanDoublePartnerCoverPosition(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId partner = BATTLE_PARTNER(switchContext->battler);
+    enum BattlerId opposingBattler = switchContext->opposingBattler;
+    enum BattlerId opposingPartner = BATTLE_PARTNER(opposingBattler);
+
+    if (!IsBattlerAlive(partner))
+        return FALSE;
+
+    if (CanUseSuperEffectiveMoveAgainstOpponents(partner, opposingBattler))
+        return TRUE;
+
+    if (GetBestNoOfHitsToKO(partner, opposingBattler, AI_ATTACKING) <= 2)
+        return TRUE;
+
+    if (IsBattlerAlive(opposingPartner) && GetBestNoOfHitsToKO(partner, opposingPartner, AI_ATTACKING) <= 2)
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 ShouldAvoidDoublePositionIntimidateCycle(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId opposingBattler = switchContext->opposingBattler;
+    enum BattlerId opposingPartner = BATTLE_PARTNER(opposingBattler);
+
+    if (gAiLogicData->abilities[switchContext->battler] != ABILITY_INTIMIDATE)
+        return FALSE;
+
+    if (CanIntimidateLowerOpponentAtk(switchContext->battler, opposingBattler))
+        return FALSE;
+
+    if (IsBattlerAlive(opposingPartner) && CanIntimidateLowerOpponentAtk(switchContext->battler, opposingPartner))
+        return FALSE;
+
+    return TRUE;
+}
+
+static uq4_12_t GetWorstDoubleTypeMatchupAgainstTypes(enum BattlerId opposingBattler, enum BattlerId opposingPartner, enum Type defType1, enum Type defType2)
+{
+    uq4_12_t matchup = GetTypeMatchupAgainstTypes(opposingBattler, defType1, defType2);
+    uq4_12_t partnerMatchup;
+
+    if (IsBattlerAlive(opposingPartner))
+    {
+        partnerMatchup = GetTypeMatchupAgainstTypes(opposingPartner, defType1, defType2);
+        if (partnerMatchup > matchup)
+            matchup = partnerMatchup;
+    }
+
+    return matchup;
+}
+
+static u32 FindDoublePositionSwitchin(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId opposingBattler = switchContext->opposingBattler;
+    enum BattlerId opposingPartner = BATTLE_PARTNER(opposingBattler);
+    uq4_12_t currentMatchup = GetWorstDoubleTypeMatchupAgainstTypes(opposingBattler, opposingPartner, gBattleMons[switchContext->battler].types[0], gBattleMons[switchContext->battler].types[1]);
+    uq4_12_t bestMatchup = currentMatchup;
+    u32 bestMonId = PARTY_SIZE;
+
+    for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
+    {
+        enum Species species;
+        enum Type type1, type2;
+        uq4_12_t switchinMatchup;
+
+        if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
+            continue;
+
+        species = GetMonData(&switchContext->party[monIndex], MON_DATA_SPECIES);
+        type1 = GetSpeciesType(species, 0);
+        type2 = GetSpeciesType(species, 1);
+        switchinMatchup = GetWorstDoubleTypeMatchupAgainstTypes(opposingBattler, opposingPartner, type1, type2);
+
+        if (switchinMatchup < bestMatchup)
+        {
+            bestMonId = monIndex;
+            bestMatchup = switchinMatchup;
+        }
+    }
+
+    return bestMonId;
+}
+
+static bool32 ShouldPreserveDoubleBattler(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId battler = switchContext->battler;
+
+    if (gBattleMons[battler].hp >= gBattleMons[battler].maxHP / 2)
+        return TRUE;
+
+    if (gAiLogicData->abilities[battler] == ABILITY_REGENERATOR && gBattleMons[battler].hp >= gBattleMons[battler].maxHP / 4)
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext)
+{
+    u32 switchinId;
+
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
+        return FALSE;
+
+    if (!IsDoubleBattle())
+        return FALSE;
+
+    switchinId = FindDoublePositionSwitchin(switchContext);
+
+    if (!ShouldPreserveDoubleBattler(switchContext))
+        return FALSE;
+
+    if (switchContext->hasImportantStatusMove || switchContext->hasStatRaised)
+        return FALSE;
+
+    if (ShouldAvoidDoublePositionIntimidateCycle(switchContext))
+        return FALSE;
+
+    if (CanDoubleBattlerMakeProgress(switchContext))
+        return FALSE;
+
+    if (!IsDoubleBattlerUnderPressure(switchContext))
+        return FALSE;
+
+    if (CanDoublePartnerCoverPosition(switchContext))
+        return FALSE;
+
+    return SetSwitchinAndSwitch(switchContext->battler, switchinId);
 }
 
 static bool32 ShouldSwitchIfTruant(struct SwitchAiContext *switchContext)
@@ -1437,6 +1615,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
     if (ShouldSwitchIfBadlyStatused(&switchContext))
         return TRUE;
     if (ShouldSwitchIfAbilityBenefit(&switchContext))
+        return TRUE;
+    if (ShouldSwitchIfDoublePositionBad(&switchContext))
         return TRUE;
     if (ShouldSwitchIfWishPassing(&switchContext))
         return TRUE;

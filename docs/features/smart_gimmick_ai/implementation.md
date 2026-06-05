@@ -7,7 +7,9 @@ The feature adds smart timing flags for battle gimmicks, expands Dynamax timing 
 Runtime files:
 
 - `include/constants/battle_ai.h`
+- `src/battle_ai_switch.c`
 - `src/battle_ai_util.c`
+- `test/battle/ai/ai_switching.c`
 - `test/battle/ai/ai_smart_gimmick.c`
 
 Documentation:
@@ -36,6 +38,8 @@ For Mega / Ultra Burst, `ShouldUseSmartMega()` now looks at the target form befo
 
 For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability checks. Status Z-Moves keep their tactical checks. Damaging Z-Moves are conserved unless the AI is on its last Pokemon, the Z-Move converts the selected move into a KO, improves the damage race under immediate KO or trap pressure, or protects a low-accuracy KO line.
 
+For double battle switching, `ShouldSwitchIfDoublePositionBad()` adds a VGC-style positioning check under `AI_FLAG_SMART_SWITCHING`. The AI may hard switch when the active Pokemon has no meaningful pressure into either opposing slot, is threatened by either opposing slot, has enough HP to be worth preserving, and its partner cannot cover the position. The check stays out of `AI_FLAG_SEQUENCE_SWITCHING`, respects existing no-switch gates, avoids overriding the existing Intimidate-blocker contract, and allows double switches when both active Pokemon are pinned.
+
 ## Tests Added
 
 - Conservation baseline: keeps Dynamax unused when another Dynamax user remains and the move has no immediate payoff.
@@ -46,6 +50,8 @@ For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability che
 - Smart Z last Pokemon: spends a damaging Z-Move when no reserve remains.
 - Smart Z trap pressure: spends a damaging Z-Move when trapped and the Z-Move improves the damage race.
 - Smart Mega Shadow Tag: spends Mega Evolution when the target form's ability creates immediate trapping pressure.
+- Smart Switching doubles: can double switch out of bad double positions when neither partner can cover.
+- Smart Switching doubles guard: stays in a bad position when the partner can cover the target.
 - Existing Tera, Mega, Z-Move, and combined environment tests remain in `ai_smart_gimmick.c`.
 
 ## Validation
@@ -56,6 +62,7 @@ For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability che
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'`: pass, 1 test.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
+- `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
 - `rtk make -j16 -O all`: pass.
 - `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.

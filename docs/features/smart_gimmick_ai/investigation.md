@@ -11,6 +11,7 @@ This investigation records the VGC references used to tune smart gimmick timing.
 | [Luca Ceribelli Worlds 2024 report, Victory Road](https://victoryroad.pro/2024/09/22/luca-ceribelli-worlds-report/) | Player report and team context for the 2024 winning team. |
 | [Bulbagarden 2024 finals recap](https://www.bulbagarden.net/threads/luca-ceribelli-wins-the-2024-pokemon-world-championships-in-vgc-day-3-finals-results.302963/) | Turn-level public recap for the 2024 finals. |
 | [VGC Guide: Protect in Battle](https://www.vgcguide.com/protect-in-battle) | Reference for defensive timing, double-battle pressure, and not committing every resource immediately. |
+| [VGC Guide: Coming from Single Battles](https://www.vgcguide.com/coming-from-single-battles) | Reference for doubles positioning: switching happens frequently in VGC, double targets are central, and switching can reset volatile pressure or reuse entry abilities such as `Intimidate` and `Fake Out`. |
 | [VGC Guide: Dynamax Candy and Max Soup](https://www.vgcguide.com/dynamax-candy-and-max-soup) | Reference for Max Move value and Gigantamax / Dynamax preparation context. |
 | [Pokemon Worlds 2022 VGC Masters Grand Finals](https://www.youtube.com/watch?v=UldeXA6T4_A) | Official VOD for Gen 8 Dynamax-era resource timing review. |
 | [Pokemon Worlds 2019 VGC Masters Finals](https://www.youtube.com/watch?v=hBBjcnADWDI) | Official VOD for Gen 7 Mega / Z-Move resource timing review. |
@@ -36,6 +37,7 @@ The 2024 official VOD had English auto-captions available through `yt-dlp`; the 
 
 - Gimmick availability is not the same as correct timing. The AI needs a reason to spend the resource.
 - Doubles makes Speed control and side-wide effects more valuable than singles. `Max Airstream`, `Max Strike`, and side-wide stat Max Moves should be considered board payoffs, not only damage conversions.
+- Doubles should not suppress switching only because two Pokemon are on the field. VGC positioning still uses frequent switches to preserve board state, reset volatile effects, and reuse entry abilities. Runtime double switching should therefore consider whether the active Pokemon has useful pressure, whether it is under pressure from either opposing slot, and whether its partner can cover the threat.
 - Weather and terrain Max Moves should use existing AI field-status opinions so they are only spent when the field state helps the AI side or disrupts an unfavorable field.
 - Tera should remain calculation-led: offensive boost, defensive survival, and explicit candidate handling are more important than automatic first-turn activation.
 - Mega Evolution should be delayed when the base form has continuing value, such as `Air Lock` / `Cloud Nine` during active weather, but spent when the target form creates immediate ability, Speed, damage, or defensive payoff.
