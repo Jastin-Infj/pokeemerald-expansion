@@ -53,6 +53,28 @@ Recommended knowledge tags:
 
 The AI may act on inferred information, but high-risk actions should require either high confidence or an aggressive / read-oriented style profile.
 
+## Catalog Automation Policy
+
+Large-scale collection should be staged through generated catalogs instead of one-off AI branches.
+
+The first local generator is:
+
+```sh
+cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog --pretty
+```
+
+This generator reads the current expansion source and emits JSON for moves, abilities, hold effects, items, gimmick resource policy, and a summary. It is the base layer for later Pokemon Wiki / VGC / Champions / trainer-party adapters.
+
+The merge order should be:
+
+1. local expansion catalog: constants, config-gated move fields, AI knowledge flags, and item hold effects.
+2. checked-in trainer-party / PartyGen catalogs: trainer-owned sets and debug fixtures.
+3. external category audits: Pokemon Wiki categories and official mechanic references.
+4. usage / tournament adapters: VGC, official singles events, Champions ranking / usage data, and player result data.
+5. observed battle history: revealed moves, items, abilities, switches, gimmick timing, and target choices.
+
+Every merged fact needs a source tag and confidence bucket. The catalog may suggest that a species likely has `Protect`, `Fake Out`, a common Tera Type, or a common setup move, but the runtime must still distinguish that from observed or omniscient information.
+
 ## Resource Priority Policy
 
 Mega / Ultra Burst is not the same kind of resource as Z-Move, Dynamax, or Tera.

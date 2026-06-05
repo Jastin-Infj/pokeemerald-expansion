@@ -97,6 +97,26 @@ The first runtime layer is now exposed through `include/battle_ai_util.h`:
 
 `AI_CanBattlerIgnorePredictedMove()` is the first ability / item bridge. It uses Mold Breaker-sanitized abilities and active item checks, then recognizes `Aroma Veil`, Gen 6+ `Oblivious` versus `Taunt`, `Mental Herb`, `Magic Bounce`, `Soundproof`, `Bulletproof`, powder immunity through `IsAffectedByPowderMove()`, and `Good as Gold`. Predicted-Taunt switching now calls this shared predicate instead of keeping a local Taunt-only copy.
 
+## Runtime Catalog Automation
+
+The first "large collection" pass is now a local catalog generator:
+
+```sh
+cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog --pretty
+```
+
+The generator reads the local expansion runtime and emits review JSON for:
+
+- moves, including core move fields, move-shape flags, conditional config / generation-gated expressions, and AI move knowledge tags.
+- abilities, including constants and AI ability knowledge tags parsed from `AI_GetAbilityKnowledgeFlags`.
+- hold effects, including constants and AI hold-effect knowledge tags parsed from `AI_GetHoldEffectKnowledgeFlags`.
+- items, including hold effects / params and inherited item knowledge tags.
+- gimmick resource policy for Mega / Z-Move / Dynamax / Tera arbitration.
+
+This is the required first stage before expanding AI scoring. The generated JSON is not treated as battle truth by itself; it is a review / inference artifact that later adapters can merge with Champions PartyGen output, Pokemon Wiki category audits, VGC / official tournament usage, and observed battle history.
+
+Generated catalog data must keep source and confidence tags when it is used for prediction. Inferred data is not omniscient data.
+
 ## Runtime Knowledge Layers
 
 Use these layers when adding knowledge.
@@ -204,14 +224,15 @@ This keeps runtime behavior explainable. The AI should not switch because "Taunt
 ## Priority Queue
 
 1. **Already started:** predicted `Taunt` punishment and stay-in guards.
-2. **Move denial cluster:** `Encore`, `Torment`, `Disable`, `Heal Block`, `Imprison`, `Throat Chop`, `Taunt` follow-up behavior.
-3. **Reflection / stealing cluster:** `Magic Coat`, `Magic Bounce`, `Snatch`, `Substitute`, `Protect`, `Good as Gold`.
-4. **Ability mutability cluster:** `Skill Swap`, `Role Play`, `Entrainment`, `Worry Seed`, `Gastro Acid`, `Simple Beam`, `Doodle`, `Mummy`, `Lingering Aroma`, `Ability Shield`, "cannot overwrite / suppress" abilities.
-5. **Combo / latent state cluster:** `Defense Curl` + `Rollout` / `Ice Ball`, `Rage`, `Fury Cutter`, `Echoed Voice`, `Stockpile`, `Charge`, `Focus Energy`, `Lucky Chant`, `Laser Focus`.
-6. **Board-control cluster:** weather, terrain, room, screens, veil, hazards, trapping, phazing, redirection, Follow Me / Rage Powder.
-7. **Move-shape ability cluster:** `Soundproof`, `Bulletproof`, `Sharpness`, `Iron Fist`, `Strong Jaw`, `Mega Launcher`, `Punk Rock`, `Wind Rider`, `Wind Power`, `Dancer`.
-8. **Status and item cluster:** cures, self-status, status-benefit abilities, Mental Herb, Covert Cloak, Protective Pads, Flame / Toxic Orb, terrain seeds.
-9. **Information and reason cluster:** knowledge source, confidence, predicted action, board advantage, reserve value, risk profile, and reason tags.
+2. **Catalog automation:** generate local runtime JSON, then compare it against Pokemon Wiki / usage adapters without treating inferred data as omniscient.
+3. **Move denial cluster:** `Encore`, `Torment`, `Disable`, `Heal Block`, `Imprison`, `Throat Chop`, `Taunt` follow-up behavior.
+4. **Reflection / stealing cluster:** `Magic Coat`, `Magic Bounce`, `Snatch`, `Substitute`, `Protect`, `Good as Gold`.
+5. **Ability mutability cluster:** `Skill Swap`, `Role Play`, `Entrainment`, `Worry Seed`, `Gastro Acid`, `Simple Beam`, `Doodle`, `Mummy`, `Lingering Aroma`, `Ability Shield`, "cannot overwrite / suppress" abilities.
+6. **Combo / latent state cluster:** `Defense Curl` + `Rollout` / `Ice Ball`, `Rage`, `Fury Cutter`, `Echoed Voice`, `Stockpile`, `Charge`, `Focus Energy`, `Lucky Chant`, `Laser Focus`.
+7. **Board-control cluster:** weather, terrain, room, screens, veil, hazards, trapping, phazing, redirection, Follow Me / Rage Powder.
+8. **Move-shape ability cluster:** `Soundproof`, `Bulletproof`, `Sharpness`, `Iron Fist`, `Strong Jaw`, `Mega Launcher`, `Punk Rock`, `Wind Rider`, `Wind Power`, `Dancer`.
+9. **Status and item cluster:** cures, self-status, status-benefit abilities, Mental Herb, Covert Cloak, Protective Pads, Flame / Toxic Orb, terrain seeds.
+10. **Information and reason cluster:** knowledge source, confidence, predicted action, board advantage, reserve value, risk profile, and reason tags.
 
 ## Implementation Rules
 

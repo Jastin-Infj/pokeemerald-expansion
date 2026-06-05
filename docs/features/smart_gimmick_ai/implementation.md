@@ -17,6 +17,10 @@ Documentation:
 - `docs/tutorials/ai_flags.md`
 - `docs/features/smart_gimmick_ai/`
 
+Tooling:
+
+- `tools/runtime_knowledge/`
+
 ## Runtime Behavior
 
 `DecideGimmickBeforeMoveSelection()` still handles the early smart-gimmick gate. `ReconsiderSmartGimmick()` then checks the chosen move and cancels the gimmick when the selected turn is not worth spending.
@@ -59,6 +63,8 @@ Status-aware board-control support includes:
 
 AI runtime knowledge now has a shared move / ability / item interpretation layer in `battle_ai_util`. The layer maps existing move flags into AI categories such as sound, bullet, powder, slicing, punching, biting, pulse, dance, wind, healing, Magic Coat, Snatch, ability-control, move-denial, and combo-state. It also maps abilities into strategy groups such as move immunity, move power, damage race, status interaction, field control, positioning, ability control, stat control, item control, priority, and form / state. Held items are mapped through hold effects into damage race, defensive race, stat control, Speed / order control, recovery, status cure, self-status, field duration, contact / hit punishment, move-shape modifiers, ability protection, choice lock, positioning, and gimmick unlock. It also exposes `AI_CanBattlerIgnorePredictedMove()`, which bridges active abilities and held items for prediction decisions using Mold Breaker-sanitized ability checks and enabled-item checks. Predicted-Taunt switching now calls this shared predicate instead of maintaining a local Taunt-only copy.
 
+`tools/runtime_knowledge` adds the first offline catalog generator for larger knowledge collection. It is a Rust tool with no third-party crates. The generator reads the local expansion source and writes review JSON for moves, abilities, hold effects, items, gimmick policy, and a summary. This gives later Pokemon Wiki, VGC / official tournament, Champions usage, PartyGen, and observed-history adapters a local runtime baseline instead of requiring one-off source audits for every AI heuristic.
+
 Predicted-Taunt support is intentionally separate from "bad move" switching. `ShouldSwitchIfPredictedTauntPunish()` only runs when `AI_FLAG_SMART_SWITCHING` and `AI_FLAG_PREDICT_MOVE` are both active and the incoming move is predicted as `Taunt`. It requires the current Pokemon to depend on important status moves, rejects positions where the current Pokemon can already damage-race or 2HKO the target, and skips Pokemon protected by `Aroma Veil`, Gen 6+ `Oblivious`, or an enabled Gen 5+ `Mental Herb`. If those gates pass, the selector evaluates eligible reserves as free switch-ins and chooses a damaging attacker that can win the immediate 1v1 or cross the switch-in damage threshold. The goal is to model "pivot an attacker into a predicted Taunt" without making the AI flee only because Taunt would block a utility move.
 
 ## Tests Added
@@ -82,6 +88,7 @@ Predicted-Taunt support is intentionally separate from "bad move" switching. `Sh
 - Smart Switching ability bridge pivot: switches in Skill Swap support when a partner board-control ability creates a bridge plan.
 - Smart Switching Taunt reads: pivots an attacker into a predicted `Taunt`, stays in when the active Pokemon can punish with damage, and stays in when the active Pokemon ignores Taunt.
 - Runtime knowledge layer: verifies AI move-category flags, ability-category flags, item / hold-effect category flags, and predicted-move immunity bridges for Magic Bounce, Safety Goggles / powder immunity, and ordinary non-ignored moves.
+- Runtime knowledge catalog tool: generates local runtime review JSON for 935 moves, 319 abilities, 130 hold effects, 874 items, and 4 gimmick policies.
 - Existing Tera, Mega, Z-Move, and combined environment tests remain in `ai_smart_gimmick.c`.
 
 ## Validation
@@ -95,6 +102,8 @@ Predicted-Taunt support is intentionally separate from "bad move" switching. `Sh
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, and predicted-Taunt attacker pivot / stay-in guards through the shared predicted-move immunity predicate.
+- `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
+- `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`: pass. Generated 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and a valid summary.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
 - `rtk make -j16 -O all`: pass.
 - `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.

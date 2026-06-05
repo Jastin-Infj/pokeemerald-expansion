@@ -14,6 +14,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 ## Runtime Intent
 
 - Trainer data says a gimmick is available; smart AI decides whether this turn is worth spending it.
+- Large-scale runtime knowledge collection starts from the local expansion catalog, then adds Pokemon Wiki, VGC / official tournament, Champions usage, PartyGen, and observed-history adapters with explicit source and confidence tags.
 - Tera should be held until there is offensive payoff, defensive payoff, or a specific target interaction.
 - Dynamax should be held unless the AI has last-Pokemon pressure, survival pressure, KO conversion, or a Max Move board payoff.
 - Dynamax can also be spent defensively to keep a selected damaging move live through known or predicted Fake Out-style flinch or Roar / Whirlwind-style phazing.
@@ -95,3 +96,7 @@ See `docs/tutorials/ai_flags.md` for the ID table and expected first-turn behavi
 - [AI Runtime Knowledge Audit](runtime_knowledge_audit.md)
 - [Runtime Re-evaluation Spec](runtime_reevaluation_spec.md)
 - [Test Plan](test_plan.md)
+
+## Tools
+
+- `tools/runtime_knowledge`: Rust catalog generator for local move, ability, hold-effect, item, and gimmick-policy review JSON.
