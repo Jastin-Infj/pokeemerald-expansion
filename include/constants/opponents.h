@@ -867,7 +867,7 @@
 #define TRAINER_SMART_GIMMICK_DMAX_TERA     860
 #define TRAINER_SMART_GIMMICK_ALL_SINGLE    861
 #define TRAINER_SMART_GIMMICK_ALL_DOUBLE    862
-#define TRAINER_SMART_GIMMICK_NO_GIMMICK    863
+#define TRAINER_SMART_SWITCH_DEBUG          863
 
 // NOTE: Because each Trainer uses a flag to determine when they are defeated, there is only space for 9 additional trainers before trainer flag space overflows
 //       More space can be made by shifting flags around in constants/flags.h or changing how trainer flags are handled

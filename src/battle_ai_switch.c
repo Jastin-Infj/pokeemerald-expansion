@@ -53,6 +53,7 @@ static bool32 CanIntimidateLowerOpponentAtk(enum BattlerId battler, enum Battler
 static bool32 ShouldSwitchIfIntimidateBenefit(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
+static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
 
@@ -2348,6 +2349,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
         return TRUE;
     if (ShouldSwitchIfTruant(&switchContext))
         return TRUE;
+    if (ShouldSwitchIfPredictedTauntPunish(&switchContext))
+        return TRUE;
     if (ShouldSwitchIfAllMovesBad(&switchContext))
         return TRUE;
     if (ShouldSwitchIfBadlyStatused(&switchContext))
@@ -3101,6 +3104,132 @@ static inline bool32 CanSwitchinWin1v1(u32 hitsToKOAI, u32 hitsToKOPlayer, bool3
     if (hitsToKOAI > hitsToKOPlayer + 1 || (hitsToKOAI == hitsToKOPlayer + 1 && isSwitchinFirst))
         return TRUE;
     return FALSE;
+}
+
+static bool32 BattlerCanPunishTauntInPlace(struct SwitchAiContext *switchContext)
+{
+    if (switchContext->hasEffectiveMove || switchContext->canBattlerWin1v1)
+        return TRUE;
+
+    return GetBestNoOfHitsToKO(switchContext->battler, switchContext->opposingBattler, AI_ATTACKING) <= 2;
+}
+
+static bool32 BattlerCanIgnorePredictedTaunt(enum BattlerId battler)
+{
+    if (AI_IsAbilityOnSide(battler, ABILITY_AROMA_VEIL))
+        return TRUE;
+    if (GetConfig(B_OBLIVIOUS_TAUNT) >= GEN_6 && gAiLogicData->abilities[battler] == ABILITY_OBLIVIOUS)
+        return TRUE;
+    if (B_MENTAL_HERB >= GEN_5 && gAiLogicData->holdEffects[battler] == HOLD_EFFECT_MENTAL_HERB && IsBattlerItemEnabled(battler))
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 ShouldConsiderTauntPunishSwitch(struct SwitchAiContext *switchContext)
+{
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
+        return FALSE;
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_PREDICT_MOVE))
+        return FALSE;
+    if (switchContext->incomingMove == MOVE_NONE || switchContext->incomingMove == MOVE_UNAVAILABLE)
+        return FALSE;
+    if (GetMoveEffect(switchContext->incomingMove) != EFFECT_TAUNT)
+        return FALSE;
+    if (gBattleMons[switchContext->battler].volatiles.tauntTimer != 0)
+        return FALSE;
+    if (BattlerCanIgnorePredictedTaunt(switchContext->battler))
+        return FALSE;
+    if (!switchContext->hasImportantStatusMove)
+        return FALSE;
+    if (BattlerCanPunishTauntInPlace(switchContext))
+        return FALSE;
+
+    return TRUE;
+}
+
+static u32 FindTauntPunishSwitchin(struct SwitchAiContext *switchContext)
+{
+    u32 bestMonId = PARTY_SIZE;
+    s32 bestDamage = 0;
+    struct IncomingHealInfo healInfoData;
+    const struct IncomingHealInfo *healInfo = &healInfoData;
+    struct AiLogicData *savedAiLogicData = AllocSaveAiLogicData();
+    struct BattlePokemon *savedBattleMons = AllocSaveBattleMons();
+    u32 savedNotOnField = gBattleStruct->battlerState[switchContext->battler].notOnField;
+
+    GetIncomingHealInfo(switchContext->battler, &healInfoData);
+    gBattleStruct->battlerState[switchContext->battler].notOnField = FALSE;
+
+    for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
+    {
+        enum Move bestPlayerMove = MOVE_NONE;
+        enum Move bestPlayerPriorityMove = MOVE_NONE;
+        u32 originalHp;
+        u32 hitsToKOAI;
+        u32 hitsToKOAIPriority;
+
+        if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
+            continue;
+
+        InitializeSwitchinCandidate(switchContext->battler, monIndex, &switchContext->party[monIndex]);
+        originalHp = gBattleMons[switchContext->battler].hp;
+
+        hitsToKOAI = GetSwitchinHitsToKO(GetMaxDamagePlayerCouldDealToSwitchin(switchContext->battler, switchContext->opposingBattler, &bestPlayerMove), switchContext->battler, healInfo, originalHp);
+        hitsToKOAIPriority = GetSwitchinHitsToKO(GetMaxPriorityDamagePlayerCouldDealToSwitchin(switchContext->battler, switchContext->opposingBattler, &bestPlayerPriorityMove), switchContext->battler, healInfo, originalHp);
+
+        for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+        {
+            enum Move move = gBattleMons[switchContext->battler].moves[moveIndex];
+            s32 damage;
+            u32 hitsToKOPlayer;
+            bool32 isSwitchinFirst;
+            bool32 isSwitchinFirstPriority;
+
+            if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+                continue;
+            if (gBattleMons[switchContext->battler].pp[moveIndex] == 0)
+                continue;
+
+            damage = AI_GetDamage(switchContext->battler, switchContext->opposingBattler, moveIndex, AI_SWITCHIN_ATTACKING, gAiLogicData);
+            hitsToKOPlayer = GetNoOfHitsToKOBattler(switchContext->battler, switchContext->opposingBattler, moveIndex, AI_SWITCHIN_ATTACKING, CONSIDER_ENDURE);
+            isSwitchinFirst = AI_IsFaster(switchContext->battler, switchContext->opposingBattler, move, bestPlayerMove, CONSIDER_PRIORITY);
+            isSwitchinFirstPriority = AI_IsFaster(switchContext->battler, switchContext->opposingBattler, move, bestPlayerPriorityMove, CONSIDER_PRIORITY);
+
+            if (!CanSwitchinWin1v1(hitsToKOAI, hitsToKOPlayer, isSwitchinFirst, TRUE)
+             || !CanSwitchinWin1v1(hitsToKOAIPriority, hitsToKOPlayer, isSwitchinFirstPriority, TRUE))
+                continue;
+
+            if (hitsToKOPlayer <= 2 || damage > AI_SWITCHIN_DAMAGE_THRESHOLD)
+            {
+                if (bestMonId == PARTY_SIZE || damage > bestDamage)
+                {
+                    bestMonId = monIndex;
+                    bestDamage = damage;
+                }
+            }
+        }
+    }
+
+    gBattleStruct->battlerState[switchContext->battler].notOnField = savedNotOnField;
+    FreeRestoreAiLogicData(savedAiLogicData);
+    FreeRestoreBattleMons(savedBattleMons);
+
+    return bestMonId;
+}
+
+static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext)
+{
+    u32 switchinId;
+
+    if (!ShouldConsiderTauntPunishSwitch(switchContext))
+        return FALSE;
+
+    switchinId = FindTauntPunishSwitchin(switchContext);
+    if (switchinId == PARTY_SIZE)
+        return FALSE;
+
+    return SetSwitchinAndSwitch(switchContext->battler, switchinId);
 }
 
 // This function splits switching behaviour depending on whether the switch is free.

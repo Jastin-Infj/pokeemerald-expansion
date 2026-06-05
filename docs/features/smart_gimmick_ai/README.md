@@ -21,6 +21,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Z-Moves remain behind viability and smart timing checks instead of firing only because a Z-Crystal exists.
 - Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
 - Smart switching can also use terrain seeds, status pressure / status prevention, status-benefit switch-ins, and Skill Swap-style ability bridges when those plans create board control.
+- Smart switching can read a predicted `Taunt` as a free-positioning turn: a utility-heavy active Pokemon that cannot punish Taunt in place may pivot directly to an attacker, while Pokemon that can already attack, win the matchup, or ignore Taunt stay in.
 
 ## Current Mega / Ultra Burst Payoffs
 
@@ -67,6 +68,8 @@ Singles remain more conservative; the AI still needs bad odds, bad matchup, weak
 
 Status-aware switching currently covers non-volatile status pressure, secondary status / freeze / frostbite effects, `Yawn`, `Toxic Spikes`, `Leech Seed`, `Swagger`, confusion pressure, `Heal Bell` / `Aromatherapy`, `Safeguard`, `Misty Terrain`, self-status item plans, `Guts`, `Quick Feet`, `Marvel Scale`, `Magic Guard`, `Poison Heal`, `Toxic Boost`, `Flare Boost`, `Facade`, and `Psycho Shift`.
 
+Predicted-Taunt switching is treated as a positive pivot only when the incoming move is actually predicted as `Taunt`, the active Pokemon depends on important status moves, and the active Pokemon cannot punish with damage. The branch does not fire if the active Pokemon is already Taunted, can damage-race the target, is protected by `Aroma Veil`, has Gen 6+ `Oblivious`, or has an enabled Gen 5+ `Mental Herb`.
+
 ## VGC Reference Notes
 
 These runtime heuristics are source-derived rather than copied from a single match:
@@ -79,7 +82,9 @@ These runtime heuristics are source-derived rather than copied from a single mat
 
 ## Debug Fixtures
 
-Trainer IDs `855` through `863` are reserved smart-gimmick validation fixtures. Use the debug trainer-battle flow, set Trainer 1 to the ID, then start `Try Battle`.
+Trainer IDs `855` through `863` are reserved smart-gimmick / smart-switching validation fixtures. Use the debug trainer-battle flow, set Trainer 1 to the ID, then start `Try Battle`. These consume the remaining Emerald trainer-flag slots without increasing `MAX_TRAINERS_COUNT_EMERALD`.
+
+`TRAINER_SMART_SWITCH_DEBUG` (`863`) is a double-battle fixture. Its lead utility `Zigzagoon` is intentionally vulnerable to predicted `Taunt` and status pressure; reserves include `Gengar` for direct attacking punishment, `Guts` `Ursaring` for burn-benefit pivots, and `Slowbro` for `Scald` / `Psybeam` board pressure.
 
 See `docs/tutorials/ai_flags.md` for the ID table and expected first-turn behavior.
 

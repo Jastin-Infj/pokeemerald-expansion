@@ -45,6 +45,8 @@ Smart Tera conservation counts only explicit trainer-party `Tera Type` entries a
 
 Current smart timing is still calculation-local. Tera considers explicit offensive and defensive payoff against the selected target, including doubles, but does not fully model every partner threat. Dynamax spends for last-Pokemon pressure, immediate KO pressure, when Max damage converts the chosen move into a KO, when the selected Max Move has a strategic payoff, or when known / predicted Fake Out-style flinch or Roar / Whirlwind-style phazing would stop the selected damaging move from resolving. Mega Evolution spends for target-form ability, Speed, damage, and defensive payoff, while still allowing setup-turn delay and pre-Mega `Air Lock` / `Cloud Nine` preservation. Z-Moves can be conserved, but can also be spent early when trap pressure or immediate threat makes the damage race better.
 
+Smart Switching treats a predicted `Taunt` as a possible free-positioning turn, not as a simple "status move blocked, therefore switch" trigger. If the active Pokemon is utility-heavy, cannot punish the Taunt user in place, and lacks `Aroma Veil`, Gen 6+ `Oblivious`, or an enabled Gen 5+ `Mental Herb`, the AI can pivot to an attacker that wins the immediate 1v1. If the active Pokemon can already punish with damage or ignores Taunt, it should stay in.
+
 Detailed design notes, VGC source timestamps, and validation records live in [Smart Gimmick AI](../features/smart_gimmick_ai/README.md).
 
 | Trainer ID | Constant | Expected first-turn validation |
@@ -57,7 +59,13 @@ Detailed design notes, VGC source timestamps, and validation records live in [Sm
 | 860 | `TRAINER_SMART_GIMMICK_DMAX_TERA` | Uses Water Tera on the lead `Aqua Tail` user, then keeps a separate Dynamax `Scratch` user in reserve. |
 | 861 | `TRAINER_SMART_GIMMICK_ALL_SINGLE` | Validates the all-gimmick single-battle preset with separate Mega, Tera, Dynamax, and Z-Move candidates in one party. |
 | 862 | `TRAINER_SMART_GIMMICK_ALL_DOUBLE` | Validates the all-gimmick double-battle preset with an active Mega candidate and an active Water Tera candidate. |
-| 863 | `TRAINER_SMART_GIMMICK_NO_GIMMICK` | Control trainer with the same AI baseline but no gimmick-bearing Pokemon. |
+| 863 | `TRAINER_SMART_SWITCH_DEBUG` | Double-battle Smart Switching fixture for predicted Taunt punishment, predicted status-benefit pivots, and status / secondary-effect board-control support. |
+
+For `TRAINER_SMART_SWITCH_DEBUG`, use a debug player lead that can target the AI's left `Zigzagoon`:
+
+- `Taunt`: expected behavior is a predicted-Taunt pivot from the utility `Zigzagoon` into `Gengar` when the AI finds a clean attacking punish.
+- `Will-O-Wisp`: expected behavior is a possible pivot into `Guts` `Ursaring` when the predicted burn improves the reserve plan.
+- Strong Fighting or unfavorable pressure into the AI left slot: expected behavior is a possible pivot toward `Slowbro`, which carries `Scald` / `Psybeam` status and secondary-effect pressure.
 
 `AI_FLAG_PREDICTION` will enable all of the prediction flags at once, so the AI can perform as well as possible. It is best paired with the flags in `AI_FLAG_SMART_TRAINER` for optimal behaviour. This currently includes `AI_FLAG_PREDICT_SWITCH` and `AI_FLAG_PREDICT_INCOMING_MON`, but will likely be expanded in the future.
 

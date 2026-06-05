@@ -17082,18 +17082,53 @@ IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Atk / 6 Def
 - Quick Attack
 
-=== TRAINER_SMART_GIMMICK_NO_GIMMICK ===
-Name: GIM NONE
+=== TRAINER_SMART_SWITCH_DEBUG ===
+Name: SW DEBUG
 Class: Rival
 Pic: Steven
 Gender: Male
 Music: Intense
-Double Battle: No
-AI: Basic Trainer / Omniscient
+Double Battle: Yes
+AI: Basic Trainer / Smart Switching / Smart Mon Choices / Omniscient / Predict Move
 
-Wobbuffet
+Zigzagoon
 Brave Nature
-Level: 100
+Level: 60
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 EVs: 252 HP / 252 Def / 6 SpD
-- Scratch
+- Spore
+- Reflect
+- Celebrate
+
+Zigzagoon
+Brave Nature
+Level: 60
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+
+Slowbro
+Modest Nature
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpA / 6 Def
+- Scald
+- Psybeam
+- Slack Off
+
+Ursaring
+Adamant Nature
+Ability: Guts
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Facade
+- Slash
+
+Gengar
+Timid Nature
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 6 HP / 252 SpA / 252 Spe
+- Shadow Ball
+- Sludge Bomb
