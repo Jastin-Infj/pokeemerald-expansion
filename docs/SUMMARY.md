@@ -164,6 +164,7 @@
       - [Investigation](features/smart_gimmick_ai/investigation.md)
       - [Implementation](features/smart_gimmick_ai/implementation.md)
       - [AI Runtime Knowledge Audit](features/smart_gimmick_ai/runtime_knowledge_audit.md)
+      - [Runtime Re-evaluation Spec](features/smart_gimmick_ai/runtime_reevaluation_spec.md)
       - [Test Plan](features/smart_gimmick_ai/test_plan.md)
     - [Pre-Battle / In-Battle Team Viewer](features/prebattle_team_viewer/README.md)
       - [Investigation](features/prebattle_team_viewer/investigation.md)
