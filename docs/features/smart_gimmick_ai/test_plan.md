@@ -11,13 +11,39 @@
 | Focused smart Mega tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'` | Pass on 2026-06-05; 1 test passed. |
 | Focused smart Tera tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'` | Pass on 2026-06-05; 4 tests passed. |
 | Focused smart switching tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'` | Pass on 2026-06-05. Covers double-position switching, partner-cover guard, weather / terrain reserve pivots, Tailwind / Trick Room reserve pivots, terrain seed plans, status-benefit pivots, direct and secondary status / confusion support pivots, Skill Swap bridge pivots, and predicted-Taunt attacker pivots / stay-in guards through the shared predicted-move immunity predicate. |
+| Debug trainer fixture generation | `rtk make tools/trainerproc/trainerproc`; `rtk make -j16 -O debug` | Pass on 2026-06-05. Regenerated `.party` trainer data and built the debug ROM path with the new Party menu entries. |
+| Debug battle EXP / EV gate | `rtk make -j16 -O check TESTS='Debug battles do not give exp'` | Pass on 2026-06-05; 1 test passed. Confirms `gIsDebugBattle` suppresses the EXP bar, EXP gain, and EV gain. |
+| Trainer Party Pool regression | `rtk make -j16 -O check TESTS='Trainer Party Pool'` | Pass on 2026-06-05; 9 tests passed. Covers role-filtered pool selection and weighted selection used by the debug battle fixtures. |
 | Runtime knowledge catalog tool | `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`; `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`; JSON parse of `/tmp/runtime_knowledge_catalog_rust/*.json` | Pass on 2026-06-05. Generated valid catalogs for 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and `summary.json`. |
 | Full battle / runtime checks | `rtk make -j16 -O check` | Pass on 2026-06-05. Existing known-failing / expected-failing test labels remained non-fatal. |
 | Normal ROM build | `rtk make -j16 -O all` | Pass on 2026-06-05. |
 | Docs build | `rtk mdbook build docs` | Pass on 2026-06-05 with existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
-| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-05. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen in session `smart-ai-ability-item-knowledge-20260605`; `mgba_live_stop` returned `stopped:true`. |
+| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-05. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen in session `smart-ai-ability-item-knowledge-20260605`; `mgba_live_stop` returned `stopped:true`. Current debug-fixture update also booted to title in session `debug-vgc-fixtures-20260605`, exported `/tmp/debug-vgc-fixtures-20260605.png`, stopped with `stopped:true`, and CLI `status --all` returned `[]`. |
 
 ## Manual Runtime Checks
+
+### Debug Party Battle Fixtures
+
+Build the debug ROM path first:
+
+```bash
+rtk make -j16 -O debug
+```
+
+In-game, open the overworld debug menu with `R + START` when `DEBUG_OVERWORLD_MENU` is enabled and `DEBUG_OVERWORLD_IN_MENU` is `FALSE`. Then use `Party`:
+
+- `Battle 3v3 Single`: starts a level-50 3v3 singles battle. Player side is fixed to `Dragonite`, `Gholdengo`, and `Garchomp`. AI side is selected from the `Ladder` 6-Pokemon weighted pool with 3 chosen Pokemon.
+- `Battle 4v4 Double`: starts a level-50 4v4 doubles battle. Player side is fixed to `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`. AI side is selected from the `VGC Test` 7-Pokemon weighted pool with 4 chosen Pokemon.
+
+Expected results:
+
+- The battle starts from the Party debug menu without truncating the 4v4 player side to 3 Pokemon.
+- The opposing side is generated from the `.party` pool, respecting `Party Size`, `Pool Rules`, tags, and `Pool Weight`.
+- If `B_POOL_SETTING_CONSISTENT_RNG` is `FALSE`, repeated starts can produce different opposing selections. If it is `TRUE`, selection is deterministic for the same save OTID and trainer pointer.
+- Fainting opposing Pokemon does not display the EXP bar and does not grant EXP or EVs.
+- AI behavior should use the configured `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` flags.
+
+The current mGBA Live check only reached title-screen boot for these fixtures. A progressed save or focused input route is still needed to visually confirm the new Party debug menu entries and battle intro through mGBA Live.
 
 Use the debug trainer battle flow and Trainer 1 IDs documented in `docs/tutorials/ai_flags.md`.
 

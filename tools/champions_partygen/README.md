@@ -23,6 +23,12 @@ Set `lintTags` are also catalog-only. Use them for weather, terrain, and
 pledge-side concepts that should be linted but should not be emitted to
 trainerproc `Tags`.
 
+Catalog weights should materialize as trainerproc `Pool Weight: 1-15` values
+only after legality, blueprint, role, and tag constraints have selected the
+candidate pool. Runtime tags remain mandatory for Lead / Ace / weather /
+support slot behavior; `Pool Weight` only changes how often eligible candidates
+appear within those tagged pools.
+
 The default catalog currently owns the Elite Four run-up
 (`TRAINER_SIDNEY` through `TRAINER_DRAKE`) plus the Wallace demo slot.
 

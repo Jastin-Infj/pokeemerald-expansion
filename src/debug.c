@@ -50,6 +50,7 @@
 #include "string_util.h"
 #include "task.h"
 #include "tv.h"
+#include "trainer_pools.h"
 #include "pokemon_summary_screen.h"
 #include "wild_encounter.h"
 #include "constants/abilities.h"
@@ -246,6 +247,7 @@ static EWRAM_DATA struct DebugMonData *sDebugMonData = NULL;
 static EWRAM_DATA struct DebugMenuListData *sDebugMenuListData = NULL;
 EWRAM_DATA bool8 gIsDebugBattle = FALSE;
 EWRAM_DATA u64 gDebugAIFlags = 0;
+static EWRAM_DATA u8 sCurrentDebugAiTrainerId = 0;
 
 // *******************************
 // Define functions
@@ -301,6 +303,8 @@ static void DebugAction_Party_ClearPokerus(u8 taskId);
 static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
+static void DebugAction_Party_BattleSingles3v3(u8 taskId);
+static void DebugAction_Party_BattleDoubles4v4(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, void *selection);
@@ -639,6 +643,8 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
+    { COMPOUND_STRING("Battle 3v3 Single"),  DebugAction_Party_BattleSingles3v3 },
+    { COMPOUND_STRING("Battle 4v4 Double"),  DebugAction_Party_BattleDoubles4v4 },
     { NULL }
 };
 
@@ -4916,6 +4922,10 @@ enum DebugTrainerIds
 {
     DEBUG_TRAINER_PLAYER,
     DEBUG_TRAINER_AI,
+    DEBUG_TRAINER_PLAYER_SINGLES_3V3,
+    DEBUG_TRAINER_AI_SINGLES_3V3,
+    DEBUG_TRAINER_PLAYER_DOUBLES_4V4,
+    DEBUG_TRAINER_AI_DOUBLES_4V4,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -4926,7 +4936,10 @@ const struct Trainer sDebugTrainers[DIFFICULTY_COUNT][DEBUG_TRAINERS_COUNT] =
 
 const struct Trainer* GetDebugAiTrainer(void)
 {
-    return &sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI];
+    u8 trainerId = sCurrentDebugAiTrainerId;
+    if (trainerId == DEBUG_TRAINER_PLAYER || trainerId >= DEBUG_TRAINERS_COUNT)
+        trainerId = DEBUG_TRAINER_AI;
+    return &sDebugTrainers[DIFFICULTY_NORMAL][trainerId];
 }
 
 static void DebugAction_Party_SetParty(u8 taskId)
@@ -4937,22 +4950,43 @@ static void DebugAction_Party_SetParty(u8 taskId)
     Debug_DestroyMenu_Full(taskId);
 }
 
-static void DebugAction_Party_BattleSingle(u8 taskId)
+static void DebugAction_Party_StartDebugBattle(u8 taskId, enum DebugTrainerIds playerTrainerId, enum DebugTrainerIds aiTrainerId, bool32 halfPlayerTeam)
 {
+    const struct Trainer *playerTrainer = &sDebugTrainers[DIFFICULTY_NORMAL][playerTrainerId];
+    const struct Trainer *aiTrainer = &sDebugTrainers[DIFFICULTY_NORMAL][aiTrainerId];
+    u32 battleTypeFlags = BATTLE_TYPE_TRAINER;
+
+    if (playerTrainer->battleType == TRAINER_BATTLE_TYPE_DOUBLES || aiTrainer->battleType == TRAINER_BATTLE_TYPE_DOUBLES)
+        battleTypeFlags |= BATTLE_TYPE_DOUBLE;
+
+    sCurrentDebugAiTrainerId = aiTrainerId;
     ZeroPlayerPartyMons();
     ZeroEnemyPartyMons();
-    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_PLAYER], &sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_PLAYER], TRUE, BATTLE_TYPE_TRAINER);
-    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_OPPONENT_A], GetDebugAiTrainer(), FALSE, BATTLE_TYPE_TRAINER);
+    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_PLAYER], playerTrainer, halfPlayerTeam, battleTypeFlags);
+    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_OPPONENT_A], aiTrainer, FALSE, battleTypeFlags);
 
-    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
-    if (sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI].battleType == TRAINER_BATTLE_TYPE_DOUBLES)
-        gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
-    gDebugAIFlags = sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI].aiFlags;
+    gBattleTypeFlags = battleTypeFlags;
+    gDebugAIFlags = aiTrainer->aiFlags;
     gIsDebugBattle = TRUE;
     gBattleEnvironment = BattleSetup_GetEnvironmentId();
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
     Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_BattleSingle(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER, DEBUG_TRAINER_AI, TRUE);
+}
+
+static void DebugAction_Party_BattleSingles3v3(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_SINGLES_3V3, DEBUG_TRAINER_AI_SINGLES_3V3, FALSE);
+}
+
+static void DebugAction_Party_BattleDoubles4v4(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DOUBLES_4V4, DEBUG_TRAINER_AI_DOUBLES_4V4, FALSE);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)

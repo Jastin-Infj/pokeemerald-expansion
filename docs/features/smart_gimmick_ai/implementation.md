@@ -2,15 +2,19 @@
 
 ## Summary
 
-The feature adds smart timing flags for battle gimmicks, expands Dynamax timing beyond immediate damage, adds Mega / Ultra Burst payoff checks, and adds a smart conservation layer for damaging Z-Moves.
+The feature adds smart timing flags for battle gimmicks, expands Dynamax timing beyond immediate damage, adds Mega / Ultra Burst payoff checks, adds a smart conservation layer for damaging Z-Moves, and provides debug battle fixtures for competitive-style 3v3 singles and 4v4 doubles checks.
 
 Runtime files:
 
 - `include/constants/battle_ai.h`
 - `src/battle_ai_switch.c`
 - `src/battle_ai_util.c`
+- `src/battle_script_commands.c`
+- `src/data/debug_trainers.party`
+- `src/debug.c`
 - `test/battle/ai/ai_switching.c`
 - `test/battle/ai/ai_smart_gimmick.c`
+- `test/battle/exp.c`
 
 Documentation:
 
@@ -67,6 +71,15 @@ AI runtime knowledge now has a shared move / ability / item interpretation layer
 
 Predicted-Taunt support is intentionally separate from "bad move" switching. `ShouldSwitchIfPredictedTauntPunish()` only runs when `AI_FLAG_SMART_SWITCHING` and `AI_FLAG_PREDICT_MOVE` are both active and the incoming move is predicted as `Taunt`. It requires the current Pokemon to depend on important status moves, rejects positions where the current Pokemon can already damage-race or 2HKO the target, and skips Pokemon protected by `Aroma Veil`, Gen 6+ `Oblivious`, or an enabled Gen 5+ `Mental Herb`. If those gates pass, the selector evaluates eligible reserves as free switch-ins and chooses a damaging attacker that can win the immediate 1v1 or cross the switch-in damage threshold. The goal is to model "pivot an attacker into a predicted Taunt" without making the AI flee only because Taunt would block a utility move.
 
+The debug Party menu now exposes two focused runtime fixtures:
+
+- `Battle 3v3 Single` builds a level-50 player team of `Dragonite`, `Gholdengo`, and `Garchomp`, then pits it against a 3-Pokemon AI side selected from a 6-Pokemon weighted singles pool.
+- `Battle 4v4 Double` builds a level-50 player team of `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`, then pits it against a 4-Pokemon AI side selected from a 7-Pokemon weighted doubles pool.
+
+Both AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so these fixtures also exercise Trainer Party Pool role filtering and weighted selection.
+
+Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This prevents the EXP bar, normal EXP gain, and EV gain in debug battles, including the level-100 EV-gain path that would otherwise still occur when EXP is disabled by level.
+
 ## Tests Added
 
 - Conservation baseline: keeps Dynamax unused when another Dynamax user remains and the move has no immediate payoff.
@@ -89,6 +102,7 @@ Predicted-Taunt support is intentionally separate from "bad move" switching. `Sh
 - Smart Switching Taunt reads: pivots an attacker into a predicted `Taunt`, stays in when the active Pokemon can punish with damage, and stays in when the active Pokemon ignores Taunt.
 - Runtime knowledge layer: verifies AI move-category flags, ability-category flags, item / hold-effect category flags, and predicted-move immunity bridges for Magic Bounce, Safety Goggles / powder immunity, and ordinary non-ignored moves.
 - Runtime knowledge catalog tool: generates local runtime review JSON for 935 moves, 319 abilities, 130 hold effects, 874 items, and 4 gimmick policies.
+- Debug battle EXP gate: verifies a `gIsDebugBattle` trainer battle does not show the EXP bar and does not award EXP or EVs.
 - Existing Tera, Mega, Z-Move, and combined environment tests remain in `ai_smart_gimmick.c`.
 
 ## Validation
@@ -102,12 +116,17 @@ Predicted-Taunt support is intentionally separate from "bad move" switching. `Sh
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, and predicted-Taunt attacker pivot / stay-in guards through the shared predicted-move immunity predicate.
+- `rtk make tools/trainerproc/trainerproc`: pass. Regenerated trainer data from `.party` fixtures, including `Pool Weight`.
+- `rtk make -j16 -O check TESTS='Debug battles do not give exp'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
+- `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
 - `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
 - `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`: pass. Generated 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and a valid summary.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
+- `rtk make -j16 -O debug`: pass.
 - `rtk make -j16 -O all`: pass.
 - `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
+- mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
 
 ## Known Gaps
 
@@ -115,3 +134,4 @@ Predicted-Taunt support is intentionally separate from "bad move" switching. `Sh
 - Z-Move status tactics still rely on the existing Z-Move viability checks. More status Z-Move tactics can be modeled later.
 - Tera doubles support uses the selected target and explicit candidate data. It does not fully simulate every partner threat or all possible double-target lines.
 - G-Max unique secondary effects are not separately modeled in this slice. Regular Max Move effects are the current runtime focus.
+- The new 3v3 / 4v4 debug fixtures are runtime smoke fixtures, not exhaustive balance fixtures. They provide quick repeated checks for competitive-style teams, weighted pool selection, smart gimmick timing, and no-EXP debug battles.

@@ -112,6 +112,24 @@ flowchart TD
 
 `RandomizePoolIndices` は party index の shuffle を行う。`AI_FLAG_RANDOMIZE_PARTY_INDICES` がある場合、poolSize 0 でも partySize を temporary pool として扱う path があることを確認した。
 
+Runtime variability check:
+
+- `B_POOL_SETTING_CONSISTENT_RNG == FALSE` かつ
+  `B_POOL_SETTING_USE_FIXED_SEED == FALSE` では、pool shuffle は global
+  `Random32()` を使う。テスト `Trainer Party Pool varies across runtime RNG
+  seeds` は、同じ pool trainer でも `SeedRng()` を変えると選出結果が変わる
+  ことを確認する。
+- 同じ seed / 同じ frame の debug entry point、prebattle preview cache、
+  `Pool Pick Functions: Lowest`、候補が slot ごとに 1 体まで絞られる rules /
+  tags、または illegal pool fallback では、runtime が同じ party を出している
+  ように見える。
+- `Pool Weight` が指定された trainer は weighted shuffle を使う。重みは
+  Lead / Ace / Other の scan 前の pool order にだけ効くため、slot tag と
+  rules は hard constraint のまま残る。高 weight の通常候補が Lead tag
+  候補を押しのけることはない。
+- `Pool Pick Functions: Lowest` は original pool index を優先するため、weight
+  の影響をほぼ受けない。固定順検証用として扱う。
+
 ## Config
 
 `include/config/battle.h` で確認した pool 関連 config:
@@ -139,6 +157,7 @@ flowchart TD
 | `Pool Pick Functions` | `.poolPickIndex`。 |
 | `Pool Prune` | `.poolPruneIndex`。 |
 | `Copy Pool` | `.overrideTrainer` など。 |
+| `Pool Weight` | Pokemon block の `.poolWeight`。1-15、未指定は runtime で 1 扱い。 |
 
 Randomizer 風の trainer party 並び替えは、既存の Trainer Party Pools と `AI_FLAG_RANDOMIZE_PARTY_INDICES` でかなり近いことが確認できた。
 
@@ -177,7 +196,7 @@ Level: 50
 Tags: Ace
 ```
 
-既存 tutorial は [How to use Trainer Party Pools](../../tutorials/how_to_trainer_party_pool.md)。Lead / Ace / Weather Setter / Weather Abuser / Support などの tag を付けると、単純な完全 random ではなく「先発候補」「切り札候補」「天候役」のような役割を残せる。
+既存 tutorial は [How to use Trainer Party Pools](../../tutorials/how_to_trainer_party_pool.md)。Lead / Ace / Weather Setter / Weather Abuser / Support などの tag を付けると、単純な完全 random ではなく「先発候補」「切り札候補」「天候役」のような役割を残せる。`Pool Weight` はその役割候補内の出やすさを調整するために使う。
 
 ## Runtime Pool vs External Generator
 

@@ -51,6 +51,7 @@
 #include "pokenav.h"
 #include "menu_specialized.h"
 #include "data.h"
+#include "debug.h"
 #include "config_changes.h"
 #include "move.h"
 #include "constants/abilities.h"
@@ -3853,6 +3854,8 @@ static bool32 BattleTypeAllowsExp(void)
 {
     if (RECORDED_WILD_BATTLE)
         return TRUE;
+    else if (gIsDebugBattle)
+        return FALSE;
     else if (gBattleTypeFlags &
               ( BATTLE_TYPE_LINK
               | BATTLE_TYPE_RECORDED_LINK
@@ -13979,4 +13982,3 @@ void BS_RestoreStatChangeQueue(void)
     ClearOtherStatChangeValues(gBattlerAttacker);
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
-

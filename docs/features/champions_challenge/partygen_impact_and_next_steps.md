@@ -50,6 +50,19 @@ class, items, and battle mode, then replaces only the party block with
 The catalog uses trainer-specific `setGroups` to keep each Elite Four pool
 isolated.
 
+Runtime pool weighting is now available through `Pool Weight: 1-15` on each
+Pokemon block. Partygen should emit weight only after tags / ruleset constraints
+have decided which candidates are legal for a trainer slot; weight is a
+frequency bias inside an eligible role pool, not a replacement for `Tags: Lead`,
+`Tags: Ace`, weather tags, or support tags.
+
+Catalog coverage is still too small for real variance. The next catalog branch
+should add roughly 200 additional curated set records before broader runtime
+playtesting. Those records belong in the partygen catalog branch
+(`feature/trainer-partygen-catalog-expansion` or its successor); this runtime
+branch currently contains only the lightweight `tools/champions_partygen/README.md`
+stub, not the catalog JSON source files.
+
 ## Impact
 
 The ROM build path is still the normal `trainers.party -> trainerproc -> trainers.h -> ROM` path. No runtime patching and no SaveBlock change were introduced.

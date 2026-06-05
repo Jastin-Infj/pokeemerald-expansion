@@ -66,3 +66,298 @@ EVs: 252 Atk / 252 SpA / 6 SpD
 - Protect
 - Solar Beam
 - Dragon Claw
+
+=== DEBUG_TRAINER_PLAYER_SINGLES_3V3 ===
+Name: Player
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Singles
+
+Dragonite @ ITEM_HEAVY_DUTY_BOOTS
+Ability: Multiscale
+Jolly Nature
+Level: 50
+Tera Type: Normal
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Dragon Dance
+- Extreme Speed
+- Earthquake
+- Ice Fang
+
+Goldie (Gholdengo) @ ITEM_CHOICE_SCARF
+Ability: Good as Gold
+Timid Nature
+Level: 50
+Tera Type: Steel
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Make It Rain
+- Shadow Ball
+- Thunderbolt
+- Dazzling Gleam
+
+Garchomp @ ITEM_FOCUS_SASH
+Ability: Rough Skin
+Jolly Nature
+Level: 50
+Tera Type: Ground
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Swords Dance
+- Earthquake
+- Dragon Claw
+- Protect
+
+=== DEBUG_TRAINER_AI_SINGLES_3V3 ===
+Name: Ladder
+AI: Smart Trainer / Prediction / Smart Gimmick / Know Opponent Party / Powerful Status
+Class: Rival
+Battle Type: Singles
+Party Size: 3
+Pool Rules: Basic
+Pic: Steven
+Gender: Male
+Music: Male
+
+Mimikyu @ ITEM_LIFE_ORB
+Ability: Disguise
+Jolly Nature
+Level: 50
+Tera Type: Ghost
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Lead
+Pool Weight: 6
+- Swords Dance
+- Play Rough
+- Shadow Claw
+- Shadow Sneak
+
+Tyranitar @ ITEM_SMOOTH_ROCK
+Ability: Sand Stream
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
+Tags: Lead / Weather Setter
+Pool Weight: 4
+- Rock Slide
+- Crunch
+- Earthquake
+- Thunder Wave
+
+WashRotom (SPECIES_ROTOM_WASH) @ ITEM_LEFTOVERS
+Ability: Levitate
+Bold Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Def / 60 Spe
+Pool Weight: 5
+- Hydro Pump
+- Thunderbolt
+- Will-O-Wisp
+- Protect
+
+Amoonguss @ ITEM_ROCKY_HELMET
+Ability: Regenerator
+Bold Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 172 Def / 84 SpD
+Tags: Support
+Pool Weight: 3
+- Spore
+- Giga Drain
+- Sludge Bomb
+- Protect
+
+Excadrill @ ITEM_LIFE_ORB
+Ability: Sand Rush
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace / Weather Abuser
+Pool Weight: 8
+- Swords Dance
+- Earthquake
+- Iron Head
+- Rock Slide
+
+Kingambit @ ITEM_LUM_BERRY
+Ability: Supreme Overlord
+Adamant Nature
+Level: 50
+Tera Type: Flying
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
+Tags: Ace
+Pool Weight: 7
+- Swords Dance
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head
+
+=== DEBUG_TRAINER_PLAYER_DOUBLES_4V4 ===
+Name: Player
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+
+Incineroar @ ITEM_SITRUS_BERRY
+Ability: Intimidate
+Careful Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Def / 180 SpD
+- Fake Out
+- Parting Shot
+- Flare Blitz
+- Knock Off
+
+Rillaboom @ ITEM_ASSAULT_VEST
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- MOVE_U_TURN
+
+Flutter Mane @ ITEM_BOOSTER_ENERGY
+Ability: Protosynthesis
+Timid Nature
+Level: 50
+Tera Type: Fairy
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Moonblast
+- Shadow Ball
+- Dazzling Gleam
+- Protect
+
+RapidUrshi (SPECIES_URSHIFU_RAPID_STRIKE) @ ITEM_MYSTIC_WATER
+Ability: Unseen Fist
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Surging Strikes
+- Close Combat
+- Aqua Jet
+- Protect
+
+=== DEBUG_TRAINER_AI_DOUBLES_4V4 ===
+Name: VGC Test
+AI: Smart Trainer / Prediction / Smart Gimmick / Know Opponent Party / Powerful Status
+Class: Champion
+Battle Type: Doubles
+Party Size: 4
+Pool Rules: Support Doubles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Tornadus @ ITEM_FOCUS_SASH
+Ability: Prankster
+Timid Nature
+Level: 50
+Tera Type: Flying
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Support
+Pool Weight: 8
+- Tailwind
+- Taunt
+- Bleakwind Storm
+- Protect
+
+LandoI (Landorus) @ ITEM_LIFE_ORB
+Ability: Sheer Force
+Timid Nature
+Level: 50
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead
+Pool Weight: 6
+- Earth Power
+- Sludge Bomb
+- Rock Slide
+- Protect
+
+Incineroar @ ITEM_SITRUS_BERRY
+Ability: Intimidate
+Careful Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Def / 180 SpD
+Tags: Lead / Support
+Pool Weight: 5
+- Fake Out
+- Parting Shot
+- Flare Blitz
+- Knock Off
+
+Amoonguss @ ITEM_ROCKY_HELMET
+Ability: Regenerator
+Relaxed Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 172 Def / 84 SpD
+Tags: Support
+Pool Weight: 7
+- Spore
+- Rage Powder
+- Pollen Puff
+- Protect
+
+Iron Hands @ ITEM_ASSAULT_VEST
+Ability: Quark Drive
+Adamant Nature
+Level: 50
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Ace
+Pool Weight: 8
+- Fake Out
+- Drain Punch
+- Wild Charge
+- Heavy Slam
+
+Gholdengo @ ITEM_CHOICE_SPECS
+Ability: Good as Gold
+Modest Nature
+Level: 50
+Tera Type: Steel
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 5
+- Make It Rain
+- Shadow Ball
+- Thunderbolt
+- Dazzling Gleam
+
+Kingambit @ ITEM_LUM_BERRY
+Ability: Supreme Overlord
+Adamant Nature
+Level: 50
+Tera Type: Dark
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
+Tags: Ace
+Pool Weight: 4
+- Protect
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head

@@ -11,6 +11,9 @@
 
 #include "data/battle_pool_rules.h"
 
+#define TRAINER_POOL_DEFAULT_WEIGHT 1
+#define TRAINER_POOL_MAX_WEIGHT 15
+
 static void HasRequiredTag(const struct Trainer *trainer, u8* poolIndexArray, struct PoolRules *rules, u32 *arrayIndex, bool32 *foundRequiredTag, u32 currIndex)
 {
     //  Start from index 2, since lead and ace has special handling
@@ -253,6 +256,66 @@ static u32 GetPoolSeed(const struct Trainer *trainer)
     return seed;
 }
 
+static u32 GetPoolWeight(const struct Trainer *trainer, u32 monIndex)
+{
+    u32 weight = trainer->party[monIndex].poolWeight;
+    if (weight == 0)
+        return TRAINER_POOL_DEFAULT_WEIGHT;
+    if (weight > TRAINER_POOL_MAX_WEIGHT)
+        return TRAINER_POOL_MAX_WEIGHT;
+    return weight;
+}
+
+static bool32 PoolUsesWeights(const struct Trainer *trainer)
+{
+    for (u32 i = 0; i < trainer->poolSize; i++)
+    {
+        u32 weight = GetPoolWeight(trainer, i);
+        if (weight != TRAINER_POOL_DEFAULT_WEIGHT)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static u32 NextPoolRandom(bool32 useConsistentRng, rng_value_t *localRngState)
+{
+    if (useConsistentRng)
+        return LocalRandom32(localRngState);
+    return Random32();
+}
+
+static void RandomizeWeightedPoolIndices(const struct Trainer *trainer, u8 *poolIndexArray)
+{
+    rng_value_t localRngState;
+    bool32 useConsistentRng = B_POOL_SETTING_CONSISTENT_RNG;
+    if (useConsistentRng)
+        localRngState = LocalRandomSeed(GetPoolSeed(trainer));
+
+    for (u32 i = 0; i < trainer->poolSize - 1; i++)
+    {
+        u32 weightSum = 0;
+        for (u32 j = i; j < trainer->poolSize; j++)
+            weightSum += GetPoolWeight(trainer, poolIndexArray[j]);
+
+        u32 selectedWeight = NextPoolRandom(useConsistentRng, &localRngState) % weightSum;
+        u32 selectedIndex = i;
+        for (u32 j = i; j < trainer->poolSize; j++)
+        {
+            u32 weight = GetPoolWeight(trainer, poolIndexArray[j]);
+            if (selectedWeight < weight)
+            {
+                selectedIndex = j;
+                break;
+            }
+            selectedWeight -= weight;
+        }
+
+        u32 tempValue = poolIndexArray[i];
+        poolIndexArray[i] = poolIndexArray[selectedIndex];
+        poolIndexArray[selectedIndex] = tempValue;
+    }
+}
+
 static void RandomizePoolIndices(const struct Trainer *trainer, u8 *poolIndexArray)
 {
     //  Basically the modern (Durstenfield's) Fisher-Yates shuffle
@@ -260,6 +323,16 @@ static void RandomizePoolIndices(const struct Trainer *trainer, u8 *poolIndexArr
     u32 poolSize = trainer->poolSize;
     for (u32 i = 0; i < poolSize; i++)
         poolIndexArray[i] = i;
+
+    if (poolSize <= 1)
+        return;
+
+    if (PoolUsesWeights(trainer))
+    {
+        RandomizeWeightedPoolIndices(trainer, poolIndexArray);
+        return;
+    }
+
     u32 rnd;
     rng_value_t localRngState;
     if (B_POOL_SETTING_CONSISTENT_RNG)

@@ -153,6 +153,41 @@ Tags: Ace
 Aron
 Tags: Lead
 
+=== 15 ===
+Name: Test12
+Class: Pkmn Trainer 1
+Pic: Red
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 1
+Pool Rules: Basic
+
+Wynaut
+Tags: Lead
+Pool Weight: 1
+
+Eevee
+Tags: Lead
+Pool Weight: 15
+
+=== 16 ===
+Name: Test13
+Class: Pkmn Trainer 1
+Pic: Red
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 1
+Pool Rules: Basic
+
+Wynaut
+Tags: Lead
+Pool Weight: 1
+
+Mew
+Pool Weight: 15
+
 === 8 ===
 Name: Test5
 Class: Pkmn Trainer 1

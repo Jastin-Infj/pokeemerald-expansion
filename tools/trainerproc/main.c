@@ -100,6 +100,9 @@ struct Pokemon
     struct String tags[MAX_MON_TAGS];
     int tags_n;
     int tags_line;
+
+    int pool_weight;
+    int pool_weight_line;
 };
 
 struct Trainer
@@ -1519,9 +1522,23 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
                 if (!token_human_identifiers(p, &value, pokemon->tags, &pokemon->tags_n, MAX_MON_TAGS))
                     any_error = !show_parse_error(p);
             }
+            else if (is_literal_token(&key, "Pool Weight"))
+            {
+                if (pokemon->pool_weight_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'Pool Weight'");
+                pokemon->pool_weight_line = value.location.line;
+                if (!token_int(p, &value, &pokemon->pool_weight))
+                {
+                    any_error = !show_parse_error(p);
+                }
+                else if (pokemon->pool_weight < 1 || pokemon->pool_weight > 15)
+                {
+                    any_error = !set_show_parse_error(p, value.location, "'Pool Weight' must be between 1 and 15");
+                }
+            }
             else
             {
-                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', or 'Tera Type'");
+                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', 'Tera Type', 'Tags', or 'Pool Weight'");
             }
         }
 
@@ -2145,6 +2162,12 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
                     fprint_constant(f, "MON_POOL_TAG", pokemon->tags[i]);
                 }
                 fprintf(f, ",\n");
+            }
+
+            if (pokemon->pool_weight_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->pool_weight_line);
+                fprintf(f, "            .poolWeight = %d,\n", pokemon->pool_weight);
             }
 
             if (pokemon->moves_n > 0)
