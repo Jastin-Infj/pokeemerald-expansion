@@ -3114,18 +3114,6 @@ static bool32 BattlerCanPunishTauntInPlace(struct SwitchAiContext *switchContext
     return GetBestNoOfHitsToKO(switchContext->battler, switchContext->opposingBattler, AI_ATTACKING) <= 2;
 }
 
-static bool32 BattlerCanIgnorePredictedTaunt(enum BattlerId battler)
-{
-    if (AI_IsAbilityOnSide(battler, ABILITY_AROMA_VEIL))
-        return TRUE;
-    if (GetConfig(B_OBLIVIOUS_TAUNT) >= GEN_6 && gAiLogicData->abilities[battler] == ABILITY_OBLIVIOUS)
-        return TRUE;
-    if (B_MENTAL_HERB >= GEN_5 && gAiLogicData->holdEffects[battler] == HOLD_EFFECT_MENTAL_HERB && IsBattlerItemEnabled(battler))
-        return TRUE;
-
-    return FALSE;
-}
-
 static bool32 ShouldConsiderTauntPunishSwitch(struct SwitchAiContext *switchContext)
 {
     if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
@@ -3138,7 +3126,7 @@ static bool32 ShouldConsiderTauntPunishSwitch(struct SwitchAiContext *switchCont
         return FALSE;
     if (gBattleMons[switchContext->battler].volatiles.tauntTimer != 0)
         return FALSE;
-    if (BattlerCanIgnorePredictedTaunt(switchContext->battler))
+    if (AI_CanBattlerIgnorePredictedMove(switchContext->battler, switchContext->opposingBattler, switchContext->incomingMove))
         return FALSE;
     if (!switchContext->hasImportantStatusMove)
         return FALSE;

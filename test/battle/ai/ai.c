@@ -2,6 +2,51 @@
 #include "test/battle.h"
 #include "battle_ai_util.h"
 
+SINGLE_BATTLE_TEST("AI runtime knowledge maps move categories from move data")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TACKLE); MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_TACKLE, AI_MOVE_KNOWLEDGE_CONTACT));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_BOOMBURST, AI_MOVE_KNOWLEDGE_SOUND));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_BULLET_SEED, AI_MOVE_KNOWLEDGE_BALLISTIC));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SPORE, AI_MOVE_KNOWLEDGE_POWDER));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_AQUA_CUTTER, AI_MOVE_KNOWLEDGE_SLICING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DRAIN_PUNCH, AI_MOVE_KNOWLEDGE_PUNCHING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_BITE, AI_MOVE_KNOWLEDGE_BITING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_HEAL_PULSE, AI_MOVE_KNOWLEDGE_PULSE));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DRAGON_DANCE, AI_MOVE_KNOWLEDGE_DANCE));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_AIR_CUTTER, AI_MOVE_KNOWLEDGE_WIND));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_RECOVER, AI_MOVE_KNOWLEDGE_HEALING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_TAUNT, AI_MOVE_KNOWLEDGE_MAGIC_COAT));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SWORDS_DANCE, AI_MOVE_KNOWLEDGE_SNATCH));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SKILL_SWAP, AI_MOVE_KNOWLEDGE_ABILITY_CONTROL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_IMPRISON, AI_MOVE_KNOWLEDGE_MOVE_DENIAL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DEFENSE_CURL, AI_MOVE_KNOWLEDGE_COMBO_STATE));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI runtime knowledge detects predicted move immunity layers")
+{
+    enum BattlerId aiBattler = (enum BattlerId)B_POSITION_OPPONENT_LEFT;
+    enum BattlerId playerBattler = (enum BattlerId)B_POSITION_PLAYER_LEFT;
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT);
+        PLAYER(SPECIES_ABRA) { Speed(20); Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Ability(ABILITY_MAGIC_BOUNCE); Item(ITEM_SAFETY_GOGGLES); Speed(10); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_SCRATCH); EXPECT_MOVE(opponent, MOVE_CELEBRATE); }
+    } THEN {
+        EXPECT(AI_CanBattlerIgnorePredictedMove(aiBattler, playerBattler, MOVE_TAUNT));
+        EXPECT(AI_CanBattlerIgnorePredictedMove(aiBattler, playerBattler, MOVE_SPORE));
+        EXPECT(!AI_CanBattlerIgnorePredictedMove(aiBattler, playerBattler, MOVE_SCRATCH));
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI prefers Bubble over Water Gun if it's slower")
 {
     GIVEN {

@@ -16,6 +16,8 @@ Useful Pokemon Wiki entry points:
 - [`カテゴリ:わざ`](https://wiki.pokemonwiki.com/wiki/%E3%82%AB%E3%83%86%E3%82%B4%E3%83%AA:%E3%82%8F%E3%81%96): lists move categories such as sound moves, dance moves, wind moves, biting moves, slicing moves, powder / spore moves, bullet moves, direct-contact moves, pulse moves, status moves, move-effect categories, combo moves, and ability categories that boost / reduce / nullify moves.
 - [`わざの一覧`](https://wiki.pokemonwiki.com/wiki/%E3%82%8F%E3%81%96%E3%81%AE%E4%B8%80%E8%A6%A7): generation-specific move lists.
 - [`へんかわざ`](https://wiki.pokemonwiki.com/wiki/%E3%81%B8%E3%82%93%E3%81%8B%E3%82%8F%E3%81%96): status move inventory.
+- [`カテゴリ:とくせい`](https://wiki.pokemonwiki.com/wiki/%E3%82%AB%E3%83%86%E3%82%B4%E3%83%AA:%E3%81%A8%E3%81%8F%E3%81%9B%E3%81%84): ability group entry points such as status-related abilities, weather / field abilities, stat-changing abilities, move-power abilities, and move-nullifying abilities.
+- [`もちもの`](https://wiki.pokemonwiki.com/wiki/%E3%82%82%E3%81%A1%E3%82%82%E3%81%AE): held-item overview for battle items, item / move interactions, and item / ability interactions.
 - Individual move / ability / item pages for edge cases such as `よこどり`, `まるくなる`, `ころがる`, `いかり`, `ふういん`, `へんしん`, `おまじない`, `スキルスワップ`, and ability-changing moves.
 
 ## Existing Runtime Knowledge
@@ -69,6 +71,21 @@ Right now, move, ability, and item mechanics are distributed across:
 - `src/battle_hold_effects.c` and item hold-effect data for item behavior.
 
 Because of that distribution, a new runtime check should usually be a shared predicate such as "can this Pokemon ignore Taunt", "can this reserve punish a predicted utility move", or "does this move create board control", not a one-off hardcoded branch in every AI file.
+
+## Implemented Runtime Layer
+
+The first runtime layer is now exposed through `include/battle_ai_util.h`:
+
+- `AI_GetMoveKnowledgeFlags(move)`
+- `AI_MoveHasKnowledgeFlag(move, flag)`
+- `AI_IsMoveAbilityControl(move)`
+- `AI_IsMoveDenial(move)`
+- `AI_IsMoveComboState(move)`
+- `AI_CanBattlerIgnorePredictedMove(battlerDef, battlerAtk, move)`
+
+`AI_GetMoveKnowledgeFlags()` maps existing expansion move tags into AI-readable categories: contact, sound, ballistic, powder, slicing, punching, biting, pulse, dance, wind, healing, Magic Coat-affected / Magic Coat, Snatch-affected / Snatch, ability-control, move-denial, and combo-state moves.
+
+`AI_CanBattlerIgnorePredictedMove()` is the first ability / item bridge. It uses Mold Breaker-sanitized abilities and active item checks, then recognizes `Aroma Veil`, Gen 6+ `Oblivious` versus `Taunt`, `Mental Herb`, `Magic Bounce`, `Soundproof`, `Bulletproof`, powder immunity through `IsAffectedByPowderMove()`, and `Good as Gold`. Predicted-Taunt switching now calls this shared predicate instead of keeping a local Taunt-only copy.
 
 ## Runtime Knowledge Layers
 
@@ -149,7 +166,7 @@ Prefer predicates named around strategy, not around one source mechanic.
 
 Examples:
 
-- `AI_CanIgnorePredictedTaunt(battler)`
+- `AI_CanBattlerIgnorePredictedMove(battlerDef, battlerAtk, move)`
 - `AI_MoveCreatesSpeedControl(move, battler, target)`
 - `AI_MoveCreatesFieldControl(move, battler, target)`
 - `AI_MoveBlocksOpponentPlan(move, battler, target)`

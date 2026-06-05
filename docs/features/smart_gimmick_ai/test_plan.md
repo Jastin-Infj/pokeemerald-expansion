@@ -4,16 +4,17 @@
 
 | Check | Command | Status |
 | --- | --- | --- |
+| Focused runtime knowledge tests | `rtk make -j16 -O check TESTS='AI runtime knowledge'` | Pass on 2026-06-05; 2 tests passed. Covers move-category flag mapping and predicted-move immunity bridges. |
 | Focused smart gimmick tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'` | Pass on 2026-06-05; 10 tests passed. |
 | Focused smart Dynamax environment tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'` | Pass on 2026-06-05; 6 tests passed. Covers conservation, last-Pokemon use, Max Move payoff, Fake Out disruption prevention, and phazing disruption prevention. |
 | Focused smart Z tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'` | Pass on 2026-06-05; 3 tests passed. |
 | Focused smart Mega tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'` | Pass on 2026-06-05; 1 test passed. |
 | Focused smart Tera tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'` | Pass on 2026-06-05; 4 tests passed. |
-| Focused smart switching tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'` | Pass on 2026-06-05. Covers double-position switching, partner-cover guard, weather / terrain reserve pivots, Tailwind / Trick Room reserve pivots, terrain seed plans, status-benefit pivots, direct and secondary status / confusion support pivots, Skill Swap bridge pivots, and predicted-Taunt attacker pivots / stay-in guards. |
+| Focused smart switching tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'` | Pass on 2026-06-05. Covers double-position switching, partner-cover guard, weather / terrain reserve pivots, Tailwind / Trick Room reserve pivots, terrain seed plans, status-benefit pivots, direct and secondary status / confusion support pivots, Skill Swap bridge pivots, and predicted-Taunt attacker pivots / stay-in guards through the shared predicted-move immunity predicate. |
 | Full battle / runtime checks | `rtk make -j16 -O check` | Pass on 2026-06-05. Existing known-failing / expected-failing test labels remained non-fatal. |
 | Normal ROM build | `rtk make -j16 -O all` | Pass on 2026-06-05. |
 | Docs build | `rtk mdbook build docs` | Pass on 2026-06-05 with existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
-| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-05. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen in session `20260605-122516`; `mgba_live_stop` returned `stopped:true`. |
+| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-05. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen in session `smart-ai-runtime-knowledge-20260605-boot`; `mgba_live_stop` returned `stopped:true`. A prior `start_with_lua_and_view` attempt failed with `Function called from invalid context`, and that session was stopped before the successful normal start/get-view smoke. |
 
 ## Manual Runtime Checks
 

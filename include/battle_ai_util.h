@@ -53,6 +53,24 @@ enum AIPivot
     SHOULD_PIVOT,
 };
 
+#define AI_MOVE_KNOWLEDGE_NONE               0
+#define AI_MOVE_KNOWLEDGE_CONTACT            (1u <<  0)
+#define AI_MOVE_KNOWLEDGE_SOUND              (1u <<  1)
+#define AI_MOVE_KNOWLEDGE_BALLISTIC          (1u <<  2)
+#define AI_MOVE_KNOWLEDGE_POWDER             (1u <<  3)
+#define AI_MOVE_KNOWLEDGE_SLICING            (1u <<  4)
+#define AI_MOVE_KNOWLEDGE_PUNCHING           (1u <<  5)
+#define AI_MOVE_KNOWLEDGE_BITING             (1u <<  6)
+#define AI_MOVE_KNOWLEDGE_PULSE              (1u <<  7)
+#define AI_MOVE_KNOWLEDGE_DANCE              (1u <<  8)
+#define AI_MOVE_KNOWLEDGE_WIND               (1u <<  9)
+#define AI_MOVE_KNOWLEDGE_HEALING            (1u << 10)
+#define AI_MOVE_KNOWLEDGE_MAGIC_COAT         (1u << 11)
+#define AI_MOVE_KNOWLEDGE_SNATCH             (1u << 12)
+#define AI_MOVE_KNOWLEDGE_ABILITY_CONTROL    (1u << 13)
+#define AI_MOVE_KNOWLEDGE_MOVE_DENIAL        (1u << 14)
+#define AI_MOVE_KNOWLEDGE_COMBO_STATE        (1u << 15)
+
 enum WeatherState
 {
     WEATHER_INACTIVE,
@@ -330,6 +348,12 @@ bool32 IsBattlerItemEnabled(enum BattlerId battler);
 bool32 IsBattlerPredictedToSwitch(enum BattlerId battler);
 enum Move GetIncomingMove(enum BattlerId battler, enum BattlerId opposingBattler, struct AiLogicData *aiData);
 enum Move GetPredictedMove(enum BattlerId battler, enum BattlerId opposingBattler, struct AiLogicData *aiData);
+u32 AI_GetMoveKnowledgeFlags(enum Move move);
+bool32 AI_MoveHasKnowledgeFlag(enum Move move, u32 flag);
+bool32 AI_IsMoveAbilityControl(enum Move move);
+bool32 AI_IsMoveDenial(enum Move move);
+bool32 AI_IsMoveComboState(enum Move move);
+bool32 AI_CanBattlerIgnorePredictedMove(enum BattlerId battlerDef, enum BattlerId battlerAtk, enum Move move);
 bool32 AI_OpponentCanFaintAiWithMod(enum BattlerId battler, u32 healAmount);
 bool32 ShouldInstructPartner(enum BattlerId partner, enum Move move);
 bool32 CanMoveBeBouncedBack(enum BattlerId battler, enum Move move);

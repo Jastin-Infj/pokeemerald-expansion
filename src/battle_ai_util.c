@@ -1972,6 +1972,164 @@ bool32 IsAromaVeilProtectedEffect(enum BattleMoveEffects moveEffect)
     }
 }
 
+static bool32 AI_IsMentalHerbProtectedEffect(enum BattleMoveEffects moveEffect)
+{
+    switch (moveEffect)
+    {
+    case EFFECT_ATTRACT:
+        return TRUE;
+    case EFFECT_DISABLE:
+    case EFFECT_ENCORE:
+    case EFFECT_TORMENT:
+    case EFFECT_TAUNT:
+    case EFFECT_HEAL_BLOCK:
+        return B_MENTAL_HERB >= GEN_5;
+    default:
+        return FALSE;
+    }
+}
+
+bool32 AI_IsMoveAbilityControl(enum Move move)
+{
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_DOODLE:
+    case EFFECT_ENTRAINMENT:
+    case EFFECT_GASTRO_ACID:
+    case EFFECT_OVERWRITE_ABILITY:
+    case EFFECT_ROLE_PLAY:
+    case EFFECT_SKILL_SWAP:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+bool32 AI_IsMoveDenial(enum Move move)
+{
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_ATTRACT:
+    case EFFECT_DISABLE:
+    case EFFECT_ENCORE:
+    case EFFECT_HEAL_BLOCK:
+    case EFFECT_IMPRISON:
+    case EFFECT_TAUNT:
+    case EFFECT_TORMENT:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+bool32 AI_IsMoveComboState(enum Move move)
+{
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_BIDE:
+    case EFFECT_CHARGE:
+    case EFFECT_DEFENSE_CURL:
+    case EFFECT_FOCUS_ENERGY:
+    case EFFECT_LASER_FOCUS:
+    case EFFECT_LUCKY_CHANT:
+    case EFFECT_MINIMIZE:
+    case EFFECT_ROLLOUT:
+    case EFFECT_STOCKPILE:
+        return TRUE;
+    default:
+        return MoveHasAdditionalEffectSelf(move, MOVE_EFFECT_RAGE);
+    }
+}
+
+u32 AI_GetMoveKnowledgeFlags(enum Move move)
+{
+    u32 flags = AI_MOVE_KNOWLEDGE_NONE;
+
+    if (MoveMakesContact(move))
+        flags |= AI_MOVE_KNOWLEDGE_CONTACT;
+    if (IsSoundMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_SOUND;
+    if (IsBallisticMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_BALLISTIC;
+    if (IsPowderMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_POWDER;
+    if (IsSlicingMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_SLICING;
+    if (IsPunchingMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_PUNCHING;
+    if (IsBitingMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_BITING;
+    if (IsPulseMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_PULSE;
+    if (IsDanceMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_DANCE;
+    if (IsWindMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_WIND;
+    if (IsHealingMove(move))
+        flags |= AI_MOVE_KNOWLEDGE_HEALING;
+    if (MoveCanBeBouncedBack(move) || GetMoveEffect(move) == EFFECT_MAGIC_COAT)
+        flags |= AI_MOVE_KNOWLEDGE_MAGIC_COAT;
+    if (MoveCanBeSnatched(move) || GetMoveEffect(move) == EFFECT_SNATCH)
+        flags |= AI_MOVE_KNOWLEDGE_SNATCH;
+    if (AI_IsMoveAbilityControl(move))
+        flags |= AI_MOVE_KNOWLEDGE_ABILITY_CONTROL;
+    if (AI_IsMoveDenial(move))
+        flags |= AI_MOVE_KNOWLEDGE_MOVE_DENIAL;
+    if (AI_IsMoveComboState(move))
+        flags |= AI_MOVE_KNOWLEDGE_COMBO_STATE;
+
+    return flags;
+}
+
+bool32 AI_MoveHasKnowledgeFlag(enum Move move, u32 flag)
+{
+    return (AI_GetMoveKnowledgeFlags(move) & flag) != 0;
+}
+
+bool32 AI_CanBattlerIgnorePredictedMove(enum BattlerId battlerDef, enum BattlerId battlerAtk, enum Move move)
+{
+    enum BattleMoveEffects moveEffect;
+    enum Ability abilityDef;
+    enum HoldEffect holdEffectDef;
+    enum MoveTarget target;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+        return FALSE;
+
+    moveEffect = GetMoveEffect(move);
+    holdEffectDef = gAiLogicData->holdEffects[battlerDef];
+    abilityDef = AI_GetMoldBreakerSanitizedAbility(
+        battlerAtk,
+        gAiLogicData->abilities[battlerAtk],
+        gAiLogicData->abilities[battlerDef],
+        holdEffectDef,
+        move);
+
+    if (AI_IsAbilityOnSide(battlerDef, ABILITY_AROMA_VEIL) && IsAromaVeilProtectedEffect(moveEffect))
+        return TRUE;
+    if (abilityDef == ABILITY_OBLIVIOUS && (moveEffect == EFFECT_ATTRACT || (moveEffect == EFFECT_TAUNT && GetConfig(B_OBLIVIOUS_TAUNT) >= GEN_6)))
+        return TRUE;
+    if (holdEffectDef == HOLD_EFFECT_MENTAL_HERB && IsBattlerItemEnabled(battlerDef) && AI_IsMentalHerbProtectedEffect(moveEffect))
+        return TRUE;
+    if (abilityDef == ABILITY_MAGIC_BOUNCE && IsBattleMoveStatus(move) && MoveCanBeBouncedBack(move))
+        return TRUE;
+    if (abilityDef == ABILITY_SOUNDPROOF && IsSoundMove(move))
+        return TRUE;
+    if (abilityDef == ABILITY_BULLETPROOF && IsBallisticMove(move))
+        return TRUE;
+    if (IsPowderMove(move) && !IsAffectedByPowderMove(battlerDef, abilityDef, holdEffectDef))
+        return TRUE;
+
+    target = GetMoveTarget(move);
+    if (abilityDef == ABILITY_GOOD_AS_GOLD
+     && IsBattleMoveStatus(move)
+     && target != TARGET_OPPONENTS_FIELD
+     && target != TARGET_ALL_BATTLERS)
+        return TRUE;
+
+    return FALSE;
+}
+
 bool32 IsNonVolatileStatusMove(enum Move move)
 {
     return GetMoveNonVolatileStatus(move) != MOVE_EFFECT_NONE;

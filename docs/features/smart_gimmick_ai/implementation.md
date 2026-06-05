@@ -57,6 +57,8 @@ Status-aware board-control support includes:
 - Aurora Veil only when snow / hail is already active or the reserve ability can create it.
 - Skill Swap-style bridge moves when the reserve or active partner has a board-control ability worth moving or copying.
 
+AI runtime knowledge now has a shared move / ability / item interpretation layer in `battle_ai_util`. The layer maps existing move flags into AI categories such as sound, bullet, powder, slicing, punching, biting, pulse, dance, wind, healing, Magic Coat, Snatch, ability-control, move-denial, and combo-state. It also exposes `AI_CanBattlerIgnorePredictedMove()`, which bridges active abilities and held items for prediction decisions using Mold Breaker-sanitized ability checks and enabled-item checks. Predicted-Taunt switching now calls this shared predicate instead of maintaining a local Taunt-only copy.
+
 Predicted-Taunt support is intentionally separate from "bad move" switching. `ShouldSwitchIfPredictedTauntPunish()` only runs when `AI_FLAG_SMART_SWITCHING` and `AI_FLAG_PREDICT_MOVE` are both active and the incoming move is predicted as `Taunt`. It requires the current Pokemon to depend on important status moves, rejects positions where the current Pokemon can already damage-race or 2HKO the target, and skips Pokemon protected by `Aroma Veil`, Gen 6+ `Oblivious`, or an enabled Gen 5+ `Mental Herb`. If those gates pass, the selector evaluates eligible reserves as free switch-ins and chooses a damaging attacker that can win the immediate 1v1 or cross the switch-in damage threshold. The goal is to model "pivot an attacker into a predicted Taunt" without making the AI flee only because Taunt would block a utility move.
 
 ## Tests Added
@@ -79,22 +81,24 @@ Predicted-Taunt support is intentionally separate from "bad move" switching. `Sh
 - Smart Switching status pivots: switches into a status-benefit reserve under predicted burn, and in doubles can pivot to direct or secondary status / confusion pressure support.
 - Smart Switching ability bridge pivot: switches in Skill Swap support when a partner board-control ability creates a bridge plan.
 - Smart Switching Taunt reads: pivots an attacker into a predicted `Taunt`, stays in when the active Pokemon can punish with damage, and stays in when the active Pokemon ignores Taunt.
+- Runtime knowledge layer: verifies AI move-category flags and predicted-move immunity bridges for Magic Bounce, Safety Goggles / powder immunity, and ordinary non-ignored moves.
 - Existing Tera, Mega, Z-Move, and combined environment tests remain in `ai_smart_gimmick.c`.
 
 ## Validation
 
 2026-06-05 local validation:
 
+- `rtk make -j16 -O check TESTS='AI runtime knowledge'`: pass, 2 tests. Covers move-category flag mapping and predicted-move immunity bridges.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 10 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'`: pass, 1 test.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
-- `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, and predicted-Taunt attacker pivot / stay-in guards.
+- `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, and predicted-Taunt attacker pivot / stay-in guards through the shared predicted-move immunity predicate.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
 - `rtk make -j16 -O all`: pass.
 - `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
-- mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `20260605-122516`. `mgba_live_stop` returned `stopped:true`.
+- mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-runtime-knowledge-20260605-boot`. `mgba_live_stop` returned `stopped:true`. A prior `start_with_lua_and_view` attempt failed with `Function called from invalid context`; that session was also stopped successfully before the normal start/get-view smoke.
 
 ## Known Gaps
 
