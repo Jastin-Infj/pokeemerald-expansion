@@ -3,6 +3,7 @@
 
 #include "battle_ai_main.h"
 #include "battle_ai_field_statuses.h"
+#include "constants/items.h"
 
 // Roll boundaries used by AI when scoring. Doesn't affect actual damage dealt.
 #define MAX_ROLL_PERCENTAGE DMG_ROLL_PERCENT_HI
@@ -70,6 +71,35 @@ enum AIPivot
 #define AI_MOVE_KNOWLEDGE_ABILITY_CONTROL    (1u << 13)
 #define AI_MOVE_KNOWLEDGE_MOVE_DENIAL        (1u << 14)
 #define AI_MOVE_KNOWLEDGE_COMBO_STATE        (1u << 15)
+
+#define AI_ABILITY_KNOWLEDGE_NONE            0
+#define AI_ABILITY_KNOWLEDGE_MOVE_IMMUNITY   (1u <<  0)
+#define AI_ABILITY_KNOWLEDGE_MOVE_POWER      (1u <<  1)
+#define AI_ABILITY_KNOWLEDGE_DAMAGE_RACE     (1u <<  2)
+#define AI_ABILITY_KNOWLEDGE_STATUS          (1u <<  3)
+#define AI_ABILITY_KNOWLEDGE_FIELD_CONTROL   (1u <<  4)
+#define AI_ABILITY_KNOWLEDGE_POSITIONING     (1u <<  5)
+#define AI_ABILITY_KNOWLEDGE_ABILITY_CONTROL (1u <<  6)
+#define AI_ABILITY_KNOWLEDGE_STAT_CONTROL    (1u <<  7)
+#define AI_ABILITY_KNOWLEDGE_ITEM_CONTROL    (1u <<  8)
+#define AI_ABILITY_KNOWLEDGE_PRIORITY        (1u <<  9)
+#define AI_ABILITY_KNOWLEDGE_FORM_STATE      (1u << 10)
+
+#define AI_HOLD_EFFECT_KNOWLEDGE_NONE                 0
+#define AI_HOLD_EFFECT_KNOWLEDGE_DAMAGE_RACE          (1u <<  0)
+#define AI_HOLD_EFFECT_KNOWLEDGE_DEFENSIVE_RACE       (1u <<  1)
+#define AI_HOLD_EFFECT_KNOWLEDGE_STAT_CONTROL         (1u <<  2)
+#define AI_HOLD_EFFECT_KNOWLEDGE_SPEED_CONTROL        (1u <<  3)
+#define AI_HOLD_EFFECT_KNOWLEDGE_RECOVERY             (1u <<  4)
+#define AI_HOLD_EFFECT_KNOWLEDGE_STATUS_CURE          (1u <<  5)
+#define AI_HOLD_EFFECT_KNOWLEDGE_SELF_STATUS          (1u <<  6)
+#define AI_HOLD_EFFECT_KNOWLEDGE_FIELD_DURATION       (1u <<  7)
+#define AI_HOLD_EFFECT_KNOWLEDGE_CONTACT_PUNISH       (1u <<  8)
+#define AI_HOLD_EFFECT_KNOWLEDGE_MOVE_SHAPE           (1u <<  9)
+#define AI_HOLD_EFFECT_KNOWLEDGE_ABILITY_PROTECTION   (1u << 10)
+#define AI_HOLD_EFFECT_KNOWLEDGE_CHOICE_LOCK          (1u << 11)
+#define AI_HOLD_EFFECT_KNOWLEDGE_POSITIONING          (1u << 12)
+#define AI_HOLD_EFFECT_KNOWLEDGE_GIMMICK              (1u << 13)
 
 enum WeatherState
 {
@@ -353,6 +383,12 @@ bool32 AI_MoveHasKnowledgeFlag(enum Move move, u32 flag);
 bool32 AI_IsMoveAbilityControl(enum Move move);
 bool32 AI_IsMoveDenial(enum Move move);
 bool32 AI_IsMoveComboState(enum Move move);
+u32 AI_GetAbilityKnowledgeFlags(enum Ability ability);
+bool32 AI_AbilityHasKnowledgeFlag(enum Ability ability, u32 flag);
+u32 AI_GetHoldEffectKnowledgeFlags(enum HoldEffect holdEffect);
+bool32 AI_HoldEffectHasKnowledgeFlag(enum HoldEffect holdEffect, u32 flag);
+u32 AI_GetItemKnowledgeFlags(enum Item item);
+bool32 AI_ItemHasKnowledgeFlag(enum Item item, u32 flag);
 bool32 AI_CanBattlerIgnorePredictedMove(enum BattlerId battlerDef, enum BattlerId battlerAtk, enum Move move);
 bool32 AI_OpponentCanFaintAiWithMod(enum BattlerId battler, u32 healAmount);
 bool32 ShouldInstructPartner(enum BattlerId partner, enum Move move);

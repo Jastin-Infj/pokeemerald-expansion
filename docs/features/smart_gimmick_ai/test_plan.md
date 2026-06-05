@@ -4,7 +4,7 @@
 
 | Check | Command | Status |
 | --- | --- | --- |
-| Focused runtime knowledge tests | `rtk make -j16 -O check TESTS='AI runtime knowledge'` | Pass on 2026-06-05; 2 tests passed. Covers move-category flag mapping and predicted-move immunity bridges. |
+| Focused runtime knowledge tests | `rtk make -j16 -O check TESTS='AI runtime knowledge'` | Pass on 2026-06-05; 4 tests passed. Covers move-category, ability-category, item / hold-effect category mapping, and predicted-move immunity bridges. |
 | Focused smart gimmick tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'` | Pass on 2026-06-05; 10 tests passed. |
 | Focused smart Dynamax environment tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'` | Pass on 2026-06-05; 6 tests passed. Covers conservation, last-Pokemon use, Max Move payoff, Fake Out disruption prevention, and phazing disruption prevention. |
 | Focused smart Z tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'` | Pass on 2026-06-05; 3 tests passed. |
@@ -14,7 +14,7 @@
 | Full battle / runtime checks | `rtk make -j16 -O check` | Pass on 2026-06-05. Existing known-failing / expected-failing test labels remained non-fatal. |
 | Normal ROM build | `rtk make -j16 -O all` | Pass on 2026-06-05. |
 | Docs build | `rtk mdbook build docs` | Pass on 2026-06-05 with existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
-| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-05. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen in session `smart-ai-runtime-knowledge-20260605-boot`; `mgba_live_stop` returned `stopped:true`. A prior `start_with_lua_and_view` attempt failed with `Function called from invalid context`, and that session was stopped before the successful normal start/get-view smoke. |
+| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-05. Wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen in session `smart-ai-ability-item-knowledge-20260605`; `mgba_live_stop` returned `stopped:true`. |
 
 ## Manual Runtime Checks
 

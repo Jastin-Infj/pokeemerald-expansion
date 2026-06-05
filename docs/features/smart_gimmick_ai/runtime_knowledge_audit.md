@@ -81,9 +81,19 @@ The first runtime layer is now exposed through `include/battle_ai_util.h`:
 - `AI_IsMoveAbilityControl(move)`
 - `AI_IsMoveDenial(move)`
 - `AI_IsMoveComboState(move)`
+- `AI_GetAbilityKnowledgeFlags(ability)`
+- `AI_AbilityHasKnowledgeFlag(ability, flag)`
+- `AI_GetHoldEffectKnowledgeFlags(holdEffect)`
+- `AI_HoldEffectHasKnowledgeFlag(holdEffect, flag)`
+- `AI_GetItemKnowledgeFlags(item)`
+- `AI_ItemHasKnowledgeFlag(item, flag)`
 - `AI_CanBattlerIgnorePredictedMove(battlerDef, battlerAtk, move)`
 
 `AI_GetMoveKnowledgeFlags()` maps existing expansion move tags into AI-readable categories: contact, sound, ballistic, powder, slicing, punching, biting, pulse, dance, wind, healing, Magic Coat-affected / Magic Coat, Snatch-affected / Snatch, ability-control, move-denial, and combo-state moves.
+
+`AI_GetAbilityKnowledgeFlags()` maps ability IDs into AI-readable strategy groups: move immunity, move power, damage race, status interaction, field control, positioning, ability control, stat control, item control, priority, and form / state.
+
+`AI_GetHoldEffectKnowledgeFlags()` maps hold effects into AI-readable strategy groups: damage race, defensive race, stat control, Speed / order control, recovery, status cure, self-status, field duration, contact / hit punishment, move-shape modifiers, ability protection, choice lock, positioning, and gimmick unlock. `AI_GetItemKnowledgeFlags()` is the item-ID wrapper over the same hold-effect layer.
 
 `AI_CanBattlerIgnorePredictedMove()` is the first ability / item bridge. It uses Mold Breaker-sanitized abilities and active item checks, then recognizes `Aroma Veil`, Gen 6+ `Oblivious` versus `Taunt`, `Mental Herb`, `Magic Bounce`, `Soundproof`, `Bulletproof`, powder immunity through `IsAffectedByPowderMove()`, and `Good as Gold`. Predicted-Taunt switching now calls this shared predicate instead of keeping a local Taunt-only copy.
 

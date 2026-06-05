@@ -2086,6 +2086,643 @@ bool32 AI_MoveHasKnowledgeFlag(enum Move move, u32 flag)
     return (AI_GetMoveKnowledgeFlags(move) & flag) != 0;
 }
 
+u32 AI_GetAbilityKnowledgeFlags(enum Ability ability)
+{
+    u32 flags = AI_ABILITY_KNOWLEDGE_NONE;
+
+    switch (ability)
+    {
+    case ABILITY_DAMP:
+    case ABILITY_LIMBER:
+    case ABILITY_INSOMNIA:
+    case ABILITY_IMMUNITY:
+    case ABILITY_FLASH_FIRE:
+    case ABILITY_MAGMA_ARMOR:
+    case ABILITY_WATER_VEIL:
+    case ABILITY_SOUNDPROOF:
+    case ABILITY_WONDER_GUARD:
+    case ABILITY_LEVITATE:
+    case ABILITY_VOLT_ABSORB:
+    case ABILITY_WATER_ABSORB:
+    case ABILITY_LIGHTNING_ROD:
+    case ABILITY_MOTOR_DRIVE:
+    case ABILITY_STORM_DRAIN:
+    case ABILITY_OVERCOAT:
+    case ABILITY_MAGIC_BOUNCE:
+    case ABILITY_SAP_SIPPER:
+    case ABILITY_AROMA_VEIL:
+    case ABILITY_FLOWER_VEIL:
+    case ABILITY_BULLETPROOF:
+    case ABILITY_SWEET_VEIL:
+    case ABILITY_QUEENLY_MAJESTY:
+    case ABILITY_DAZZLING:
+    case ABILITY_GOOD_AS_GOLD:
+    case ABILITY_PURIFYING_SALT:
+    case ABILITY_WELL_BAKED_BODY:
+    case ABILITY_EARTH_EATER:
+    case ABILITY_ARMOR_TAIL:
+        flags |= AI_ABILITY_KNOWLEDGE_MOVE_IMMUNITY;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_HUGE_POWER:
+    case ABILITY_PURE_POWER:
+    case ABILITY_OVERGROW:
+    case ABILITY_BLAZE:
+    case ABILITY_TORRENT:
+    case ABILITY_SWARM:
+    case ABILITY_HUSTLE:
+    case ABILITY_IRON_FIST:
+    case ABILITY_ADAPTABILITY:
+    case ABILITY_TECHNICIAN:
+    case ABILITY_TINTED_LENS:
+    case ABILITY_RECKLESS:
+    case ABILITY_SHEER_FORCE:
+    case ABILITY_SAND_FORCE:
+    case ABILITY_NORMALIZE:
+    case ABILITY_STRONG_JAW:
+    case ABILITY_MEGA_LAUNCHER:
+    case ABILITY_TOUGH_CLAWS:
+    case ABILITY_AERILATE:
+    case ABILITY_PIXILATE:
+    case ABILITY_REFRIGERATE:
+    case ABILITY_DARK_AURA:
+    case ABILITY_FAIRY_AURA:
+    case ABILITY_PARENTAL_BOND:
+    case ABILITY_STAKEOUT:
+    case ABILITY_WATER_BUBBLE:
+    case ABILITY_BATTERY:
+    case ABILITY_GALVANIZE:
+    case ABILITY_NEUROFORCE:
+    case ABILITY_PUNK_ROCK:
+    case ABILITY_STEELWORKER:
+    case ABILITY_STEELY_SPIRIT:
+    case ABILITY_GORILLA_TACTICS:
+    case ABILITY_TRANSISTOR:
+    case ABILITY_DRAGONS_MAW:
+    case ABILITY_ROCKY_PAYLOAD:
+    case ABILITY_ORICHALCUM_PULSE:
+    case ABILITY_HADRON_ENGINE:
+    case ABILITY_SHARPNESS:
+    case ABILITY_SUPREME_OVERLORD:
+        flags |= AI_ABILITY_KNOWLEDGE_MOVE_POWER;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_STURDY:
+    case ABILITY_BATTLE_ARMOR:
+    case ABILITY_SHELL_ARMOR:
+    case ABILITY_THICK_FAT:
+    case ABILITY_HEATPROOF:
+    case ABILITY_FILTER:
+    case ABILITY_SOLID_ROCK:
+    case ABILITY_MULTISCALE:
+    case ABILITY_FRIEND_GUARD:
+    case ABILITY_FUR_COAT:
+    case ABILITY_FLUFFY:
+    case ABILITY_SHADOW_SHIELD:
+    case ABILITY_PRISM_ARMOR:
+    case ABILITY_ICE_SCALES:
+    case ABILITY_PURIFYING_SALT:
+    case ABILITY_TERA_SHELL:
+        flags |= AI_ABILITY_KNOWLEDGE_DAMAGE_RACE;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_LIMBER:
+    case ABILITY_INSOMNIA:
+    case ABILITY_IMMUNITY:
+    case ABILITY_OBLIVIOUS:
+    case ABILITY_OWN_TEMPO:
+    case ABILITY_MAGMA_ARMOR:
+    case ABILITY_WATER_VEIL:
+    case ABILITY_EARLY_BIRD:
+    case ABILITY_SHED_SKIN:
+    case ABILITY_GUTS:
+    case ABILITY_MARVEL_SCALE:
+    case ABILITY_VITAL_SPIRIT:
+    case ABILITY_SYNCHRONIZE:
+    case ABILITY_NATURAL_CURE:
+    case ABILITY_MAGIC_GUARD:
+    case ABILITY_POISON_HEAL:
+    case ABILITY_HYDRATION:
+    case ABILITY_QUICK_FEET:
+    case ABILITY_LEAF_GUARD:
+    case ABILITY_TOXIC_BOOST:
+    case ABILITY_FLARE_BOOST:
+    case ABILITY_AROMA_VEIL:
+    case ABILITY_FLOWER_VEIL:
+    case ABILITY_SWEET_VEIL:
+    case ABILITY_SHIELDS_DOWN:
+    case ABILITY_COMATOSE:
+    case ABILITY_PASTEL_VEIL:
+    case ABILITY_GOOD_AS_GOLD:
+    case ABILITY_THERMAL_EXCHANGE:
+    case ABILITY_PURIFYING_SALT:
+        flags |= AI_ABILITY_KNOWLEDGE_STATUS;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_DRIZZLE:
+    case ABILITY_SAND_VEIL:
+    case ABILITY_SWIFT_SWIM:
+    case ABILITY_CHLOROPHYLL:
+    case ABILITY_RAIN_DISH:
+    case ABILITY_SAND_STREAM:
+    case ABILITY_DROUGHT:
+    case ABILITY_CLOUD_NINE:
+    case ABILITY_AIR_LOCK:
+    case ABILITY_SNOW_CLOAK:
+    case ABILITY_DRY_SKIN:
+    case ABILITY_SOLAR_POWER:
+    case ABILITY_ICE_BODY:
+    case ABILITY_SNOW_WARNING:
+    case ABILITY_SAND_RUSH:
+    case ABILITY_SAND_FORCE:
+    case ABILITY_PRIMORDIAL_SEA:
+    case ABILITY_DESOLATE_LAND:
+    case ABILITY_DELTA_STREAM:
+    case ABILITY_GRASS_PELT:
+    case ABILITY_SURGE_SURFER:
+    case ABILITY_ELECTRIC_SURGE:
+    case ABILITY_PSYCHIC_SURGE:
+    case ABILITY_MISTY_SURGE:
+    case ABILITY_GRASSY_SURGE:
+    case ABILITY_SLUSH_RUSH:
+    case ABILITY_SCREEN_CLEANER:
+    case ABILITY_SAND_SPIT:
+    case ABILITY_SEED_SOWER:
+    case ABILITY_ORICHALCUM_PULSE:
+    case ABILITY_HADRON_ENGINE:
+    case ABILITY_TERAFORM_ZERO:
+        flags |= AI_ABILITY_KNOWLEDGE_FIELD_CONTROL;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_INTIMIDATE:
+    case ABILITY_SHADOW_TAG:
+    case ABILITY_ARENA_TRAP:
+    case ABILITY_MAGNET_PULL:
+    case ABILITY_TRACE:
+    case ABILITY_DOWNLOAD:
+    case ABILITY_ANTICIPATION:
+    case ABILITY_FOREWARN:
+    case ABILITY_FRISK:
+    case ABILITY_UNNERVE:
+    case ABILITY_REGENERATOR:
+    case ABILITY_WIMP_OUT:
+    case ABILITY_EMERGENCY_EXIT:
+    case ABILITY_PROPELLER_TAIL:
+    case ABILITY_STALWART:
+    case ABILITY_SCREEN_CLEANER:
+    case ABILITY_COMMANDER:
+    case ABILITY_HOSPITALITY:
+    case ABILITY_SUPERSWEET_SYRUP:
+        flags |= AI_ABILITY_KNOWLEDGE_POSITIONING;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_TRACE:
+    case ABILITY_MOLD_BREAKER:
+    case ABILITY_MUMMY:
+    case ABILITY_RECEIVER:
+    case ABILITY_POWER_OF_ALCHEMY:
+    case ABILITY_TURBOBLAZE:
+    case ABILITY_TERAVOLT:
+    case ABILITY_WANDERING_SPIRIT:
+    case ABILITY_NEUTRALIZING_GAS:
+    case ABILITY_LINGERING_AROMA:
+    case ABILITY_MYCELIUM_MIGHT:
+    case ABILITY_PIERCING_DRILL:
+        flags |= AI_ABILITY_KNOWLEDGE_ABILITY_CONTROL;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_SPEED_BOOST:
+    case ABILITY_INTIMIDATE:
+    case ABILITY_CLEAR_BODY:
+    case ABILITY_KEEN_EYE:
+    case ABILITY_HYPER_CUTTER:
+    case ABILITY_WHITE_SMOKE:
+    case ABILITY_SIMPLE:
+    case ABILITY_CONTRARY:
+    case ABILITY_DEFIANT:
+    case ABILITY_COMPETITIVE:
+    case ABILITY_WEAK_ARMOR:
+    case ABILITY_MOODY:
+    case ABILITY_MOXIE:
+    case ABILITY_STAMINA:
+    case ABILITY_WATER_COMPACTION:
+    case ABILITY_BERSERK:
+    case ABILITY_SOUL_HEART:
+    case ABILITY_BEAST_BOOST:
+    case ABILITY_FULL_METAL_BODY:
+    case ABILITY_INTREPID_SWORD:
+    case ABILITY_DAUNTLESS_SHIELD:
+    case ABILITY_COTTON_DOWN:
+    case ABILITY_STEAM_ENGINE:
+    case ABILITY_MIRROR_ARMOR:
+    case ABILITY_CHILLING_NEIGH:
+    case ABILITY_GRIM_NEIGH:
+    case ABILITY_THERMAL_EXCHANGE:
+    case ABILITY_ANGER_SHELL:
+    case ABILITY_WIND_RIDER:
+    case ABILITY_GUARD_DOG:
+    case ABILITY_ELECTROMORPHOSIS:
+    case ABILITY_PROTOSYNTHESIS:
+    case ABILITY_QUARK_DRIVE:
+    case ABILITY_OPPORTUNIST:
+    case ABILITY_COSTAR:
+    case ABILITY_EMBODY_ASPECT_TEAL_MASK:
+    case ABILITY_EMBODY_ASPECT_HEARTHFLAME_MASK:
+    case ABILITY_EMBODY_ASPECT_WELLSPRING_MASK:
+    case ABILITY_EMBODY_ASPECT_CORNERSTONE_MASK:
+        flags |= AI_ABILITY_KNOWLEDGE_STAT_CONTROL;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_PICKUP:
+    case ABILITY_STICKY_HOLD:
+    case ABILITY_GLUTTONY:
+    case ABILITY_KLUTZ:
+    case ABILITY_UNBURDEN:
+    case ABILITY_MULTITYPE:
+    case ABILITY_UNNERVE:
+    case ABILITY_PICKPOCKET:
+    case ABILITY_HARVEST:
+    case ABILITY_FRISK:
+    case ABILITY_CHEEK_POUCH:
+    case ABILITY_MAGICIAN:
+    case ABILITY_SYMBIOSIS:
+    case ABILITY_RKS_SYSTEM:
+    case ABILITY_RIPEN:
+    case ABILITY_PROTOSYNTHESIS:
+    case ABILITY_QUARK_DRIVE:
+    case ABILITY_CUD_CHEW:
+        flags |= AI_ABILITY_KNOWLEDGE_ITEM_CONTROL;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_STALL:
+    case ABILITY_PRANKSTER:
+    case ABILITY_GALE_WINGS:
+    case ABILITY_TRIAGE:
+    case ABILITY_QUEENLY_MAJESTY:
+    case ABILITY_DAZZLING:
+    case ABILITY_QUICK_DRAW:
+    case ABILITY_ARMOR_TAIL:
+    case ABILITY_MYCELIUM_MIGHT:
+        flags |= AI_ABILITY_KNOWLEDGE_PRIORITY;
+        break;
+    default:
+        break;
+    }
+
+    switch (ability)
+    {
+    case ABILITY_FORECAST:
+    case ABILITY_MULTITYPE:
+    case ABILITY_ZEN_MODE:
+    case ABILITY_STANCE_CHANGE:
+    case ABILITY_SHIELDS_DOWN:
+    case ABILITY_SCHOOLING:
+    case ABILITY_DISGUISE:
+    case ABILITY_BATTLE_BOND:
+    case ABILITY_POWER_CONSTRUCT:
+    case ABILITY_RKS_SYSTEM:
+    case ABILITY_GULP_MISSILE:
+    case ABILITY_ICE_FACE:
+    case ABILITY_HUNGER_SWITCH:
+    case ABILITY_ZERO_TO_HERO:
+    case ABILITY_COMMANDER:
+    case ABILITY_EMBODY_ASPECT_TEAL_MASK:
+    case ABILITY_EMBODY_ASPECT_HEARTHFLAME_MASK:
+    case ABILITY_EMBODY_ASPECT_WELLSPRING_MASK:
+    case ABILITY_EMBODY_ASPECT_CORNERSTONE_MASK:
+    case ABILITY_TERA_SHIFT:
+    case ABILITY_TERA_SHELL:
+    case ABILITY_TERAFORM_ZERO:
+        flags |= AI_ABILITY_KNOWLEDGE_FORM_STATE;
+        break;
+    default:
+        break;
+    }
+
+    return flags;
+}
+
+bool32 AI_AbilityHasKnowledgeFlag(enum Ability ability, u32 flag)
+{
+    return (AI_GetAbilityKnowledgeFlags(ability) & flag) != 0;
+}
+
+u32 AI_GetHoldEffectKnowledgeFlags(enum HoldEffect holdEffect)
+{
+    u32 flags = AI_HOLD_EFFECT_KNOWLEDGE_NONE;
+
+    if (IsHoldEffectChoice(holdEffect))
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_CHOICE_LOCK;
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_CHOICE_BAND:
+    case HOLD_EFFECT_SOUL_DEW:
+    case HOLD_EFFECT_DEEP_SEA_TOOTH:
+    case HOLD_EFFECT_LIGHT_BALL:
+    case HOLD_EFFECT_TYPE_POWER:
+    case HOLD_EFFECT_THICK_CLUB:
+    case HOLD_EFFECT_CHOICE_SPECS:
+    case HOLD_EFFECT_EXPERT_BELT:
+    case HOLD_EFFECT_LIFE_ORB:
+    case HOLD_EFFECT_METRONOME:
+    case HOLD_EFFECT_MUSCLE_BAND:
+    case HOLD_EFFECT_WISE_GLASSES:
+    case HOLD_EFFECT_ADAMANT_ORB:
+    case HOLD_EFFECT_LUSTROUS_ORB:
+    case HOLD_EFFECT_GRISEOUS_ORB:
+    case HOLD_EFFECT_PLATE:
+    case HOLD_EFFECT_GEMS:
+    case HOLD_EFFECT_BINDING_BAND:
+    case HOLD_EFFECT_PUNCHING_GLOVE:
+    case HOLD_EFFECT_OGERPON_MASK:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_DAMAGE_RACE;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_FOCUS_BAND:
+    case HOLD_EFFECT_DEEP_SEA_SCALE:
+    case HOLD_EFFECT_METAL_POWDER:
+    case HOLD_EFFECT_RESIST_BERRY:
+    case HOLD_EFFECT_FOCUS_SASH:
+    case HOLD_EFFECT_EVIOLITE:
+    case HOLD_EFFECT_ASSAULT_VEST:
+    case HOLD_EFFECT_AIR_BALLOON:
+    case HOLD_EFFECT_SAFETY_GOGGLES:
+    case HOLD_EFFECT_PROTECTIVE_PADS:
+    case HOLD_EFFECT_UTILITY_UMBRELLA:
+    case HOLD_EFFECT_HEAVY_DUTY_BOOTS:
+    case HOLD_EFFECT_CLEAR_AMULET:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_DEFENSIVE_RACE;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_ATTACK_UP:
+    case HOLD_EFFECT_DEFENSE_UP:
+    case HOLD_EFFECT_SPEED_UP:
+    case HOLD_EFFECT_SP_ATTACK_UP:
+    case HOLD_EFFECT_SP_DEFENSE_UP:
+    case HOLD_EFFECT_CRITICAL_UP:
+    case HOLD_EFFECT_RANDOM_STAT_UP:
+    case HOLD_EFFECT_EVASION_UP:
+    case HOLD_EFFECT_WHITE_HERB:
+    case HOLD_EFFECT_SCOPE_LENS:
+    case HOLD_EFFECT_LUCKY_PUNCH:
+    case HOLD_EFFECT_LEEK:
+    case HOLD_EFFECT_MICLE_BERRY:
+    case HOLD_EFFECT_KEE_BERRY:
+    case HOLD_EFFECT_MARANGA_BERRY:
+    case HOLD_EFFECT_ABSORB_BULB:
+    case HOLD_EFFECT_CELL_BATTERY:
+    case HOLD_EFFECT_LUMINOUS_MOSS:
+    case HOLD_EFFECT_SNOWBALL:
+    case HOLD_EFFECT_WEAKNESS_POLICY:
+    case HOLD_EFFECT_TERRAIN_SEED:
+    case HOLD_EFFECT_ADRENALINE_ORB:
+    case HOLD_EFFECT_ROOM_SERVICE:
+    case HOLD_EFFECT_BLUNDER_POLICY:
+    case HOLD_EFFECT_THROAT_SPRAY:
+    case HOLD_EFFECT_CLEAR_AMULET:
+    case HOLD_EFFECT_MIRROR_HERB:
+    case HOLD_EFFECT_BOOSTER_ENERGY:
+    case HOLD_EFFECT_BERSERK_GENE:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_STAT_CONTROL;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_QUICK_CLAW:
+    case HOLD_EFFECT_CHOICE_SCARF:
+    case HOLD_EFFECT_LAGGING_TAIL:
+    case HOLD_EFFECT_QUICK_POWDER:
+    case HOLD_EFFECT_CUSTAP_BERRY:
+    case HOLD_EFFECT_IRON_BALL:
+    case HOLD_EFFECT_ROOM_SERVICE:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_SPEED_CONTROL;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_RESTORE_HP:
+    case HOLD_EFFECT_LEFTOVERS:
+    case HOLD_EFFECT_SHELL_BELL:
+    case HOLD_EFFECT_BIG_ROOT:
+    case HOLD_EFFECT_BLACK_SLUDGE:
+    case HOLD_EFFECT_ENIGMA_BERRY:
+    case HOLD_EFFECT_RESTORE_PCT_HP:
+    case HOLD_EFFECT_CONFUSE_SPICY:
+    case HOLD_EFFECT_CONFUSE_DRY:
+    case HOLD_EFFECT_CONFUSE_SWEET:
+    case HOLD_EFFECT_CONFUSE_BITTER:
+    case HOLD_EFFECT_CONFUSE_SOUR:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_RECOVERY;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_CURE_PAR:
+    case HOLD_EFFECT_CURE_SLP:
+    case HOLD_EFFECT_CURE_PSN:
+    case HOLD_EFFECT_CURE_BRN:
+    case HOLD_EFFECT_CURE_FRZ:
+    case HOLD_EFFECT_CURE_CONFUSION:
+    case HOLD_EFFECT_CURE_STATUS:
+    case HOLD_EFFECT_MENTAL_HERB:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_STATUS_CURE;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_CONFUSE_SPICY:
+    case HOLD_EFFECT_CONFUSE_DRY:
+    case HOLD_EFFECT_CONFUSE_SWEET:
+    case HOLD_EFFECT_CONFUSE_BITTER:
+    case HOLD_EFFECT_CONFUSE_SOUR:
+    case HOLD_EFFECT_FLAME_ORB:
+    case HOLD_EFFECT_TOXIC_ORB:
+    case HOLD_EFFECT_STICKY_BARB:
+    case HOLD_EFFECT_BLACK_SLUDGE:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_SELF_STATUS;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_DAMP_ROCK:
+    case HOLD_EFFECT_HEAT_ROCK:
+    case HOLD_EFFECT_ICY_ROCK:
+    case HOLD_EFFECT_SMOOTH_ROCK:
+    case HOLD_EFFECT_GRIP_CLAW:
+    case HOLD_EFFECT_LIGHT_CLAY:
+    case HOLD_EFFECT_TERRAIN_EXTENDER:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_FIELD_DURATION;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_FLINCH:
+    case HOLD_EFFECT_DESTINY_KNOT:
+    case HOLD_EFFECT_STICKY_BARB:
+    case HOLD_EFFECT_JABOCA_BERRY:
+    case HOLD_EFFECT_ROWAP_BERRY:
+    case HOLD_EFFECT_ROCKY_HELMET:
+    case HOLD_EFFECT_RED_CARD:
+    case HOLD_EFFECT_EJECT_BUTTON:
+    case HOLD_EFFECT_EJECT_PACK:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_CONTACT_PUNISH;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_WIDE_LENS:
+    case HOLD_EFFECT_ZOOM_LENS:
+    case HOLD_EFFECT_POWER_HERB:
+    case HOLD_EFFECT_BIG_ROOT:
+    case HOLD_EFFECT_GRIP_CLAW:
+    case HOLD_EFFECT_SAFETY_GOGGLES:
+    case HOLD_EFFECT_PROTECTIVE_PADS:
+    case HOLD_EFFECT_UTILITY_UMBRELLA:
+    case HOLD_EFFECT_PUNCHING_GLOVE:
+    case HOLD_EFFECT_COVERT_CLOAK:
+    case HOLD_EFFECT_LOADED_DICE:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_MOVE_SHAPE;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_PROTECTIVE_PADS:
+    case HOLD_EFFECT_ABILITY_SHIELD:
+    case HOLD_EFFECT_CLEAR_AMULET:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_ABILITY_PROTECTION;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_CAN_ALWAYS_RUN:
+    case HOLD_EFFECT_SHED_SHELL:
+    case HOLD_EFFECT_AIR_BALLOON:
+    case HOLD_EFFECT_RED_CARD:
+    case HOLD_EFFECT_EJECT_BUTTON:
+    case HOLD_EFFECT_EJECT_PACK:
+    case HOLD_EFFECT_HEAVY_DUTY_BOOTS:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_POSITIONING;
+        break;
+    default:
+        break;
+    }
+
+    switch (holdEffect)
+    {
+    case HOLD_EFFECT_PLATE:
+    case HOLD_EFFECT_DRIVE:
+    case HOLD_EFFECT_MEGA_STONE:
+    case HOLD_EFFECT_PRIMAL_ORB:
+    case HOLD_EFFECT_MEMORY:
+    case HOLD_EFFECT_Z_CRYSTAL:
+    case HOLD_EFFECT_OGERPON_MASK:
+        flags |= AI_HOLD_EFFECT_KNOWLEDGE_GIMMICK;
+        break;
+    default:
+        break;
+    }
+
+    return flags;
+}
+
+bool32 AI_HoldEffectHasKnowledgeFlag(enum HoldEffect holdEffect, u32 flag)
+{
+    return (AI_GetHoldEffectKnowledgeFlags(holdEffect) & flag) != 0;
+}
+
+u32 AI_GetItemKnowledgeFlags(enum Item item)
+{
+    return AI_GetHoldEffectKnowledgeFlags(GetItemHoldEffect(item));
+}
+
+bool32 AI_ItemHasKnowledgeFlag(enum Item item, u32 flag)
+{
+    return (AI_GetItemKnowledgeFlags(item) & flag) != 0;
+}
+
 bool32 AI_CanBattlerIgnorePredictedMove(enum BattlerId battlerDef, enum BattlerId battlerAtk, enum Move move)
 {
     enum BattleMoveEffects moveEffect;
