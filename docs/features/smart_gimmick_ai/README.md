@@ -16,8 +16,19 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Trainer data says a gimmick is available; smart AI decides whether this turn is worth spending it.
 - Tera should be held until there is offensive payoff, defensive payoff, or a specific target interaction.
 - Dynamax should be held unless the AI has last-Pokemon pressure, survival pressure, KO conversion, or a Max Move board payoff.
-- Mega Evolution / Ultra Burst may be delayed for setup turns when the current form is not immediately threatened.
+- Mega Evolution / Ultra Burst may be delayed for setup turns or pre-Mega ability value, but spent for immediate ability, Speed, damage, or defensive payoff.
 - Z-Moves remain behind viability and smart timing checks instead of firing only because a Z-Crystal exists.
+
+## Current Mega / Ultra Burst Payoffs
+
+`AI_FLAG_SMART_MEGA` now treats Mega Evolution as a timing decision instead of a guaranteed first-turn action. It spends Mega / Ultra Burst when one of these is true:
+
+- The target form's ability creates immediate board value, such as `Shadow Tag` trapping or weather control from `Drought`, `Drizzle`, `Sand Stream`, `Snow Warning`, or `Delta Stream`.
+- The target form's Speed is estimated to flip the current matchup.
+- The target form's defensive stats are meaningfully better and the current target can otherwise KO the AI.
+- The target form's attacking stat meaningfully improves the selected damaging move.
+
+The AI may still delay Mega on setup turns, and may preserve `Air Lock` / `Cloud Nine` while weather is active if the target form does not provide a stronger immediate payoff.
 
 ## Current Dynamax Payoffs
 
@@ -36,9 +47,20 @@ The weather and terrain checks reuse the existing AI field-status evaluators so 
 
 - The AI is on its last available Pokemon.
 - The Z-Move converts the selected move into a KO.
+- The Z-Move improves the damage race while the AI is under immediate KO pressure or trapped.
 - The base move already has a KO line, but the Z-Move avoids a low-accuracy miss.
 
 Status Z-Moves keep their existing tactical checks because their value is usually the Z-status effect rather than raw damage.
+
+## VGC Reference Notes
+
+These runtime heuristics are source-derived rather than copied from a single match:
+
+- The 2019 Worlds recap records a Rayquaza player delaying Mega Evolution to keep `Air Lock` until it was no longer needed, which maps to preserving pre-Mega weather-nullifying abilities when there is no stronger immediate Mega payoff: https://pokemonblog.com/2019/08/20/official-recap-of-pokemon-vgc-at-the-2019-pokemon-world-championships/
+- The same 2019 recap describes Mega Gengar / Perish Song as a trap archetype and a knockout breaking `Shadow Tag`, supporting immediate Mega payoff for trapping and Z payoff for breaking trap pressure: https://pokemonblog.com/2019/08/20/official-recap-of-pokemon-vgc-at-the-2019-pokemon-world-championships/
+- Paul Ruiz's 2018 Worlds report emphasizes Mega Salamence Speed and KO benchmarks into Mega Gengar and other targets, supporting Mega Speed / damage pressure checks: https://victoryroad.pro/2018/09/14/soaring-higher-report-paul-ruiz-2018-world-champion/
+- Public 2018 Worlds recaps describe Groundium Z helping escape a Perish Trap matchup, supporting Z-Move use before last-Pokemon turns when trap pressure changes the damage race: https://thegamehaus.com/esports/this-is-for-latin-america-2018-pokemon-world-championships-recap/2018/08/28/
+- The 2017 Worlds finals recap notes a Dark-type switch-in stopping Prankster-boosted Z-Nature Power, so status Z-Moves remain under existing tactical legality / viability checks instead of being blindly conserved or blindly fired: https://www.nintendolife.com/news/2017/08/feature_everything_you_need_to_know_about_the_2017_pokemon_world_championships
 
 ## Debug Fixtures
 

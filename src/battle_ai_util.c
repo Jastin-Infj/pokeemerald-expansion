@@ -5046,6 +5046,38 @@ static bool32 DoesZMoveImproveLowAccuracyKo(enum BattlerId battlerAtk, enum Batt
     return gAiLogicData->moveAccuracy[battlerAtk][battlerDef][gAiThinkingStruct->movesetIndex] < LOW_ACCURACY_THRESHOLD;
 }
 
+static bool32 IsSmartZTrapPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    return CountUsablePartyMons(battlerAtk) != 0
+        && IsBattlerTrapped(battlerDef, battlerAtk);
+}
+
+static bool32 DoesZMoveImproveDamageRace(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    uq4_12_t effectiveness;
+    struct SimulatedDamage regularDamage;
+    struct SimulatedDamage zMoveDamage;
+    u32 regularHits;
+    u32 zMoveHits;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    if (!CanTargetFaintAi(battlerDef, battlerAtk) && !IsSmartZTrapPressure(battlerAtk, battlerDef))
+        return FALSE;
+
+    regularDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    zMoveDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, USE_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+
+    if (zMoveDamage.minimum <= regularDamage.minimum || zMoveDamage.minimum == 0)
+        return FALSE;
+
+    regularHits = GetNoOfHitsToKO(regularDamage.minimum, gBattleMons[battlerDef].hp);
+    zMoveHits = GetNoOfHitsToKO(zMoveDamage.minimum, gBattleMons[battlerDef].hp);
+
+    return regularHits != 0 && zMoveHits != 0 && zMoveHits < regularHits;
+}
+
 static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
     if (!ShouldUseZMove(battlerAtk, battlerDef, move))
@@ -5058,6 +5090,9 @@ static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId batt
         return TRUE;
 
     if (DoesZMoveImproveChosenMoveKo(battlerAtk, battlerDef, move))
+        return TRUE;
+
+    if (DoesZMoveImproveDamageRace(battlerAtk, battlerDef, move))
         return TRUE;
 
     return DoesZMoveImproveLowAccuracyKo(battlerAtk, battlerDef, move);
@@ -5306,16 +5341,210 @@ static bool32 IsSmartMegaSetupMove(enum Move move)
     }
 }
 
-static bool32 ShouldUseSmartMega(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+static enum Species GetSmartMegaTargetSpecies(enum BattlerId battler, enum Gimmick gimmick)
 {
+    enum Ability ability = gAiLogicData->abilities[battler];
+    enum Species targetSpecies;
+
+    if (gimmick == GIMMICK_ULTRA_BURST)
+        return GetBattleFormChangeTargetSpecies(battler, FORM_CHANGE_BATTLE_ULTRA_BURST, ability);
+
+    targetSpecies = GetBattleFormChangeTargetSpecies(battler, FORM_CHANGE_BATTLE_MEGA_EVOLUTION_ITEM, ability);
+    if (targetSpecies != gBattleMons[battler].species)
+        return targetSpecies;
+
+    return GetBattleFormChangeTargetSpecies(battler, FORM_CHANGE_BATTLE_MEGA_EVOLUTION_MOVE, ability);
+}
+
+static enum Ability GetSmartMegaTargetAbility(enum BattlerId battler, enum Species targetSpecies)
+{
+    return GetAbilityBySpecies(targetSpecies, gBattleMons[battler].abilityNum);
+}
+
+static u32 GetSmartMegaWeatherForAbility(enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_DROUGHT:
+    case ABILITY_DESOLATE_LAND:
+        return B_WEATHER_SUN;
+    case ABILITY_DRIZZLE:
+    case ABILITY_PRIMORDIAL_SEA:
+        return B_WEATHER_RAIN;
+    case ABILITY_SAND_STREAM:
+        return B_WEATHER_SANDSTORM;
+    case ABILITY_SNOW_WARNING:
+        return B_WEATHER_ICY_ANY;
+    case ABILITY_DELTA_STREAM:
+        return B_WEATHER_STRONG_WINDS;
+    default:
+        return B_WEATHER_NONE;
+    }
+}
+
+static bool32 ShouldSmartMegaSetWeather(enum BattlerId battlerAtk, enum Ability targetAbility)
+{
+    u32 weather = GetSmartMegaWeatherForAbility(targetAbility);
+    enum BattlerId partner = BATTLE_PARTNER(battlerAtk);
+
+    if (weather == B_WEATHER_NONE)
+        return FALSE;
+
+    if (weather == B_WEATHER_STRONG_WINDS)
+    {
+        if (AI_GetWeather() & B_WEATHER_STRONG_WINDS)
+            return FALSE;
+
+        return IS_BATTLER_OF_TYPE(battlerAtk, TYPE_FLYING)
+            || (IsDoubleBattle()
+             && partner < gBattlersCount
+             && IsBattlerAlive(partner)
+             && IsBattlerAlly(battlerAtk, partner)
+             && IS_BATTLER_OF_TYPE(partner, TYPE_FLYING));
+    }
+
+    return ShouldSetWeather(battlerAtk, weather);
+}
+
+static bool32 DoesSmartMegaTrapTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Ability targetAbility)
+{
+    return targetAbility == ABILITY_SHADOW_TAG
+        && gAiLogicData->abilities[battlerAtk] != ABILITY_SHADOW_TAG
+        && CountUsablePartyMons(battlerDef) != 0
+        && !AI_CanBattlerEscape(battlerDef);
+}
+
+static bool32 DoesSmartMegaOfferAbilityPayoff(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Ability targetAbility)
+{
+    return DoesSmartMegaTrapTarget(battlerAtk, battlerDef, targetAbility)
+        || ShouldSmartMegaSetWeather(battlerAtk, targetAbility);
+}
+
+static bool32 ShouldSmartMegaPreserveCurrentAbility(enum BattlerId battlerAtk, enum Ability targetAbility)
+{
+    enum Ability currentAbility = gAiLogicData->abilities[battlerAtk];
+
+    if (currentAbility != ABILITY_AIR_LOCK && currentAbility != ABILITY_CLOUD_NINE)
+        return FALSE;
+
+    if (!(AI_GetWeather() & B_WEATHER_ANY))
+        return FALSE;
+
+    if (targetAbility == ABILITY_AIR_LOCK || targetAbility == ABILITY_CLOUD_NINE)
+        return FALSE;
+
+    return GetSmartMegaWeatherForAbility(targetAbility) == B_WEATHER_NONE
+        || targetAbility == ABILITY_DELTA_STREAM;
+}
+
+static bool32 DoesSmartMegaImproveSelectedMovePressure(enum BattlerId battlerAtk, enum Move move, enum Species targetSpecies)
+{
+    enum Species currentSpecies = gBattleMons[battlerAtk].species;
+    u32 currentStat;
+    u32 targetStat;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    if (IsBattleMovePhysical(move))
+    {
+        currentStat = GetSpeciesBaseAttack(currentSpecies);
+        targetStat = GetSpeciesBaseAttack(targetSpecies);
+    }
+    else if (IsBattleMoveSpecial(move))
+    {
+        currentStat = GetSpeciesBaseSpAttack(currentSpecies);
+        targetStat = GetSpeciesBaseSpAttack(targetSpecies);
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    return targetStat > currentStat && (targetStat - currentStat) * 100 >= currentStat * 15;
+}
+
+static bool32 DoesSmartMegaImproveSpeed(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Species targetSpecies)
+{
+    u32 currentBaseSpeed = GetSpeciesBaseSpeed(gBattleMons[battlerAtk].species);
+    u32 targetBaseSpeed = GetSpeciesBaseSpeed(targetSpecies);
+    u32 estimatedTargetSpeed;
+
+    if (currentBaseSpeed == 0 || targetBaseSpeed <= currentBaseSpeed)
+        return FALSE;
+
+    if (gBattleMons[battlerAtk].speed > gBattleMons[battlerDef].speed)
+        return FALSE;
+
+    estimatedTargetSpeed = (gBattleMons[battlerAtk].speed * targetBaseSpeed) / currentBaseSpeed;
+    return estimatedTargetSpeed > gBattleMons[battlerDef].speed;
+}
+
+static bool32 DoesSmartMegaImproveSurvival(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Species targetSpecies)
+{
+    enum Move predictedMove;
+    u32 currentStat;
+    u32 targetStat;
+
+    if (!CanTargetFaintAi(battlerDef, battlerAtk))
+        return FALSE;
+
+    predictedMove = GetPredictedMove(battlerAtk, battlerDef, gAiLogicData);
+    if (predictedMove == MOVE_NONE || predictedMove == MOVE_UNAVAILABLE || IsBattleMoveStatus(predictedMove))
+        return FALSE;
+
+    if (IsBattleMovePhysical(predictedMove))
+    {
+        currentStat = GetSpeciesBaseDefense(gBattleMons[battlerAtk].species);
+        targetStat = GetSpeciesBaseDefense(targetSpecies);
+    }
+    else if (IsBattleMoveSpecial(predictedMove))
+    {
+        currentStat = GetSpeciesBaseSpDefense(gBattleMons[battlerAtk].species);
+        targetStat = GetSpeciesBaseSpDefense(targetSpecies);
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    return targetStat > currentStat && (targetStat - currentStat) * 100 >= currentStat * 15;
+}
+
+static bool32 ShouldUseSmartMega(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum Gimmick gimmick)
+{
+    enum Species targetSpecies;
+    enum Ability targetAbility;
+
     battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
     if (battlerDef == SMART_GIMMICK_NO_TARGET)
         return TRUE;
 
-    if (!IsSmartMegaSetupMove(move))
+    targetSpecies = GetSmartMegaTargetSpecies(battlerAtk, gimmick);
+    if (targetSpecies == gBattleMons[battlerAtk].species)
         return TRUE;
 
-    return CanTargetFaintAi(battlerDef, battlerAtk);
+    targetAbility = GetSmartMegaTargetAbility(battlerAtk, targetSpecies);
+
+    if (DoesSmartMegaImproveSurvival(battlerAtk, battlerDef, targetSpecies))
+        return TRUE;
+
+    if (DoesSmartMegaImproveSpeed(battlerAtk, battlerDef, targetSpecies))
+        return TRUE;
+
+    if (ShouldSmartMegaPreserveCurrentAbility(battlerAtk, targetAbility))
+        return FALSE;
+
+    if (DoesSmartMegaOfferAbilityPayoff(battlerAtk, battlerDef, targetAbility))
+        return TRUE;
+
+    if (DoesSmartMegaImproveSelectedMovePressure(battlerAtk, move, targetSpecies))
+        return TRUE;
+
+    if (IsSmartMegaSetupMove(move))
+        return CanTargetFaintAi(battlerDef, battlerAtk);
+
+    return TRUE;
 }
 
 static bool32 DoesDynamaxImproveChosenMoveKo(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
@@ -5555,7 +5784,7 @@ void ReconsiderSmartGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef
     {
     case GIMMICK_MEGA:
     case GIMMICK_ULTRA_BURST:
-        if (!ShouldUseSmartMega(battlerAtk, battlerDef, move))
+        if (!ShouldUseSmartMega(battlerAtk, battlerDef, move, gimmick))
             SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
         break;
     case GIMMICK_DYNAMAX:

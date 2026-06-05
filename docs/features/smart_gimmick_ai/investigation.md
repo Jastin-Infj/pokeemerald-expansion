@@ -14,8 +14,11 @@ This investigation records the VGC references used to tune smart gimmick timing.
 | [VGC Guide: Dynamax Candy and Max Soup](https://www.vgcguide.com/dynamax-candy-and-max-soup) | Reference for Max Move value and Gigantamax / Dynamax preparation context. |
 | [Pokemon Worlds 2022 VGC Masters Grand Finals](https://www.youtube.com/watch?v=UldeXA6T4_A) | Official VOD for Gen 8 Dynamax-era resource timing review. |
 | [Pokemon Worlds 2019 VGC Masters Finals](https://www.youtube.com/watch?v=hBBjcnADWDI) | Official VOD for Gen 7 Mega / Z-Move resource timing review. |
+| [Official recap of Pokemon VGC at the 2019 Pokemon World Championships](https://pokemonblog.com/2019/08/20/official-recap-of-pokemon-vgc-at-the-2019-pokemon-world-championships/) | Source for Rayquaza delaying Mega Evolution to keep `Air Lock`, Mega Gengar / Perish Song trap pressure, and Fairium Z offensive pressure into Umbreon. |
 | [Naoto Mizobuchi 2019 Worlds report, Victory Road](https://victoryroad.pro/2019/08/29/world-champion-naoto-mizobuchi-report/) | Player report for the 2019 Mega / Z-Move environment. |
 | [Paul Ruiz 2018 Worlds report, Victory Road](https://victoryroad.pro/2018/09/14/soaring-higher-report-paul-ruiz-2018-world-champion/) | Earlier Gen 7 Worlds report for Z-Move / Mega context. |
+| [2018 Pokemon World Championships recap, The Game Haus](https://thegamehaus.com/esports/this-is-for-latin-america-2018-pokemon-world-championships-recap/2018/08/28/) | Public recap for Paul Ruiz using Groundium Z and Mega Salamence pressure to escape Emilio Forbes's Perish Trap / Mega Gengar matchup. |
+| [2017 Pokemon World Championships recap, Nintendo Life](https://www.nintendolife.com/news/2017/08/feature_everything_you_need_to_know_about_the_2017_pokemon_world_championships) | Public recap for Mandibuzz stopping Prankster-boosted Z-Nature Power, supporting tactical checks for status Z-Moves. |
 
 ## Timestamp Notes
 
@@ -35,4 +38,6 @@ The 2024 official VOD had English auto-captions available through `yt-dlp`; the 
 - Doubles makes Speed control and side-wide effects more valuable than singles. `Max Airstream`, `Max Strike`, and side-wide stat Max Moves should be considered board payoffs, not only damage conversions.
 - Weather and terrain Max Moves should use existing AI field-status opinions so they are only spent when the field state helps the AI side or disrupts an unfavorable field.
 - Tera should remain calculation-led: offensive boost, defensive survival, and explicit candidate handling are more important than automatic first-turn activation.
-- Mega Evolution and Z-Moves still need future deeper reads. The current implementation keeps Mega setup-delay and Z-Move viability checks, but does not yet model every Mega ability weather-control line or every Z-status tactical line.
+- Mega Evolution should be delayed when the base form has continuing value, such as `Air Lock` / `Cloud Nine` during active weather, but spent when the target form creates immediate ability, Speed, damage, or defensive payoff.
+- Z-Moves should not be last-Pokemon-only. 2018 trap examples support spending a damaging Z-Move earlier when it improves the damage race against trapping pressure.
+- Status Z-Moves still need tactical legality checks. The 2017 Z-Nature Power example supports keeping those checks separate from simple resource-conservation heuristics.
