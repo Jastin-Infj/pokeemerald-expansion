@@ -5,7 +5,6 @@
 #include "battle_interface.h"
 #include "battle_gimmick.h"
 #include "battle_z_move.h"
-#include "constants/battle_ai.h"
 #include "debug.h"
 #include "event_data.h"
 #include "battle_setup.h"
@@ -65,20 +64,87 @@ enum Gimmick GetActiveGimmick(enum BattlerId battler)
     return gBattleStruct->gimmick.activeGimmick[GetBattlerTrainer(battler)][gBattlerPartyIndexes[battler]];
 }
 
-bool32 IsItemlessGimmickBattle(enum BattlerId battler)
+static bool32 IsConfiguredFlagSet(u32 flag)
 {
-    if (B_FLAG_ITEMLESS_GIMMICK_BATTLE != 0 && FlagGet(B_FLAG_ITEMLESS_GIMMICK_BATTLE))
+    return flag != 0 && FlagGet(flag);
+}
+
+static u8 GetGimmickAccessBit(enum Gimmick gimmick)
+{
+    switch (gimmick)
+    {
+    case GIMMICK_MEGA:
+        return GIMMICK_ACCESS_MEGA_RING;
+    case GIMMICK_Z_MOVE:
+    case GIMMICK_ULTRA_BURST:
+        return GIMMICK_ACCESS_Z_POWER_RING;
+    case GIMMICK_DYNAMAX:
+        return GIMMICK_ACCESS_DYNAMAX_BAND;
+    case GIMMICK_TERA:
+        return GIMMICK_ACCESS_TERA_ORB;
+    default:
+        return 0;
+    }
+}
+
+bool32 HasGimmickAccessOverride(enum Gimmick gimmick)
+{
+    u8 accessBit = GetGimmickAccessBit(gimmick);
+
+    if (accessBit == 0)
+        return FALSE;
+
+    if (IsConfiguredFlagSet(B_FLAG_GIMMICK_ACCESS_ALL))
         return TRUE;
 
-    if (gIsDebugBattle && (gDebugAIFlags & AI_FLAG_GIMMICK_ENV_ITEMLESS))
+    if (gIsDebugBattle && (gDebugGimmickAccessFlags & accessBit))
         return TRUE;
 
-    if (BattlerHasAi(battler)
-     && gAiThinkingStruct != NULL
-     && (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_GIMMICK_ENV_ITEMLESS))
+    switch (gimmick)
+    {
+    case GIMMICK_MEGA:
+        return IsConfiguredFlagSet(B_FLAG_GIMMICK_ACCESS_MEGA_RING);
+    case GIMMICK_Z_MOVE:
+    case GIMMICK_ULTRA_BURST:
+        return IsConfiguredFlagSet(B_FLAG_GIMMICK_ACCESS_Z_POWER_RING);
+    case GIMMICK_DYNAMAX:
+        return IsConfiguredFlagSet(B_FLAG_GIMMICK_ACCESS_DYNAMAX_BAND);
+    case GIMMICK_TERA:
+        return IsConfiguredFlagSet(B_FLAG_GIMMICK_ACCESS_TERA_ORB);
+    default:
+        return FALSE;
+    }
+}
+
+bool32 HasGimmickAccess(enum BattlerId battler, enum Gimmick gimmick)
+{
+    (void)battler;
+
+    if (HasGimmickAccessOverride(gimmick))
         return TRUE;
 
-    return FALSE;
+    switch (gimmick)
+    {
+    case GIMMICK_MEGA:
+        return CheckBagHasItem(ITEM_MEGA_RING, 1);
+    case GIMMICK_Z_MOVE:
+    case GIMMICK_ULTRA_BURST:
+        return CheckBagHasItem(ITEM_Z_POWER_RING, 1);
+    case GIMMICK_DYNAMAX:
+        return CheckBagHasItem(ITEM_DYNAMAX_BAND, 1);
+    case GIMMICK_TERA:
+        return CheckBagHasItem(ITEM_TERA_ORB, 1);
+    default:
+        return FALSE;
+    }
+}
+
+bool32 IsDynamaxBattleEnabled(enum BattlerId battler)
+{
+    (void)battler;
+
+    return IsConfiguredFlagSet(B_FLAG_DYNAMAX_BATTLE)
+        || HasGimmickAccessOverride(GIMMICK_DYNAMAX);
 }
 
 // Returns whether a trainer mon is intended to use an unrestrictive gimmick via .useGimmick (i.e Tera).

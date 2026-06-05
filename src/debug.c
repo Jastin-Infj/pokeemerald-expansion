@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_gimmick.h"
 #include "battle_setup.h"
 #include "berry.h"
 #include "clock.h"
@@ -247,6 +248,7 @@ static EWRAM_DATA struct DebugMonData *sDebugMonData = NULL;
 static EWRAM_DATA struct DebugMenuListData *sDebugMenuListData = NULL;
 EWRAM_DATA bool8 gIsDebugBattle = FALSE;
 EWRAM_DATA u64 gDebugAIFlags = 0;
+EWRAM_DATA u8 gDebugGimmickAccessFlags = 0;
 static EWRAM_DATA u8 sCurrentDebugAiTrainerId = 0;
 
 // *******************************
@@ -4958,7 +4960,7 @@ static void DebugAction_Party_SetParty(u8 taskId)
     Debug_DestroyMenu_Full(taskId);
 }
 
-static void DebugAction_Party_StartDebugBattle(u8 taskId, enum DebugTrainerIds playerTrainerId, enum DebugTrainerIds aiTrainerId, bool32 halfPlayerTeam)
+static void DebugAction_Party_StartDebugBattle(u8 taskId, enum DebugTrainerIds playerTrainerId, enum DebugTrainerIds aiTrainerId, bool32 halfPlayerTeam, u8 gimmickAccessFlags)
 {
     const struct Trainer *playerTrainer = &sDebugTrainers[DIFFICULTY_NORMAL][playerTrainerId];
     const struct Trainer *aiTrainer = &sDebugTrainers[DIFFICULTY_NORMAL][aiTrainerId];
@@ -4975,6 +4977,7 @@ static void DebugAction_Party_StartDebugBattle(u8 taskId, enum DebugTrainerIds p
 
     gBattleTypeFlags = battleTypeFlags;
     gDebugAIFlags = aiTrainer->aiFlags;
+    gDebugGimmickAccessFlags = gimmickAccessFlags;
     gIsDebugBattle = TRUE;
     gBattleEnvironment = BattleSetup_GetEnvironmentId();
     CalculateEnemyPartyCount();
@@ -4984,27 +4987,27 @@ static void DebugAction_Party_StartDebugBattle(u8 taskId, enum DebugTrainerIds p
 
 static void DebugAction_Party_BattleSingle(u8 taskId)
 {
-    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER, DEBUG_TRAINER_AI, TRUE);
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER, DEBUG_TRAINER_AI, TRUE, 0);
 }
 
 static void DebugAction_Party_BattleSingles3v3(u8 taskId)
 {
-    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_SINGLES_3V3, DEBUG_TRAINER_AI_SINGLES_3V3, FALSE);
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_SINGLES_3V3, DEBUG_TRAINER_AI_SINGLES_3V3, FALSE, 0);
 }
 
 static void DebugAction_Party_BattleDoubles4v4(u8 taskId)
 {
-    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DOUBLES_4V4, DEBUG_TRAINER_AI_DOUBLES_4V4, FALSE);
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DOUBLES_4V4, DEBUG_TRAINER_AI_DOUBLES_4V4, FALSE, 0);
 }
 
 static void DebugAction_Party_BattleDmaxZSingles(u8 taskId)
 {
-    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES, DEBUG_TRAINER_AI_DMAX_Z_SINGLES, FALSE);
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES, DEBUG_TRAINER_AI_DMAX_Z_SINGLES, FALSE, GIMMICK_ACCESS_Z_POWER_RING | GIMMICK_ACCESS_DYNAMAX_BAND);
 }
 
 static void DebugAction_Party_BattleDmaxZDoubles(u8 taskId)
 {
-    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES, DEBUG_TRAINER_AI_DMAX_Z_DOUBLES, FALSE);
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES, DEBUG_TRAINER_AI_DMAX_Z_DOUBLES, FALSE, GIMMICK_ACCESS_Z_POWER_RING | GIMMICK_ACCESS_DYNAMAX_BAND);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)

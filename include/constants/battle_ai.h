@@ -46,7 +46,6 @@
 #define AI_FLAG_SMART_MEGA                  AI_FLAG(36)  // AI may delay Mega Evolution / Ultra Burst when the selected turn is better spent setting up.
 #define AI_FLAG_SMART_Z_MOVE                AI_FLAG(37)  // AI keeps Z-Move usage under smart gimmick timing instead of treating the crystal as automatic pressure.
 #define AI_FLAG_ENV_INVERSE_BATTLE          AI_FLAG(38)  // Marker for inverse-battle AI presets. Type matchup calcs still come from B_FLAG_INVERSE_BATTLE.
-#define AI_FLAG_GIMMICK_ENV_ITEMLESS        AI_FLAG(39)  // Environment marker: configured gimmick candidates may use itemless Z-Moves / player itemless Dynamax in supported debug or runtime-flag battles.
 
 // The following options are enough to have a basic/smart trainer. Any other addtion could make the trainer worse/better depending on the flag
 #define AI_FLAG_BASIC_TRAINER         (AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_TRY_TO_FAINT | AI_FLAG_CHECK_VIABILITY)
@@ -56,13 +55,11 @@
 #define AI_FLAG_SMART_GIMMICK         (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_TERA | AI_FLAG_SMART_DYNAMAX | AI_FLAG_SMART_MEGA | AI_FLAG_SMART_Z_MOVE)
 
 // Gimmick environment presets. These do not enable or disable mechanics by themselves; trainer data, held items,
-// battle flags, and configs still decide which gimmicks are actually available. AI_FLAG_GIMMICK_ENV_ITEMLESS is
-// the exception for explicit debug / runtime-flag battles that intentionally loosen item requirements.
+// battle flags, and configs still decide which gimmicks are actually available.
 #define AI_FLAG_GIMMICK_ENV_TERA_ONLY       (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_TERA)
 #define AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY    (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_DYNAMAX)
 #define AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA    (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_DYNAMAX | AI_FLAG_SMART_TERA)
 #define AI_FLAG_GIMMICK_ENV_ALL             AI_FLAG_SMART_GIMMICK
-#define AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS    (AI_FLAG_GIMMICK_ENV_ALL | AI_FLAG_GIMMICK_ENV_ITEMLESS)
 #define AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE  (AI_FLAG_ENV_INVERSE_BATTLE | AI_FLAG_GIMMICK_ENV_ALL)
 
 // 'other' ai logic flags

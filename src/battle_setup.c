@@ -1432,6 +1432,7 @@ static void CB2_EndTrainerBattle(void)
     HandleBattleVariantEndParty();
 
     gIsDebugBattle = FALSE;
+    gDebugGimmickAccessFlags = 0;
     if (FollowerNPCIsBattlePartner())
     {
         RestorePartyAfterFollowerNPCBattle();

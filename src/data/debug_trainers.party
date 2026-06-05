@@ -405,7 +405,7 @@ EVs: 4 HP / 252 Atk / 252 Spe
 
 === DEBUG_TRAINER_AI_DMAX_Z_SINGLES ===
 Name: Dmax Wall
-AI: Smart Trainer / Prediction / Smart Gimmick / Gimmick Env Itemless / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
 Class: Champion
 Battle Type: Singles
 Pic: Steven
@@ -436,7 +436,7 @@ EVs: 4 HP / 252 Atk / 252 Spe
 - Bounce
 - Sucker Punch
 
-Mimikyu
+Mimikyu @ ITEM_MIMIKIUM_Z
 Ability: Disguise
 Jolly Nature
 Level: 50
@@ -502,7 +502,7 @@ EVs: 4 HP / 252 SpA / 252 Spe
 
 === DEBUG_TRAINER_AI_DMAX_Z_DOUBLES ===
 Name: Dmax VGC
-AI: Smart Trainer / Prediction / Smart Gimmick / Gimmick Env Itemless / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
 Class: Champion
 Battle Type: Doubles
 Pic: Steven
@@ -544,7 +544,7 @@ EVs: 252 HP / 252 Atk / 4 SpD
 - Zen Headbutt
 - Protect
 
-Koko (SPECIES_TAPU_KOKO)
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
 Ability: Electric Surge
 Timid Nature
 Level: 50

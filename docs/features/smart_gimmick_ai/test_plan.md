@@ -5,23 +5,22 @@
 | Check | Command | Status |
 | --- | --- | --- |
 | Focused runtime knowledge tests | `rtk make -j16 -O check TESTS='AI runtime knowledge'` | Pass on 2026-06-05; 4 tests passed. Covers move-category, ability-category, item / hold-effect category mapping, and predicted-move immunity bridges. |
-| Focused smart gimmick tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'` | Pass on 2026-06-06; 11 tests passed. Includes itemless Z-Move candidate coverage. Previous 2026-06-05 pass covered 10 tests before itemless Z was added. |
-| Focused itemless Z environment test | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_ITEMLESS'` | Pass on 2026-06-06; 1 test passed. Confirms a marked AI candidate can use a Z-Move without a Z-Crystal under `AI_FLAG_GIMMICK_ENV_ALL_ITEMLESS`. |
+| Focused smart gimmick tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'` | Pass on 2026-06-06; 11 tests passed. Includes Z-Crystal-based all-gimmick Z-Move coverage after access flags were split from AI flags. |
 | Focused smart Dynamax environment tests | `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'` | Pass on 2026-06-05; 6 tests passed. Covers conservation, last-Pokemon use, Max Move payoff, Fake Out disruption prevention, and phazing disruption prevention. |
 | Focused smart Z tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'` | Pass on 2026-06-05; 3 tests passed. |
 | Focused smart Mega tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'` | Pass on 2026-06-05; 1 test passed. |
 | Focused smart Tera tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'` | Pass on 2026-06-05; 4 tests passed. |
 | Focused smart switching tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'` | Pass on 2026-06-05. Covers double-position switching, partner-cover guard, weather / terrain reserve pivots, Tailwind / Trick Room reserve pivots, terrain seed plans, status-benefit pivots, direct and secondary status / confusion support pivots, Skill Swap bridge pivots, and predicted-Taunt attacker pivots / stay-in guards through the shared predicted-move immunity predicate. |
 | Focused Protect scoring tests | `rtk make -j16 -O check TESTS='Protect: AI'` | Pass on 2026-06-05; 9 tests passed. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles. |
-| Debug trainer fixture generation | `rtk make tools/trainerproc/trainerproc`; `rtk make -j16 -O debug` | Pass on 2026-06-06. Regenerated `.party` trainer data and built the debug ROM path with itemless Dmax/Z fixture data. |
-| Debug battle EXP / EV gate | `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'` | Pass on 2026-06-05; 1 test passed. Confirms `gIsDebugBattle` suppresses the EXP bar, EXP gain, and EV gain. |
+| Debug trainer fixture generation | `rtk make tools/trainerproc/trainerproc`; `rtk make -j16 -O debug` | Pass on 2026-06-06. Regenerated `.party` trainer data and built the debug ROM path with Z-Power / Dynamax access fixture data. |
+| Debug battle EXP / EV gate | `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'` | Pass on 2026-06-06; 1 test passed. Confirms `gIsDebugBattle` suppresses the EXP bar, EXP gain, and EV gain. |
 | Trainer Party Pool regression | `rtk make -j16 -O check TESTS='Trainer Party Pool'` | Pass on 2026-06-06; 9 tests passed. Covers role-filtered pool selection and weighted selection used by the debug battle fixtures. |
 | Runtime knowledge catalog tool | `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`; `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`; JSON parse of `/tmp/runtime_knowledge_catalog_rust/*.json` | Pass on 2026-06-05. Generated valid catalogs for 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and `summary.json`. |
 | Full battle / runtime checks | `rtk make -j16 -O check` | Historical pass on 2026-06-05 before the final Protect / Dmax-vs-Z debug update. Re-attempt after the final update exited 2; the visible output only showed existing test-runner / known-failing labels (`Tests resume after CRASH`, `Pokemon level up learnsets fit within MAX_LEVEL_UP_MOVES and MAX_RELEARNER_MOVES`), and both filtered checks return 0 individually. Focused checks above are the accepted evidence for this update. A `rtk make -j1 -O check` re-attempt did not progress beyond the initial link warning and was abandoned as non-evidence; stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed. |
-| Broad existing Z-Move AI filter | `rtk make -j16 -O check TESTS='AI uses Z-Moves'` | Failed on 2026-06-06 in existing `AI uses Z-Moves -- Z-Detect 1/2`: expected Z-Move, got no gimmick. Itemless Z focused checks pass; this status-Z Protect heuristic is tracked as separate follow-up evidence. |
+| Broad existing Z-Move AI filter | `rtk make -j16 -O check TESTS='AI uses Z-Moves'` | Failed on 2026-06-06 in existing `AI uses Z-Moves -- Z-Detect 1/2`: expected Z-Move, got no gimmick. Focused smart-gimmick checks pass; this status-Z Protect heuristic is tracked as separate follow-up evidence. |
 | Normal ROM build | `rtk make -j16 -O all` | Pass on 2026-06-06. |
 | Docs build | `rtk mdbook build docs` | Pass on 2026-06-06 with existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
-| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-06. MCP startup without `DISPLAY` failed with Qt `xcb` display initialization, so CLI startup was rerun with `DISPLAY=:0`; it booted `pokeemerald.gba` to the title / demo screen in session `smart-gimmick-itemless-cli-smoke`, exported `/tmp/smart-gimmick-itemless-smoke.png`, and `mgba-live-cli stop` returned `stopped:true`. Previous 2026-06-05 fixture smokes also reached title and stopped cleanly. |
+| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-06. MCP startup without `DISPLAY` failed with Qt `xcb` display initialization, so CLI startup was rerun with `DISPLAY=:0`; it booted `pokeemerald.gba` to the title / demo screen in session `smart-gimmick-access-cli-smoke`, exported `/tmp/smart-gimmick-access-smoke.png`, and `mgba-live-cli stop` returned `stopped:true`. Previous 2026-06-05 fixture smokes also reached title and stopped cleanly. |
 
 ## Manual Runtime Checks
 
@@ -37,8 +36,8 @@ In-game, open the overworld debug menu with `R + START` when `DEBUG_OVERWORLD_ME
 
 - `Battle 3v3 Single`: starts a level-50 3v3 singles battle. Player side is fixed to `Dragonite`, `Gholdengo`, and `Garchomp`. AI side is selected from the `Ladder` 6-Pokemon weighted pool with 3 chosen Pokemon.
 - `Battle 4v4 Double`: starts a level-50 4v4 doubles battle. Player side is fixed to `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`. AI side is selected from the `VGC Test` 7-Pokemon weighted pool with 4 chosen Pokemon.
-- `Battle Dmax/Z Single`: starts a level-50 3v3 singles battle. Player side is a Z-Move test team. AI side is a Dynamax / Gigantamax / itemless Z-Move pressure team with smart gimmick flags.
-- `Battle Dmax/Z Double`: starts a level-50 4v4 doubles battle. Player side is a VGC-style Z-Move test team. AI side is a Dynamax / Gigantamax / itemless Z-Move doubles team with Tailwind and weather pressure.
+- `Battle Dmax/Z Single`: starts a level-50 3v3 singles battle. Player side is a Z-Move test team. AI side is a Dynamax / Gigantamax / Z-Crystal pressure team with smart gimmick flags.
+- `Battle Dmax/Z Double`: starts a level-50 4v4 doubles battle. Player side is a VGC-style Z-Move test team. AI side is a Dynamax / Gigantamax / Z-Crystal doubles team with Tailwind and weather pressure.
 
 Expected results:
 
@@ -46,8 +45,8 @@ Expected results:
 - The opposing side is generated from the `.party` pool, respecting `Party Size`, `Pool Rules`, tags, and `Pool Weight`.
 - If `B_POOL_SETTING_CONSISTENT_RNG` is `FALSE`, repeated starts can produce different opposing selections. If it is `TRUE`, selection is deterministic for the same save OTID and trainer pointer.
 - Fainting opposing Pokemon does not display the EXP bar and does not grant EXP or EVs.
-- AI behavior should use the configured `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Gimmick Env Itemless`, `Know Opponent Party`, and `Powerful Status` flags.
-- In the Dmax/Z fixtures, the player can test Z-Move pressure into AI Dynamax / Gigantamax timing and AI itemless Z-Move candidates without EXP or EV gain.
+- AI behavior should use the configured `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` flags.
+- In the Dmax/Z fixtures, the debug battle grants Z-Power Ring and Dynamax Band access through `gDebugGimmickAccessFlags`, so the player can test Z-Move pressure into AI Dynamax / Gigantamax timing without requiring those Bag key items. Z-Moves still require Z-Crystals.
 
 The current mGBA Live check only reached title-screen boot for these fixtures. A progressed save or focused input route is still needed to visually confirm the new Party debug menu entries and battle intro through mGBA Live.
 
@@ -98,7 +97,7 @@ For Protect timing, use singles and doubles battles where the AI has `Protect` p
 - G-Max unique effects need separate scoring if they become important to trainer fixtures.
 - Air Lock / Cloud Nine preservation still needs a focused pre-weather AI unit once a clean weather fixture exists for this file.
 - Smart Z-Move status tactics still depend on the existing status Z-Move checks.
-- Broad existing `AI uses Z-Moves` validation currently exposes a separate `Z-Detect` status-Z timing gap. Keep the itemless Z environment covered by `AI_FLAG_GIMMICK_ENV_ITEMLESS` until that broader heuristic is retuned.
+- Broad existing `AI uses Z-Moves` validation currently exposes a separate `Z-Detect` status-Z timing gap. Keep the focused `AI_FLAG_GIMMICK_ENV` and `AI_FLAG_SMART_Z_MOVE` checks covered until that broader heuristic is retuned.
 - The AI still evaluates one selected move / target at reconsider time; it does not perform a full turn-tree search.
 - Protect scoring is payoff-based, not a full opponent turn-tree read. It recognizes common turn-gain reasons and consecutive-use risk, but it does not yet solve every PP-stall, double-target, or "Protect to bait a switch" line.
 - Double switching and board-control pivoting are heuristic position checks, not a full VGC turn solver. Board-control pivots can identify weather, terrain, Tailwind, and Trick Room roles, but they do not yet search full multi-turn lines such as "switch setter now, protect partner next turn, then reposition again."

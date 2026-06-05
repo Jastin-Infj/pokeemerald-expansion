@@ -74,8 +74,6 @@ bool32 CanDynamax(enum BattlerId battler)
 {
     enum Species species = GetBattlerVisualSpecies(battler);
     enum HoldEffect holdEffect = GetBattlerHoldEffectIgnoreNegation(battler);
-    bool32 itemlessGimmick = IsItemlessGimmickBattle(battler);
-
     // Prevents Zigzagoon from dynamaxing in vanilla.
     if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE && !IsOnPlayerSide(battler))
         return FALSE;
@@ -84,9 +82,9 @@ bool32 CanDynamax(enum BattlerId battler)
     if (!TESTING && (GetBattlerPosition(battler) == B_POSITION_PLAYER_LEFT
         || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && GetBattlerPosition(battler) == B_POSITION_PLAYER_RIGHT)))
     {
-        if (!itemlessGimmick && !CheckBagHasItem(ITEM_DYNAMAX_BAND, 1))
+        if (!HasGimmickAccess(battler, GIMMICK_DYNAMAX))
             return FALSE;
-        if (!itemlessGimmick && (B_FLAG_DYNAMAX_BATTLE == 0 || (B_FLAG_DYNAMAX_BATTLE != 0 && !FlagGet(B_FLAG_DYNAMAX_BATTLE))))
+        if (!IsDynamaxBattleEnabled(battler))
             return FALSE;
     }
 

@@ -140,24 +140,36 @@ The current default is:
 
 With this default, normal player-side Dynamax is not enabled through a runtime flag. Assign a real flag if scripts should allow Dynamax only in selected battles or locations.
 
-## Itemless gimmick battle flag example
+## Gimmick access flag examples
 
 Relevant files:
 
 | File | Role |
 |---|---|
-| `include/config/battle.h` | `B_FLAG_ITEMLESS_GIMMICK_BATTLE` config slot. |
-| `src/battle_gimmick.c` | `IsItemlessGimmickBattle` reads the assigned flag. |
-| `src/battle_z_move.c` | Explicit trainer `Z Move: Yes` candidates can use type-based Z-Moves without Z-Crystals while the flag is set. |
-| `src/battle_dynamax.c` | Player-side Dynamax can bypass the Dynamax Band / `B_FLAG_DYNAMAX_BATTLE` requirement while the itemless environment is active. |
+| `include/config/battle.h` | `B_FLAG_GIMMICK_ACCESS_ALL` and the individual `B_FLAG_GIMMICK_ACCESS_*` slots. |
+| `src/battle_gimmick.c` | `HasGimmickAccess` centralizes Bag item access and runtime flag overrides. |
+| `src/battle_z_move.c` | Player Z-Move access can come from the Z-Power Ring item or `B_FLAG_GIMMICK_ACCESS_Z_POWER_RING`; the Pokemon still needs a matching Z-Crystal. |
+| `src/battle_dynamax.c` | Player Dynamax access can come from the Dynamax Band item plus `B_FLAG_DYNAMAX_BATTLE`, or from `B_FLAG_GIMMICK_ACCESS_DYNAMAX_BAND` for a special ruleset. |
+| `src/battle_terastal.c` | `B_FLAG_GIMMICK_ACCESS_TERA_ORB` acts as a charged Tera Orb for the current ruleset. |
 
 The current default is:
 
 ```c
-#define B_FLAG_ITEMLESS_GIMMICK_BATTLE 0
+#define B_FLAG_GIMMICK_ACCESS_ALL            0
+#define B_FLAG_GIMMICK_ACCESS_MEGA_RING      0
+#define B_FLAG_GIMMICK_ACCESS_Z_POWER_RING   0
+#define B_FLAG_GIMMICK_ACCESS_DYNAMAX_BAND   0
+#define B_FLAG_GIMMICK_ACCESS_TERA_ORB       0
 ```
 
-With this default, ordinary game battles keep the normal item requirements. Assign a real flag only for rulesets or facilities that intentionally allow itemless gimmick access. Trainer-side itemless Z still needs `Z Move: Yes` in `.party`; the flag does not make every trainer Pokemon a Z-Move candidate.
+With this default, ordinary game battles keep the normal Bag-item requirements. Assign real flags for optional formats or facilities:
+
+- Mega-only ruleset: set `B_FLAG_GIMMICK_ACCESS_MEGA_RING`.
+- Z + Dynamax ruleset: set `B_FLAG_GIMMICK_ACCESS_Z_POWER_RING` and `B_FLAG_GIMMICK_ACCESS_DYNAMAX_BAND`.
+- Tera-only ruleset: set `B_FLAG_GIMMICK_ACCESS_TERA_ORB`.
+- Everything-enabled ruleset: set `B_FLAG_GIMMICK_ACCESS_ALL`.
+
+These flags grant access-item effects; they do not remove held-item requirements such as Mega Stones or Z-Crystals.
 
 ## Checklist
 
@@ -179,7 +191,11 @@ If a feature is already designed as a runtime flag / var, prefer assigning that 
 | No running | `B_FLAG_NO_RUNNING` | Set the assigned flag while wild escape is disallowed. |
 | Sleep Clause | `B_FLAG_SLEEP_CLAUSE` | Use a flag when the clause is optional; use `B_SLEEP_CLAUSE TRUE` only for always-on ROM behavior. |
 | Dynamax allowed | `B_FLAG_DYNAMAX_BATTLE` | Player Dynamax also requires `ITEM_DYNAMAX_BAND`. |
-| Itemless gimmick battle | `B_FLAG_ITEMLESS_GIMMICK_BATTLE` | Explicit trainer `Z Move: Yes` candidates can use type-based Z-Moves without Z-Crystals; player-side supported gimmicks can bypass item gates. |
+| All gimmick access | `B_FLAG_GIMMICK_ACCESS_ALL` | Grants Mega Ring, Z-Power Ring, Dynamax Band, and charged Tera Orb access for the current ruleset. |
+| Mega access | `B_FLAG_GIMMICK_ACCESS_MEGA_RING` | Lets the player Mega Evolve as if the Mega Ring were in the Bag. |
+| Z access | `B_FLAG_GIMMICK_ACCESS_Z_POWER_RING` | Lets the player use Z-Moves / Ultra Burst as if the Z-Power Ring were in the Bag; Z-Moves still require Z-Crystals. |
+| Dynamax access | `B_FLAG_GIMMICK_ACCESS_DYNAMAX_BAND` | Lets the player Dynamax as if the Dynamax Band were in the Bag and treats the battle as Dynamax-enabled. |
+| Tera access | `B_FLAG_GIMMICK_ACCESS_TERA_ORB` | Lets the player Terastallize as if a charged Tera Orb were available. |
 | Tera Orb charged | `B_FLAG_TERA_ORB_CHARGED` | `HealPlayerParty` can recharge it once configured. |
 | Tera no cost | `B_FLAG_TERA_ORB_NO_COST` | Prevents Tera Orb charge from being consumed. |
 | Force shiny | `P_FLAG_FORCE_SHINY` | Forces wild / gift Pokemon shiny while the flag is set. |

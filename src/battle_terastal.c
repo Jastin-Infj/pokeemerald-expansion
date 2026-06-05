@@ -74,9 +74,13 @@ bool32 CanTerastallize(enum BattlerId battler)
     {
         // Skip all other checks in this block, go to HasTrainerUsedGimmick
     }
-    else if (!CheckBagHasItem(ITEM_TERA_ORB, 1))
+    else if (!HasGimmickAccess(battler, GIMMICK_TERA))
     {
         return FALSE;
+    }
+    else if (HasGimmickAccessOverride(GIMMICK_TERA))
+    {
+        // Config / debug access acts as a charged Tera Orb for the current ruleset.
     }
     else if (FlagGet(B_FLAG_TERA_ORB_NO_COST))
     {
