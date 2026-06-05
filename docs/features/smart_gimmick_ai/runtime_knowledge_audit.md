@@ -170,6 +170,20 @@ Item behavior should be tagged around when it matters to AI:
 - move-shape modifiers: Punching Glove, Covert Cloak, Utility Umbrella, Protective Pads.
 - ability / item suppression edge cases: Klutz, Magic Room, Embargo, Ability Shield.
 
+### Information / Prediction Tags
+
+Knowledge and prediction need their own tags so inferred data does not become fake omniscience.
+
+High-value groups:
+
+- information source: observed, omniscient, catalog-inferred, usage-inferred, species-fit, trainer-archetype.
+- confidence: low, medium, high.
+- predicted action: attack, Protect, switch, Fake Out, redirection, speed control, setup, recovery, status, Taunt, phazing, Tera, Dynamax.
+- board state: tempo gain / loss, pin created / maintained, low-HP slot ignored, 2-vs-1 pressure, forced Protect, forced switch, stranded target, partner cover, board flip, future checkmate.
+- reserve value: role complete, sackable, must preserve, checks unseen threat, enables mode, breaks mode, win condition, board-control reserve, only safe switch, not worth hazard entry.
+- risk profile: stable, aggressive, high-variance, read-oriented.
+- decision reason: KO conversion, damage race, defensive type flip, Max Move board control, status Z payoff, preserve Dynamax / Tera / pre-Mega ability, predicted Protect / switch / Fake Out / Taunt read, pin created, low-HP slot ignored, reserve preserved, role-complete sacrifice, config rule, battle-script edge case.
+
 ## AI Predicate Direction
 
 Prefer predicates named around strategy, not around one source mechanic.
@@ -197,6 +211,7 @@ This keeps runtime behavior explainable. The AI should not switch because "Taunt
 6. **Board-control cluster:** weather, terrain, room, screens, veil, hazards, trapping, phazing, redirection, Follow Me / Rage Powder.
 7. **Move-shape ability cluster:** `Soundproof`, `Bulletproof`, `Sharpness`, `Iron Fist`, `Strong Jaw`, `Mega Launcher`, `Punk Rock`, `Wind Rider`, `Wind Power`, `Dancer`.
 8. **Status and item cluster:** cures, self-status, status-benefit abilities, Mental Herb, Covert Cloak, Protective Pads, Flame / Toxic Orb, terrain seeds.
+9. **Information and reason cluster:** knowledge source, confidence, predicted action, board advantage, reserve value, risk profile, and reason tags.
 
 ## Implementation Rules
 
@@ -206,6 +221,8 @@ This keeps runtime behavior explainable. The AI should not switch because "Taunt
 - If an item can be disabled by Klutz / Magic Room / Embargo, call an item-enabled predicate before treating the item as active.
 - For doubles, evaluate the partner and both opposing slots before pivoting.
 - For singles, stay conservative unless the active Pokemon is losing, pinned, or cannot convert pressure.
+- Full opponent information requires an explicit full-information / omniscient AI flag. Otherwise use observed and inferred information with confidence.
+- The AI must emit reusable reason tags for non-obvious moves, switches, and gimmick spends.
 - Every new runtime heuristic needs at least one positive and one negative unit test.
 
 ## Open Audit Questions

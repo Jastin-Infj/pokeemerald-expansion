@@ -31,6 +31,180 @@ Beyond move / ability / held-item categories, AI decisions need these inputs:
 - Resource state: whether Mega / Z / Dynamax / Tera has already been spent, candidate-specific eligibility, item consumed state, choice locks, and setup investment already made.
 - Trainer policy: AI flags, environment flags, smart-gimmick flags, scripted trainer intent, ace handling, difficulty level, and whether the branch is testing a specific mechanic.
 
+## Information Policy
+
+Hidden information must be explicit.
+
+- Full opponent information may be used only when the relevant full-information / omniscient AI flag is active.
+- Without that flag, the AI should use observed information plus inferred information.
+- Inferred information should carry source and confidence, not be treated as confirmed truth.
+- Inference sources should include local catalog JSON, generated trainer-party catalogs, Champions ranking / usage data, VGC usage and result data, species-fit heuristics, known trainer archetypes, and moves already revealed in the current battle.
+- Early implementation may use broad catalog-derived assumptions, but the long-term model should prefer weighted probabilities such as "this species commonly carries Protect", "this archetype often has Fake Out", or "this Tera Type is common on this set".
+
+Recommended knowledge tags:
+
+- `observed`: directly revealed in the current battle.
+- `omniscient`: visible only because a full-information AI flag is enabled.
+- `catalog_inferred`: inferred from local catalog / JSON set data.
+- `usage_inferred`: inferred from Champions / VGC usage data.
+- `species_fit`: inferred from species role, stats, typing, ability, and item fit.
+- `trainer_archetype`: inferred from trainer class, party style, debug fixture, or scripted battle intent.
+- `low_confidence`, `medium_confidence`, `high_confidence`: confidence buckets used by prediction and risk logic.
+
+The AI may act on inferred information, but high-risk actions should require either high confidence or an aggressive / read-oriented style profile.
+
+## Resource Priority Policy
+
+Mega / Ultra Burst is not the same kind of resource as Z-Move, Dynamax, or Tera.
+
+- Mega / Ultra Burst usually raises output and should normally be used when the post-form state is better.
+- Mega / Ultra Burst can still be delayed when the pre-form ability has immediate value, such as weather denial, scouting, or a setup turn with no pressure.
+- Dynamax is usually the highest-value spend because it changes HP, damage race, disruption resistance, and board effects at the same time.
+- Tera is usually the next strongest spend because it changes defensive and offensive typing while preserving normal move choice.
+- Z-Move is usually below Tera as a one-shot spend, but can outrank Tera when it converts a KO, breaks a trap, bypasses accuracy risk, or gives a decisive status Z effect.
+- Combined environments should compare resources rather than evaluating each gimmick in isolation.
+
+Default arbitration order when multiple spends look similarly good:
+
+1. preserve all resources if the current board is already winning.
+2. prefer Dynamax if HP / Max Move board control changes the next two or three turns.
+3. prefer Tera if a type flip changes immediate survival or creates a stable sweep line.
+4. prefer Z-Move if it gives immediate KO / trap-break / status payoff.
+5. use Mega / Ultra Burst when post-form value is better and pre-form value is not needed.
+
+This priority is a policy default, not an absolute rule. The reason code must explain any exception.
+
+## Prediction Policy
+
+Next-turn prediction is required, not optional.
+
+The AI should predict:
+
+- opponent move choice.
+- opponent target choice.
+- opponent switch.
+- `Protect` / `Detect` / similar protection.
+- `Fake Out` and other first-turn / priority disruption.
+- `Taunt`, `Encore`, `Disable`, `Trick Room`, `Tailwind`, redirection, setup, recovery, phazing, and status pressure.
+- opponent gimmick use, especially Tera and Dynamax timing.
+
+Predictions should be weighted by information source and confidence. A likely `Protect` from a VGC-style set should not be treated the same as a confirmed `Protect` already revealed in battle.
+
+Recommended prediction tags:
+
+- `predicted_attack`
+- `predicted_protect`
+- `predicted_switch`
+- `predicted_fake_out`
+- `predicted_redirection`
+- `predicted_speed_control`
+- `predicted_setup`
+- `predicted_recovery`
+- `predicted_status`
+- `predicted_taunt`
+- `predicted_phazing`
+- `predicted_tera`
+- `predicted_dynamax`
+
+## Board Advantage Policy
+
+Damage maximum is not the primary objective. The primary objective is board advantage.
+
+Singles can often be evaluated like a forced endgame line. Doubles should be evaluated as board construction: pressure, pins, partner safety, Speed control, and whether the opponent is forced into bad options.
+
+The AI should recognize positions where leaving an opposing Pokemon alive is better than taking a KO. In doubles, an opposing low-HP Pokemon with poor pressure can become a pinned slot. Ignoring that slot and attacking the other slot can create a 2-vs-1 structure while the opponent hesitates to switch or loses tempo if they do.
+
+Recommended board tags:
+
+- `tempo_gain`: action improves next-turn control even without maximum damage.
+- `tempo_loss`: action gives the opponent a free turn, free switch, or free setup.
+- `pin_created`: opponent has a Pokemon that is threatened and hard to move.
+- `pin_maintained`: current action keeps an opponent pinned.
+- `ignore_red_hp_slot`: low-HP opponent can be ignored because it has weak pressure.
+- `two_vs_one_pressure`: one opposing slot is effectively neutralized, letting both AI slots pressure the other.
+- `force_protect`: opponent is likely forced to protect or lose a key Pokemon.
+- `force_switch`: opponent is likely forced to switch or lose role value.
+- `stranded_target`: opponent wants to switch but is punished for doing so.
+- `partner_cover`: partner can handle the immediate threat, so the active can create board value.
+- `board_flip`: action changes losing board to neutral or winning board.
+- `future_checkmate`: action creates a forced win line over the next one to three turns.
+
+## Reserve Value Policy
+
+Reserve value must be evaluated every turn.
+
+- A Pokemon can be sacrificed if its role in the current battle is finished.
+- A Pokemon should be preserved if it is still needed to answer an opposing reserve, weather / terrain mode, Trick Room mode, priority endgame, or gimmick line.
+- Cosmetic ace handling should not override battle value. Do not preserve a final "ace" only because it looks like an ace.
+- Real endgame roles are valid: for example, a last-mon cleaner, Supreme Overlord payoff, Last Respects payoff, or a matchup-specific win condition.
+
+Recommended reserve tags:
+
+- `role_complete`
+- `sackable`
+- `must_preserve`
+- `reserve_checks_unseen_threat`
+- `reserve_enables_mode`
+- `reserve_breaks_mode`
+- `reserve_is_win_condition`
+- `reserve_creates_board_control`
+- `reserve_only_safe_switch`
+- `reserve_not_worth_hazards`
+
+## Risk Style Policy
+
+AI style should be separated from knowledge.
+
+Recommended style profiles:
+
+- `stable`: prefers reliable board value, avoids low-confidence reads and unnecessary accuracy risk.
+- `aggressive`: accepts damage-race and tempo risk to force progress.
+- `high_variance`: accepts low-accuracy, secondary-effect, flinch, crit, or setup gambles when behind.
+- `read_oriented`: acts on predicted Protect / switch / Tera / Fake Out / setup when confidence is high enough.
+
+These profiles should adjust thresholds, not replace legality or core board evaluation.
+
+Examples:
+
+- `stable` may take a guaranteed 2HKO and preserve Tera.
+- `aggressive` may Tera now to force a KO and deny the opponent's next move.
+- `high_variance` may use a low-accuracy move if behind and no stable line exists.
+- `read_oriented` may double the partner slot while leaving a red-HP pinned slot alive.
+
+## Reason Code Policy
+
+Every non-obvious AI action must emit a reason code.
+
+This is mandatory because the AI is not optimizing only immediate damage. Debugging and tuning require knowing whether a move was chosen for KO conversion, board advantage, resource preservation, prediction, or reserve value.
+
+Recommended reason tags:
+
+- `ko_conversion`
+- `damage_race`
+- `low_accuracy_stabilized`
+- `defensive_type_flip`
+- `offensive_stab_gain`
+- `max_move_board_control`
+- `max_move_defensive_timing`
+- `status_z_payoff`
+- `preserve_dynamax`
+- `preserve_tera`
+- `preserve_pre_mega_ability`
+- `mega_output_gain`
+- `predicted_protect_read`
+- `predicted_switch_read`
+- `predicted_fake_out_block`
+- `predicted_taunt_pivot`
+- `pin_created`
+- `ignore_red_hp_slot`
+- `two_vs_one_pressure`
+- `reserve_preserved`
+- `sack_role_complete`
+- `config_rule_applied`
+- `script_edge_case`
+
+Reason tags should be reusable across singles and doubles. The display / logging layer can choose how much of this is surfaced.
+
 ## Evaluation Order
 
 Use this order when adding deeper runtime logic:
