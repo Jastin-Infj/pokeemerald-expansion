@@ -92,4 +92,5 @@ See `docs/tutorials/ai_flags.md` for the ID table and expected first-turn behavi
 
 - [Investigation](investigation.md)
 - [Implementation](implementation.md)
+- [AI Runtime Knowledge Audit](runtime_knowledge_audit.md)
 - [Test Plan](test_plan.md)
