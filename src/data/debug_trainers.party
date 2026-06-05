@@ -361,3 +361,197 @@ Pool Weight: 4
 - Kowtow Cleave
 - Sucker Punch
 - Iron Head
+
+=== DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES ===
+Name: Z Line
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Singles
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
+Garchomp @ ITEM_DRAGONIUM_Z
+Ability: Rough Skin
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Swords Dance
+- Earthquake
+- Dragon Claw
+- Fire Fang
+
+Mimikyu @ ITEM_MIMIKIUM_Z
+Ability: Disguise
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Swords Dance
+- Play Rough
+- Shadow Claw
+- Shadow Sneak
+
+=== DEBUG_TRAINER_AI_DMAX_Z_SINGLES ===
+Name: Dmax Wall
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+Class: Champion
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Gyarados @ ITEM_WEAKNESS_POLICY
+Ability: Moxie
+Jolly Nature
+Level: 50
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Waterfall
+- Bounce
+- Earthquake
+- Power Whip
+
+Cinderace @ ITEM_LIFE_ORB
+Ability: Libero
+Jolly Nature
+Level: 50
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Pyro Ball
+- High Jump Kick
+- Bounce
+- Sucker Punch
+
+Tyranitar @ ITEM_WEAKNESS_POLICY
+Ability: Sand Stream
+Adamant Nature
+Level: 50
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
+- Rock Slide
+- Crunch
+- Fire Punch
+- Ice Punch
+
+=== DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES ===
+Name: Z VGC
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
+LandoT (SPECIES_LANDORUS_THERIAN) @ ITEM_GROUNDIUM_Z
+Ability: Intimidate
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Earthquake
+- Rock Slide
+- Fly
+- Protect
+
+Kartana @ ITEM_GRASSIUM_Z
+Ability: Beast Boost
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Leaf Blade
+- Sacred Sword
+- Smart Strike
+- Detect
+
+KommoO (SPECIES_KOMMO_O) @ ITEM_KOMMONIUM_Z
+Ability: Bulletproof
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Clanging Scales
+- Flamethrower
+- Aura Sphere
+- Protect
+
+=== DEBUG_TRAINER_AI_DMAX_Z_DOUBLES ===
+Name: Dmax VGC
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+Class: Champion
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Whimsicott @ ITEM_FOCUS_SASH
+Ability: Prankster
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Tailwind
+- Sunny Day
+- Moonblast
+- Protect
+
+Charizard @ ITEM_LIFE_ORB
+Ability: Solar Power
+Timid Nature
+Level: 50
+Gigantamax: Yes
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Heat Wave
+- Air Slash
+- Solar Beam
+- Protect
+
+Metagross @ ITEM_WEAKNESS_POLICY
+Ability: Clear Body
+Adamant Nature
+Level: 50
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
+- Iron Head
+- Stomping Tantrum
+- Zen Headbutt
+- Protect
+
+Gyarados @ ITEM_LUM_BERRY
+Ability: Moxie
+Jolly Nature
+Level: 50
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Waterfall
+- Bounce
+- Power Whip
+- Protect

@@ -3022,6 +3022,82 @@ bool32 IsBattlerDamagedByStatus(enum BattlerId battler)
         || gSideStatuses[GetBattlerSide(battler)] & (SIDE_STATUS_SEA_OF_FIRE | SIDE_STATUS_DAMAGE_NON_TYPES);
 }
 
+static bool32 HasSinglesProtectRecoveryPayoff(enum BattlerId battlerAtk)
+{
+    enum HoldEffect holdEffect = gAiLogicData->holdEffects[battlerAtk];
+    enum Ability ability = gAiLogicData->abilities[battlerAtk];
+    u32 maxHp = gBattleMons[battlerAtk].maxHP;
+    u32 hp = gBattleMons[battlerAtk].hp;
+    u32 recovery = 0;
+
+    if (hp >= maxHp)
+        return FALSE;
+
+    if (ability == ABILITY_POISON_HEAL && (gBattleMons[battlerAtk].status1 & STATUS1_PSN_ANY))
+        recovery = max(1, maxHp / 8);
+    else if (holdEffect == HOLD_EFFECT_LEFTOVERS || (holdEffect == HOLD_EFFECT_BLACK_SLUDGE && IS_BATTLER_OF_TYPE(battlerAtk, TYPE_POISON)))
+        recovery = max(1, maxHp / 16);
+
+    if (recovery == 0)
+        return FALSE;
+
+    if (hp <= maxHp / 2)
+        return TRUE;
+
+    return HasMoveWithEffect(battlerAtk, EFFECT_SUBSTITUTE)
+        && !gBattleMons[battlerAtk].volatiles.substitute
+        && hp <= maxHp / 4
+        && hp + recovery > maxHp / 4;
+}
+
+static bool32 HasSinglesProtectFollowUpPayoff(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    return (HasMoveWithEffect(battlerAtk, EFFECT_DISABLE) || HasMoveWithEffect(battlerAtk, EFFECT_ENCORE))
+        && gAiLogicData->lastUsedMove[battlerDef] == MOVE_NONE;
+}
+
+static bool32 HasSinglesProtectWishPayoff(enum BattlerId battlerAtk)
+{
+    return gBattleStruct->wish[battlerAtk].counter == 1
+        && gBattleMons[battlerAtk].hp < gBattleMons[battlerAtk].maxHP;
+}
+
+static bool32 TargetHasOffensiveSetup(enum BattlerId battlerDef)
+{
+    return (gBattleMons[battlerDef].statStages[STAT_ATK] > DEFAULT_STAT_STAGE && HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_PHYSICAL))
+        || (gBattleMons[battlerDef].statStages[STAT_SPATK] > DEFAULT_STAT_STAGE && HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_SPECIAL))
+        || gBattleMons[battlerDef].statStages[STAT_SPEED] > DEFAULT_STAT_STAGE;
+}
+
+bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove)
+{
+    if (predictedMove == MOVE_NONE || predictedMove == MOVE_UNAVAILABLE || IsBattleMoveStatus(predictedMove))
+        return FALSE;
+
+    if (IsExplosionMove(predictedMove))
+        return TRUE;
+
+    if (GetBattlerSecondaryDamage(battlerDef) >= gBattleMons[battlerDef].hp)
+        return TRUE;
+
+    if (TargetHasOffensiveSetup(battlerDef) && !HasSinglesProtectWishPayoff(battlerAtk) && !HasSinglesProtectFollowUpPayoff(battlerAtk, battlerDef))
+        return FALSE;
+
+    if (IsBattlerDamagedByStatus(battlerDef))
+        return TRUE;
+
+    if (HasSinglesProtectWishPayoff(battlerAtk))
+        return TRUE;
+
+    if (HasChoiceEffect(battlerDef) && gAiLogicData->lastUsedMove[battlerDef] == MOVE_NONE)
+        return TRUE;
+
+    if (HasSinglesProtectFollowUpPayoff(battlerAtk, battlerDef))
+        return TRUE;
+
+    return HasSinglesProtectRecoveryPayoff(battlerAtk);
+}
+
 s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum Move predictedMove)
 {
     s32 score = 0;
@@ -3050,16 +3126,31 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
     if (uses == 0)
     {
         if (predictedMove != MOVE_NONE && predictedMove != MOVE_UNAVAILABLE && !IsBattleMoveStatus(predictedMove))
-            score += DECENT_EFFECT;
-        else if (Random() % 256 < 100)
+        {
+            if (!IsBattle1v1())
+                score += DECENT_EFFECT;
+            else if (ShouldUseSinglesProtect(battlerAtk, battlerDef, predictedMove))
+                score += DECENT_EFFECT;
+            else
+                score += BAD_EFFECT;
+        }
+        else if (!IsBattle1v1() && Random() % 256 < 100)
             score += WEAK_EFFECT;
     }
     else
     {
         if (!IsBattle1v1())
+        {
             score -= (2 * min(uses, 3));
+            if (predictedMove != MOVE_NONE && predictedMove != MOVE_UNAVAILABLE && !IsBattleMoveStatus(predictedMove))
+                score += WEAK_EFFECT;
+        }
         else
+        {
             score -= (min(uses, 3));
+            if (ShouldUseSinglesProtect(battlerAtk, battlerDef, predictedMove))
+                score += DECENT_EFFECT;
+        }
     }
 
     if (IsBattlerDamagedByStatus(battlerAtk))

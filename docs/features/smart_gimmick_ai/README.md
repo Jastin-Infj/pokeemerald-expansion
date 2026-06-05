@@ -23,6 +23,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
 - Smart switching can also use terrain seeds, status pressure / status prevention, status-benefit switch-ins, and Skill Swap-style ability bridges when those plans create board control.
 - Smart switching can read a predicted `Taunt` as a free-positioning turn: a utility-heavy active Pokemon that cannot punish Taunt in place may pivot directly to an attacker, while Pokemon that can already attack, win the matchup, or ignore Taunt stay in.
+- Protect is scored as a turn-gain tool, not a passive singles default. Singles Protect needs a payoff such as residual damage, recovery, choice scouting, Substitute threshold, Disable / Encore follow-up, Wish, or Explosion avoidance. Consecutive Protect is penalized for reduced success odds, but a second Protect can still be selected when the payoff remains.
 
 ## Current Mega / Ultra Burst Payoffs
 
@@ -71,6 +72,14 @@ Status-aware switching currently covers non-volatile status pressure, secondary 
 
 Predicted-Taunt switching is treated as a positive pivot only when the incoming move is actually predicted as `Taunt`, the active Pokemon depends on important status moves, and the active Pokemon cannot punish with damage. The branch does not fire if the active Pokemon is already Taunted, can damage-race the target, is protected by `Aroma Veil`, has Gen 6+ `Oblivious`, or has an enabled Gen 5+ `Mental Herb`.
 
+## Current Protect Payoffs
+
+Singles Protect now needs an explicit payoff before it gets positive scoring. Valid payoff examples include target residual damage, incoming Wish recovery, Poison Heal / Leftovers / Black Sludge recovery, reaching a Substitute threshold, scouting an unrevealed Choice-locked move, setting up a next-turn Disable / Encore line, avoiding Explosion-style moves, or letting target secondary damage finish the opposing Pokemon.
+
+The AI avoids passive Protect into boosted singles attackers when no follow-up payoff exists. This keeps Protect from wasting a turn after the opponent has already shown a setup line.
+
+Consecutive Protect is not banned. The second Protect receives a risk penalty because the move is less likely to succeed, but singles and doubles can still keep it as a viable option when the board payoff remains. Third and later consecutive Protect attempts remain heavily discouraged.
+
 ## VGC Reference Notes
 
 These runtime heuristics are source-derived rather than copied from a single match:
@@ -80,6 +89,7 @@ These runtime heuristics are source-derived rather than copied from a single mat
 - Paul Ruiz's 2018 Worlds report emphasizes Mega Salamence Speed and KO benchmarks into Mega Gengar and other targets, supporting Mega Speed / damage pressure checks: https://victoryroad.pro/2018/09/14/soaring-higher-report-paul-ruiz-2018-world-champion/
 - Public 2018 Worlds recaps describe Groundium Z helping escape a Perish Trap matchup, supporting Z-Move use before last-Pokemon turns when trap pressure changes the damage race: https://thegamehaus.com/esports/this-is-for-latin-america-2018-pokemon-world-championships-recap/2018/08/28/
 - The 2017 Worlds finals recap notes a Dark-type switch-in stopping Prankster-boosted Z-Nature Power, so status Z-Moves remain under existing tactical legality / viability checks instead of being blindly conserved or blindly fired: https://www.nintendolife.com/news/2017/08/feature_everything_you_need_to_know_about_the_2017_pokemon_world_championships
+- Future usage / ranking adapters should prefer Pokemon Battle DataBase, official event records, Pokemon Home / Champions-style usage when available, local PartyGen catalogs, and observed battle history. Pokemon Showdown articles are not strategy source material for this branch; raw data or team examples may be inspected only with lower confidence and explicit source tags.
 
 ## Debug Fixtures
 

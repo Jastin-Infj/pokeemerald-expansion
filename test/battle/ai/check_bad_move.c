@@ -116,7 +116,7 @@ AI_SINGLE_BATTLE_TEST("Protect: AI avoids Protect vs Unseen Fist contact (Single
         ASSUME(MoveMakesContact(MOVE_TACKLE));
         AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
         PLAYER(species) { Ability(ability); Moves(MOVE_TACKLE); }
-        OPPONENT(SPECIES_WOBBUFFET) { Moves(protectMove, MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(protectMove, MOVE_SCRATCH, MOVE_DISABLE); }
     } WHEN {
         if (shouldProtect)
         {
@@ -208,7 +208,7 @@ AI_SINGLE_BATTLE_TEST("Protect: AI avoids Protect vs moves that ignore protectio
             ASSUME(MoveIgnoresProtect(move));
         AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
         PLAYER(SPECIES_WOBBUFFET) { Moves(move); }
-        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_DISABLE); }
     } WHEN {
         TURN {
             MOVE(player, move);
@@ -216,6 +216,87 @@ AI_SINGLE_BATTLE_TEST("Protect: AI avoids Protect vs moves that ignore protectio
                 SCORE_GT(opponent, MOVE_PROTECT, MOVE_SCRATCH);
             else
                 SCORE_LT(opponent, MOVE_PROTECT, MOVE_SCRATCH);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI avoids passive Protect in singles without a turn-gain payoff")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_TACKLE);
+            SCORE_LT(opponent, MOVE_PROTECT, MOVE_SCRATCH);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI avoids passive Protect against a boosted singles attacker")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_SWORDS_DANCE, MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_SWORDS_DANCE); EXPECT_MOVE(opponent, MOVE_SCRATCH); }
+        TURN {
+            MOVE(player, MOVE_TACKLE);
+            SCORE_LT(opponent, MOVE_PROTECT, MOVE_SCRATCH);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect when residual damage creates payoff")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Status1(STATUS1_TOXIC_POISON); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_TACKLE);
+            SCORE_GT_VAL(opponent, MOVE_PROTECT, AI_SCORE_DEFAULT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI can still value a second singles Protect when payoff remains")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Status1(STATUS1_TOXIC_POISON); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            gBattleMons[B_POSITION_OPPONENT_LEFT].volatiles.consecutiveMoveUses = 1;
+            MOVE(player, MOVE_TACKLE);
+            SCORE_GT_VAL(opponent, MOVE_PROTECT, AI_SCORE_DEFAULT);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI does not treat a second double Protect as impossible")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Status1(STATUS1_TOXIC_POISON); Moves(MOVE_TACKLE); }
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            gBattleMons[B_POSITION_OPPONENT_LEFT].volatiles.consecutiveMoveUses = 1;
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            SCORE_GT_VAL(opponentLeft, MOVE_PROTECT, AI_SCORE_DEFAULT + WORST_EFFECT, target: playerLeft);
         }
     }
 }

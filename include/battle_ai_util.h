@@ -259,6 +259,7 @@ bool32 IsMoveRedirectionPrevented(enum BattlerId battlerAtk, enum Move move, enu
 bool32 IsHazardMove(enum Move move);
 bool32 IsTwoTurnNotSemiInvulnerableMove(enum BattlerId battlerAtk, enum Move move);
 bool32 IsBattlerDamagedByStatus(enum BattlerId battler);
+bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove);
 s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum Move predictedMove);
 bool32 ShouldRaiseAnyStat(enum BattlerId battlerAtk, enum BattlerId battlerDef);
 bool32 ShouldSetWeather(enum BattlerId battler, u32 weather);

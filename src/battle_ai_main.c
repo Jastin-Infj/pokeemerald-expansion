@@ -2320,9 +2320,14 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
                 else if (gBattleMons[battlerAtk].volatiles.consecutiveMoveUses == 1 && Random() % 100 < 50)
                 {
                     if (isBattle1v1)
-                        ADJUST_SCORE(-6);
+                    {
+                        if (ShouldUseSinglesProtect(battlerAtk, battlerDef, incomingMove))
+                            ADJUST_SCORE(-2);
+                        else
+                            ADJUST_SCORE(-6);
+                    }
                     else
-                        ADJUST_SCORE(-10); //Don't try double protecting in doubles
+                        ADJUST_SCORE(-4); // Discourage risky double Protect without making it impossible.
                 }
                 else if (gBattleMons[battlerAtk].volatiles.consecutiveMoveUses >= 2)
                 {

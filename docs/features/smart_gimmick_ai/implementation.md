@@ -2,7 +2,7 @@
 
 ## Summary
 
-The feature adds smart timing flags for battle gimmicks, expands Dynamax timing beyond immediate damage, adds Mega / Ultra Burst payoff checks, adds a smart conservation layer for damaging Z-Moves, and provides debug battle fixtures for competitive-style 3v3 singles and 4v4 doubles checks.
+The feature adds smart timing flags for battle gimmicks, expands Dynamax timing beyond immediate damage, adds Mega / Ultra Burst payoff checks, adds a smart conservation layer for damaging Z-Moves, tunes Protect as a board-payoff move instead of a passive default, and provides debug battle fixtures for competitive-style 3v3 singles, 4v4 doubles, and Dmax-vs-Z checks.
 
 Runtime files:
 
@@ -71,12 +71,20 @@ AI runtime knowledge now has a shared move / ability / item interpretation layer
 
 Predicted-Taunt support is intentionally separate from "bad move" switching. `ShouldSwitchIfPredictedTauntPunish()` only runs when `AI_FLAG_SMART_SWITCHING` and `AI_FLAG_PREDICT_MOVE` are both active and the incoming move is predicted as `Taunt`. It requires the current Pokemon to depend on important status moves, rejects positions where the current Pokemon can already damage-race or 2HKO the target, and skips Pokemon protected by `Aroma Veil`, Gen 6+ `Oblivious`, or an enabled Gen 5+ `Mental Herb`. If those gates pass, the selector evaluates eligible reserves as free switch-ins and chooses a damaging attacker that can win the immediate 1v1 or cross the switch-in damage threshold. The goal is to model "pivot an attacker into a predicted Taunt" without making the AI flee only because Taunt would block a utility move.
 
-The debug Party menu now exposes two focused runtime fixtures:
+Protect scoring now separates singles and doubles payoff. In singles, first-turn Protect is no longer rewarded just because a damaging move is predicted. `ShouldUseSinglesProtect()` asks whether Protect gains the AI a turn or a future option: residual damage on the target, incoming Wish recovery, Poison Heal / Leftovers / Black Sludge recovery, Substitute-threshold recovery, choice-lock scouting, Disable / Encore follow-up, Explosion-style avoidance, or target secondary damage. It also avoids passive Protect against an already boosted attacker unless there is a Wish or Disable / Encore line to justify the stall.
+
+Consecutive Protect remains possible. The second Protect is penalized for its reduced success rate, but it is not treated as impossible. Singles can still value a second Protect when the same payoff remains, and doubles get a lighter second-Protect penalty so high-pressure VGC-style "protect again" turns stay available. Third and later consecutive Protect attempts remain heavily discouraged.
+
+Future usage / ranking data should come from source-tagged competitive data such as Pokemon Battle DataBase, official event reports, Pokemon Home / Champions-style usage when available, local PartyGen catalogs, and observed battle history. Pokemon Showdown articles should not be used as strategy source material for this feature; at most, raw data or team examples can be inspected with a clear source tag and lower confidence.
+
+The debug Party menu now exposes four focused runtime fixtures:
 
 - `Battle 3v3 Single` builds a level-50 player team of `Dragonite`, `Gholdengo`, and `Garchomp`, then pits it against a 3-Pokemon AI side selected from a 6-Pokemon weighted singles pool.
 - `Battle 4v4 Double` builds a level-50 player team of `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`, then pits it against a 4-Pokemon AI side selected from a 7-Pokemon weighted doubles pool.
+- `Battle Dmax/Z Single` builds a level-50 player-side Z-Move team, then pits it against a smart AI Dynamax / Gigantamax team.
+- `Battle Dmax/Z Double` builds a level-50 player-side VGC-style Z-Move team, then pits it against a smart AI Dynamax / Gigantamax doubles team with Tailwind / weather pressure.
 
-Both AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so these fixtures also exercise Trainer Party Pool role filtering and weighted selection.
+These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
 
 Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This prevents the EXP bar, normal EXP gain, and EV gain in debug battles, including the level-100 EV-gain path that would otherwise still occur when EXP is disabled by level.
 
@@ -102,6 +110,8 @@ Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This pr
 - Smart Switching Taunt reads: pivots an attacker into a predicted `Taunt`, stays in when the active Pokemon can punish with damage, and stays in when the active Pokemon ignores Taunt.
 - Runtime knowledge layer: verifies AI move-category flags, ability-category flags, item / hold-effect category flags, and predicted-move immunity bridges for Magic Bounce, Safety Goggles / powder immunity, and ordinary non-ignored moves.
 - Runtime knowledge catalog tool: generates local runtime review JSON for 935 moves, 319 abilities, 130 hold effects, 874 items, and 4 gimmick policies.
+- Protect singles payoff scoring: avoids passive singles Protect with no turn-gain payoff, avoids passive Protect against boosted attackers, values Protect when residual damage creates payoff, and keeps a second singles Protect viable when the payoff remains.
+- Protect doubles consecutive scoring: keeps a second double Protect as a risky but possible option instead of treating it as impossible.
 - Debug battle EXP gate: verifies a `gIsDebugBattle` trainer battle does not show the EXP bar and does not award EXP or EVs.
 - Existing Tera, Mega, Z-Move, and combined environment tests remain in `ai_smart_gimmick.c`.
 
@@ -116,17 +126,21 @@ Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This pr
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, and predicted-Taunt attacker pivot / stay-in guards through the shared predicted-move immunity predicate.
+- `rtk make -j16 -O check TESTS='Protect: AI'`: pass, 9 tests. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles.
 - `rtk make tools/trainerproc/trainerproc`: pass. Regenerated trainer data from `.party` fixtures, including `Pool Weight`.
-- `rtk make -j16 -O check TESTS='Debug battles do not give exp'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
+- `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
 - `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
 - `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
 - `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`: pass. Generated 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and a valid summary.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
+- `rtk make -j16 -O check`: attempted again after the Protect / Dmax-vs-Z debug-fixture update and exited 2. The captured output only exposed existing test-runner / known-failing labels (`Tests resume after CRASH`, `Pokemon level up learnsets fit within MAX_LEVEL_UP_MOVES and MAX_RELEARNER_MOVES`); both pass as expected when filtered individually. The focused AI, debug EXP / EV, and Trainer Party Pool checks above are the validation evidence for this update.
+- `rtk make -j1 -O check`: attempted to rule out make-job parallelism, but the run did not progress beyond the initial link warning and was abandoned as non-evidence. The stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed before handoff.
 - `rtk make -j16 -O debug`: pass.
 - `rtk make -j16 -O all`: pass.
 - `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
 - mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
+- mGBA Live: current ROM booted in session `smart-ai-protect-dmaxz-20260605`. `mgba_live_start_with_lua_and_view` reported a Lua bridge invalid-context error after starting, but `mgba_live_get_view` returned a rendered frame, `mgba_live_export_screenshot` saved `/tmp/smart-ai-protect-dmaxz-20260605.png`, and `mgba_live_stop` returned `stopped:true`.
 
 ## Known Gaps
 
