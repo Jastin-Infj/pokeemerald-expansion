@@ -18,6 +18,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Dynamax should be held unless the AI has last-Pokemon pressure, survival pressure, KO conversion, or a Max Move board payoff.
 - Mega Evolution / Ultra Burst may be delayed for setup turns or pre-Mega ability value, but spent for immediate ability, Speed, damage, or defensive payoff.
 - Z-Moves remain behind viability and smart timing checks instead of firing only because a Z-Crystal exists.
+- Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
 
 ## Current Mega / Ultra Burst Payoffs
 
@@ -51,6 +52,15 @@ The weather and terrain checks reuse the existing AI field-status evaluators so 
 - The base move already has a KO line, but the Z-Move avoids a low-accuracy miss.
 
 Status Z-Moves keep their existing tactical checks because their value is usually the Z-status effect rather than raw damage.
+
+## Current Smart Switching Payoffs
+
+`AI_FLAG_SMART_SWITCHING` now has two VGC-style switching layers in this feature branch:
+
+- Bad-position switching preserves a Pokemon that has no useful pressure, is threatened by either opposing slot, and cannot be covered by its partner.
+- Board-control switching can pivot into reserve weather, terrain, Tailwind, or Trick Room roles when those effects improve pressure or replace an unfavorable field state.
+
+Singles remain more conservative; the AI still needs bad odds, bad matchup, weak current pressure, or a bad field state before it pivots for board control. Doubles allow more proactive pivots because the partner slot and the reserve role can create pressure together.
 
 ## VGC Reference Notes
 

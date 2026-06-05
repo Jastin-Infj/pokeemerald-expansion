@@ -51,6 +51,7 @@ bool32 IsSwitchinTSpikesAffected(enum BattlerId battler);
 static bool32 IsOpponentPhysicalAttacker(enum BattlerId battler, enum BattlerId opposingBattler);
 static bool32 CanIntimidateLowerOpponentAtk(enum BattlerId battler, enum BattlerId opposingBattler);
 static bool32 ShouldSwitchIfIntimidateBenefit(struct SwitchAiContext *switchContext);
+static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
@@ -591,6 +592,403 @@ static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchCont
         return FALSE;
 
     if (CanDoublePartnerCoverPosition(switchContext))
+        return FALSE;
+
+    return SetSwitchinAndSwitch(switchContext->battler, switchinId);
+}
+
+static bool32 PartyMonHasMove(struct Pokemon *mon, enum Move moveToFind)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = GetMonData(mon, MON_DATA_MOVE1 + moveIndex);
+        if (move == moveToFind)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 PartyMonHasMoveEffect(struct Pokemon *mon, enum BattleMoveEffects effect)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = GetMonData(mon, MON_DATA_MOVE1 + moveIndex);
+        if (move != MOVE_NONE && GetMoveEffect(move) == effect)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 PartyMonHasDamagingMoveOfType(struct Pokemon *mon, enum Type type)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = GetMonData(mon, MON_DATA_MOVE1 + moveIndex);
+        if (move != MOVE_NONE && !IsBattleMoveStatus(move) && GetMoveType(move) == type)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 PartyMonIsAnyType(struct Pokemon *mon, enum Type type)
+{
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+
+    return GetSpeciesType(species, 0) == type || GetSpeciesType(species, 1) == type;
+}
+
+static u32 GetSwitchinWeatherFromAbility(enum Ability ability)
+{
+    if (AI_GetWeather() & B_WEATHER_PRIMAL_ANY)
+        return B_WEATHER_NONE;
+
+    switch (ability)
+    {
+    case ABILITY_DRIZZLE:
+        return B_WEATHER_RAIN;
+    case ABILITY_DROUGHT:
+    case ABILITY_ORICHALCUM_PULSE:
+        return B_WEATHER_SUN;
+    case ABILITY_SAND_STREAM:
+        return B_WEATHER_SANDSTORM;
+    case ABILITY_SNOW_WARNING:
+        return B_WEATHER_ICY_ANY;
+    default:
+        return B_WEATHER_NONE;
+    }
+}
+
+static u32 GetSwitchinTerrainFromAbility(enum Ability ability)
+{
+    if (gBattleStruct->isSkyBattle)
+        return 0;
+
+    switch (ability)
+    {
+    case ABILITY_ELECTRIC_SURGE:
+    case ABILITY_HADRON_ENGINE:
+        return STATUS_FIELD_ELECTRIC_TERRAIN;
+    case ABILITY_GRASSY_SURGE:
+        return STATUS_FIELD_GRASSY_TERRAIN;
+    case ABILITY_MISTY_SURGE:
+        return STATUS_FIELD_MISTY_TERRAIN;
+    case ABILITY_PSYCHIC_SURGE:
+        return STATUS_FIELD_PSYCHIC_TERRAIN;
+    default:
+        return 0;
+    }
+}
+
+static bool32 PartyMonBenefitsFromWeather(struct Pokemon *mon, enum Ability ability, u32 weather)
+{
+    switch (ability)
+    {
+    case ABILITY_FORECAST:
+        if (weather & (B_WEATHER_RAIN | B_WEATHER_SUN | B_WEATHER_ICY_ANY))
+            return TRUE;
+        break;
+    case ABILITY_SWIFT_SWIM:
+    case ABILITY_RAIN_DISH:
+    case ABILITY_HYDRATION:
+    case ABILITY_DRY_SKIN:
+        if (weather & B_WEATHER_RAIN)
+            return TRUE;
+        break;
+    case ABILITY_CHLOROPHYLL:
+    case ABILITY_FLOWER_GIFT:
+    case ABILITY_HARVEST:
+    case ABILITY_LEAF_GUARD:
+    case ABILITY_SOLAR_POWER:
+    case ABILITY_PROTOSYNTHESIS:
+    case ABILITY_ORICHALCUM_PULSE:
+        if (weather & B_WEATHER_SUN)
+            return TRUE;
+        break;
+    case ABILITY_SAND_FORCE:
+    case ABILITY_SAND_RUSH:
+    case ABILITY_SAND_VEIL:
+        if (weather & B_WEATHER_SANDSTORM)
+            return TRUE;
+        break;
+    case ABILITY_ICE_BODY:
+    case ABILITY_ICE_FACE:
+    case ABILITY_SNOW_CLOAK:
+    case ABILITY_SLUSH_RUSH:
+        if (weather & B_WEATHER_ICY_ANY)
+            return TRUE;
+        break;
+    case ABILITY_MAGIC_GUARD:
+    case ABILITY_OVERCOAT:
+        if (weather & B_WEATHER_DAMAGING_ANY)
+            return TRUE;
+        break;
+    default:
+        break;
+    }
+
+    if (PartyMonHasMoveEffect(mon, EFFECT_WEATHER_BALL))
+        return TRUE;
+
+    if (weather & B_WEATHER_RAIN)
+        return PartyMonHasDamagingMoveOfType(mon, TYPE_WATER)
+            || PartyMonHasMove(mon, MOVE_THUNDER)
+            || PartyMonHasMove(mon, MOVE_HURRICANE);
+
+    if (weather & B_WEATHER_SUN)
+        return PartyMonHasDamagingMoveOfType(mon, TYPE_FIRE)
+            || PartyMonHasMoveEffect(mon, EFFECT_SOLAR_BEAM)
+            || PartyMonHasMoveEffect(mon, EFFECT_SYNTHESIS);
+
+    if (weather & B_WEATHER_SANDSTORM)
+        return PartyMonIsAnyType(mon, TYPE_ROCK)
+            || PartyMonIsAnyType(mon, TYPE_GROUND)
+            || PartyMonIsAnyType(mon, TYPE_STEEL);
+
+    if (weather & B_WEATHER_ICY_ANY)
+        return PartyMonIsAnyType(mon, TYPE_ICE)
+            || PartyMonHasMove(mon, MOVE_BLIZZARD)
+            || PartyMonHasMoveEffect(mon, EFFECT_AURORA_VEIL);
+
+    return FALSE;
+}
+
+static bool32 PartyMonBenefitsFromTerrain(struct Pokemon *mon, enum Ability ability, u32 terrain)
+{
+    if (PartyMonHasMoveEffect(mon, EFFECT_TERRAIN_BOOST)
+     || PartyMonHasMoveEffect(mon, EFFECT_TERRAIN_PULSE))
+        return TRUE;
+
+    switch (terrain)
+    {
+    case STATUS_FIELD_GRASSY_TERRAIN:
+        return ability == ABILITY_GRASS_PELT
+            || PartyMonHasDamagingMoveOfType(mon, TYPE_GRASS)
+            || PartyMonHasMoveEffect(mon, EFFECT_GRASSY_GLIDE);
+    case STATUS_FIELD_ELECTRIC_TERRAIN:
+        return ability == ABILITY_QUARK_DRIVE
+            || ability == ABILITY_HADRON_ENGINE
+            || ability == ABILITY_SURGE_SURFER
+            || PartyMonHasDamagingMoveOfType(mon, TYPE_ELECTRIC);
+    case STATUS_FIELD_PSYCHIC_TERRAIN:
+        return PartyMonHasDamagingMoveOfType(mon, TYPE_PSYCHIC);
+    case STATUS_FIELD_MISTY_TERRAIN:
+        return PartyMonIsAnyType(mon, TYPE_DRAGON);
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 DoesWeatherSetterReplaceBadWeather(enum BattlerId battler, u32 weather)
+{
+    u32 currentWeather = AI_GetWeather() & B_WEATHER_ANY;
+
+    if (weather == B_WEATHER_NONE || currentWeather == B_WEATHER_NONE || (currentWeather & weather))
+        return FALSE;
+
+    return ShouldClearWeather(battler, currentWeather);
+}
+
+static bool32 DoesTerrainSetterReplaceBadTerrain(enum BattlerId battler, u32 terrain)
+{
+    u32 currentTerrain = gFieldStatuses & STATUS_FIELD_TERRAIN_ANY;
+
+    if (terrain == 0 || currentTerrain == 0 || (currentTerrain & terrain))
+        return FALSE;
+
+    return ShouldClearFieldStatus(battler, currentTerrain);
+}
+
+static bool32 SpeedWouldGainFromTailwind(u32 speed, enum BattlerId opposingBattler)
+{
+    if (!IsBattlerAlive(opposingBattler))
+        return FALSE;
+
+    return speed <= gBattleMons[opposingBattler].speed && speed * 2 > gBattleMons[opposingBattler].speed;
+}
+
+static bool32 SpeedIsBetterUnderTrickRoom(u32 speed, enum BattlerId opposingBattler)
+{
+    if (!IsBattlerAlive(opposingBattler))
+        return FALSE;
+
+    return speed < gBattleMons[opposingBattler].speed;
+}
+
+static bool32 PartyMonBenefitsFromTailwind(struct SwitchAiContext *switchContext, struct Pokemon *mon, enum Ability ability)
+{
+    enum BattlerId partner = BATTLE_PARTNER(switchContext->battler);
+    enum BattlerId opposingPartner = BATTLE_PARTNER(switchContext->opposingBattler);
+    u32 speed;
+
+    if (!PartyMonHasMoveEffect(mon, EFFECT_TAILWIND))
+        return FALSE;
+    if (gSideStatuses[GetBattlerSide(switchContext->battler)] & SIDE_STATUS_TAILWIND)
+        return FALSE;
+    if ((gFieldStatuses & STATUS_FIELD_TRICK_ROOM) && gFieldTimers.trickRoomTimer > 1)
+        return FALSE;
+
+    if (ability == ABILITY_WIND_RIDER || ability == ABILITY_WIND_POWER)
+        return TRUE;
+
+    speed = GetMonData(mon, MON_DATA_SPEED);
+    if (SpeedWouldGainFromTailwind(speed, switchContext->opposingBattler)
+     || SpeedWouldGainFromTailwind(speed, opposingPartner))
+        return TRUE;
+
+    if (IsDoubleBattle() && IsBattlerAlive(partner))
+    {
+        speed = gBattleMons[partner].speed;
+        if (SpeedWouldGainFromTailwind(speed, switchContext->opposingBattler)
+         || SpeedWouldGainFromTailwind(speed, opposingPartner))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 PartyMonBenefitsFromTrickRoom(struct SwitchAiContext *switchContext, struct Pokemon *mon)
+{
+    enum BattlerId partner = BATTLE_PARTNER(switchContext->battler);
+    enum BattlerId opposingPartner = BATTLE_PARTNER(switchContext->opposingBattler);
+    u32 speed;
+
+    if (!PartyMonHasMoveEffect(mon, EFFECT_TRICK_ROOM))
+        return FALSE;
+    if ((gFieldStatuses & STATUS_FIELD_TRICK_ROOM) && gFieldTimers.trickRoomTimer > 1)
+        return FALSE;
+    if (ShouldSetFieldStatus(switchContext->battler, STATUS_FIELD_TRICK_ROOM))
+        return TRUE;
+
+    speed = GetMonData(mon, MON_DATA_SPEED);
+    if (!SpeedIsBetterUnderTrickRoom(speed, switchContext->opposingBattler)
+     && !SpeedIsBetterUnderTrickRoom(speed, opposingPartner))
+        return FALSE;
+
+    if (IsDoubleBattle() && IsBattlerAlive(partner))
+    {
+        speed = gBattleMons[partner].speed;
+        if (!SpeedIsBetterUnderTrickRoom(speed, switchContext->opposingBattler)
+         && !SpeedIsBetterUnderTrickRoom(speed, opposingPartner))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+static bool32 ShouldPivotForBoardControl(struct SwitchAiContext *switchContext, bool32 replacesBadField, bool32 hasImmediateEntryEffect)
+{
+    if (switchContext->hasImportantStatusMove || switchContext->hasStatRaised)
+        return FALSE;
+
+    if (switchContext->battlerGetsOHKOd)
+        return TRUE;
+
+    if (replacesBadField)
+        return TRUE;
+
+    if (IsDoubleBattle())
+        return hasImmediateEntryEffect || !CanDoubleBattlerMakeProgress(switchContext) || IsDoubleBattlerUnderPressure(switchContext);
+
+    if (!switchContext->canBattlerWin1v1 || switchContext->typeMatchup > UQ_4_12(2.0))
+        return TRUE;
+
+    return hasImmediateEntryEffect && !switchContext->hasEffectiveMove;
+}
+
+static u32 GetBoardControlSwitchinScore(struct SwitchAiContext *switchContext, u32 monIndex, bool32 *replacesBadField, bool32 *hasImmediateEntryEffect)
+{
+    struct Pokemon *mon = &switchContext->party[monIndex];
+    enum Ability ability = GetPartyMonAbilityForSwitchCalc(switchContext->battler, monIndex, mon);
+    u32 score = 0;
+
+    *replacesBadField = FALSE;
+    *hasImmediateEntryEffect = FALSE;
+
+    if (!IsNeutralizingGasOnField())
+    {
+        u32 weather = GetSwitchinWeatherFromAbility(ability);
+        u32 terrain = GetSwitchinTerrainFromAbility(ability);
+
+        if (weather != B_WEATHER_NONE && !(AI_GetWeather() & weather))
+        {
+            bool32 replacesWeather = DoesWeatherSetterReplaceBadWeather(switchContext->battler, weather);
+
+            if (ShouldSetWeather(switchContext->battler, weather)
+             || PartyMonBenefitsFromWeather(mon, ability, weather)
+             || replacesWeather)
+            {
+                score += 5;
+                *hasImmediateEntryEffect = TRUE;
+                *replacesBadField |= replacesWeather;
+            }
+        }
+
+        if (terrain != 0 && !(gFieldStatuses & terrain))
+        {
+            bool32 replacesTerrain = DoesTerrainSetterReplaceBadTerrain(switchContext->battler, terrain);
+
+            if (ShouldSetFieldStatus(switchContext->battler, terrain)
+             || PartyMonBenefitsFromTerrain(mon, ability, terrain)
+             || replacesTerrain)
+            {
+                score += 5;
+                *hasImmediateEntryEffect = TRUE;
+                *replacesBadField |= replacesTerrain;
+            }
+        }
+    }
+
+    if (PartyMonBenefitsFromTailwind(switchContext, mon, ability))
+        score += 3;
+
+    if (PartyMonBenefitsFromTrickRoom(switchContext, mon))
+        score += 3;
+
+    return score;
+}
+
+static u32 FindBoardControlSwitchin(struct SwitchAiContext *switchContext)
+{
+    u32 bestMonId = PARTY_SIZE;
+    u32 bestScore = 0;
+
+    for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
+    {
+        u32 score;
+        bool32 replacesBadField;
+        bool32 hasImmediateEntryEffect;
+
+        if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
+            continue;
+
+        score = GetBoardControlSwitchinScore(switchContext, monIndex, &replacesBadField, &hasImmediateEntryEffect);
+        if (score == 0)
+            continue;
+        if (!ShouldPivotForBoardControl(switchContext, replacesBadField, hasImmediateEntryEffect))
+            continue;
+
+        if (score > bestScore)
+        {
+            bestScore = score;
+            bestMonId = monIndex;
+        }
+    }
+
+    return bestMonId;
+}
+
+static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchContext)
+{
+    u32 switchinId;
+
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
+        return FALSE;
+
+    switchinId = FindBoardControlSwitchin(switchContext);
+    if (switchinId == PARTY_SIZE)
         return FALSE;
 
     return SetSwitchinAndSwitch(switchContext->battler, switchinId);
@@ -1615,6 +2013,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
     if (ShouldSwitchIfBadlyStatused(&switchContext))
         return TRUE;
     if (ShouldSwitchIfAbilityBenefit(&switchContext))
+        return TRUE;
+    if (ShouldSwitchIfBoardControlBenefit(&switchContext))
         return TRUE;
     if (ShouldSwitchIfDoublePositionBad(&switchContext))
         return TRUE;
