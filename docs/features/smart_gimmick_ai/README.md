@@ -16,9 +16,11 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Trainer data says a gimmick is available; smart AI decides whether this turn is worth spending it.
 - Tera should be held until there is offensive payoff, defensive payoff, or a specific target interaction.
 - Dynamax should be held unless the AI has last-Pokemon pressure, survival pressure, KO conversion, or a Max Move board payoff.
+- Dynamax can also be spent defensively to keep a selected damaging move live through known or predicted Fake Out-style flinch or Roar / Whirlwind-style phazing.
 - Mega Evolution / Ultra Burst may be delayed for setup turns or pre-Mega ability value, but spent for immediate ability, Speed, damage, or defensive payoff.
 - Z-Moves remain behind viability and smart timing checks instead of firing only because a Z-Crystal exists.
 - Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
+- Smart switching can also use terrain seeds, status pressure / status prevention, status-benefit switch-ins, and Skill Swap-style ability bridges when those plans create board control.
 
 ## Current Mega / Ultra Burst Payoffs
 
@@ -39,6 +41,7 @@ The AI may still delay Mega on setup turns, and may preserve `Air Lock` / `Cloud
 - Weather control: `Max Flare`, `Max Geyser`, `Max Rockfall`, and `Max Hailstorm`.
 - Terrain control: `Max Lightning`, `Max Overgrowth`, `Max Starfall`, and `Max Mindstorm`.
 - Side-wide stat pressure: `Max Knuckle`, `Max Ooze`, `Max Quake`, `Max Steelspike`, `Max Wyrmwind`, `Max Flutterby`, `Max Phantasm`, and `Max Darkness`.
+- Disruption prevention: a known or predicted Fake Out-style flinch or Roar / Whirlwind-style phazing move can justify Dynamax when the AI selected a damaging move.
 
 The weather and terrain checks reuse the existing AI field-status evaluators so this feature does not invent a separate weather / terrain opinion system.
 
@@ -58,9 +61,11 @@ Status Z-Moves keep their existing tactical checks because their value is usuall
 `AI_FLAG_SMART_SWITCHING` now has two VGC-style switching layers in this feature branch:
 
 - Bad-position switching preserves a Pokemon that has no useful pressure, is threatened by either opposing slot, and cannot be covered by its partner.
-- Board-control switching can pivot into reserve weather, terrain, Tailwind, or Trick Room roles when those effects improve pressure or replace an unfavorable field state.
+- Board-control switching can pivot into reserve weather, terrain, Tailwind, Trick Room, terrain seed, direct or secondary status / confusion pressure, status care, and ability-bridge roles when those effects improve pressure or replace an unfavorable field state.
 
-Singles remain more conservative; the AI still needs bad odds, bad matchup, weak current pressure, or a bad field state before it pivots for board control. Doubles allow more proactive pivots because the partner slot and the reserve role can create pressure together.
+Singles remain more conservative; the AI still needs bad odds, bad matchup, weak current pressure, a bad field state, or an immediate status-benefit switch-in before it pivots for board control. Doubles allow more proactive pivots because the partner slot and the reserve role can create pressure together.
+
+Status-aware switching currently covers non-volatile status pressure, secondary status / freeze / frostbite effects, `Yawn`, `Toxic Spikes`, `Leech Seed`, `Swagger`, confusion pressure, `Heal Bell` / `Aromatherapy`, `Safeguard`, `Misty Terrain`, self-status item plans, `Guts`, `Quick Feet`, `Marvel Scale`, `Magic Guard`, `Poison Heal`, `Toxic Boost`, `Flare Boost`, `Facade`, and `Psycho Shift`.
 
 ## VGC Reference Notes
 

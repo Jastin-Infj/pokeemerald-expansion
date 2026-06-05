@@ -37,6 +37,33 @@ AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to block Fake Out disruption")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(100); Moves(MOVE_FAKE_OUT); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(50); Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(50); Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_FAKE_OUT); EXPECT_MOVE(opponent, MOVE_SCRATCH, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to block phazing disruption")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_ROAR) == EFFECT_ROAR);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(50); Moves(MOVE_ROAR); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(50); Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(50); Moves(MOVE_SCRATCH); DynamaxLevel(10); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_ROAR); EXPECT_MOVE(opponent, MOVE_SCRATCH, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax for Max Airstream speed control")
 {
     GIVEN {

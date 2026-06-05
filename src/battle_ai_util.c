@@ -5675,6 +5675,49 @@ static bool32 DoesDynamaxOfferStrategicMaxMovePayoff(enum BattlerId battlerAtk, 
     }
 }
 
+static bool32 IsDynamaxBlockedDisruptionMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum Move incomingMove)
+{
+    if (incomingMove == MOVE_NONE || incomingMove == MOVE_UNAVAILABLE)
+        return FALSE;
+
+    if (GetMoveEffect(incomingMove) == EFFECT_ROAR)
+        return TRUE;
+
+    if (!MoveHasAdditionalEffect(incomingMove, MOVE_EFFECT_FLINCH))
+        return FALSE;
+
+    if (GetMoveEffect(incomingMove) == EFFECT_FIRST_TURN_ONLY)
+        return IsBattlersFirstTurn(battlerDef);
+
+    return IsDoubleBattle()
+        || AI_IsSlower(battlerAtk, battlerDef, move, incomingMove, CONSIDER_PRIORITY);
+}
+
+static bool32 DoesDynamaxBlockIncomingDisruption(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    enum Move incomingMove;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    incomingMove = GetIncomingMove(battlerAtk, battlerDef, gAiLogicData);
+    if (IsDynamaxBlockedDisruptionMove(battlerAtk, battlerDef, move, incomingMove))
+        return TRUE;
+
+    if (HasAnyKnownMove(battlerDef))
+    {
+        enum Move *moves = GetMovesArray(battlerDef);
+
+        for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+        {
+            if (IsDynamaxBlockedDisruptionMove(battlerAtk, battlerDef, move, moves[moveIndex]))
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
     battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
@@ -5685,6 +5728,9 @@ static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId ba
         return TRUE;
 
     if (CanTargetFaintAi(battlerDef, battlerAtk))
+        return TRUE;
+
+    if (DoesDynamaxBlockIncomingDisruption(battlerAtk, battlerDef, move))
         return TRUE;
 
     if (DoesDynamaxOfferStrategicMaxMovePayoff(battlerAtk, battlerDef, move))

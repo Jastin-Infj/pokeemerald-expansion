@@ -1052,6 +1052,114 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to Trick Room support 
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to a terrain seed plan")
+{
+    GIVEN {
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        ASSUME(GetItemHoldEffect(ITEM_ELECTRIC_SEED) == HOLD_EFFECT_TERRAIN_SEED);
+        ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_PANPOUR) { Speed(20); Moves(MOVE_WATER_GUN); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ONIX) { HP(1); MaxHP(100); Speed(5); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(5); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(10); Ability(ABILITY_ELECTRIC_SURGE); Item(ITEM_ELECTRIC_SEED); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_WATER_GUN, target: opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE, target: opponentLeft);
+            EXPECT_SWITCH(opponentLeft, 2);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to status pressure support")
+{
+    GIVEN {
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        ASSUME(GetMoveNonVolatileStatus(MOVE_SPORE) == MOVE_EFFECT_SLEEP);
+        ASSUME(GetMoveType(MOVE_BRICK_BREAK) == TYPE_FIGHTING);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_HITMONTOP) { Speed(30); Moves(MOVE_BRICK_BREAK); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(30); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { HP(1); MaxHP(100); Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(10); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(20); Moves(MOVE_SPORE, MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BRICK_BREAK, target: opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE, target: opponentLeft);
+            EXPECT_SWITCH(opponentLeft, 2);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to secondary status pressure support")
+{
+    enum Move supportMove = MOVE_NONE;
+
+    PARAMETRIZE { supportMove = MOVE_SCALD; }
+    PARAMETRIZE { supportMove = MOVE_PSYBEAM; }
+
+    GIVEN {
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        ASSUME(MoveHasAdditionalEffect(MOVE_SCALD, MOVE_EFFECT_BURN) == TRUE);
+        ASSUME(MoveHasAdditionalEffect(MOVE_PSYBEAM, MOVE_EFFECT_CONFUSION) == TRUE);
+        ASSUME(GetMoveType(MOVE_BRICK_BREAK) == TYPE_FIGHTING);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_HITMONTOP) { Speed(30); Moves(MOVE_BRICK_BREAK); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(30); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { HP(1); MaxHP(100); Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(10); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(20); Moves(supportMove, MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BRICK_BREAK, target: opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE, target: opponentLeft);
+            EXPECT_SWITCH(opponentLeft, 2);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots a status-backed switchin into predicted burn")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        ASSUME(GetMoveNonVolatileStatus(MOVE_WILL_O_WISP) == MOVE_EFFECT_BURN);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_CHARIZARD) { Speed(20); Moves(MOVE_WILL_O_WISP); }
+        OPPONENT(SPECIES_SCIZOR) { Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(10); Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_WILL_O_WISP); EXPECT_SWITCH(opponent, 1); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to Skill Swap support that can bridge board abilities")
+{
+    GIVEN {
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        ASSUME(GetMoveEffect(MOVE_SKILL_SWAP) == EFFECT_SKILL_SWAP);
+        ASSUME(GetMoveType(MOVE_BRICK_BREAK) == TYPE_FIGHTING);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_HITMONTOP) { Speed(30); Moves(MOVE_BRICK_BREAK); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(30); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { HP(1); MaxHP(100); Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(10); Ability(ABILITY_DRIZZLE); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(20); Moves(MOVE_SKILL_SWAP, MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BRICK_BREAK, target: opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE, target: opponentLeft);
+            EXPECT_SWITCH(opponentLeft, 2);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
 // Trapping behaviour
 AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI will switch in trapping mon mid battle")
 {

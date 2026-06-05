@@ -633,6 +633,18 @@ static bool32 PartyMonHasDamagingMoveOfType(struct Pokemon *mon, enum Type type)
     return FALSE;
 }
 
+static bool32 PartyMonHasMoveWithCategory(struct Pokemon *mon, enum DamageCategory category)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = GetMonData(mon, MON_DATA_MOVE1 + moveIndex);
+        if (move != MOVE_NONE && move != MOVE_UNAVAILABLE && GetMoveCategory(move) == category)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 static bool32 PartyMonIsAnyType(struct Pokemon *mon, enum Type type)
 {
     enum Species species = GetMonData(mon, MON_DATA_SPECIES);
@@ -755,8 +767,27 @@ static bool32 PartyMonBenefitsFromWeather(struct Pokemon *mon, enum Ability abil
     return FALSE;
 }
 
+static bool32 PartyMonHasTerrainSeedForField(struct Pokemon *mon, u32 terrain)
+{
+    enum Item item = GetMonData(mon, MON_DATA_HELD_ITEM);
+    enum HoldEffect holdEffect = GetItemHoldEffect(item);
+    u32 seedParam;
+
+    if (holdEffect != HOLD_EFFECT_TERRAIN_SEED)
+        return FALSE;
+
+    seedParam = GetItemHoldEffectParam(item);
+    return (seedParam == HOLD_EFFECT_PARAM_ELECTRIC_TERRAIN && terrain == STATUS_FIELD_ELECTRIC_TERRAIN)
+        || (seedParam == HOLD_EFFECT_PARAM_GRASSY_TERRAIN && terrain == STATUS_FIELD_GRASSY_TERRAIN)
+        || (seedParam == HOLD_EFFECT_PARAM_MISTY_TERRAIN && terrain == STATUS_FIELD_MISTY_TERRAIN)
+        || (seedParam == HOLD_EFFECT_PARAM_PSYCHIC_TERRAIN && terrain == STATUS_FIELD_PSYCHIC_TERRAIN);
+}
+
 static bool32 PartyMonBenefitsFromTerrain(struct Pokemon *mon, enum Ability ability, u32 terrain)
 {
+    if (PartyMonHasTerrainSeedForField(mon, terrain))
+        return TRUE;
+
     if (PartyMonHasMoveEffect(mon, EFFECT_TERRAIN_BOOST)
      || PartyMonHasMoveEffect(mon, EFFECT_TERRAIN_PULSE))
         return TRUE;
@@ -779,6 +810,303 @@ static bool32 PartyMonBenefitsFromTerrain(struct Pokemon *mon, enum Ability abil
     default:
         return FALSE;
     }
+}
+
+static bool32 MoveHasStatusPressureEffect(enum Move move)
+{
+    enum MoveEffect status;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+        return FALSE;
+
+    status = GetMoveNonVolatileStatus(move);
+    if (status == MOVE_EFFECT_SLEEP
+     || status == MOVE_EFFECT_POISON
+     || status == MOVE_EFFECT_TOXIC
+     || status == MOVE_EFFECT_BURN
+     || status == MOVE_EFFECT_PARALYSIS
+     || status == MOVE_EFFECT_FROSTBITE)
+        return TRUE;
+
+    if (MoveHasAdditionalEffect(move, MOVE_EFFECT_SLEEP)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_POISON)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_TOXIC)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_BURN)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_PARALYSIS)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_FREEZE_OR_FROSTBITE)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_FROSTBITE)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_CONFUSION)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_CONFUSE_SIDE)
+     || MoveHasAdditionalEffect(move, MOVE_EFFECT_CONFUSE_PAY_DAY_SIDE))
+        return TRUE;
+
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_CONFUSE:
+    case EFFECT_LEECH_SEED:
+    case EFFECT_SWAGGER:
+    case EFFECT_TOXIC_SPIKES:
+    case EFFECT_TOXIC_THREAD:
+    case EFFECT_YAWN:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 PartyMonHasStatusPressureMove(struct Pokemon *mon)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = GetMonData(mon, MON_DATA_MOVE1 + moveIndex);
+        if (MoveHasStatusPressureEffect(move))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 PartyMonCanUseAuroraVeil(struct Pokemon *mon, enum Ability ability)
+{
+    if (!PartyMonHasMoveEffect(mon, EFFECT_AURORA_VEIL))
+        return FALSE;
+
+    return (AI_GetWeather() & B_WEATHER_ICY_ANY)
+        || (GetSwitchinWeatherFromAbility(ability) & B_WEATHER_ICY_ANY);
+}
+
+static bool32 PartyMonHasDefensiveSupportMove(struct Pokemon *mon, enum Ability ability)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = GetMonData(mon, MON_DATA_MOVE1 + moveIndex);
+
+        if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+            continue;
+
+        switch (GetMoveEffect(move))
+        {
+        case EFFECT_REFLECT:
+        case EFFECT_LIGHT_SCREEN:
+        case EFFECT_MIST:
+        case EFFECT_HAZE:
+        case EFFECT_POWER_SWAP:
+        case EFFECT_GUARD_SWAP:
+        case EFFECT_SPEED_SWAP:
+            return TRUE;
+        case EFFECT_AURORA_VEIL:
+            if (PartyMonCanUseAuroraVeil(mon, ability))
+                return TRUE;
+            break;
+        default:
+            break;
+        }
+    }
+
+    return FALSE;
+}
+
+static bool32 BattlerHasStatusPressure(enum BattlerId battler)
+{
+    enum Move *moves;
+
+    if (!IsBattlerAlive(battler))
+        return FALSE;
+
+    moves = GetMovesArray(battler);
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        if (MoveHasStatusPressureEffect(moves[moveIndex]))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 OpposingSideHasStatusOpening(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId opposingPartner = BATTLE_PARTNER(switchContext->opposingBattler);
+
+    if (gSideStatuses[GetBattlerSide(switchContext->opposingBattler)] & SIDE_STATUS_SAFEGUARD)
+        return FALSE;
+
+    if (IsBattlerAlive(switchContext->opposingBattler) && !(gBattleMons[switchContext->opposingBattler].status1 & STATUS1_ANY))
+        return TRUE;
+
+    return IsDoubleBattle()
+        && IsBattlerAlive(opposingPartner)
+        && IsBattlerAlly(switchContext->opposingBattler, opposingPartner)
+        && !(gBattleMons[opposingPartner].status1 & STATUS1_ANY);
+}
+
+static bool32 OpposingSideCanSpreadStatus(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId opposingPartner = BATTLE_PARTNER(switchContext->opposingBattler);
+
+    if (BattlerHasStatusPressure(switchContext->opposingBattler))
+        return TRUE;
+
+    return IsDoubleBattle()
+        && IsBattlerAlive(opposingPartner)
+        && IsBattlerAlly(switchContext->opposingBattler, opposingPartner)
+        && BattlerHasStatusPressure(opposingPartner);
+}
+
+static bool32 PartySideHasStatusToCure(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId partner = BATTLE_PARTNER(switchContext->battler);
+
+    if (gBattleMons[switchContext->battler].status1 & STATUS1_ANY)
+        return TRUE;
+
+    if (IsDoubleBattle()
+     && IsBattlerAlive(partner)
+     && IsBattlerAlly(switchContext->battler, partner)
+     && (gBattleMons[partner].status1 & STATUS1_ANY))
+        return TRUE;
+
+    for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
+    {
+        if (!IsValidForBattle(&switchContext->party[monIndex]))
+            continue;
+        if (GetMonData(&switchContext->party[monIndex], MON_DATA_STATUS) & STATUS1_ANY)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 IncomingMoveCanApplyStatus(enum Move move)
+{
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+        return FALSE;
+
+    switch (GetMoveNonVolatileStatus(move))
+    {
+    case MOVE_EFFECT_SLEEP:
+    case MOVE_EFFECT_POISON:
+    case MOVE_EFFECT_TOXIC:
+    case MOVE_EFFECT_BURN:
+    case MOVE_EFFECT_PARALYSIS:
+    case MOVE_EFFECT_FROSTBITE:
+        return TRUE;
+    default:
+        break;
+    }
+
+    return MoveHasAdditionalEffect(move, MOVE_EFFECT_SLEEP)
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_POISON)
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_TOXIC)
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_BURN)
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_PARALYSIS)
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_FREEZE_OR_FROSTBITE)
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_FROSTBITE)
+        || GetMoveEffect(move) == EFFECT_YAWN;
+}
+
+static bool32 PartyMonBenefitsFromStatusPlan(struct Pokemon *mon, enum Ability ability, bool32 incomingStatusThreat)
+{
+    enum Item item = GetMonData(mon, MON_DATA_HELD_ITEM);
+    enum HoldEffect holdEffect = GetItemHoldEffect(item);
+    bool32 selfStatusItem = holdEffect == HOLD_EFFECT_FLAME_ORB || holdEffect == HOLD_EFFECT_TOXIC_ORB;
+
+    if (!incomingStatusThreat && !selfStatusItem)
+        return FALSE;
+
+    switch (ability)
+    {
+    case ABILITY_GUTS:
+        return PartyMonHasMoveWithCategory(mon, DAMAGE_CATEGORY_PHYSICAL);
+    case ABILITY_QUICK_FEET:
+    case ABILITY_MARVEL_SCALE:
+    case ABILITY_MAGIC_GUARD:
+        return TRUE;
+    case ABILITY_POISON_HEAL:
+        return incomingStatusThreat || holdEffect == HOLD_EFFECT_TOXIC_ORB;
+    case ABILITY_TOXIC_BOOST:
+        return (incomingStatusThreat || holdEffect == HOLD_EFFECT_TOXIC_ORB)
+            && PartyMonHasMoveWithCategory(mon, DAMAGE_CATEGORY_PHYSICAL);
+    case ABILITY_FLARE_BOOST:
+        return (incomingStatusThreat || holdEffect == HOLD_EFFECT_FLAME_ORB)
+            && PartyMonHasMoveWithCategory(mon, DAMAGE_CATEGORY_SPECIAL);
+    default:
+        break;
+    }
+
+    return PartyMonHasMoveEffect(mon, EFFECT_FACADE)
+        || PartyMonHasMoveEffect(mon, EFFECT_PSYCHO_SHIFT);
+}
+
+static bool32 PartyMonHasStatusBoardControl(struct SwitchAiContext *switchContext, struct Pokemon *mon, enum Ability ability)
+{
+    if (!IsDoubleBattle())
+        return FALSE;
+
+    if (PartyMonHasStatusPressureMove(mon) && OpposingSideHasStatusOpening(switchContext))
+        return TRUE;
+
+    if (PartyMonHasMoveEffect(mon, EFFECT_HEAL_BELL) && PartySideHasStatusToCure(switchContext))
+        return TRUE;
+
+    if ((PartyMonHasMoveEffect(mon, EFFECT_SAFEGUARD) || PartyMonHasMoveEffect(mon, EFFECT_MISTY_TERRAIN))
+     && OpposingSideCanSpreadStatus(switchContext))
+        return TRUE;
+
+    return PartyMonHasDefensiveSupportMove(mon, ability);
+}
+
+static bool32 IsBoardControlAbility(enum Ability ability)
+{
+    switch (ability)
+    {
+    case ABILITY_DRIZZLE:
+    case ABILITY_DROUGHT:
+    case ABILITY_SAND_STREAM:
+    case ABILITY_SNOW_WARNING:
+    case ABILITY_ELECTRIC_SURGE:
+    case ABILITY_GRASSY_SURGE:
+    case ABILITY_MISTY_SURGE:
+    case ABILITY_PSYCHIC_SURGE:
+    case ABILITY_ORICHALCUM_PULSE:
+    case ABILITY_HADRON_ENGINE:
+    case ABILITY_INTIMIDATE:
+    case ABILITY_SWIFT_SWIM:
+    case ABILITY_CHLOROPHYLL:
+    case ABILITY_SAND_RUSH:
+    case ABILITY_SAND_VEIL:
+    case ABILITY_SLUSH_RUSH:
+    case ABILITY_SURGE_SURFER:
+    case ABILITY_WIND_RIDER:
+    case ABILITY_WIND_POWER:
+    case ABILITY_GUTS:
+    case ABILITY_QUICK_FEET:
+    case ABILITY_MARVEL_SCALE:
+    case ABILITY_MAGIC_GUARD:
+    case ABILITY_POISON_HEAL:
+    case ABILITY_TOXIC_BOOST:
+    case ABILITY_FLARE_BOOST:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 PartyMonCanBridgeBoardControl(struct SwitchAiContext *switchContext, struct Pokemon *mon, enum Ability ability)
+{
+    enum BattlerId partner = BATTLE_PARTNER(switchContext->battler);
+
+    if (!PartyMonHasMoveEffect(mon, EFFECT_SKILL_SWAP)
+     && !PartyMonHasMoveEffect(mon, EFFECT_ROLE_PLAY)
+     && !PartyMonHasMoveEffect(mon, EFFECT_ENTRAINMENT))
+        return FALSE;
+
+    if (IsBoardControlAbility(ability))
+        return TRUE;
+
+    return IsDoubleBattle()
+        && IsBattlerAlive(partner)
+        && IsBattlerAlly(switchContext->battler, partner)
+        && IsBoardControlAbility(gAiLogicData->abilities[partner]);
 }
 
 static bool32 DoesWeatherSetterReplaceBadWeather(enum BattlerId battler, u32 weather)
@@ -946,6 +1274,18 @@ static u32 GetBoardControlSwitchinScore(struct SwitchAiContext *switchContext, u
 
     if (PartyMonBenefitsFromTrickRoom(switchContext, mon))
         score += 3;
+
+    if (PartyMonBenefitsFromStatusPlan(mon, ability, IncomingMoveCanApplyStatus(switchContext->incomingMove)))
+    {
+        score += 3;
+        *hasImmediateEntryEffect = TRUE;
+    }
+
+    if (PartyMonHasStatusBoardControl(switchContext, mon, ability))
+        score += 2;
+
+    if (PartyMonCanBridgeBoardControl(switchContext, mon, ability))
+        score += 2;
 
     return score;
 }

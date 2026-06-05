@@ -25,6 +25,9 @@ For Dynamax, `ShouldUseSmartDynamax()` now accepts these reasons:
 
 - Last available Pokemon.
 - The current target can otherwise KO the AI Pokemon.
+- A known or predicted opposing move threatens Dynamax-blocked disruption while the AI selected a damaging move:
+  - Fake Out-style flinch pressure.
+  - Roar / Whirlwind-style forced-switch pressure.
 - Dynamax converts the selected move into a KO that the regular move would miss.
 - The selected Max Move creates strategic board value:
   - Speed control through `Max Airstream` or `Max Strike`.
@@ -40,9 +43,19 @@ For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability che
 
 For double battle switching, `ShouldSwitchIfDoublePositionBad()` adds a VGC-style positioning check under `AI_FLAG_SMART_SWITCHING`. The AI may hard switch when the active Pokemon has no meaningful pressure into either opposing slot, is threatened by either opposing slot, has enough HP to be worth preserving, and its partner cannot cover the position. The check stays out of `AI_FLAG_SEQUENCE_SWITCHING`, respects existing no-switch gates, avoids overriding the existing Intimidate-blocker contract, and allows double switches when both active Pokemon are pinned.
 
-For board-control switching, `ShouldSwitchIfBoardControlBenefit()` lets `AI_FLAG_SMART_SWITCHING` identify reserve Pokemon that can immediately or soon change the board. The selector can choose weather setters (`Drizzle`, `Drought`, `Sand Stream`, `Snow Warning`), terrain setters (`Electric Surge`, `Grassy Surge`, `Misty Surge`, `Psychic Surge`, `Hadron Engine`), and speed-control setters carrying `Tailwind` or `Trick Room`.
+For board-control switching, `ShouldSwitchIfBoardControlBenefit()` lets `AI_FLAG_SMART_SWITCHING` identify reserve Pokemon that can immediately or soon change the board. The selector can choose weather setters (`Drizzle`, `Drought`, `Sand Stream`, `Snow Warning`), terrain setters (`Electric Surge`, `Grassy Surge`, `Misty Surge`, `Psychic Surge`, `Hadron Engine`), speed-control setters carrying `Tailwind` or `Trick Room`, status-pressure support, status-prevention / cure support, terrain seed plans, and ability bridge support such as `Skill Swap`, `Role Play`, and `Entrainment`.
 
-The board-control switch is deliberately narrower in singles than doubles. Singles still need bad odds, a bad matchup, missing current pressure, or an unfavorable field to replace. Doubles can pivot more proactively once the reserve candidate itself has a clear weather, terrain, Tailwind, or Trick Room payoff, matching the VGC positioning model where a bench Pokemon can create pressure instead of merely absorbing damage.
+The board-control switch is deliberately narrower in singles than doubles. Singles still need bad odds, a bad matchup, missing current pressure, an unfavorable field, or an immediate status-absorption payoff to replace. Non-immediate status pressure / support pivots are double-battle only in this slice so the AI does not abandon a winning singles 1v1 only because the bench has a utility move. Doubles can pivot more proactively once the reserve candidate itself has a clear weather, terrain, Tailwind, Trick Room, status, seed, or ability-bridge payoff, matching the VGC positioning model where a bench Pokemon can create pressure instead of merely absorbing damage.
+
+Status-aware board-control support includes:
+
+- Non-volatile status pressure, secondary status effects, and related pressure moves (`Spore`, `Yawn`, `Toxic`, `Will-O-Wisp`, paralysis moves, freeze / frostbite effects, `Toxic Spikes`, `Leech Seed`, `Swagger`, and confusion pressure).
+- Team status care with `Heal Bell` / `Aromatherapy`.
+- Status prevention with `Safeguard` or `Misty Terrain` when the opposing side has known status pressure.
+- Self-status / status-benefit lines for `Guts`, `Quick Feet`, `Marvel Scale`, `Magic Guard`, `Poison Heal`, `Toxic Boost`, `Flare Boost`, `Facade`, and `Psycho Shift`.
+- Terrain seed activation when the reserve setter creates the matching field.
+- Aurora Veil only when snow / hail is already active or the reserve ability can create it.
+- Skill Swap-style bridge moves when the reserve or active partner has a board-control ability worth moving or copying.
 
 ## Tests Added
 
@@ -50,6 +63,7 @@ The board-control switch is deliberately narrower in singles than doubles. Singl
 - Last-Pokemon baseline: spends Dynamax when no reserve remains.
 - Max Geyser payoff: spends Dynamax to set rain even with a reserve remaining.
 - Max Airstream payoff: spends Dynamax in doubles for Speed-control tempo even with a reserve remaining.
+- Dynamax disruption payoff: spends Dynamax to keep a damaging move live through Fake Out-style flinch or Roar / Whirlwind-style phazing.
 - Smart Z conserve: keeps a damaging Z-Move unused when another Pokemon remains and the Z-Move has no immediate payoff.
 - Smart Z last Pokemon: spends a damaging Z-Move when no reserve remains.
 - Smart Z trap pressure: spends a damaging Z-Move when trapped and the Z-Move improves the damage race.
@@ -59,21 +73,25 @@ The board-control switch is deliberately narrower in singles than doubles. Singl
 - Smart Switching weather pivot: switches to a `Drizzle` reserve when rain improves reserve pressure.
 - Smart Switching terrain pivot: switches to a `Grassy Surge` reserve that can change board control.
 - Smart Switching speed-control pivots: switches to Tailwind and Trick Room reserves when those controls can flip the speed state.
+- Smart Switching terrain seed pivot: switches to a terrain setter whose field triggers the reserve's seed plan.
+- Smart Switching status pivots: switches into a status-benefit reserve under predicted burn, and in doubles can pivot to direct or secondary status / confusion pressure support.
+- Smart Switching ability bridge pivot: switches in Skill Swap support when a partner board-control ability creates a bridge plan.
 - Existing Tera, Mega, Z-Move, and combined environment tests remain in `ai_smart_gimmick.c`.
 
 ## Validation
 
 2026-06-05 local validation:
 
-- `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 8 tests.
+- `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 10 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'`: pass, 1 test.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
-- `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass; includes bad-position double switching plus weather, terrain, Tailwind, and Trick Room board-control pivots.
+- `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
+- `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, and Skill Swap bridge pivots.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
 - `rtk make -j16 -O all`: pass.
 - `rtk mdbook build docs`: pass with existing warnings for missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
-- mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot. Stop returned `stopped:true`; CLI `status --all` returned `[]`.
+- mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `20260605-042654`. `mgba_live_stop` returned `stopped:true`.
 
 ## Known Gaps
 
