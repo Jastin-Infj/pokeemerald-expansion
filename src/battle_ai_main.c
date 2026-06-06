@@ -40,6 +40,8 @@
 #define AI_ACTION_WATCH         (1 << 2)
 #define AI_ACTION_DO_NOT_ATTACK (1 << 3)
 
+#define READ_PLAYER_PROTECT_TARGET_PENALTY 18
+
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Doubles(enum BattlerId battler);
@@ -73,6 +75,72 @@ static s32 AI_PowerfulStatus(enum BattlerId battlerAtk, enum BattlerId battlerDe
 static s32 AI_DynamicFunc(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score);
 static s32 AI_PredictSwitch(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score);
 static s32 AI_CheckPpStall(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score);
+
+static bool32 IsSingleTargetProtectMethod(enum ProtectMethod protectMethod)
+{
+    switch (protectMethod)
+    {
+    case PROTECT_NORMAL:
+    case PROTECT_SPIKY_SHIELD:
+    case PROTECT_KINGS_SHIELD:
+    case PROTECT_BANEFUL_BUNKER:
+    case PROTECT_BURNING_BULWARK:
+    case PROTECT_OBSTRUCT:
+    case PROTECT_SILK_TRAP:
+    case PROTECT_MAX_GUARD:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 IsReadPlayerTargetUsingSingleProtect(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    enum Move chosenMove;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || BattlerHasAi(battlerDef)
+     || gChosenActionByBattler[battlerDef] != B_ACTION_USE_MOVE)
+        return FALSE;
+
+    chosenMove = gChosenMoveByBattler[battlerDef];
+    if (chosenMove == MOVE_NONE || chosenMove == MOVE_UNAVAILABLE)
+        return FALSE;
+
+    if ((gBattleStruct->gimmick.toActivate & (1u << battlerDef))
+     && gBattleStruct->gimmick.usableGimmick[battlerDef] == GIMMICK_DYNAMAX
+     && GetMoveCategory(chosenMove) == DAMAGE_CATEGORY_STATUS)
+        return TRUE;
+
+    if (GetMoveEffect(chosenMove) != EFFECT_PROTECT)
+        return FALSE;
+
+    return IsSingleTargetProtectMethod(GetMoveProtectMethod(chosenMove));
+}
+
+static bool32 ShouldAvoidReadPlayerProtectTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    enum MoveTarget moveTarget = AI_GetBattlerMoveTargetType(battlerAtk, move);
+
+    if (!IsReadPlayerTargetUsingSingleProtect(battlerAtk, battlerDef))
+        return FALSE;
+
+    if (MoveIgnoresProtect(move) || GetMovePower(move) == 0)
+        return FALSE;
+
+    if (IsSpreadMove(moveTarget))
+        return FALSE;
+
+    switch (moveTarget)
+    {
+    case TARGET_SELECTED:
+    case TARGET_RANDOM:
+    case TARGET_OPPONENT:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
 
 static s32 (*const sBattleAiFuncTable[])(enum BattlerId, enum BattlerId, enum Move, s32) =
 {
@@ -1284,6 +1352,9 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
 
     if (gBattleStruct->battlerState[battlerDef].commandingDondozo)
         RETURN_SCORE_MINUS(20);
+
+    if (ShouldAvoidReadPlayerProtectTarget(battlerAtk, battlerDef, move))
+        RETURN_SCORE_MINUS(READ_PLAYER_PROTECT_TARGET_PENALTY);
 
     if (IsPowderMove(move) && !IsAffectedByPowderMove(battlerDef, aiData->abilities[battlerDef], aiData->holdEffects[battlerDef]))
         RETURN_SCORE_MINUS(10);

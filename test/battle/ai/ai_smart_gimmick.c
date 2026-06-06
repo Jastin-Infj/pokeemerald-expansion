@@ -145,6 +145,25 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: command log records all double 
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI retargets single-target damage away from selected Protect")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(100); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WYNAUT) { HP(1); MaxHP(500); Speed(100); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(500); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WYNAUT) { HP(500); Attack(200); Speed(50); Moves(MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentRight, MOVE_SCRATCH, target: playerLeft);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to block phazing disruption")
 {
     GIVEN {
