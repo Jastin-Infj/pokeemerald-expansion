@@ -1484,27 +1484,24 @@ static u32 ChooseMoveOrAction_Doubles(enum BattlerId battler)
             if (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_CHECK_VIABILITY)
                 AI_CompareDamagingMoves(battler, gBattlerTarget);
 
-            mostViableMovesScores[0] = gAiThinkingStruct->score[0];
-            mostViableMovesIndices[0] = 0;
-            mostViableMovesNo = 1;
-            for (u32 moveIndex = 1; moveIndex < MAX_MON_MOVES; moveIndex++)
+            mostViableMovesNo = 0;
+            for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
             {
-                if (gBattleMons[battler].moves[moveIndex] != 0)
-                {
-                    if (!CanTargetBattler(battler, battlerIndex, gBattleMons[battler].moves[moveIndex]))
-                        continue;
+                enum Move consideredMove = gBattleMons[battler].moves[moveIndex];
 
-                    if (mostViableMovesScores[0] == gAiThinkingStruct->score[moveIndex])
+                if (consideredMove != MOVE_NONE && CanTargetBattler(battler, battlerIndex, consideredMove))
+                {
+                    if (mostViableMovesNo == 0 || mostViableMovesScores[0] < gAiThinkingStruct->score[moveIndex])
+                    {
+                        mostViableMovesIndices[0] = moveIndex;
+                        mostViableMovesNo = 1;
+                        mostViableMovesScores[0] = gAiThinkingStruct->score[moveIndex];
+                    }
+                    else if (mostViableMovesScores[0] == gAiThinkingStruct->score[moveIndex])
                     {
                         mostViableMovesScores[mostViableMovesNo] = gAiThinkingStruct->score[moveIndex];
                         mostViableMovesIndices[mostViableMovesNo] = moveIndex;
                         mostViableMovesNo++;
-                    }
-                    if (mostViableMovesScores[0] < gAiThinkingStruct->score[moveIndex])
-                    {
-                        mostViableMovesScores[0] = gAiThinkingStruct->score[moveIndex];
-                        mostViableMovesIndices[0] = moveIndex;
-                        mostViableMovesNo = 1;
                     }
                 }
             }
@@ -1513,13 +1510,21 @@ static u32 ChooseMoveOrAction_Doubles(enum BattlerId battler)
             gBattleTestRunnerState->data.trial.scoreTieCount = mostViableMovesNo;
 #endif
 
-            actionOrMoveIndex[battlerIndex] = mostViableMovesIndices[RandomUniform(RNG_AI_SCORE_TIE_DOUBLES_MOVE, 0, mostViableMovesNo - 1)];
-            bestMovePointsForTarget[battlerIndex] = mostViableMovesScores[0];
-
-            // Don't use a move against ally if it has less than 100 points.
-            if (battlerIndex == BATTLE_PARTNER(battler) && bestMovePointsForTarget[battlerIndex] < AI_SCORE_DEFAULT)
+            if (mostViableMovesNo == 0)
             {
+                actionOrMoveIndex[battlerIndex] = 0xFF;
                 bestMovePointsForTarget[battlerIndex] = -1;
+            }
+            else
+            {
+                actionOrMoveIndex[battlerIndex] = mostViableMovesIndices[RandomUniform(RNG_AI_SCORE_TIE_DOUBLES_MOVE, 0, mostViableMovesNo - 1)];
+                bestMovePointsForTarget[battlerIndex] = mostViableMovesScores[0];
+
+                // Don't use a move against ally if it has less than 100 points.
+                if (battlerIndex == BATTLE_PARTNER(battler) && bestMovePointsForTarget[battlerIndex] < AI_SCORE_DEFAULT)
+                {
+                    bestMovePointsForTarget[battlerIndex] = -1;
+                }
             }
 
             for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)

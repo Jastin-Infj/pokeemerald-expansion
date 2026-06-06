@@ -9341,6 +9341,20 @@ enum MoveTarget GetBattlerMoveTargetType(enum BattlerId battler, enum Move move)
 
 bool32 CanTargetBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
+    if (battlerAtk == battlerDef)
+    {
+        switch (GetBattlerMoveTargetType(battlerAtk, move))
+        {
+        case TARGET_USER:
+        case TARGET_USER_OR_ALLY:
+        case TARGET_USER_AND_ALLY:
+        case TARGET_FIELD:
+        case TARGET_ALL_BATTLERS:
+            break;
+        default:
+            return FALSE;
+        }
+    }
     if (GetMoveEffect(move) == EFFECT_HIT_ENEMY_HEAL_ALLY
     &&  IsBattlerAlly(battlerAtk, battlerDef)
     &&  gBattleMons[battlerAtk].volatiles.healBlock)

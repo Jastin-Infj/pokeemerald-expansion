@@ -34,6 +34,7 @@
 #include "util.h"
 #include "window.h"
 #include "constants/battle_anim.h"
+#include "constants/battle_move_effects.h"
 #include "constants/items.h"
 #include "constants/moves.h"
 #include "constants/party_menu.h"
@@ -54,6 +55,7 @@ static void OpponentHandleIntroTrainerBallThrow(enum BattlerId battler);
 static void OpponentHandleDrawPartyStatusSummary(enum BattlerId battler);
 static void OpponentHandleEndLinkBattle(enum BattlerId battler);
 static void OpponentBufferRunCommand(enum BattlerId battler);
+static enum BattlerId GetValidOpponentChosenTarget(enum BattlerId battler, enum Move move, enum BattlerId chosenTarget);
 
 static void (*const sOpponentBufferCommands[CONTROLLER_CMDS_COUNT])(enum BattlerId battler) =
 {
@@ -507,6 +509,61 @@ static void OpponentHandleChooseAction(enum BattlerId battler)
     BtlController_Complete(battler);
 }
 
+static enum BattlerId GetValidOpponentChosenTarget(enum BattlerId battler, enum Move move, enum BattlerId chosenTarget)
+{
+    enum BattlerId target;
+    enum MoveTarget moveTarget = GetBattlerMoveTargetType(battler, move);
+    enum BattleMoveEffects effect = GetMoveEffect(move);
+
+    if (chosenTarget < gBattlersCount
+     && IsBattlerAlive(chosenTarget)
+     && CanTargetBattler(battler, chosenTarget, move))
+        return chosenTarget;
+
+    switch (moveTarget)
+    {
+    case TARGET_USER:
+    case TARGET_USER_AND_ALLY:
+    case TARGET_FIELD:
+    case TARGET_ALL_BATTLERS:
+        return battler;
+    case TARGET_ALLY:
+    case TARGET_USER_OR_ALLY:
+        target = BATTLE_PARTNER(battler);
+        if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+        return battler;
+    default:
+        break;
+    }
+
+    if (IsDoubleBattle() && (effect == EFFECT_HEAL_PULSE || effect == EFFECT_HIT_ENEMY_HEAL_ALLY))
+    {
+        target = BATTLE_PARTNER(battler);
+        if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+    }
+
+    target = GetOpposingSideBattler(battler);
+    if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+        return target;
+
+    if (IsDoubleBattle())
+    {
+        target ^= BIT_FLANK;
+        if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+    }
+
+    for (target = 0; target < gBattlersCount; target++)
+    {
+        if (IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+    }
+
+    return battler;
+}
+
 static void OpponentHandleChooseMove(enum BattlerId battler)
 {
     u32 chosenMoveIndex;
@@ -554,6 +611,10 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
                 if (gAbsentBattlerFlags & (1u << gBattlerTarget))
                     gBattlerTarget = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
             }
+            if (gBattlerTarget >= gBattlersCount
+             || !IsBattlerAlive(gBattlerTarget)
+             || !CanTargetBattler(battler, gBattlerTarget, chosenMove))
+                gBattlerTarget = GetValidOpponentChosenTarget(battler, chosenMove, gBattlerTarget);
             // If opponent can and should use a gimmick (considering trainer data), do it
             enum Gimmick usableGimmick = gBattleStruct->gimmick.usableGimmick[battler];
             if (usableGimmick != GIMMICK_NONE && IsAIUsingGimmick(battler) && !HasTrainerUsedGimmick(battler, usableGimmick))

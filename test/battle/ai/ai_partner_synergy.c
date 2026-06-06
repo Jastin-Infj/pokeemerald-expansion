@@ -56,6 +56,14 @@
         Moves(__VA_ARGS__); \
     }
 
+#define OPPONENT_AMOONGUSS_DAMAGED_SUPPORT(...) \
+    OPPONENT(SPECIES_AMOONGUSS) { \
+        Level(50); Item(ITEM_ROCKY_HELMET); Ability(ABILITY_REGENERATOR); Nature(NATURE_SASSY); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(221); HP(60); Defense(120); SpAttack(105); SpDefense(145); Speed(31); \
+        Moves(__VA_ARGS__); \
+    }
+
 #define OPPONENT_XERNEAS_DAMAGED(...) \
     OPPONENT(SPECIES_XERNEAS) { \
         Level(50); Item(ITEM_POWER_HERB); Nature(NATURE_MODEST); \
@@ -166,6 +174,25 @@ AI_DOUBLE_BATTLE_TEST("AI heals a low HP setup ally with Pollen Puff")
             MOVE(playerLeft, MOVE_PROTECT);
             MOVE(playerRight, MOVE_PROTECT);
             EXPECT_MOVE(opponentLeft, MOVE_POLLEN_PUFF, target: opponentRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI does not target itself with Pollen Puff even when it wants healing")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_POLLEN_PUFF) == EFFECT_HIT_ENEMY_HEAL_ALLY);
+        ASSUME(GetMoveTarget(MOVE_POLLEN_PUFF) == TARGET_SELECTED);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR_BULKY(MOVE_PROTECT, MOVE_FAKE_OUT, MOVE_FLARE_BLITZ, MOVE_PARTING_SHOT);
+        PLAYER_VENUSAUR_BULKY(MOVE_DAZZLING_GLEAM, MOVE_SLEEP_POWDER, MOVE_SLUDGE_BOMB, MOVE_PROTECT);
+        OPPONENT_XERNEAS_SETUP(MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM, MOVE_GEOMANCY, MOVE_PROTECT);
+        OPPONENT_AMOONGUSS_DAMAGED_SUPPORT(MOVE_SPORE, MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_DAZZLING_GLEAM);
+            SCORE_LT_VAL(opponentRight, MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT, target: opponentRight);
         }
     }
 }
