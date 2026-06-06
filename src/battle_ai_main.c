@@ -398,6 +398,22 @@ void SetupAIPredictionData(enum BattlerId battler, enum SwitchType switchType)
     gAiLogicData->aiPredictionInProgress = FALSE;
 }
 
+static void ApplyKnownPlayerSwitchCommandsToAiLogicData(void)
+{
+    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    {
+        if (!IsOnPlayerSide(battler)
+         || gChosenActionByBattler[battler] != B_ACTION_SWITCH
+         || gBattleStruct->monToSwitchIntoId[battler] >= PARTY_SIZE)
+            continue;
+
+        gAiLogicData->predictingSwitch = TRUE;
+        gAiLogicData->shouldSwitch |= 1u << battler;
+        gAiLogicData->mostSuitableMonId[battler] = gBattleStruct->monToSwitchIntoId[battler];
+        gAiLogicData->monToSwitchInId[battler] = gBattleStruct->monToSwitchIntoId[battler];
+    }
+}
+
 void ComputeAiBattlerDecisions(enum BattlerId battler)
 {
     gAiLogicData->aiCalcInProgress = TRUE;
@@ -411,6 +427,8 @@ void ComputeAiBattlerDecisions(enum BattlerId battler)
 
     gAiLogicData->predictingSwitch = (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_PREDICT_SWITCH) ? RandomPercentage(RNG_AI_PREDICT_SWITCH, PREDICT_SWITCH_CHANCE) : FALSE;
     gAiLogicData->predictingMove = (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_PREDICT_MOVE) ? RandomPercentage(RNG_AI_PREDICT_MOVE, PREDICT_MOVE_CHANCE) : FALSE;
+    if (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE)
+        ApplyKnownPlayerSwitchCommandsToAiLogicData();
 
     // AI's switching data
     enum SwitchType switchType = (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_RISKY) ? SWITCH_AFTER_KO : SWITCH_MID_BATTLE_OPTIONAL; // Risky AI switches aggressively even mid battle
@@ -750,6 +768,14 @@ void CalcBattlerAiMovesData(struct AiLogicData *aiData, enum BattlerId battlerAt
     enum Move move;
     enum Move *moves = GetMovesArray(battlerAtk);
     u32 moveLimitations = aiData->moveLimitations[battlerAtk];
+    enum AIConsiderGimmick considerGimmickDef = NO_GIMMICK;
+
+    if (IsOnPlayerSide(battlerDef)
+     && IsAiFlagPresent(AI_FLAG_READ_PLAYER_MOVE)
+     && gChosenActionByBattler[battlerDef] == B_ACTION_USE_MOVE
+     && (gBattleStruct->gimmick.toActivate & (1u << battlerDef))
+     && gBattleStruct->gimmick.usableGimmick[battlerDef] != GIMMICK_NONE)
+        considerGimmickDef = USE_GIMMICK;
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
@@ -761,7 +787,7 @@ void CalcBattlerAiMovesData(struct AiLogicData *aiData, enum BattlerId battlerAt
             continue;
 
         // Also get effectiveness of status moves
-        dmg = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, USE_GIMMICK, NO_GIMMICK, weather, fieldStatus);
+        dmg = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, USE_GIMMICK, considerGimmickDef, weather, fieldStatus);
         aiData->moveAccuracy[battlerAtk][battlerDef][moveIndex] = Ai_SetMoveAccuracy(aiData, battlerAtk, battlerDef, move);
 
         aiData->simulatedDmg[battlerAtk][battlerDef][moveIndex] = dmg;

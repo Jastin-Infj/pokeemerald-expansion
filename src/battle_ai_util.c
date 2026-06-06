@@ -233,6 +233,12 @@ bool32 IsAiBattlerPredictingAbility(enum BattlerId battlerId)
 
 bool32 IsBattlerPredictedToSwitch(enum BattlerId battler)
 {
+    if (IsAiFlagPresent(AI_FLAG_READ_PLAYER_MOVE)
+     && !BattlerHasAi(battler)
+     && gChosenActionByBattler[battler] == B_ACTION_SWITCH
+     && gBattleStruct->monToSwitchIntoId[battler] < PARTY_SIZE)
+        return TRUE;
+
     if (gAiLogicData->predictingSwitch && gAiLogicData->shouldSwitch & (1u << battler))
         return TRUE;
     return FALSE;
@@ -6850,6 +6856,7 @@ bool32 IsAIUsingGimmick(enum BattlerId battler)
 
 struct AltTeraCalcs
 {
+    struct SimulatedDamage dealtWithTera[MAX_MON_MOVES];
     struct SimulatedDamage takenWithTera[MAX_MON_MOVES];
     struct SimulatedDamage dealtWithoutTera[MAX_MON_MOVES];
 };
@@ -6929,9 +6936,15 @@ static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId o
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
         if (!IsMoveUnusable(moveIndex, aiMoves[moveIndex], gAiLogicData->moveLimitations[battler]) && !IsBattleMoveStatus(aiMoves[moveIndex]))
+        {
+            altCalcs.dealtWithTera[moveIndex] = AI_CalcDamage(aiMoves[moveIndex], battler, opposingBattler, &effectiveness, USE_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
             altCalcs.dealtWithoutTera[moveIndex] = AI_CalcDamage(aiMoves[moveIndex], battler, opposingBattler, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+        }
         else
+        {
+            altCalcs.dealtWithTera[moveIndex] = noDmg;
             altCalcs.dealtWithoutTera[moveIndex] = noDmg;
+        }
 
 
         if (!IsMoveUnusable(moveIndex, oppMoves[moveIndex], gAiLogicData->moveLimitations[opposingBattler]) && !IsBattleMoveStatus(oppMoves[moveIndex]))
@@ -6952,6 +6965,10 @@ static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId o
 
     if (res == USE_GIMMICK)
     {
+        // Damage calcs for damage dealt may have been adjusted by an earlier no-Tera pass. Restore the Tera calcs too.
+        for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+            gAiLogicData->simulatedDmg[battler][opposingBattler][moveIndex] = altCalcs.dealtWithTera[moveIndex];
+
         // Damage calcs for damage received assumed we wouldn't tera. Adjust that so that further AI decisions are more accurate.
         for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
         {
@@ -6971,7 +6988,7 @@ static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId o
 }
 
 // macros are not expanded recursively
-#define dealtWithTera gAiLogicData->simulatedDmg[battler][opposingBattler]
+#define dealtWithTera altCalcs->dealtWithTera
 #define dealtWithoutTera altCalcs->dealtWithoutTera
 #define takenWithTera altCalcs->takenWithTera
 #define takenWithoutTera gAiLogicData->simulatedDmg[opposingBattler][battler]

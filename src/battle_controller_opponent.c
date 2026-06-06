@@ -425,25 +425,84 @@ static void OpponentHandleTrainerSlideBack(enum BattlerId battler)
     BtlController_HandleTrainerSlideBack(battler, 35, FALSE);
 }
 
-static bool32 ShouldRefreshOpponentAIWithKnownPlayerMoves(enum BattlerId battler)
+static bool32 CanReadPlayerCommands(enum BattlerId battler)
 {
-    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE))
+    return (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE) != 0;
+}
+
+static bool32 IsKnownPlayerMoveCommandReady(enum BattlerId battler)
+{
+    if (gBattleMons[battler].volatiles.multipleTurns || gBattleMons[battler].volatiles.rechargeTimer > 0)
+        return TRUE;
+
+    return gChosenMoveByBattler[battler] != MOVE_NONE
+        && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE;
+}
+
+static bool32 IsKnownPlayerCommandReady(enum BattlerId battler)
+{
+    if (!IsOnPlayerSide(battler))
+        return TRUE;
+    if ((gAbsentBattlerFlags & (1u << battler)) || !IsBattlerAlive(battler))
+        return TRUE;
+    if (gBattleStruct->battlerState[battler].commandingDondozo)
+        return TRUE;
+
+    switch (gChosenActionByBattler[battler])
+    {
+    case B_ACTION_USE_MOVE:
+        return IsKnownPlayerMoveCommandReady(battler);
+    case B_ACTION_SWITCH:
+        return gBattleStruct->monToSwitchIntoId[battler] < PARTY_SIZE;
+    case B_ACTION_USE_ITEM:
+    case B_ACTION_RUN:
+    case B_ACTION_SAFARI_WATCH_CAREFULLY:
+    case B_ACTION_SAFARI_BALL:
+    case B_ACTION_SAFARI_POKEBLOCK:
+    case B_ACTION_SAFARI_GO_NEAR:
+    case B_ACTION_SAFARI_RUN:
+    case B_ACTION_WALLY_THROW:
+    case B_ACTION_THROW_BALL:
+    case B_ACTION_DEBUG:
+    case B_ACTION_EXEC_SCRIPT:
+    case B_ACTION_TRY_FINISH:
+    case B_ACTION_FINISHED:
+    case B_ACTION_NOTHING_FAINTED:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 ShouldWaitForKnownPlayerCommands(enum BattlerId battler)
+{
+    if (!CanReadPlayerCommands(battler))
         return FALSE;
 
     for (enum BattlerId otherBattler = 0; otherBattler < gBattlersCount; otherBattler++)
     {
-        if (IsOnPlayerSide(otherBattler)
-         && gChosenActionByBattler[otherBattler] == B_ACTION_USE_MOVE
-         && gChosenMoveByBattler[otherBattler] != MOVE_NONE
-         && gChosenMoveByBattler[otherBattler] != MOVE_UNAVAILABLE)
+        if (!IsKnownPlayerCommandReady(otherBattler))
             return TRUE;
     }
 
     return FALSE;
 }
 
+static void RefreshOpponentAIWithKnownPlayerCommands(enum BattlerId battler)
+{
+    if (!CanReadPlayerCommands(battler))
+        return;
+
+    SetAiLogicDataForTurn(gAiLogicData);
+    ComputeAiBattlerDecisions(battler);
+}
+
 static void OpponentHandleChooseAction(enum BattlerId battler)
 {
+    if (ShouldWaitForKnownPlayerCommands(battler))
+        return;
+
+    RefreshOpponentAIWithKnownPlayerCommands(battler);
     AI_TrySwitchOrUseItem(battler);
     BtlController_Complete(battler);
 }
@@ -472,8 +531,10 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
         }
         else
         {
-            if (ShouldRefreshOpponentAIWithKnownPlayerMoves(battler))
-                ComputeAiBattlerDecisions(battler);
+            if (ShouldWaitForKnownPlayerCommands(battler))
+                return;
+
+            RefreshOpponentAIWithKnownPlayerCommands(battler);
 
             chosenMoveIndex = gAiBattleData->chosenMoveIndex[battler];
             gBattlerTarget = gAiBattleData->chosenTarget[battler];
