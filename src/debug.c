@@ -644,6 +644,19 @@ static const struct DebugMenuOption sDebugMenu_Actions_EditPokemon[] =
     { NULL }
 };
 
+static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
+{
+    { COMPOUND_STRING("Mega Single"),   DebugAction_Party_BattleGauntletMegaSingles },
+    { COMPOUND_STRING("Mega Double"),   DebugAction_Party_BattleGauntletMegaDoubles },
+    { COMPOUND_STRING("MegaZ Single"), DebugAction_Party_BattleGauntletMegaZSingles },
+    { COMPOUND_STRING("MegaZ Double"), DebugAction_Party_BattleGauntletMegaZDoubles },
+    { COMPOUND_STRING("Dmax Single"),   DebugAction_Party_BattleGauntletDynamaxSingles },
+    { COMPOUND_STRING("Dmax Double"),   DebugAction_Party_BattleGauntletDynamaxDoubles },
+    { COMPOUND_STRING("Tera Single"),   DebugAction_Party_BattleGauntletTeraSingles },
+    { COMPOUND_STRING("Tera Double"),   DebugAction_Party_BattleGauntletTeraDoubles },
+    { NULL }
+};
+
 static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 {
     { COMPOUND_STRING("Move Relearner"),     DebugAction_ExecuteScript, Common_EventScript_MoveRelearner },
@@ -663,14 +676,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Battle Dmax/Z Double"), DebugAction_Party_BattleDmaxZDoubles },
     { COMPOUND_STRING("Battle Gimmick Single"), DebugAction_Party_BattleGimmickSingles },
     { COMPOUND_STRING("Battle Gimmick Double"), DebugAction_Party_BattleGimmickDoubles },
-    { COMPOUND_STRING("Gauntlet Mega S"),  DebugAction_Party_BattleGauntletMegaSingles },
-    { COMPOUND_STRING("Gauntlet Mega D"),  DebugAction_Party_BattleGauntletMegaDoubles },
-    { COMPOUND_STRING("Gauntlet MegaZ S"), DebugAction_Party_BattleGauntletMegaZSingles },
-    { COMPOUND_STRING("Gauntlet MegaZ D"), DebugAction_Party_BattleGauntletMegaZDoubles },
-    { COMPOUND_STRING("Gauntlet Dmax S"),  DebugAction_Party_BattleGauntletDynamaxSingles },
-    { COMPOUND_STRING("Gauntlet Dmax D"),  DebugAction_Party_BattleGauntletDynamaxDoubles },
-    { COMPOUND_STRING("Gauntlet Tera S"),  DebugAction_Party_BattleGauntletTeraSingles },
-    { COMPOUND_STRING("Gauntlet Tera D"),  DebugAction_Party_BattleGauntletTeraDoubles },
+    { COMPOUND_STRING("Gauntlet Battles"), DebugAction_OpenSubMenu, sDebugMenu_Actions_Gauntlet },
     { NULL }
 };
 

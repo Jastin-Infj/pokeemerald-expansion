@@ -13,15 +13,15 @@
 | Focused smart Tera tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'` | Pass on 2026-06-05; 4 tests passed. |
 | Focused smart switching tests | `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'` | Pass on 2026-06-06. Covers double-position switching, partner-cover guard, weather / terrain reserve pivots, Tailwind / Trick Room reserve pivots, terrain seed plans, status-benefit pivots, direct and secondary status / confusion support pivots, Skill Swap bridge pivots, predicted-Taunt attacker pivots / stay-in guards, and the double-switch execution guard through the shared predicted-move immunity predicate. |
 | Focused Protect scoring tests | `rtk make -j16 -O check TESTS='Protect: AI'` | Pass on 2026-06-05; 9 tests passed. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles. |
-| Debug trainer fixture generation | `rtk make tools/trainerproc/trainerproc`; `rtk make -j16 -O debug` | Pass on 2026-06-06 after adding the 8 weighted gauntlet debug battles. |
+| Debug trainer fixture generation | `rtk make tools/trainerproc/trainerproc`; `rtk make -j16 -O debug` | Pass on 2026-06-06 after moving the 8 weighted gauntlet battles under `Gauntlet Battles` and rebalancing the player-side pools. |
 | Debug battle EXP / EV gate | `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'` | Pass on 2026-06-06; 1 test passed. Confirms `gIsDebugBattle` suppresses the EXP bar, EXP gain, and EV gain. |
-| Trainer Party Pool regression | `rtk make -j16 -O check TESTS='Trainer Party Pool'` | Pass on 2026-06-06; 9 tests passed after adding the gauntlet pools. Covers role-filtered pool selection, weighted selection, and runtime RNG variation used by the debug battle fixtures. |
+| Trainer Party Pool regression | `rtk make -j16 -O check TESTS='Trainer Party Pool'` | Pass on 2026-06-06; 9 tests passed after the gauntlet submenu and same-grade player-pool rebalance. Covers role-filtered pool selection, weighted selection, and runtime RNG variation used by the debug battle fixtures. |
 | Runtime knowledge catalog tool | `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`; `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`; JSON parse of `/tmp/runtime_knowledge_catalog_rust/*.json` | Pass on 2026-06-05. Generated valid catalogs for 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and `summary.json`. |
 | Full battle / runtime checks | `rtk make -j16 -O check` | Historical pass on 2026-06-05 before the final Protect / Dmax-vs-Z debug update. Re-attempt after the final update exited 2; the visible output only showed existing test-runner / known-failing labels (`Tests resume after CRASH`, `Pokemon level up learnsets fit within MAX_LEVEL_UP_MOVES and MAX_RELEARNER_MOVES`), and both filtered checks return 0 individually. Focused checks above are the accepted evidence for this update. A `rtk make -j1 -O check` re-attempt did not progress beyond the initial link warning and was abandoned as non-evidence; stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed. |
 | Broad existing Z-Move AI filter | `rtk make -j16 -O check TESTS='AI uses Z-Moves'` | Failed on 2026-06-06 in existing `AI uses Z-Moves -- Z-Detect 1/2`: expected Z-Move, got no gimmick. Focused smart-gimmick checks pass; this status-Z Protect heuristic is tracked as separate follow-up evidence. |
-| Normal ROM build | `rtk make -j16 -O all` | Pass on 2026-06-06, including after the late-commit smart-gimmick checks and debug audit fixtures. |
-| Docs build | `rtk mdbook build docs` | Pass on 2026-06-06 with existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
-| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-06. MCP startup without `DISPLAY` previously failed with Qt `xcb` display initialization. For the gauntlet update, sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-gauntlet-20260606`; rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, exported `/tmp/smart-gimmick-gauntlet-20260606.png`, `mgba-live-cli stop` returned `stopped:true`, and `status --all` returned `[]`. This was a boot smoke only; the 8 gauntlet menu entries still need manual progression from a debug-enabled save. |
+| Normal ROM build | `rtk make -j16 -O all` | Pass on 2026-06-06 after the gauntlet menu overflow fix and pool rebalance. |
+| Docs build | `rtk mdbook build docs` | Pass on 2026-06-06 after the gauntlet menu overflow fix and pool rebalance, with existing warnings: missing root `CHANGELOG.md` include, existing `CREDITS.md` `</img>` warning, large search index. |
+| mGBA Live smoke | Boot current ROM and capture one screenshot / input state | Pass on 2026-06-06. For the gauntlet menu fix, sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-gauntlet-menu-fix2-20260606`; rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, exported `/tmp/smart-gimmick-gauntlet-menu-fix2-20260606.png`, `mgba-live-cli stop` returned `stopped:true`, and `status --all` returned `[]`. This was a boot smoke only; the `Party -> Gauntlet Battles` submenu still needs manual progression from a debug-enabled save. |
 
 ## Manual Runtime Checks
 
@@ -33,7 +33,7 @@ Build the debug ROM path first:
 rtk make -j16 -O debug
 ```
 
-In-game, open the overworld debug menu with `R + START` when `DEBUG_OVERWORLD_MENU` is enabled and `DEBUG_OVERWORLD_IN_MENU` is `FALSE`. Then use `Party`:
+In-game, open the overworld debug menu with `R + START` when `DEBUG_OVERWORLD_MENU` is enabled and `DEBUG_OVERWORLD_IN_MENU` is `FALSE`. Then use `Party`. The gauntlet fixtures are grouped under `Party -> Gauntlet Battles` so the top-level Party menu stays under the debug menu's 20-item limit:
 
 - `Battle 3v3 Single`: starts a level-50 3v3 singles battle. Player side is fixed to `Dragonite`, `Gholdengo`, and `Garchomp`. AI side is selected from the `Ladder` 6-Pokemon weighted pool with 3 chosen Pokemon.
 - `Battle 4v4 Double`: starts a level-50 4v4 doubles battle. Player side is fixed to `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`. AI side is selected from the `VGC Test` 7-Pokemon weighted pool with 4 chosen Pokemon.
@@ -41,14 +41,14 @@ In-game, open the overworld debug menu with `R + START` when `DEBUG_OVERWORLD_ME
 - `Battle Dmax/Z Double`: starts a level-50 4v4 doubles battle. Player side is a VGC-style Z-Move test team. AI side is a Dynamax / Gigantamax / Z-Crystal doubles team with Tailwind and weather pressure.
 - `Battle Gimmick Single`: starts a singles availability audit. Player side is passive. AI side leads `Gengarite` Mega and has reserve `Mimikium Z`, Gigantamax `Charizard`, and Normal Tera `Dragonite`.
 - `Battle Gimmick Double`: starts a doubles availability audit. Player side is passive. AI side leads Gigantamax `Charizard` plus `Electrium Z` `Tapu Koko`, with reserve `Gengarite` Mega and Normal Tera `Dragonite`.
-- `Gauntlet Mega S`: starts a level-50 3v3 singles battle with Mega-only debug access.
-- `Gauntlet Mega D`: starts a level-50 4v4 doubles battle with Mega-only debug access.
-- `Gauntlet MegaZ S`: starts a level-50 3v3 singles battle with Mega + Z-Power debug access.
-- `Gauntlet MegaZ D`: starts a level-50 4v4 doubles battle with Mega + Z-Power debug access.
-- `Gauntlet Dmax S`: starts a level-50 3v3 singles battle with Dynamax-only debug access.
-- `Gauntlet Dmax D`: starts a level-50 4v4 doubles battle with Dynamax-only debug access.
-- `Gauntlet Tera S`: starts a level-50 3v3 singles battle with Tera-only debug access.
-- `Gauntlet Tera D`: starts a level-50 4v4 doubles battle with Tera-only debug access.
+- `Gauntlet Battles -> Mega Single`: starts a level-50 3v3 singles battle with Mega-only debug access.
+- `Gauntlet Battles -> Mega Double`: starts a level-50 4v4 doubles battle with Mega-only debug access.
+- `Gauntlet Battles -> MegaZ Single`: starts a level-50 3v3 singles battle with Mega + Z-Power debug access.
+- `Gauntlet Battles -> MegaZ Double`: starts a level-50 4v4 doubles battle with Mega + Z-Power debug access.
+- `Gauntlet Battles -> Dmax Single`: starts a level-50 3v3 singles battle with Dynamax-only debug access.
+- `Gauntlet Battles -> Dmax Double`: starts a level-50 4v4 doubles battle with Dynamax-only debug access.
+- `Gauntlet Battles -> Tera Single`: starts a level-50 3v3 singles battle with Tera-only debug access.
+- `Gauntlet Battles -> Tera Double`: starts a level-50 4v4 doubles battle with Tera-only debug access.
 
 Expected results:
 
@@ -64,11 +64,12 @@ Expected results:
 - In the gauntlet fixtures, both the player and AI parties are generated from weighted pools. Repeated starts should be able to produce different teams while still respecting `Party Size`, item clause, species clause, and role tags.
 - Gauntlet AI trainers use `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Smart Switching`, `Smart Mon Choices`, `Omniscient`, `Know Opponent Party`, and `Powerful Status`. This is the "AI can read with full information" route for checking whether predictions and pivots are actually good enough when the opposing team is known.
 - Mega-only gauntlets should not expose Z-Move, Dynamax, or Tera access. Mega+Z gauntlets should expose Mega and Z only. Dynamax-only gauntlets should expose Dynamax / Gigantamax only. Tera-only gauntlets should expose Tera only.
-- The gauntlet AI side is intentionally stronger than the player side: restricted legends, mythicals, high-pressure support, and stronger gimmick anchors are weighted higher. The target manual feel is that the player is usually unfavored unless they outplay the AI.
+- The gauntlet sides should be roughly same-grade after pool selection. The player side can roll restricted legends, mythicals, strong support, and high-value gimmick anchors too; the AI's intended edge comes from full-information prediction, switching, and timing, not from having a categorically stronger team.
+- The top-level Party menu should render cleanly with no corrupted text. Entering `Gauntlet Battles` should show the eight gauntlet entries without mojibake.
 - Double battles should not hit the `IsValidSwitchIn()` ASSERT when the AI tries to reposition. If both active AI Pokemon want to switch but only one legal reserve exists, or a partner already reserved the best target, the second switch request should be canceled or redirected to a legal reserve.
 - Opponent gimmicks are not forced to fire immediately in smart-timing fixtures. They are expected to activate only when the smart timing checks find a concrete payoff: last-Pokemon pressure, one-reserve low-HP late commit, KO conversion, Max Move board control, disruption prevention, useful Mega / Tera form timing, or a valid Z-Move payoff.
 
-The current mGBA Live check only reached title-screen boot for these fixtures. A progressed save or focused input route is still needed to visually confirm the new Party debug menu entries and battle intro through mGBA Live.
+The current mGBA Live check only reached title-screen boot for these fixtures. A progressed save or focused input route is still needed to visually confirm `Party -> Gauntlet Battles` and battle intro through mGBA Live.
 
 Use the debug trainer battle flow and Trainer 1 IDs documented in `docs/tutorials/ai_flags.md`.
 
