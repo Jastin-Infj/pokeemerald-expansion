@@ -164,6 +164,67 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI retargets single-target dama
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Fake Out discounts slower ordinary actions")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(100); Moves(MOVE_FAKE_OUT); }
+        PLAYER(SPECIES_WYNAUT) { HP(500); Speed(100); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(500); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WYNAUT) { HP(500); Speed(50); Moves(MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            SCORE_LT_VAL(opponentRight, MOVE_SCRATCH, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Fake Out still discounts lower-priority Extreme Speed")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMovePriority(MOVE_FAKE_OUT) > GetMovePriority(MOVE_EXTREME_SPEED));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(100); Moves(MOVE_FAKE_OUT); }
+        PLAYER(SPECIES_WYNAUT) { HP(500); Speed(100); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(500); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WYNAUT) { HP(500); Speed(50); Moves(MOVE_EXTREME_SPEED); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            SCORE_LT_VAL(opponentRight, MOVE_EXTREME_SPEED, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: blocked selected Fake Out does not discount ordinary actions")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(100); Moves(MOVE_FAKE_OUT); }
+        PLAYER(SPECIES_WYNAUT) { HP(500); Speed(100); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(500); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_FARIGIRAF) { HP(500); Ability(ABILITY_ARMOR_TAIL); Speed(50); Moves(MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            SCORE_GT_VAL(opponentRight, MOVE_SCRATCH, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to block phazing disruption")
 {
     GIVEN {

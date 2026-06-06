@@ -41,6 +41,7 @@
 #define AI_ACTION_DO_NOT_ATTACK (1 << 3)
 
 #define READ_PLAYER_PROTECT_TARGET_PENALTY 18
+#define READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY 9
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
@@ -140,6 +141,174 @@ static bool32 ShouldAvoidReadPlayerProtectTarget(enum BattlerId battlerAtk, enum
     default:
         return FALSE;
     }
+}
+
+static bool32 IsReadPlayerMoveGuaranteedFlinch(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    struct DamageContext ctx = {0};
+
+    if (!MoveHasAdditionalEffect(move, MOVE_EFFECT_FLINCH))
+        return FALSE;
+
+    ctx.battlerAtk = battlerAtk;
+    ctx.battlerDef = battlerDef;
+    ctx.move = ctx.chosenMove = move;
+    ctx.moveType = GetBattleMoveType(move);
+    ctx.abilities[ctx.battlerAtk] = gAiLogicData->abilities[battlerAtk];
+    ctx.abilities[ctx.battlerDef] = gAiLogicData->abilities[battlerDef];
+    ctx.holdEffects[ctx.battlerAtk] = gAiLogicData->holdEffects[battlerAtk];
+    ctx.holdEffects[ctx.battlerDef] = gAiLogicData->holdEffects[battlerDef];
+
+    if (Ai_IsPriorityBlocked(battlerAtk, battlerDef, move, gAiLogicData)
+     || AI_CanMoveBeBlockedByTarget(&ctx)
+     || (!IsBattleMoveStatus(move) && CalcTypeEffectivenessMultiplier(&ctx) == UQ_4_12(0.0)))
+        return FALSE;
+
+    if (MoveHasAdditionalEffectWithChance(move, MOVE_EFFECT_FLINCH, 100))
+    {
+        if (gAiLogicData->holdEffects[battlerDef] == HOLD_EFFECT_COVERT_CLOAK
+         || DoesSubstituteBlockMove(battlerAtk, battlerDef, move)
+         || (!IsMoldBreakerTypeAbility(battlerAtk, gAiLogicData->abilities[battlerAtk])
+         && (gAiLogicData->abilities[battlerDef] == ABILITY_SHIELD_DUST || gAiLogicData->abilities[battlerDef] == ABILITY_INNER_FOCUS)))
+            return FALSE;
+
+        return TRUE;
+    }
+
+    u32 additionalEffectCount = GetMoveAdditionalEffectCount(move);
+    for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
+    {
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(move, effectIndex);
+
+        if (!MoveEffectIsGuaranteed(battlerAtk, gAiLogicData->abilities[battlerAtk], additionalEffect))
+            continue;
+
+        if (additionalEffect->moveEffect == MOVE_EFFECT_FLINCH)
+        {
+            if (gAiLogicData->holdEffects[battlerDef] == HOLD_EFFECT_COVERT_CLOAK
+             || DoesSubstituteBlockMove(battlerAtk, battlerDef, move)
+             || (!IsMoldBreakerTypeAbility(battlerAtk, gAiLogicData->abilities[battlerAtk])
+             && (gAiLogicData->abilities[battlerDef] == ABILITY_SHIELD_DUST || gAiLogicData->abilities[battlerDef] == ABILITY_INNER_FOCUS)))
+                return FALSE;
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static enum BattlerId GetReadPlayerChosenMoveTarget(enum BattlerId battler)
+{
+    if (gBattleResources != NULL
+     && IsOnPlayerSide(battler)
+     && gChosenMoveByBattler[battler] != MOVE_NONE
+     && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE
+     && gBattleResources->bufferB[battler][3] < gBattlersCount)
+        return gBattleResources->bufferB[battler][3];
+
+    if (gBattleStruct->moveTarget[battler] < gBattlersCount)
+        return gBattleStruct->moveTarget[battler];
+
+    return MAX_BATTLERS_COUNT;
+}
+
+static bool32 CanReadPlayerFakeOutThreatTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, bool32 hasKnownTarget)
+{
+    if (hasKnownTarget)
+    {
+        enum BattlerId chosenTarget = GetReadPlayerChosenMoveTarget(battlerDef);
+
+        if (chosenTarget < gBattlersCount && CanTargetBattler(battlerDef, chosenTarget, move))
+            return chosenTarget == battlerAtk;
+    }
+
+    return !IsBattlerAlly(battlerDef, battlerAtk);
+}
+
+static bool32 IsReadPlayerFakeOutThreat(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, bool32 hasKnownTarget)
+{
+    return CanReadPlayerFakeOutThreatTarget(battlerAtk, battlerDef, move, hasKnownTarget)
+        && GetMoveEffect(move) == EFFECT_FIRST_TURN_ONLY
+        && IsReadPlayerMoveGuaranteedFlinch(battlerDef, battlerAtk, move);
+}
+
+static bool32 GetReadPlayerGuaranteedFakeOutThreat(enum BattlerId battlerAtk, enum BattlerId *fakeOutBattler, enum Move *fakeOutMove)
+{
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !BattlerHasAi(battlerAtk))
+        return FALSE;
+
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        enum Move move;
+        bool32 hasCurrentMove;
+
+        if (BattlerHasAi(battlerDef))
+            continue;
+
+        if (gChosenActionByBattler[battlerDef] != B_ACTION_USE_MOVE
+         && gChosenActionByBattler[battlerDef] != B_ACTION_NONE)
+            continue;
+
+        move = gChosenMoveByBattler[battlerDef];
+        hasCurrentMove = gChosenActionByBattler[battlerDef] == B_ACTION_USE_MOVE
+                      && move != MOVE_NONE
+                      && move != MOVE_UNAVAILABLE;
+
+        if (!hasCurrentMove)
+        {
+            if (HasMove(battlerDef, MOVE_FAKE_OUT)
+             && IsReadPlayerFakeOutThreat(battlerAtk, battlerDef, MOVE_FAKE_OUT, FALSE))
+            {
+                *fakeOutBattler = battlerDef;
+                *fakeOutMove = MOVE_FAKE_OUT;
+                return TRUE;
+            }
+
+            for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+            {
+                move = gBattleMons[battlerDef].moves[moveIndex];
+                if (move != MOVE_NONE && IsReadPlayerFakeOutThreat(battlerAtk, battlerDef, move, FALSE))
+                {
+                    *fakeOutBattler = battlerDef;
+                    *fakeOutMove = move;
+                    return TRUE;
+                }
+            }
+            continue;
+        }
+
+        if (IsReadPlayerFakeOutThreat(battlerAtk, battlerDef, move, TRUE))
+        {
+            *fakeOutBattler = battlerDef;
+            *fakeOutMove = move;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static bool32 ShouldAvoidMoveIntoReadPlayerFakeOut(enum BattlerId battlerAtk, enum Move move)
+{
+    enum BattlerId fakeOutBattler = MAX_BATTLERS_COUNT;
+    enum Move fakeOutMove = MOVE_NONE;
+
+    if (!GetReadPlayerGuaranteedFakeOutThreat(battlerAtk, &fakeOutBattler, &fakeOutMove))
+        return FALSE;
+
+    if (GetMoveEffect(move) == EFFECT_PROTECT)
+        return FALSE;
+
+    if (gBattleStruct->gimmick.usableGimmick[battlerAtk] == GIMMICK_DYNAMAX
+     && IsAIUsingGimmick(battlerAtk))
+        return FALSE;
+
+    if (AI_WhoStrikesFirst(battlerAtk, fakeOutBattler, move, fakeOutMove, CONSIDER_PRIORITY) == AI_IS_FASTER)
+        return FALSE;
+
+    return TRUE;
 }
 
 static s32 (*const sBattleAiFuncTable[])(enum BattlerId, enum BattlerId, enum Move, s32) =
@@ -1355,6 +1524,9 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
 
     if (ShouldAvoidReadPlayerProtectTarget(battlerAtk, battlerDef, move))
         RETURN_SCORE_MINUS(READ_PLAYER_PROTECT_TARGET_PENALTY);
+
+    if (ShouldAvoidMoveIntoReadPlayerFakeOut(battlerAtk, move))
+        RETURN_SCORE_MINUS(READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY);
 
     if (IsPowderMove(move) && !IsAffectedByPowderMove(battlerDef, aiData->abilities[battlerDef], aiData->holdEffects[battlerDef]))
         RETURN_SCORE_MINUS(10);
