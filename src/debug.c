@@ -321,6 +321,7 @@ static void DebugAction_Party_BattleGauntletTeraSingles(u8 taskId);
 static void DebugAction_Party_BattleGauntletTeraDoubles(u8 taskId);
 static void DebugAction_Party_BattleGauntletMixSingles(u8 taskId);
 static void DebugAction_Party_BattleGauntletMixDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletReadDoubles(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, void *selection);
@@ -658,6 +659,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
     { COMPOUND_STRING("Tera Double"),   DebugAction_Party_BattleGauntletTeraDoubles },
     { COMPOUND_STRING("Mix Single"),    DebugAction_Party_BattleGauntletMixSingles },
     { COMPOUND_STRING("Mix Double"),    DebugAction_Party_BattleGauntletMixDoubles },
+    { COMPOUND_STRING("Read Double"),   DebugAction_Party_BattleGauntletReadDoubles },
     { NULL }
 };
 
@@ -4990,6 +4992,8 @@ enum DebugTrainerIds
     DEBUG_TRAINER_AI_GAUNTLET_MIX_SINGLES,
     DEBUG_TRAINER_PLAYER_GAUNTLET_MIX_DOUBLES,
     DEBUG_TRAINER_AI_GAUNTLET_MIX_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_READ_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_READ_DOUBLES,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -5122,6 +5126,11 @@ static void DebugAction_Party_BattleGauntletMixSingles(u8 taskId)
 static void DebugAction_Party_BattleGauntletMixDoubles(u8 taskId)
 {
     DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MIX_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_MIX_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletReadDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_READ_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_READ_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)

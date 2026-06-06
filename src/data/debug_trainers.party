@@ -2774,6 +2774,265 @@ Pool Weight: 7
 - Close Combat
 - Protect
 
+=== DEBUG_TRAINER_PLAYER_GAUNTLET_READ_DOUBLES ===
+Name: Read VGC
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+Party Size: 4
+Pool Rules: Doubles
+
+Tornadus @ ITEM_COVERT_CLOAK
+Ability: Prankster
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Support
+Pool Weight: 8
+- Tailwind
+- Taunt
+- Bleakwind Storm
+- Protect
+
+Incineroar @ ITEM_SITRUS_BERRY
+Ability: Intimidate
+Careful Nature
+Level: 50
+Tera Type: Grass
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Def / 180 SpD
+Tags: Lead / Support
+Pool Weight: 8
+- Fake Out
+- Parting Shot
+- Flare Blitz
+- Knock Off
+
+Farigiraf @ ITEM_MENTAL_HERB
+Ability: Armor Tail
+Sassy Nature
+Level: 50
+Tera Type: Fairy
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 116 Def / 140 SpD
+Tags: Lead / Support
+Pool Weight: 6
+- Trick Room
+- Psychic
+- Helping Hand
+- Protect
+
+Rillaboom @ ITEM_ASSAULT_VEST
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Lead / Ace / Support
+Pool Weight: 7
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- Knock Off
+
+Miraidon @ ITEM_CHOICE_SPECS
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 8
+- Electro Drift
+- Thunderbolt
+- Draco Meteor
+- Volt Switch
+
+Koraidon @ ITEM_CLEAR_AMULET
+Jolly Nature
+Level: 50
+Tera Type: Fire
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+Pool Weight: 8
+- Collision Course
+- Flare Blitz
+- Dragon Claw
+- Protect
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 7
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Z Move: Yes
+Tags: Lead / Support
+Pool Weight: 7
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
+=== DEBUG_TRAINER_AI_GAUNTLET_READ_DOUBLES ===
+Name: Read Lab
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Omniscient / Know Opponent Party / Powerful Status / Aggressive Gimmick / Read Player Move
+Class: Champion
+Battle Type: Doubles
+Party Size: 4
+Pool Rules: Doubles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Tornadus @ ITEM_COVERT_CLOAK
+Ability: Prankster
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Support
+Pool Weight: 8
+- Tailwind
+- Taunt
+- Bleakwind Storm
+- Protect
+
+Incineroar @ ITEM_SITRUS_BERRY
+Ability: Intimidate
+Careful Nature
+Level: 50
+Tera Type: Grass
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Def / 180 SpD
+Tags: Lead / Support
+Pool Weight: 8
+- Fake Out
+- Parting Shot
+- Flare Blitz
+- Knock Off
+
+Farigiraf @ ITEM_MENTAL_HERB
+Ability: Armor Tail
+Sassy Nature
+Level: 50
+Tera Type: Fairy
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 116 Def / 140 SpD
+Tags: Lead / Support
+Pool Weight: 6
+- Trick Room
+- Psychic
+- Helping Hand
+- Protect
+
+Rillaboom @ ITEM_ASSAULT_VEST
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Lead / Ace / Support
+Pool Weight: 7
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- Knock Off
+
+Miraidon @ ITEM_CHOICE_SPECS
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 8
+- Electro Drift
+- Thunderbolt
+- Draco Meteor
+- Volt Switch
+
+Koraidon @ ITEM_CLEAR_AMULET
+Jolly Nature
+Level: 50
+Tera Type: Fire
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+Pool Weight: 8
+- Collision Course
+- Flare Blitz
+- Dragon Claw
+- Protect
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 7
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Z Move: Yes
+Tags: Lead / Support
+Pool Weight: 7
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
 === DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES ===
 Name: Audit P2
 Class: Pkmn Trainer 1
