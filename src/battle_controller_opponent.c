@@ -545,6 +545,46 @@ static void OpponentHandleChooseItem(enum BattlerId battler)
     BtlController_Complete(battler);
 }
 
+static void GetOpponentActiveBattlers(enum BattlerId *battler1, enum BattlerId *battler2)
+{
+    if (!IsDoubleBattle())
+    {
+        *battler2 = *battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+    }
+    else
+    {
+        *battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        *battler2 = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+    }
+}
+
+static bool32 IsOpponentSwitchInCandidateValid(enum BattlerId battler, s32 chosenMonId, s32 lastId, enum BattlerId battler1, enum BattlerId battler2)
+{
+    struct Pokemon *party = gParties[GetBattlerTrainer(battler)];
+
+    if (chosenMonId < 0 || chosenMonId >= lastId || chosenMonId >= PARTY_SIZE)
+        return FALSE;
+    if (!IsValidForBattle(&party[chosenMonId]))
+        return FALSE;
+    if (chosenMonId == gBattlerPartyIndexes[battler1] && BattlersShareParty(battler, battler1))
+        return FALSE;
+    if (chosenMonId == gBattlerPartyIndexes[battler2] && BattlersShareParty(battler, battler2))
+        return FALSE;
+
+    return TRUE;
+}
+
+static s32 GetFirstValidOpponentSwitchIn(enum BattlerId battler, s32 lastId, enum BattlerId battler1, enum BattlerId battler2)
+{
+    for (s32 chosenMonId = 0; chosenMonId < lastId; chosenMonId++)
+    {
+        if (IsOpponentSwitchInCandidateValid(battler, chosenMonId, lastId, battler1, battler2))
+            return chosenMonId;
+    }
+
+    return PARTY_SIZE;
+}
+
 static void OpponentHandleChoosePokemon(enum BattlerId battler)
 {
     s32 chosenMonId;
@@ -561,6 +601,9 @@ static void OpponentHandleChoosePokemon(enum BattlerId battler)
     // Switching out
     else if (gBattleStruct->AI_monToSwitchIntoId[battler] == PARTY_SIZE)
     {
+        enum BattlerId battler1, battler2;
+        s32 lastId = GetAILastPartyIndex(battler); // + 1
+
         if (IsSwitchOutEffect(GetMoveEffect(gCurrentMove)) || gAiLogicData->ejectButtonSwitch || gAiLogicData->ejectPackSwitch)
             switchType = SWITCH_MID_BATTLE_FORCED;
 
@@ -572,33 +615,28 @@ static void OpponentHandleChoosePokemon(enum BattlerId battler)
         chosenMonId = GetMostSuitableMonToSwitchInto(battler, switchType);
         if (chosenMonId == PARTY_SIZE) // Advanced logic failed so we pick the next available battler
         {
-            enum BattlerId battler1, battler2;
-            s32 lastId = GetAILastPartyIndex(battler); // + 1
-
-            if (!IsDoubleBattle())
-            {
-                battler2 = battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
-            }
-            else
-            {
-                battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
-                battler2 = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
-            }
-
-            for (chosenMonId = 0; chosenMonId < lastId; chosenMonId++)
-            {
-                if (IsValidForBattle(&gParties[GetBattlerTrainer(battler)][chosenMonId])
-                 && !((chosenMonId == gBattlerPartyIndexes[battler1]) && BattlersShareParty(battler, battler1))
-                 && !((chosenMonId == gBattlerPartyIndexes[battler2]) && BattlersShareParty(battler, battler2)))
-                    break;
-            }
+            GetOpponentActiveBattlers(&battler1, &battler2);
+            chosenMonId = GetFirstValidOpponentSwitchIn(battler, lastId, battler1, battler2);
         }
+        else
+        {
+            GetOpponentActiveBattlers(&battler1, &battler2);
+            if (!IsOpponentSwitchInCandidateValid(battler, chosenMonId, lastId, battler1, battler2))
+                chosenMonId = GetFirstValidOpponentSwitchIn(battler, lastId, battler1, battler2);
+        }
+
         gBattleStruct->monToSwitchIntoId[battler] = chosenMonId;
     }
     else
     {
+        enum BattlerId battler1, battler2;
+        s32 lastId = GetAILastPartyIndex(battler); // + 1
+
         chosenMonId = gBattleStruct->AI_monToSwitchIntoId[battler];
         gBattleStruct->AI_monToSwitchIntoId[battler] = PARTY_SIZE;
+        GetOpponentActiveBattlers(&battler1, &battler2);
+        if (!IsOpponentSwitchInCandidateValid(battler, chosenMonId, lastId, battler1, battler2))
+            chosenMonId = GetFirstValidOpponentSwitchIn(battler, lastId, battler1, battler2);
         gBattleStruct->monToSwitchIntoId[battler] = chosenMonId;
     }
     #if TESTING

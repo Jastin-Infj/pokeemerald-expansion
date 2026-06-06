@@ -51,6 +51,8 @@ For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability che
 
 For double battle switching, `ShouldSwitchIfDoublePositionBad()` adds a VGC-style positioning check under `AI_FLAG_SMART_SWITCHING`. The AI may hard switch when the active Pokemon has no meaningful pressure into either opposing slot, is threatened by either opposing slot, has enough HP to be worth preserving, and its partner cannot cover the position. The check stays out of `AI_FLAG_SEQUENCE_SWITCHING`, respects existing no-switch gates, avoids overriding the existing Intimidate-blocker contract, and allows double switches when both active Pokemon are pinned.
 
+Double-battle switch execution validates the final party index before emitting `B_ACTION_SWITCH` or returning a post-KO `ChoosePokemon` result. This fixes a debug ASSERT path where the smart-switch fallback could finish with no valid candidate (`-1`, `PARTY_SIZE`, a fainted mon, an active partner's mon, or a partner-reserved mon) and then pass that invalid index into `Cmd_getswitchedmondata()` / `IsValidSwitchIn()`. If an optional mid-turn switch has no valid target after validation, the AI clears the switch request and falls back to a normal move action instead of crashing the battle script. Post-KO / forced controller selection now rechecks the advanced result and falls back to the first valid reserve.
+
 For board-control switching, `ShouldSwitchIfBoardControlBenefit()` lets `AI_FLAG_SMART_SWITCHING` identify reserve Pokemon that can immediately or soon change the board. The selector can choose weather setters (`Drizzle`, `Drought`, `Sand Stream`, `Snow Warning`), terrain setters (`Electric Surge`, `Grassy Surge`, `Misty Surge`, `Psychic Surge`, `Hadron Engine`), speed-control setters carrying `Tailwind` or `Trick Room`, status-pressure support, status-prevention / cure support, terrain seed plans, and ability bridge support such as `Skill Swap`, `Role Play`, and `Entrainment`.
 
 The board-control switch is deliberately narrower in singles than doubles. Singles still need bad odds, a bad matchup, missing current pressure, an unfavorable field, or an immediate status-absorption payoff to replace. Non-immediate status pressure / support pivots are double-battle only in this slice so the AI does not abandon a winning singles 1v1 only because the bench has a utility move. Doubles can pivot more proactively once the reserve candidate itself has a clear weather, terrain, Tailwind, Trick Room, status, seed, or ability-bridge payoff, matching the VGC positioning model where a bench Pokemon can create pressure instead of merely absorbing damage.
@@ -95,6 +97,8 @@ Gimmick access is split from AI timing:
 - `.party` supports `Z Move: Yes`, stored as `TrainerMon.shouldUseZMove` and copied into `gBattleStruct->opponentMonCanZMove` for opponent parties. Ordinary Z-Move availability still requires a matching Z-Crystal and Z-Power access.
 - The earlier itemless Z-Move unlock was removed so AI flags remain tactical timing / ruleset-intent hints, not replacement access items.
 
+Opponent gimmick use is not disabled. AI-side Mega / Z-Move / Dynamax / Tera availability still comes from trainer party data, held items, and the battle gimmick gates, and the focused AI tests confirm that the opponent can spend those gimmicks. Under `AI_FLAG_SMART_GIMMICK_TIMING`, however, trainer gimmick data is permission rather than an immediate command: Dynamax, Z-Move, Mega, and Tera can be conserved until the selected turn has KO, board-control, defensive, setup, or last-Pokemon value.
+
 Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This prevents the EXP bar, normal EXP gain, and EV gain in debug battles, including the level-100 EV-gain path that would otherwise still occur when EXP is disabled by level.
 
 ## Tests Added
@@ -138,7 +142,7 @@ Local validation highlights:
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'`: pass, 1 test.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
-- `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, and predicted-Taunt attacker pivot / stay-in guards through the shared predicted-move immunity predicate.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, predicted-Taunt attacker pivot / stay-in guards, and the double-switch execution guard through the shared predicted-move immunity predicate.
 - `rtk make -j16 -O check TESTS='Protect: AI'`: pass, 9 tests. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles.
 - `rtk make tools/trainerproc/trainerproc`: pass. Regenerated trainer data from `.party` fixtures, including `Pool Weight`.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
@@ -150,12 +154,16 @@ Local validation highlights:
 - `rtk make -j1 -O check`: attempted to rule out make-job parallelism, but the run did not progress beyond the initial link warning and was abandoned as non-evidence. The stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed before handoff.
 - `rtk make -j16 -O debug`: pass.
 - 2026-06-06 `rtk make -j16 -O debug`: pass. Confirms the debug Dmax/Z fixtures build with debug Z-Power / Dynamax access and `.party` `Z Move: Yes` candidates.
+- 2026-06-06 `rtk make -j16 -O debug`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk make -j16 -O all`: pass.
+- 2026-06-06 `rtk make -j16 -O all`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk mdbook build docs`: pass with existing missing-root-`CHANGELOG.md` include warning, `CREDITS.md` `</img>` warning, and large search index warning.
+- 2026-06-06 `rtk mdbook build docs`: pass after the double-switch execution guard, with the same existing warnings.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
 - mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
 - mGBA Live: current ROM booted in session `smart-ai-protect-dmaxz-20260605`. `mgba_live_start_with_lua_and_view` reported a Lua bridge invalid-context error after starting, but `mgba_live_get_view` returned a rendered frame, `mgba_live_export_screenshot` saved `/tmp/smart-ai-protect-dmaxz-20260605.png`, and `mgba_live_stop` returned `stopped:true`.
 - 2026-06-06 mGBA Live: MCP startup without `DISPLAY` failed with Qt `xcb` display initialization. CLI startup with `DISPLAY=:0` booted `pokeemerald.gba` to the title / demo screen in session `smart-gimmick-access-cli-smoke`, saved `/tmp/smart-gimmick-access-smoke.png`, and `mgba-live-cli stop` returned `stopped:true`.
+- 2026-06-06 mGBA Live: sandboxed CLI startup first failed because the tool could not create `~/.mgba-live-mcp/runtime/sessions/...`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` in session `smart-gimmick-switch-guard-20260606`, saved `/tmp/smart-gimmick-switch-guard-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the exact debug double-battle ASSERT path still needs manual progression to the Party debug fixture.
 
 ## Known Gaps
 

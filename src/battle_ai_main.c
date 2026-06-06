@@ -455,6 +455,39 @@ static void SetupRandomRollsForAIMoveSelection(enum BattlerId battler)
     gAiLogicData->shouldConsiderFinalGambit = RandomPercentage(RNG_AI_FINAL_GAMBIT, FINAL_GAMBIT_CHANCE);
 }
 
+static bool32 IsAISwitchInCandidateValid(enum BattlerId battler, struct Pokemon *party, s32 monToSwitchId, s32 lastId, enum BattlerId battlerIn1, enum BattlerId battlerIn2, bool32 skipAce)
+{
+    if (monToSwitchId < 0 || monToSwitchId >= lastId || monToSwitchId >= PARTY_SIZE)
+        return FALSE;
+    if (!IsValidForBattle(&party[monToSwitchId]))
+        return FALSE;
+    if (IsPartyMonOnFieldOrChosenToSwitch(battler, monToSwitchId, battlerIn1, battlerIn2))
+        return FALSE;
+    if (IsPartyMonPlannedToBeSwitchedInByPartner(monToSwitchId, battler))
+        return FALSE;
+    if (skipAce && IsAceMon(battler, monToSwitchId))
+        return FALSE;
+
+    return TRUE;
+}
+
+static s32 FindFallbackAISwitchIn(enum BattlerId battler, struct Pokemon *party, s32 lastId, enum BattlerId battlerIn1, enum BattlerId battlerIn2)
+{
+    for (s32 monToSwitchId = lastId - 1; monToSwitchId >= 0; monToSwitchId--)
+    {
+        if (IsAISwitchInCandidateValid(battler, party, monToSwitchId, lastId, battlerIn1, battlerIn2, TRUE))
+            return monToSwitchId;
+    }
+
+    for (s32 monToSwitchId = lastId - 1; monToSwitchId >= 0; monToSwitchId--)
+    {
+        if (IsAISwitchInCandidateValid(battler, party, monToSwitchId, lastId, battlerIn1, battlerIn2, FALSE))
+            return monToSwitchId;
+    }
+
+    return PARTY_SIZE;
+}
+
 void AI_TrySwitchOrUseItem(enum BattlerId battler)
 {
     struct Pokemon *party;
@@ -466,36 +499,36 @@ void AI_TrySwitchOrUseItem(enum BattlerId battler)
     {
         if (gAiLogicData->shouldSwitch & (1u << battler) && IsSwitchinValid(battler))
         {
-            BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_SWITCH, 0);
-            SetAIUsingGimmick(battler, NO_GIMMICK);
+            s32 monToSwitchId = gBattleStruct->AI_monToSwitchIntoId[battler];
+            GetActiveBattlerIds(battler, &battlerIn1, &battlerIn2);
+
             if (gBattleStruct->AI_monToSwitchIntoId[battler] == PARTY_SIZE)
             {
-                s32 monToSwitchId = gAiLogicData->mostSuitableMonId[battler];
-                if (monToSwitchId == PARTY_SIZE)
-                {
-                    GetActiveBattlerIds(battler, &battlerIn1, &battlerIn2);
-
-                    for (monToSwitchId = (lastId-1); monToSwitchId >= 0; monToSwitchId--)
-                    {
-                        if (!IsValidForBattle(&party[monToSwitchId]))
-                            continue;
-                        if (IsPartyMonOnFieldOrChosenToSwitch(battler, monToSwitchId, battlerIn1, battlerIn2))
-                            continue;
-                        if (IsPartyMonPlannedToBeSwitchedInByPartner(monToSwitchId, battler))
-                            continue;
-                        if (IsAceMon(battler, monToSwitchId))
-                            continue;
-
-                        break;
-                    }
-                }
-
-                gBattleStruct->AI_monToSwitchIntoId[battler] = monToSwitchId;
+                monToSwitchId = gAiLogicData->mostSuitableMonId[battler];
+                if (!IsAISwitchInCandidateValid(battler, party, monToSwitchId, lastId, battlerIn1, battlerIn2, FALSE))
+                    monToSwitchId = FindFallbackAISwitchIn(battler, party, lastId, battlerIn1, battlerIn2);
+            }
+            else if (!IsAISwitchInCandidateValid(battler, party, monToSwitchId, lastId, battlerIn1, battlerIn2, FALSE))
+            {
+                monToSwitchId = FindFallbackAISwitchIn(battler, party, lastId, battlerIn1, battlerIn2);
             }
 
-            gBattleStruct->monToSwitchIntoId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
-            gAiLogicData->monToSwitchInId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
-            return;
+            if (monToSwitchId == PARTY_SIZE)
+            {
+                gAiLogicData->shouldSwitch &= ~(1u << battler);
+                gBattleStruct->AI_monToSwitchIntoId[battler] = PARTY_SIZE;
+                gBattleStruct->monToSwitchIntoId[battler] = PARTY_SIZE;
+                gAiLogicData->monToSwitchInId[battler] = PARTY_SIZE;
+            }
+            else
+            {
+                BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_SWITCH, 0);
+                SetAIUsingGimmick(battler, NO_GIMMICK);
+                gBattleStruct->AI_monToSwitchIntoId[battler] = monToSwitchId;
+                gBattleStruct->monToSwitchIntoId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
+                gAiLogicData->monToSwitchInId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
+                return;
+            }
         }
         else if (ShouldUseItem(battler))
         {
