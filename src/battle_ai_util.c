@@ -7450,6 +7450,12 @@ bool32 ShouldTriggerAbility(enum BattlerId battlerAtk, enum BattlerId battlerDef
         case ABILITY_WELL_BAKED_BODY:
             return (BattlerStatCanRise(battlerDef, ability, STAT_DEF));
 
+        case ABILITY_STAMINA:
+            return (BattlerStatCanRise(battlerDef, ability, STAT_DEF)
+                 && (HasMove(battlerDef, MOVE_BODY_PRESS)
+                  || (IsBattlerAlive(LEFT_FOE(battlerDef)) && HasPhysicalBestMove(LEFT_FOE(battlerDef), battlerDef, AI_DEFENDING))
+                  || (IsBattlerAlive(RIGHT_FOE(battlerDef)) && HasPhysicalBestMove(RIGHT_FOE(battlerDef), battlerDef, AI_DEFENDING))));
+
         default:
             return FALSE;
         }

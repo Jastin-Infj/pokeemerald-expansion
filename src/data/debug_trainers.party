@@ -3033,6 +3033,135 @@ Pool Weight: 7
 - Volt Switch
 - Protect
 
+=== DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_DOUBLES ===
+Name: Ally Read
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+Party Size: 4
+
+Miraidon @ ITEM_CHOICE_SPECS
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Ace
+- Electro Drift
+- Thunderbolt
+- Draco Meteor
+- Volt Switch
+
+Incineroar @ ITEM_SITRUS_BERRY
+Ability: Intimidate
+Careful Nature
+Level: 50
+Tera Type: Grass
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Def / 180 SpD
+Tags: Lead / Support
+- Fake Out
+- Parting Shot
+- Flare Blitz
+- Knock Off
+
+Rillaboom @ ITEM_MIRACLE_SEED
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Ace / Support
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- Protect
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+=== DEBUG_TRAINER_AI_GAUNTLET_PARTNER_DOUBLES ===
+Name: Ptnr Lab
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Omniscient / Know Opponent Party / Powerful Status / Aggressive Gimmick / Read Player Move
+Class: Champion
+Battle Type: Doubles
+Party Size: 4
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Amoonguss @ ITEM_ROCKY_HELMET
+Ability: Regenerator
+Sassy Nature
+Level: 50
+Tera Type: Water
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 156 Def / 100 SpD
+Tags: Lead / Support
+- Rage Powder
+- Pollen Puff
+- Spore
+- Protect
+
+Xerneas @ ITEM_POWER_HERB
+Modest Nature
+Level: 50
+Tera Type: Fairy
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 SpA / 60 Spe
+Tags: Lead / Ace
+- Geomancy
+- Moonblast
+- Dazzling Gleam
+- Protect
+
+Pelipper @ ITEM_FOCUS_SASH
+Ability: Keen Eye
+Calm Nature
+Level: 50
+Tera Type: Water
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 SpA / 252 SpD
+Tags: Support
+- Water Gun
+- Tailwind
+- Wide Guard
+- Protect
+
+Coalossal @ ITEM_WEAKNESS_POLICY
+Ability: Steam Engine
+Modest Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 Def / 252 SpA
+Tags: Ace
+- Heat Wave
+- Rock Slide
+- Earth Power
+- Body Press
+
 === DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES ===
 Name: Audit P2
 Class: Pkmn Trainer 1

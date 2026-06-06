@@ -54,6 +54,7 @@ static bool32 ShouldSwitchIfIntimidateBenefit(struct SwitchAiContext *switchCont
 static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext);
+static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchContext);
 static bool32 ShouldPreserveDoubleBattlerWithProtect(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
@@ -624,6 +625,119 @@ static bool32 PartyMonHasMoveEffect(struct Pokemon *mon, enum BattleMoveEffects 
     }
 
     return FALSE;
+}
+
+static enum BattlerId GetKnownPlayerChosenMoveTarget(enum BattlerId battler)
+{
+    if (gBattleResources != NULL
+     && IsOnPlayerSide(battler)
+     && gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
+     && gChosenMoveByBattler[battler] != MOVE_NONE
+     && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE
+     && gBattleResources->bufferB[battler][3] < gBattlersCount)
+        return gBattleResources->bufferB[battler][3];
+
+    if (gBattleStruct != NULL && gBattleStruct->moveTarget[battler] < gBattlersCount)
+        return gBattleStruct->moveTarget[battler];
+
+    return MAX_BATTLERS_COUNT;
+}
+
+static u32 GetKnownPlayerChosenMoveIndex(enum BattlerId battler, enum Move move)
+{
+    u32 moveIndex = gBattleStruct->chosenMovePositions[battler];
+
+    if (moveIndex < MAX_MON_MOVES && gBattleMons[battler].moves[moveIndex] == move)
+        return moveIndex;
+
+    return GetMoveIndex(battler, move);
+}
+
+static bool32 IsKnownPlayerSingleTargetDamageMoveTargetingBattler(enum BattlerId battler, enum BattlerId opposingBattler, enum Move move)
+{
+    enum MoveTarget moveTarget;
+    enum BattlerId chosenTarget;
+
+    if (IsBattleMoveStatus(move))
+        return FALSE;
+
+    moveTarget = AI_GetBattlerMoveTargetType(opposingBattler, move);
+    if (IsSpreadMove(moveTarget) || moveTarget == TARGET_ALL_BATTLERS || moveTarget == TARGET_FIELD || moveTarget == TARGET_OPPONENTS_FIELD)
+        return FALSE;
+
+    switch (moveTarget)
+    {
+    case TARGET_SELECTED:
+    case TARGET_SMART:
+    case TARGET_DEPENDS:
+    case TARGET_OPPONENT:
+    case TARGET_RANDOM:
+        chosenTarget = GetKnownPlayerChosenMoveTarget(opposingBattler);
+        return chosenTarget == battler && CanTargetBattler(opposingBattler, battler, move);
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 GetKnownPlayerSingleTargetDamageThreat(enum BattlerId battler, enum BattlerId *threatBattler, enum Move *threatMove, u32 *threatMoveIndex)
+{
+    u32 bestDamage = 0;
+    bool32 found = FALSE;
+
+    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE) || !BattlerHasAi(battler))
+        return FALSE;
+
+    for (enum BattlerId opposingBattler = 0; opposingBattler < gBattlersCount; opposingBattler++)
+    {
+        enum Move move;
+        u32 moveIndex;
+        u32 damage;
+
+        if (IsBattlerAlly(battler, opposingBattler) || !IsBattlerAlive(opposingBattler) || BattlerHasAi(opposingBattler))
+            continue;
+        if (gChosenActionByBattler[opposingBattler] != B_ACTION_USE_MOVE)
+            continue;
+
+        move = gChosenMoveByBattler[opposingBattler];
+        if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+            continue;
+        if (!IsKnownPlayerSingleTargetDamageMoveTargetingBattler(battler, opposingBattler, move))
+            continue;
+
+        moveIndex = GetKnownPlayerChosenMoveIndex(opposingBattler, move);
+        if (moveIndex >= MAX_MON_MOVES)
+            continue;
+
+        damage = AI_GetDamage(opposingBattler, battler, moveIndex, AI_DEFENDING, gAiLogicData);
+        if (damage > bestDamage)
+        {
+            *threatBattler = opposingBattler;
+            *threatMove = move;
+            *threatMoveIndex = moveIndex;
+            bestDamage = damage;
+            found = TRUE;
+        }
+    }
+
+    return found;
+}
+
+static void SetKnownIncomingMoveForSwitchContext(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId threatBattler = MAX_BATTLERS_COUNT;
+    enum Move threatMove = MOVE_NONE;
+    u32 threatMoveIndex = MAX_MON_MOVES;
+
+    switchContext->incomingBattler = switchContext->opposingBattler;
+    switchContext->incomingMove = GetIncomingMove(switchContext->battler, switchContext->opposingBattler, gAiLogicData);
+    switchContext->incomingMoveIndex = GetMoveIndex(switchContext->opposingBattler, switchContext->incomingMove);
+
+    if (GetKnownPlayerSingleTargetDamageThreat(switchContext->battler, &threatBattler, &threatMove, &threatMoveIndex))
+    {
+        switchContext->incomingBattler = threatBattler;
+        switchContext->incomingMove = threatMove;
+        switchContext->incomingMoveIndex = threatMoveIndex;
+    }
 }
 
 static bool32 PartyMonHasDamagingMoveOfType(struct Pokemon *mon, enum Type type)
@@ -2380,7 +2494,7 @@ bool32 ShouldSwitch(enum BattlerId battler)
     switchContext.opposingBattler = GetOppositeBattler(switchContext.battler);
     switchContext.party = GetBattlerParty(switchContext.battler);
     switchContext.lastId = GetAILastPartyIndex(switchContext.battler);
-    switchContext.incomingMove = GetIncomingMove(switchContext.battler, switchContext.opposingBattler, gAiLogicData);
+    SetKnownIncomingMoveForSwitchContext(&switchContext);
     switchContext.hasStatRaised = AnyUsefulStatIsRaised(switchContext.battler);
     switchContext.typeMatchup = GetBattlerTypeMatchup(switchContext.opposingBattler, switchContext.battler);
     GetActiveBattlerIds(switchContext.battler, &switchContext.battlerIn1, &switchContext.battlerIn2);
@@ -2420,6 +2534,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
     if (ShouldSwitchIfTruant(&switchContext))
         return TRUE;
     if (ShouldSwitchIfPredictedTauntPunish(&switchContext))
+        return TRUE;
+    if (ShouldSwitchIfKnownSingleTargetKO(&switchContext))
         return TRUE;
     if (ShouldPreserveDoubleBattlerWithProtect(&switchContext))
         return FALSE;
@@ -3288,6 +3404,101 @@ static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchC
         return FALSE;
 
     switchinId = FindTauntPunishSwitchin(switchContext);
+    if (switchinId == PARTY_SIZE)
+        return FALSE;
+
+    return SetSwitchinAndSwitch(switchContext->battler, switchinId);
+}
+
+static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext *switchContext)
+{
+    struct IncomingHealInfo healInfoData;
+    const struct IncomingHealInfo *healInfo = &healInfoData;
+    struct AiLogicData *savedAiLogicData = AllocSaveAiLogicData();
+    struct BattlePokemon *savedBattleMons = AllocSaveBattleMons();
+    u32 savedNotOnField = gBattleStruct->battlerState[switchContext->battler].notOnField;
+    u32 bestMonId = PARTY_SIZE;
+    u32 bestScore = 1;
+    bool32 bestHasFakeOut = FALSE;
+
+    GetIncomingHealInfo(switchContext->battler, &healInfoData);
+    gBattleStruct->battlerState[switchContext->battler].notOnField = FALSE;
+
+    for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
+    {
+        u32 originalHp;
+        u32 hitsToKO;
+        u32 score;
+        bool32 hasFakeOut;
+
+        if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
+            continue;
+
+        InitializeSwitchinCandidate(switchContext->battler, monIndex, &switchContext->party[monIndex]);
+        originalHp = gBattleMons[switchContext->battler].hp;
+
+        if (healInfo->healBeforeHazards)
+        {
+            gBattleMons[switchContext->battler].hp = gBattleMons[switchContext->battler].maxHP;
+            if (healInfo->curesStatus)
+                gBattleMons[switchContext->battler].status1 = 0;
+        }
+
+        if (gAiLogicData->abilities[switchContext->battler] == ABILITY_TRUANT && IsTruantMonVulnerable(switchContext->battler, switchContext->incomingBattler))
+            continue;
+
+        hitsToKO = GetSwitchinHitsToKO(
+            AI_GetDamage(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMoveIndex, AI_SWITCHIN_DEFENDING, gAiLogicData),
+            switchContext->battler,
+            healInfo,
+            originalHp);
+
+        // This path bypasses the doubles Protect-preservation guard, so require
+        // a real defensive pivot rather than a switch-in that merely survives.
+        if (hitsToKO != 0 && hitsToKO <= AI_DEFENSIVE_KO_THRESHOLD)
+            continue;
+
+        score = hitsToKO == 0 ? 0xFFFF : hitsToKO;
+        hasFakeOut = PartyMonHasMoveEffect(&switchContext->party[monIndex], EFFECT_FIRST_TURN_ONLY);
+        if (hasFakeOut)
+            score++;
+
+        if (score > bestScore || (score == bestScore && hasFakeOut && !bestHasFakeOut))
+        {
+            bestMonId = monIndex;
+            bestScore = score;
+            bestHasFakeOut = hasFakeOut;
+        }
+    }
+
+    gBattleStruct->battlerState[switchContext->battler].notOnField = savedNotOnField;
+    FreeRestoreAiLogicData(savedAiLogicData);
+    FreeRestoreBattleMons(savedBattleMons);
+
+    return bestMonId;
+}
+
+static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchContext)
+{
+    u32 switchinId;
+
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
+        return FALSE;
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_READ_PLAYER_MOVE))
+        return FALSE;
+    if (!IsDoubleBattle())
+        return FALSE;
+    if (switchContext->incomingBattler >= gBattlersCount || switchContext->incomingMoveIndex >= MAX_MON_MOVES)
+        return FALSE;
+    if (IsBattleMoveStatus(switchContext->incomingMove))
+        return FALSE;
+    if (IsBattlerAlly(switchContext->battler, switchContext->incomingBattler))
+        return FALSE;
+
+    if (GetNoOfHitsToKOBattler(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMoveIndex, AI_DEFENDING, CONSIDER_ENDURE) != 1)
+        return FALSE;
+
+    switchinId = FindSwitchinThatSurvivesKnownSingleTargetMove(switchContext);
     if (switchinId == PARTY_SIZE)
         return FALSE;
 

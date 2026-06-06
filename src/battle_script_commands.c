@@ -11686,7 +11686,9 @@ void BS_TryHealPulse(void)
         s32 healAmount = 0;
         if (GetBattlerAbility(gBattlerAttacker) == ABILITY_MEGA_LAUNCHER && IsPulseMove(gCurrentMove))
             healAmount = GetNonDynamaxMaxHP(gBattlerTarget) * 75 / 100;
-        else if (gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN && GetMoveEffectArg_MoveProperty(gCurrentMove) == MOVE_EFFECT_FLORAL_HEALING)
+        else if (GetMoveEffect(gCurrentMove) == EFFECT_HEAL_PULSE
+              && (gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN)
+              && GetMoveEffectArg_MoveProperty(gCurrentMove) == MOVE_EFFECT_FLORAL_HEALING)
             healAmount = GetNonDynamaxMaxHP(gBattlerTarget) * 2 / 3;
         else
             healAmount = GetNonDynamaxMaxHP(gBattlerTarget) / 2;
