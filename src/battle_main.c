@@ -92,6 +92,9 @@ static void CB2_HandleStartBattle(void);
 static void TryCorrectShedinjaLanguage(struct Pokemon *mon);
 static enum BattleTrainer GetBattlerTrainerFromParty(struct Pokemon *party);
 static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum);
+static void ApplyPendingOpponentGimmickBits(void);
+static void ClearPendingOpponentGimmickBits(void);
+static void RecordOpponentGimmickBits(u32 partyIndex, bool32 canTera, bool32 canDynamax, bool32 canZMove);
 static void BattleMainCB1(void);
 static void CB2_EndLinkBattle(void);
 static void EndLinkBattleInSteps(void);
@@ -208,6 +211,9 @@ EWRAM_DATA u8 gSentPokesToOpponent[2] = {0};
 EWRAM_DATA struct BattleEnigmaBerry gEnigmaBerries[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA struct BattleScripting gBattleScripting = {0};
 EWRAM_DATA struct BattleStruct *gBattleStruct = NULL;
+EWRAM_DATA static u16 sPendingOpponentMonCanTera = 0;
+EWRAM_DATA static u16 sPendingOpponentMonCanDynamax = 0;
+EWRAM_DATA static u16 sPendingOpponentMonCanZMove = 0;
 EWRAM_DATA struct StartingStatuses gStartingStatuses = {0};
 EWRAM_DATA struct AiThinkingStruct *gAiThinkingStruct = NULL;
 EWRAM_DATA struct AiLogicData *gAiLogicData = NULL;
@@ -478,6 +484,7 @@ void CB2_InitBattle(void)
     if (!gTestRunnerEnabled)
         MoveSaveBlocks_ResetHeap();
     AllocateBattleResources();
+    ApplyPendingOpponentGimmickBits();
     AllocateBattleSpritesData();
     AllocateMonSpritesGfx();
     RecordedBattle_ClearFrontierPassFlag();
@@ -1812,6 +1819,51 @@ static u32 GeneratePartyHash(const struct Trainer *trainer, u32 i)
     return Crc32B(buffer, n);
 }
 
+static void ApplyPendingOpponentGimmickBits(void)
+{
+    if (gBattleStruct == NULL)
+        return;
+
+    if (gIsDebugBattle)
+    {
+        gBattleStruct->opponentMonCanTera |= sPendingOpponentMonCanTera;
+        gBattleStruct->opponentMonCanDynamax |= sPendingOpponentMonCanDynamax;
+        gBattleStruct->opponentMonCanZMove |= sPendingOpponentMonCanZMove;
+    }
+    ClearPendingOpponentGimmickBits();
+}
+
+static void ClearPendingOpponentGimmickBits(void)
+{
+    sPendingOpponentMonCanTera = 0;
+    sPendingOpponentMonCanDynamax = 0;
+    sPendingOpponentMonCanZMove = 0;
+}
+
+static void RecordOpponentGimmickBits(u32 partyIndex, bool32 canTera, bool32 canDynamax, bool32 canZMove)
+{
+    u16 partyBit = 1u << partyIndex;
+
+    if (gBattleStruct != NULL)
+    {
+        if (canTera)
+            gBattleStruct->opponentMonCanTera |= partyBit;
+        if (canDynamax)
+            gBattleStruct->opponentMonCanDynamax |= partyBit;
+        if (canZMove)
+            gBattleStruct->opponentMonCanZMove |= partyBit;
+    }
+    else
+    {
+        if (canTera)
+            sPendingOpponentMonCanTera |= partyBit;
+        if (canDynamax)
+            sPendingOpponentMonCanDynamax |= partyBit;
+        if (canZMove)
+            sPendingOpponentMonCanZMove |= partyBit;
+    }
+}
+
 void ModifyPersonalityForNature(u32 *personality, u32 newNature)
 {
     u32 nature = GetNatureFromPersonality(*personality);
@@ -1887,6 +1939,8 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
         DoTrainerPartyPool(trainer, monIndices, monsCount, battleTypeFlags);
         bool32 recordOpponentGimmickBits = (party == gParties[B_TRAINER_OPPONENT_A]
                                          || party == gParties[B_TRAINER_OPPONENT_B]);
+        if (recordOpponentGimmickBits && gBattleStruct == NULL && party == gParties[B_TRAINER_OPPONENT_A])
+            ClearPendingOpponentGimmickBits();
 
         for (s32 i = 0; i < monsCount; i++)
         {
@@ -1970,8 +2024,6 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             if (partyData[monIndex].dynamaxLevel > 0)
             {
                 u32 data = partyData[monIndex].dynamaxLevel;
-                if (recordOpponentGimmickBits && partyData[monIndex].shouldUseDynamax)
-                    gBattleStruct->opponentMonCanDynamax |= 1 << i;
                 SetMonData(&party[i], MON_DATA_DYNAMAX_LEVEL, &data);
             }
             if (partyData[monIndex].gigantamaxFactor)
@@ -1981,13 +2033,17 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             }
             if (partyData[monIndex].teraType > 0)
             {
-                if (recordOpponentGimmickBits)
-                    gBattleStruct->opponentMonCanTera |= 1 << i;
                 enum Type data = partyData[monIndex].teraType;
                 SetMonData(&party[i], MON_DATA_TERA_TYPE, &data);
             }
-            if (recordOpponentGimmickBits && partyData[monIndex].shouldUseZMove)
-                gBattleStruct->opponentMonCanZMove |= 1 << i;
+            if (recordOpponentGimmickBits)
+            {
+                RecordOpponentGimmickBits(
+                    i,
+                    partyData[monIndex].teraType > 0,
+                    partyData[monIndex].dynamaxLevel > 0 && partyData[monIndex].shouldUseDynamax,
+                    partyData[monIndex].shouldUseZMove);
+            }
             CalculateMonStats(&party[i]);
 
             if (B_TRAINER_CLASS_POKE_BALLS >= GEN_7 && ball == -1)

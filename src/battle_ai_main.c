@@ -3874,6 +3874,9 @@ static enum MoveComparisonResult CompareMoveAccuracies(enum BattlerId battlerAtk
     u32 acc1 = gAiLogicData->moveAccuracy[battlerAtk][battlerDef][moveSlot1];
     u32 acc2 = gAiLogicData->moveAccuracy[battlerAtk][battlerDef][moveSlot2];
 
+    if (acc1 >= 100 && acc2 >= 100)
+        return MOVE_NEUTRAL_COMPARISON;
+
     if (acc1 > acc2)
         return MOVE_WON_COMPARISON;
     else if (acc2 > acc1)
@@ -3947,6 +3950,34 @@ static enum MoveComparisonResult CompareMoveTwoTurnEffect(enum BattlerId battler
         return MOVE_LOST_COMPARISON;
     if (twoTurn2 && !twoTurn1)
         return MOVE_WON_COMPARISON;
+    return MOVE_NEUTRAL_COMPARISON;
+}
+
+static bool32 IsDoublesSpreadPressureMove(enum BattlerId battlerAtk, enum Move move)
+{
+    return IsDoubleBattle()
+        && HasTwoOpponents(battlerAtk)
+        && AI_GetBattlerMoveTargetType(battlerAtk, move) == TARGET_BOTH;
+}
+
+static enum MoveComparisonResult CompareDoublesSpreadPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveSlot1, u32 moveSlot2, enum Move *moves)
+{
+    enum BattlerId otherDef;
+    bool32 spread1 = IsDoublesSpreadPressureMove(battlerAtk, moves[moveSlot1]);
+    bool32 spread2 = IsDoublesSpreadPressureMove(battlerAtk, moves[moveSlot2]);
+
+    if (spread1 == spread2 || IsTargetingPartner(battlerAtk, battlerDef))
+        return MOVE_NEUTRAL_COMPARISON;
+
+    otherDef = BATTLE_PARTNER(battlerDef);
+    if (otherDef >= gBattlersCount || !IsBattlerAlive(otherDef) || IsBattlerAlly(battlerAtk, otherDef))
+        return MOVE_NEUTRAL_COMPARISON;
+
+    if (spread1 && GetNoOfHitsToKOBattler(battlerAtk, otherDef, moveSlot1, AI_ATTACKING, DONT_CONSIDER_ENDURE) != 0)
+        return MOVE_WON_COMPARISON;
+    if (spread2 && GetNoOfHitsToKOBattler(battlerAtk, otherDef, moveSlot2, AI_ATTACKING, DONT_CONSIDER_ENDURE) != 0)
+        return MOVE_LOST_COMPARISON;
+
     return MOVE_NEUTRAL_COMPARISON;
 }
 
@@ -4088,6 +4119,17 @@ static void AI_CompareDamagingMoves(enum BattlerId battlerAtk, enum BattlerId ba
                         break;
                     case MOVE_LOST_COMPARISON:
                         tempMoveScores[compareId] += MathUtil_Exponent(MAX_MON_MOVES, PRIORITY_NOT_CHARGING);
+                        break;
+                    case MOVE_NEUTRAL_COMPARISON:
+                        break;
+                    }
+                    switch (CompareDoublesSpreadPressure(battlerAtk, battlerDef, currId, compareId, moves))
+                    {
+                    case MOVE_WON_COMPARISON:
+                        tempMoveScores[currId] += MathUtil_Exponent(MAX_MON_MOVES, PRIORITY_ACCURACY);
+                        break;
+                    case MOVE_LOST_COMPARISON:
+                        tempMoveScores[compareId] += MathUtil_Exponent(MAX_MON_MOVES, PRIORITY_ACCURACY);
                         break;
                     case MOVE_NEUTRAL_COMPARISON:
                         break;
