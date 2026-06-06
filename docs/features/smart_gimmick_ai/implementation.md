@@ -112,6 +112,8 @@ Opponent gimmick use is not disabled. AI-side Mega / Z-Move / Dynamax / Tera ava
 
 Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This prevents the EXP bar, normal EXP gain, and EV gain in debug battles, including the level-100 EV-gain path that would otherwise still occur when EXP is disabled by level.
 
+Battle ability popups are now guarded against duplicate same-battler instances. The popup renderer formats nicknames with the same nickname terminator handling used by normal battle text, and `CreateAbilityPopUp()` refreshes an existing popup for that battler instead of creating a second pair of sprites that shares the same tile tag and active flag. Mega Evolution, Wish Mega Evolution, Primal Reversion, Ultra Burst, Terastallization, and generic form-change entry scripts also close any active ability popup before starting their form-change message / animation. This prevents stale switch-in ability banners such as `Mewtwo's Pressure` from lingering over a Mega Evolution message, and avoids old / new popup sprite overlap that can leave black OBJ-tile rectangles after Delta Stream / strong-winds state changes in the debug gauntlet battles.
+
 ## Tests Added
 
 - Conservation baseline: keeps Dynamax unused when another Dynamax user remains and the move has no immediate payoff.
@@ -169,6 +171,12 @@ Local validation highlights:
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests after adding the gauntlet pools. Covers weighted eligible candidates, tag constraints, runtime RNG variation, custom rules, and fallback.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests after the gauntlet submenu and same-grade player-pool rebalance.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Mega Evolution'`: pass, 5 tests after the ability-popup refresh / form-change cleanup fix. The first parallel attempt conflicted with another `make check` process and produced `open tmpfd failed: File exists`; the sequential rerun passed.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Pressure'`: pass, 5 tests after the ability-popup refresh / form-change cleanup fix.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Delta Stream'`: pass, 1 test after the ability-popup refresh / form-change cleanup fix. The first parallel attempt conflicted with another `make check` process and produced a test-runner segmentation fault; the sequential rerun passed.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Terastallization'`: pass, 3 tests after the form-change popup cleanup hook.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Ultra Burst'`: pass, 5 tests after the form-change popup cleanup hook.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Primal Reversion'`: pass, 15 tests after the form-change popup cleanup hook.
 - `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
 - `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`: pass. Generated 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and a valid summary.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
@@ -178,6 +186,7 @@ Local validation highlights:
 - 2026-06-06 `rtk make -j16 -O debug`: pass after adding `Battle Gimmick Single` / `Battle Gimmick Double`.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after moving gauntlets under `Gauntlet Battles` and rebalancing the player gauntlet pools.
+- 2026-06-06 `rtk make -j16 -O debug`: pass after the ability-popup refresh / form-change cleanup fix.
 - 2026-06-06 `rtk make -j16 -O debug`: pass. Confirms the debug Dmax/Z fixtures build with debug Z-Power / Dynamax access and `.party` `Z Move: Yes` candidates.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk make -j16 -O all`: pass.
@@ -185,11 +194,13 @@ Local validation highlights:
 - 2026-06-06 `rtk make -j16 -O all`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk make -j16 -O all`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk make -j16 -O all`: pass after the gauntlet menu overflow fix and pool rebalance.
+- 2026-06-06 `rtk make -j16 -O all`: pass after the ability-popup refresh / form-change cleanup fix.
 - 2026-06-06 `rtk mdbook build docs`: pass with existing missing-root-`CHANGELOG.md` include warning, `CREDITS.md` `</img>` warning, and large search index warning.
 - 2026-06-06 `rtk mdbook build docs`: pass after the double-switch execution guard, with the same existing warnings.
 - 2026-06-06 `rtk mdbook build docs`: pass after the late-commit and debug audit update, with the same existing warnings.
 - 2026-06-06 `rtk mdbook build docs`: pass after documenting the gauntlet debug battles, with the same existing warnings.
 - 2026-06-06 `rtk mdbook build docs`: pass after the gauntlet menu overflow fix and pool rebalance, with the same existing missing-root-`CHANGELOG.md`, `CREDITS.md` `</img>`, and large search index warnings.
+- 2026-06-06 `rtk mdbook build docs`: pass after documenting the ability-popup refresh / form-change cleanup fix, with the same existing missing-root-`CHANGELOG.md`, `CREDITS.md` `</img>`, and large search index warnings.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
 - mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
 - mGBA Live: current ROM booted in session `smart-ai-protect-dmaxz-20260605`. `mgba_live_start_with_lua_and_view` reported a Lua bridge invalid-context error after starting, but `mgba_live_get_view` returned a rendered frame, `mgba_live_export_screenshot` saved `/tmp/smart-ai-protect-dmaxz-20260605.png`, and `mgba_live_stop` returned `stopped:true`.
@@ -198,6 +209,7 @@ Local validation highlights:
 - 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-late-audit-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/smart-gimmick-late-audit-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the new `Battle Gimmick Single` / `Battle Gimmick Double` menu entries still need manual progression from a debug-enabled save.
 - 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-gauntlet-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/smart-gimmick-gauntlet-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the 8 gauntlet menu entries still need manual progression from a debug-enabled save.
 - 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-gauntlet-menu-fix2-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/smart-gimmick-gauntlet-menu-fix2-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the `Party -> Gauntlet Battles` submenu still needs manual progression from a debug-enabled save.
+- 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/ability-popup-formchange-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/ability-popup-formchange-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the Mega Mewtwo / Delta Stream visual sequence still needs manual progression through a debug gauntlet save.
 
 ## Strategy Sources
 

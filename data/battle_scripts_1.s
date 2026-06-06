@@ -46,6 +46,8 @@ BattleScript_MagnitudeMessage::
 
 BattleScript_Terastallization::
 	@ TODO: no string prints in S/V, but right now this helps with clarity
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	printstring STRINGID_PKMNSTORINGENERGY
 	playanimation BS_ATTACKER, B_ANIM_TERA_CHARGE
 	waitanimation
@@ -58,6 +60,8 @@ BattleScript_Terastallization::
 
 BattleScript_TeraFormChange::
 	@ TODO: no string prints in S/V, but right now this helps with clarity
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	printstring STRINGID_PKMNSTORINGENERGY
 	handleformchange BS_ATTACKER, 0, FALSE @ Prevent species name from overriting type name
 	handleformchange BS_ATTACKER, 1
@@ -3892,6 +3896,8 @@ BattleScript_FocusPunchSetUp::
 
 BattleScript_MegaEvolution::
 	flushtextbox
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	trytrainerslidemegaevolutionmsg
 	printstring STRINGID_MEGAEVOREACTING
 BattleScript_MegaEvolutionAfterString:
@@ -3907,12 +3913,16 @@ BattleScript_MegaEvolutionAfterString:
 
 BattleScript_WishMegaEvolution::
 	flushtextbox
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	trytrainerslidemegaevolutionmsg
 	printstring STRINGID_FERVENTWISHREACHED
 	goto BattleScript_MegaEvolutionAfterString
 
 BattleScript_PrimalReversion::
 	flushtextbox
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	handleformchange BS_SCRIPTING, 0
 	playanimation BS_SCRIPTING, B_ANIM_PRIMAL_REVERSION
 	waitanimation
@@ -3937,6 +3947,8 @@ BattleScript_PowerConstruct::
 
 BattleScript_UltraBurst::
 	flushtextbox
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	trytrainerslidezmovemsg
 	printstring STRINGID_ULTRABURSTREACTING
 	waitmessage B_WAIT_TIME_LONG
@@ -3954,6 +3966,8 @@ BattleScript_BattlerFormChange::
 	call BattleScript_AbilityPopUpScripting
 	flushtextbox
 BattleScript_BattlerFormChangeNoPopup::
+	destroyabilitypopup
+	pause B_WAIT_TIME_SHORT
 	handleformchange BS_SCRIPTING, 0
 	playanimation BS_SCRIPTING, B_ANIM_FORM_CHANGE
 	waitanimation

@@ -2525,6 +2525,7 @@ static void PrintBattlerOnAbilityPopUp(enum BattlerId battler, u8 spriteId1, u8 
         GetMonData(illusionMon, MON_DATA_NICKNAME, gStringVar1);
     else
         GetMonData(GetBattlerMon(battler), MON_DATA_NICKNAME, gStringVar1);
+    StringGet_Nickname(gStringVar1);
 
     while (gStringVar1[totalChar] != EOS)
         totalChar++;
@@ -2570,6 +2571,39 @@ static inline bool32 IsAnyAbilityPopUpActive(void)
     return activeAbilityPopUps;
 }
 
+static bool32 IsAbilityPopUpSpriteActive(u8 spriteId, enum BattlerId battler)
+{
+    return spriteId < MAX_SPRITES
+        && gSprites[spriteId].inUse
+        && gSprites[spriteId].callback == SpriteCb_AbilityPopUp
+        && gSprites[spriteId].sBattlerId == battler;
+}
+
+static void RefreshAbilityPopUpSprite(u8 spriteId)
+{
+    gSprites[spriteId].sAutoDestroy = FALSE;
+    if (gSprites[spriteId].sState == APU_STATE_IDLE)
+        gSprites[spriteId].sTimer = ABILITY_POP_UP_WAIT_FRAMES;
+    else if (gSprites[spriteId].sState != APU_STATE_SLIDE_IN)
+        gSprites[spriteId].sState = APU_STATE_SLIDE_IN;
+}
+
+static bool32 RefreshActiveAbilityPopUp(enum BattlerId battler, enum Ability ability)
+{
+    u8 *spriteIds = gBattleStruct->abilityPopUpSpriteIds[battler];
+
+    if (!gBattleStruct->battlerState[battler].activeAbilityPopUps
+     || !IsAbilityPopUpSpriteActive(spriteIds[0], battler)
+     || !IsAbilityPopUpSpriteActive(spriteIds[1], battler))
+        return FALSE;
+
+    RefreshAbilityPopUpSprite(spriteIds[0]);
+    RefreshAbilityPopUpSprite(spriteIds[1]);
+    PrintBattlerOnAbilityPopUp(battler, spriteIds[0], spriteIds[1]);
+    PrintAbilityOnAbilityPopUp(ability, spriteIds[0], spriteIds[1]);
+    return TRUE;
+}
+
 void CreateAbilityPopUp(enum BattlerId battler, enum Ability ability, bool32 isDoubleBattle)
 {
     u8 *spriteIds;
@@ -2587,6 +2621,9 @@ void CreateAbilityPopUp(enum BattlerId battler, enum Ability ability, bool32 isD
         if (gTestRunnerHeadless)
             return;
     }
+
+    if (RefreshActiveAbilityPopUp(battler, ability))
+        return;
 
     if (!IsAnyAbilityPopUpActive())
         LoadSpritePalette(&sSpritePalette_AbilityPopUp);
