@@ -81,7 +81,7 @@ Consecutive Protect remains possible. The second Protect is penalized for its re
 
 Future usage / ranking data should come from source-tagged competitive data such as Pokemon Battle DataBase, official event reports, Pokemon Home / Champions-style usage when available, local PartyGen catalogs, and observed battle history. Pokemon Showdown articles should not be used as strategy source material for this feature; at most, raw data or team examples can be inspected with a clear source tag and lower confidence.
 
-The debug Party menu now exposes four focused runtime fixtures:
+The debug Party menu exposes focused runtime fixtures and weighted gauntlet battles:
 
 - `Battle 3v3 Single` builds a level-50 player team of `Dragonite`, `Gholdengo`, and `Garchomp`, then pits it against a 3-Pokemon AI side selected from a 6-Pokemon weighted singles pool.
 - `Battle 4v4 Double` builds a level-50 player team of `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`, then pits it against a 4-Pokemon AI side selected from a 7-Pokemon weighted doubles pool.
@@ -89,8 +89,14 @@ The debug Party menu now exposes four focused runtime fixtures:
 - `Battle Dmax/Z Double` builds a level-50 player-side VGC-style Z-Move team, then pits it against a smart AI Dynamax / Gigantamax / Z-Crystal doubles team with Tailwind / weather pressure.
 - `Battle Gimmick Single` builds a passive player side and an opponent audit party with lead `Gengarite` Mega, reserve `Mimikium Z`, reserve Gigantamax `Charizard`, and reserve Normal Tera `Dragonite`. It grants all debug gimmick access to prove the opponent's source data and runtime gates can expose every gimmick.
 - `Battle Gimmick Double` builds a passive double player side and an opponent audit party with active Gigantamax `Charizard` plus `Electrium Z` `Tapu Koko`, then reserve `Gengarite` Mega and Normal Tera `Dragonite`. It is an availability audit, separate from the smarter Dmax/Z timing fixtures.
+- `Gauntlet Mega S` / `Gauntlet Mega D` build level-50 3v3 singles and 4v4 doubles battles with Mega-only access.
+- `Gauntlet MegaZ S` / `Gauntlet MegaZ D` build level-50 3v3 singles and 4v4 doubles battles with Gen 7-style Mega + Z-Move access.
+- `Gauntlet Dmax S` / `Gauntlet Dmax D` build level-50 3v3 singles and 4v4 doubles battles with Dynamax-only access.
+- `Gauntlet Tera S` / `Gauntlet Tera D` build level-50 3v3 singles and 4v4 doubles battles with Tera-only access.
 
-These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
+These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The gauntlet AI fixtures also include `Smart Switching`, `Smart Mon Choices`, and explicit `Omniscient` so the AI can read with full player moves / items / abilities while also knowing the player party species. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, and `Support`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
+
+The gauntlet battles are intentionally unfairer than the earlier audit fixtures. Player and AI sides are both generated from weighted local pools on each start, but the AI pools are biased toward restricted legends, mythicals, strong support, and high-value gimmick anchors. With `B_POOL_SETTING_CONSISTENT_RNG == FALSE`, repeated debug starts can produce different player and opponent teams. Mega and Mega+Z pools use `Lead` / `Ace` tags so the selected party reliably contains the intended Z or Mega slot while still changing the supporting Pokemon.
 
 Gimmick access is split from AI timing:
 
@@ -156,8 +162,10 @@ Local validation highlights:
 - `rtk make -j16 -O check TESTS='Protect: AI'`: pass, 9 tests. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles.
 - `rtk make tools/trainerproc/trainerproc`: pass. Regenerated trainer data from `.party` fixtures, including `Pool Weight`.
 - 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass. Regenerated debug trainer data for `Battle Gimmick Single` / `Battle Gimmick Double`.
+- 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests after adding the gauntlet pools. Covers weighted eligible candidates, tag constraints, runtime RNG variation, custom rules, and fallback.
 - `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
 - `rtk cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runtime_knowledge_catalog_rust --pretty`: pass. Generated 935 moves, 319 abilities, 130 hold effects, 874 items, 4 gimmick policies, and a valid summary.
 - `rtk make -j16 -O check`: pass. Existing known-failing / expected-failing labels remained non-fatal.
@@ -165,20 +173,24 @@ Local validation highlights:
 - `rtk make -j1 -O check`: attempted to rule out make-job parallelism, but the run did not progress beyond the initial link warning and was abandoned as non-evidence. The stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed before handoff.
 - `rtk make -j16 -O debug`: pass.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after adding `Battle Gimmick Single` / `Battle Gimmick Double`.
+- 2026-06-06 `rtk make -j16 -O debug`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk make -j16 -O debug`: pass. Confirms the debug Dmax/Z fixtures build with debug Z-Power / Dynamax access and `.party` `Z Move: Yes` candidates.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk make -j16 -O all`: pass.
 - 2026-06-06 `rtk make -j16 -O all`: pass after adding late-commit smart-gimmick checks and debug audit fixtures.
 - 2026-06-06 `rtk make -j16 -O all`: pass after the double-switch execution guard.
+- 2026-06-06 `rtk make -j16 -O all`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk mdbook build docs`: pass with existing missing-root-`CHANGELOG.md` include warning, `CREDITS.md` `</img>` warning, and large search index warning.
 - 2026-06-06 `rtk mdbook build docs`: pass after the double-switch execution guard, with the same existing warnings.
 - 2026-06-06 `rtk mdbook build docs`: pass after the late-commit and debug audit update, with the same existing warnings.
+- 2026-06-06 `rtk mdbook build docs`: pass after documenting the gauntlet debug battles, with the same existing warnings.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
 - mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
 - mGBA Live: current ROM booted in session `smart-ai-protect-dmaxz-20260605`. `mgba_live_start_with_lua_and_view` reported a Lua bridge invalid-context error after starting, but `mgba_live_get_view` returned a rendered frame, `mgba_live_export_screenshot` saved `/tmp/smart-ai-protect-dmaxz-20260605.png`, and `mgba_live_stop` returned `stopped:true`.
 - 2026-06-06 mGBA Live: MCP startup without `DISPLAY` failed with Qt `xcb` display initialization. CLI startup with `DISPLAY=:0` booted `pokeemerald.gba` to the title / demo screen in session `smart-gimmick-access-cli-smoke`, saved `/tmp/smart-gimmick-access-smoke.png`, and `mgba-live-cli stop` returned `stopped:true`.
 - 2026-06-06 mGBA Live: sandboxed CLI startup first failed because the tool could not create `~/.mgba-live-mcp/runtime/sessions/...`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` in session `smart-gimmick-switch-guard-20260606`, saved `/tmp/smart-gimmick-switch-guard-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the exact debug double-battle ASSERT path still needs manual progression to the Party debug fixture.
 - 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-late-audit-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/smart-gimmick-late-audit-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the new `Battle Gimmick Single` / `Battle Gimmick Double` menu entries still need manual progression from a debug-enabled save.
+- 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-gauntlet-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/smart-gimmick-gauntlet-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the 8 gauntlet menu entries still need manual progression from a debug-enabled save.
 
 ## Strategy Sources
 
