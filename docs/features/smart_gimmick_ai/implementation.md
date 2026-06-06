@@ -106,15 +106,18 @@ The debug Party menu exposes focused runtime fixtures and weighted gauntlet batt
 - `Battle Dmax/Z Double` builds a level-50 player-side VGC-style Z-Move team, then pits it against a smart AI Dynamax / Gigantamax / Z-Crystal doubles team with Tailwind / weather pressure.
 - `Battle Gimmick Single` builds a passive player side and an opponent audit party with lead `Gengarite` Mega, reserve `Mimikium Z`, reserve Gigantamax `Charizard`, and reserve Normal Tera `Dragonite`. It grants all debug gimmick access to prove the opponent's source data and runtime gates can expose every gimmick.
 - `Battle Gimmick Double` builds a passive double player side and an opponent audit party with active Gigantamax `Charizard` plus `Electrium Z` `Tapu Koko`, then reserve `Gengarite` Mega and Normal Tera `Dragonite`. It is an availability audit, separate from the smarter Dmax/Z timing fixtures.
-- `Gauntlet Battles` opens a dedicated submenu for the eight gauntlet fixtures. Keeping the gauntlets in a submenu avoids overflowing the debug menu's 20-item list limit.
+- `Gauntlet Battles` opens a dedicated submenu for the generation-specific and mixed gauntlet fixtures. Keeping the gauntlets in a submenu avoids overflowing the debug menu's 20-item list limit.
 - `Mega Single` / `Mega Double` build level-50 3v3 singles and 4v4 doubles battles with Mega-only access.
 - `MegaZ Single` / `MegaZ Double` build level-50 3v3 singles and 4v4 doubles battles with Gen 7-style Mega + Z-Move access.
 - `Dmax Single` / `Dmax Double` build level-50 3v3 singles and 4v4 doubles battles with Dynamax-only access.
 - `Tera Single` / `Tera Double` build level-50 3v3 singles and 4v4 doubles battles with Tera-only access.
+- `Mix Single` / `Mix Double` build level-50 3v3 singles and 4v4 doubles battles with all debug gimmick access and mixed Mega / Z-Move / Dynamax / Tera weighted pools on both sides.
 
 These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The gauntlet AI fixtures also include `Smart Switching`, `Smart Mon Choices`, explicit `Omniscient`, `Aggressive Gimmick`, and `Read Player Move` so the AI can test full-information move reads, stronger gimmick usage, and known player party species together. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, and `Support`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
 
 The gauntlet battles are intended to be same-grade or near-same-grade matches rather than raw-stat stomps. Player and AI sides are both generated from weighted local pools on each start, and the player pools now include comparable restricted legends, mythicals, strong support, and high-value gimmick anchors for the selected format. The AI's intended edge comes from its decision quality checks: it has `Omniscient` and `Know Opponent Party`, so the manual test target is whether full-information prediction, switching, and gimmick timing can beat a visible player team of roughly similar power. With `B_POOL_SETTING_CONSISTENT_RNG == FALSE`, repeated debug starts can produce different player and opponent teams. Mega and Mega+Z pools use `Lead` / `Ace` tags so the selected party reliably contains the intended Z or Mega slot while still changing the supporting Pokemon.
+
+The mixed gauntlets are intentionally noisier than the generation-specific fixtures. They grant `GIMMICK_ACCESS_ALL` and mix strong Tera attackers, explicit Z-Crystal users, Mega Stone users, Gigantamax users, support leads, and restricted legends in the same weighted pool. Use these when the manual question is "does the AI still read and sequence correctly when both teams may roll several gimmick families at once?"
 
 Gimmick access is split from AI timing:
 
@@ -212,10 +215,12 @@ Local validation highlights:
 - 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass. Regenerated debug trainer data for `Battle Gimmick Single` / `Battle Gimmick Double`.
 - 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass after moving the gauntlets into a submenu and rebalancing player-side gauntlet pools toward same-grade battles.
+- 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass after adding `Mix Single` / `Mix Double` all-gimmick gauntlets.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests after adding the gauntlet pools. Covers weighted eligible candidates, tag constraints, runtime RNG variation, custom rules, and fallback.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests after the gauntlet submenu and same-grade player-pool rebalance.
+- 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests after adding the mixed all-gimmick gauntlet pools.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Mega Evolution'`: pass, 5 tests after the ability-popup refresh / form-change cleanup fix. The first parallel attempt conflicted with another `make check` process and produced `open tmpfd failed: File exists`; the sequential rerun passed.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Pressure'`: pass, 5 tests after the ability-popup refresh / form-change cleanup fix.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Delta Stream'`: pass, 1 test after the ability-popup refresh / form-change cleanup fix. The first parallel attempt conflicted with another `make check` process and produced a test-runner segmentation fault; the sequential rerun passed.
@@ -231,6 +236,7 @@ Local validation highlights:
 - 2026-06-06 `rtk make -j16 -O debug`: pass after adding `Battle Gimmick Single` / `Battle Gimmick Double`.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after adding the 8 weighted gauntlet debug battles.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after moving gauntlets under `Gauntlet Battles` and rebalancing the player gauntlet pools.
+- 2026-06-06 `rtk make -j16 -O debug`: pass after adding `Mix Single` / `Mix Double` under `Gauntlet Battles`.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after the ability-popup refresh / form-change cleanup fix.
 - 2026-06-06 `rtk make -j16 -O debug`: pass. Confirms the debug Dmax/Z fixtures build with debug Z-Power / Dynamax access and `.party` `Z Move: Yes` candidates.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after the double-switch execution guard.
