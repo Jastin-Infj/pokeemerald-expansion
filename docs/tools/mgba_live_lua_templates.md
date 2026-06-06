@@ -64,19 +64,21 @@ This text can contain ]=] safely.
 
 One-off validation Lua file は tracked source にしない。検証 artifact として `/tmp` に置き、必要な template や注意点だけ docs に残す。
 
-例外として、複数の人や手順で再利用する project tool は `tools/mgba_live/` に置いてよい。現行の reusable tool は `tools/mgba_live/battle_action_log_export.lua` で、`gBattleActionLog` を host JSON に出す。通常は wrapper を使う。
+例外として、複数の人や手順で再利用する project tool は `tools/mgba_live/` に置いてよい。現行の reusable tool は `tools/mgba_live/battle_action_log_export.lua` で、`gBattleActionLog` を host JSON に出す。通常は 120 FPS 起動 wrapper と exporter wrapper を使う。
 
 ```bash
-tools/mgba_live/export_battle_action_log.sh SESSION /tmp/battle-action-log.json
+tools/mgba_live/start_mgba_live.sh manual-ai-log 120
+tools/mgba_live/export_battle_action_log.sh manual-ai-log /tmp/battle-action-log.json
 ```
 
 Windows 側から直接実行する場合:
 
 ```bat
-tools\mgba_live\export_battle_action_log.bat SESSION %TEMP%\battle-action-log.json
+tools\mgba_live\start_mgba_live.bat manual-ai-log 120
+tools\mgba_live\export_battle_action_log.bat manual-ai-log %TEMP%\battle-action-log.json
 ```
 
-この exporter は `pokeemerald.map` から symbol address を解決するため、対象 branch の ROM / map を先に build する。
+この exporter は `pokeemerald.map` から symbol address を解決するため、対象 branch の ROM / map を先に build する。WSL / Linux wrapper は live session がある場合、`SESSION` を省略して active session から export できる。`gBattleActionLog` は battle runtime の EWRAM buffer なので、次の battle 開始や battle state 再初期化の前に export する。
 
 ## Return Values
 

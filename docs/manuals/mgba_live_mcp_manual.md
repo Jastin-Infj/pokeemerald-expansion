@@ -93,22 +93,28 @@ Current reusable helpers:
 | Tool | Purpose |
 |---|---|
 | `tools/mgba_live/battle_action_log_export.lua` | Reads `gBattleActionLog` from the running ROM and writes host JSON. |
+| `tools/mgba_live/start_mgba_live.sh` | WSL / Linux shortcut to start mGBA Live with explicit session, FPS, and ROM arguments. Defaults to 120 FPS. |
+| `tools/mgba_live/start_mgba_live.bat` | Windows shortcut to start mGBA Live with explicit session, FPS, and ROM arguments. Defaults to 120 FPS. |
 | `tools/mgba_live/export_battle_action_log.sh` | WSL / Linux shortcut for the exporter. |
 | `tools/mgba_live/export_battle_action_log.bat` | Windows shortcut for the exporter when `mgba-live-cli` is on `PATH`. |
 
-Typical WSL / Linux use after a battle turn has been confirmed:
+Typical WSL / Linux use:
 
 ```sh
-tools/mgba_live/export_battle_action_log.sh SESSION /tmp/battle-action-log.json
+tools/mgba_live/start_mgba_live.sh manual-ai-log 120
+tools/mgba_live/export_battle_action_log.sh manual-ai-log /tmp/battle-action-log.json
 ```
+
+If only one session is live, the WSL / Linux exporter can omit `SESSION` and use the active mGBA Live session.
 
 Typical Windows use:
 
 ```bat
-tools\mgba_live\export_battle_action_log.bat SESSION %TEMP%\battle-action-log.json
+tools\mgba_live\start_mgba_live.bat manual-ai-log 120
+tools\mgba_live\export_battle_action_log.bat manual-ai-log %TEMP%\battle-action-log.json
 ```
 
-The exporter resolves symbols from `pokeemerald.map`, so build the current ROM first. It writes schema `pokeemerald.battle_action_log.v1` with header state, battler positions, named moves / items / gimmicks, action names, switch-in party indexes, selected-gimmick markers, resolved switch-in markers, and corrected switch-in markers.
+The exporter resolves symbols from `pokeemerald.map`, so build the current ROM first. It writes schema `pokeemerald.battle_action_log.v1` with header state, battler positions, named moves / items / gimmicks, action names, switch-in party indexes, selected-gimmick markers, resolved switch-in markers, and corrected switch-in markers. The backing log is in EWRAM and is cleared by battle initialization, so export while the target battle is still active.
 
 ## Validation Rules
 

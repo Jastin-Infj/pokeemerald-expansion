@@ -69,7 +69,9 @@ Status Z-Moves keep their existing tactical checks because their value is usuall
 
 The branch now keeps an in-ROM battle action ring buffer (`gBattleActionLog`) for command-buffer audits. It records confirmed move / switch / item commands for every live battler each turn, including move slot, target, selected gimmick, and switch-in party index, and it records resolved switch-ins separately. `AI_FLAG_READ_PLAYER_MOVE` can fall back to the current battle's logged selected move when no current confirmed command is available. Normal mGBA still cannot write host files directly, so persistent external logs are exported through mGBA Live / Lua.
 
-Use `tools/mgba_live/export_battle_action_log.sh SESSION [OUT_JSON]` from WSL / Linux, or `tools\mgba_live\export_battle_action_log.bat SESSION [OUT_JSON]` from Windows when `mgba-live-cli` is on `PATH`. Both wrappers call `tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live session and write JSON using schema `pokeemerald.battle_action_log.v1`. The JSON includes header state, battler positions, action names, move / item / gimmick names, target battlers, party indexes, selected gimmick markers, resolved switch-in markers, and corrected switch-in markers.
+Use `tools/mgba_live/start_mgba_live.sh manual-ai-log 120` from WSL / Linux, or `tools\mgba_live\start_mgba_live.bat manual-ai-log 120` from Windows, to open mGBA Live with an explicit 120 FPS target. The helper defaults to 120 FPS when the second argument is omitted.
+
+Use `tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]` from WSL / Linux, or `tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]` from Windows when `mgba-live-cli` is on `PATH`. Both wrappers call `tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live session and write JSON using schema `pokeemerald.battle_action_log.v1`. If the WSL / Linux wrapper is called without a session, it uses the active mGBA Live session when one exists. The JSON includes header state, battler positions, action names, move / item / gimmick names, target battlers, party indexes, selected gimmick markers, resolved switch-in markers, and corrected switch-in markers. Because `gBattleActionLog` is runtime EWRAM, export it during the current battle before starting another battle or returning through a path that reinitializes battle state.
 
 `AI_FLAG_AGGRESSIVE_GIMMICK` is paired with the gauntlet fixtures. It adds an 85% spend route for Dynamax, Tera, and damaging Z-Move pressure turns once the selected gimmick move crosses the configured minimum pressure threshold. Stronger existing reasons, such as Max Move board control, disruption denial, KO conversion, or late-commit pressure, remain deterministic.
 
@@ -124,4 +126,4 @@ See `docs/tutorials/ai_flags.md` for the ID table and expected first-turn behavi
 ## Tools
 
 - `tools/runtime_knowledge`: Rust catalog generator for local move, ability, hold-effect, item, and gimmick-policy review JSON.
-- `tools/mgba_live`: reusable mGBA Live helpers, including battle action log JSON export wrappers for WSL / Linux and Windows.
+- `tools/mgba_live`: reusable mGBA Live helpers, including 120 FPS session start wrappers and battle action log JSON export wrappers for WSL / Linux and Windows.

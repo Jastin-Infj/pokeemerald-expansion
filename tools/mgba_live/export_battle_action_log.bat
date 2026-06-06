@@ -1,11 +1,21 @@
 @echo off
 setlocal EnableExtensions
 
-if "%~1"=="" goto usage
 if "%~1"=="-h" goto usage
 if "%~1"=="--help" goto usage
 
-set "SESSION=%~1"
+if "%~1"=="" (
+  set "ACTIVE_SESSION_FILE=%USERPROFILE%\.mgba-live-mcp\runtime\active_session"
+  if not exist "%ACTIVE_SESSION_FILE%" goto usage
+  set /p SESSION=<"%ACTIVE_SESSION_FILE%"
+) else (
+  set "SESSION=%~1"
+)
+if "%SESSION%"=="" (
+  echo No mGBA Live session id was provided and active_session is empty.
+  exit /b 2
+)
+
 if "%~2"=="" (
   set "OUT_JSON=%TEMP%\pokeemerald-battle-action-log.json"
 ) else (
@@ -34,12 +44,13 @@ exit /b %ERRORLEVEL%
 
 :usage
 echo Usage:
-echo   tools\mgba_live\export_battle_action_log.bat SESSION [OUT_JSON]
+echo   tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]
 echo.
 echo Environment:
 echo   MGBA_LIVE_CLI  mgba-live-cli.exe path or command name
 echo   TIMEOUT        run-lua timeout in seconds, default 8
 echo.
 echo Example:
+echo   tools\mgba_live\export_battle_action_log.bat
 echo   tools\mgba_live\export_battle_action_log.bat smart-gimmick-dmax-double-log-20260606 %%TEMP%%\battle-action-log.json
 exit /b 2
