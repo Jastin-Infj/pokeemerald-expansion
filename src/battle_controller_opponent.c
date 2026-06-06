@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_switch.h"
 #include "battle_ai_util.h"
 #include "constants/battle.h"
@@ -424,6 +425,23 @@ static void OpponentHandleTrainerSlideBack(enum BattlerId battler)
     BtlController_HandleTrainerSlideBack(battler, 35, FALSE);
 }
 
+static bool32 ShouldRefreshOpponentAIWithKnownPlayerMoves(enum BattlerId battler)
+{
+    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE))
+        return FALSE;
+
+    for (enum BattlerId otherBattler = 0; otherBattler < gBattlersCount; otherBattler++)
+    {
+        if (IsOnPlayerSide(otherBattler)
+         && gChosenActionByBattler[otherBattler] == B_ACTION_USE_MOVE
+         && gChosenMoveByBattler[otherBattler] != MOVE_NONE
+         && gChosenMoveByBattler[otherBattler] != MOVE_UNAVAILABLE)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 static void OpponentHandleChooseAction(enum BattlerId battler)
 {
     AI_TrySwitchOrUseItem(battler);
@@ -454,6 +472,9 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
         }
         else
         {
+            if (ShouldRefreshOpponentAIWithKnownPlayerMoves(battler))
+                ComputeAiBattlerDecisions(battler);
+
             chosenMoveIndex = gAiBattleData->chosenMoveIndex[battler];
             gBattlerTarget = gAiBattleData->chosenTarget[battler];
 

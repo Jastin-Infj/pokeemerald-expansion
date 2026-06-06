@@ -39,6 +39,10 @@ Expansion has a few "composite" AI flags. This means that these flags have no un
 
 The gimmick environment presets are convenience groups for common rulesets: `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, and `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`. These presets do not enable or disable the mechanics themselves; availability still comes from trainer data, held items, battle flags, and config. Player-side access to Mega Ring, Z-Power Ring, Dynamax Band, or Tera Orb effects can be granted with the `B_FLAG_GIMMICK_ACCESS_*` flags documented in `docs/tutorials/how_to_config_flags_vars.md`.
 
+`AI_FLAG_AGGRESSIVE_GIMMICK` is an optional pressure-test layer for smart gimmick timing. It keeps the normal smart-gimmick gates, but lets Dynamax, Tera, and damaging Z-Moves spend more often on real pressure turns through `AI_AGGRESSIVE_GIMMICK_USE_CHANCE`. It still rejects status moves, no-damage turns, partner attacks, and very weak pressure. The weighted gauntlet debug trainers use this flag so the AI does not over-conserve gimmicks during competitive-style tests.
+
+`AI_FLAG_READ_PLAYER_MOVE` is a debug / testing flag, not the same thing as `AI_FLAG_OMNISCIENT`. `Omniscient` means the AI knows player moves, abilities, and held items; it still predicts the current command heuristically. `Read Player Move` lets the AI use an already-confirmed player move as the incoming move read, then recomputes the opponent move choice before returning it. Use it for full-information gauntlet audits and player-style logging experiments, not ordinary NPC balance.
+
 Smart gimmick behavior also has fixed trainer-ID fixtures for debug validation. Use the debug menu's trainer battle flow, set Trainer 1 to the listed ID, then start `Try Battle`. The debug player party is still the active player party, so use a passive or non-lethal player lead when validating "conserve" or "delay" behavior. These fixtures use the remaining Emerald trainer-flag slots, IDs 855-863, so add more standard trainer fixtures only after moving trainer flags or increasing `MAX_TRAINERS_COUNT_EMERALD` intentionally.
 
 Smart Tera conservation counts only explicit trainer-party `Tera Type` entries as future AI Tera candidates. Default generated Tera types are not treated as trainer intent. A Pokemon holding a Mega Stone or Z-Crystal cannot be the visible Tera validation slot, so all-gimmick fixtures keep Mega, Tera, Dynamax, and Z-Move candidates on separate Pokemon.
@@ -181,7 +185,7 @@ Marks the last Pokemon in the party as the Ace Pokemon. It will not be used unle
 Marks the last two Pokémon in the party as Ace Pokémon, with the same behaviour as `AI_FLAG_ACE_POKEMON`. Intented for double battles where you battle one trainer id that represents two trainers, ie Twins, Couples. If you apply this flag to trainers outside of double battles or in cases where two trainers can challenge you at the same time, it has the same behaviour. For example vs two trainers with `AI_FLAG_DOUBLE_ACE_POKEMON` there will be a total of 4 Ace Pokémon.
 
 ## `AI_FLAG_OMNISCIENT`
-AI has full knowledge of player moves, abilities, and hold items, and can use this knowledge when making decisions.
+AI has full knowledge of player moves, abilities, and hold items, and can use this knowledge when making decisions. It does not see the current turn's selected player command by itself. Pair `AI_FLAG_READ_PLAYER_MOVE` only for debug / test battles where input-reading is intentionally being validated.
 
 ## `AI_FLAG_KNOW_OPPONENT_PARTY`
 AI has full knowledge of the species in the player's party, as well as their fainted status; no other omniscient knowledge is included. Functions similarly to a team preview.

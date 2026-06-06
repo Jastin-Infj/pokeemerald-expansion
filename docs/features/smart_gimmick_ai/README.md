@@ -9,7 +9,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 | Runtime branch | `feature/smart-gimmick-ai-16-20260604` |
 | Code status | Runtime implementation active on feature branch |
 | Primary docs | `docs/tutorials/ai_flags.md`, this folder |
-| Main flags | `AI_FLAG_SMART_GIMMICK`, `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE` |
+| Main flags | `AI_FLAG_SMART_GIMMICK`, `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`, `AI_FLAG_AGGRESSIVE_GIMMICK`, `AI_FLAG_READ_PLAYER_MOVE` |
 
 ## Runtime Intent
 
@@ -20,6 +20,8 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Dynamax can also be spent defensively to keep a selected damaging move live through known or predicted Fake Out-style flinch or Roar / Whirlwind-style phazing.
 - Mega Evolution / Ultra Burst may be delayed for setup turns or pre-Mega ability value, but spent for immediate ability, Speed, damage, or defensive payoff.
 - Z-Moves remain behind viability and smart timing checks instead of firing only because a Z-Crystal exists.
+- Debug gauntlets can opt into `AI_FLAG_AGGRESSIVE_GIMMICK`, which spends legal Dynamax / Tera / Z-Move opportunities more often on real pressure turns while still rejecting status moves, immunities, and very weak attacks.
+- Debug gauntlets can opt into `AI_FLAG_READ_PLAYER_MOVE`, which is stronger than ordinary `Omniscient`: when the player has already confirmed a move, the AI can use that move as the incoming-move read before returning its own move choice.
 - Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
 - Smart switching can also use terrain seeds, status pressure / status prevention, status-benefit switch-ins, and Skill Swap-style ability bridges when those plans create board control.
 - Smart switching can read a predicted `Taunt` as a free-positioning turn: a utility-heavy active Pokemon that cannot punish Taunt in place may pivot directly to an attacker, while Pokemon that can already attack, win the matchup, or ignore Taunt stay in.
@@ -58,6 +60,14 @@ The weather and terrain checks reuse the existing AI field-status evaluators so 
 - The base move already has a KO line, but the Z-Move avoids a low-accuracy miss.
 
 Status Z-Moves keep their existing tactical checks because their value is usually the Z-status effect rather than raw damage.
+
+## Current Debug Gauntlet Read Mode
+
+`AI_FLAG_OMNISCIENT` means the AI knows the player's moves, abilities, and held items. It does not mean the AI knows which command the player selected this turn. Ordinary prediction still asks what the AI would choose if it were controlling the player position, so it can make the wrong read.
+
+`AI_FLAG_READ_PLAYER_MOVE` is a debug / testing escalation. Opponent controllers recompute move choice immediately before returning a move if any player-side move has already been confirmed, and `GetPredictedMove()` / `GetIncomingMove()` then use that confirmed move instead of the heuristic prediction. This is intended for full-information gauntlet audits and player-style logging work, not normal NPC balance.
+
+`AI_FLAG_AGGRESSIVE_GIMMICK` is paired with the gauntlet fixtures. It adds a 70% spend route for Dynamax, Tera, and damaging Z-Move pressure turns once the selected gimmick move crosses the configured minimum pressure threshold. Stronger existing reasons, such as Max Move board control, disruption denial, KO conversion, or late-commit pressure, remain deterministic.
 
 ## Current Smart Switching Payoffs
 

@@ -112,6 +112,10 @@ The AI should predict:
 
 Predictions should be weighted by information source and confidence. A likely `Protect` from a VGC-style set should not be treated the same as a confirmed `Protect` already revealed in battle.
 
+For debug / gauntlet audits, `AI_FLAG_READ_PLAYER_MOVE` may treat already-confirmed player commands as a higher-confidence source than heuristic prediction. This is deliberately not a normal NPC policy: it exists so full-information tests can measure whether the AI can choose the correct counterplay when the current player move is known. If this mode is used for player-style learning, the observed commands should be logged with source tags and kept separate from generic VGC / single-battle priors so the model does not overfit to one player's habits.
+
+Long-term runtime logging should use an in-ROM ring buffer first, then an mGBA Live / Lua dump path for external files. Normal mGBA play cannot write host files directly from the ROM, so any persistent external log must be exported by tooling after the battle state records the chosen moves, predicted moves, selected targets, switch choice, gimmick decision, and reason tags.
+
 Recommended prediction tags:
 
 - `predicted_attack`

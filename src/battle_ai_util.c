@@ -241,6 +241,13 @@ bool32 IsBattlerPredictedToSwitch(enum BattlerId battler)
 // Either a predicted move or the last used move from an opposing battler
 enum Move GetIncomingMove(enum BattlerId battler, enum BattlerId opposingBattler, struct AiLogicData *aiData)
 {
+    if ((gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE)
+     && !BattlerHasAi(opposingBattler)
+     && gChosenActionByBattler[opposingBattler] == B_ACTION_USE_MOVE
+     && gChosenMoveByBattler[opposingBattler] != MOVE_NONE
+     && gChosenMoveByBattler[opposingBattler] != MOVE_UNAVAILABLE)
+        return gChosenMoveByBattler[opposingBattler];
+
     if (aiData->predictingMove)
         return aiData->predictedMove[opposingBattler];
     return aiData->lastUsedMove[opposingBattler];
@@ -249,6 +256,13 @@ enum Move GetIncomingMove(enum BattlerId battler, enum BattlerId opposingBattler
 // When not predicting, don't want to reference player's previous move; leads to weird behaviour for cases like Fake Out or Protect, especially in doubles
 enum Move GetPredictedMove(enum BattlerId battler, enum BattlerId opposingBattler, struct AiLogicData *aiData)
 {
+    if ((gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE)
+     && !BattlerHasAi(opposingBattler)
+     && gChosenActionByBattler[opposingBattler] == B_ACTION_USE_MOVE
+     && gChosenMoveByBattler[opposingBattler] != MOVE_NONE
+     && gChosenMoveByBattler[opposingBattler] != MOVE_UNAVAILABLE)
+        return gChosenMoveByBattler[opposingBattler];
+
     if (aiData->predictingMove)
         return aiData->predictedMove[opposingBattler];
     return MOVE_NONE;
@@ -5980,6 +5994,49 @@ static bool32 IsSmartGimmickLateCommitTurn(enum BattlerId battlerAtk, enum Battl
     return GetHealthPercentage(battlerAtk) <= SMART_GIMMICK_LATE_COMMIT_HP;
 }
 
+static bool32 HasAggressiveGimmickTiming(enum BattlerId battler)
+{
+    return (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_AGGRESSIVE_GIMMICK) != 0;
+}
+
+static bool32 ShouldSpendAggressiveGimmick(void)
+{
+    return RandomPercentage(RNG_AI_AGGRESSIVE_GIMMICK, AI_AGGRESSIVE_GIMMICK_USE_CHANCE);
+}
+
+static bool32 DoesAggressiveGimmickApplyPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    uq4_12_t effectiveness;
+    struct SimulatedDamage gimmickDamage;
+    u32 targetHp;
+
+    if (!HasAggressiveGimmickTiming(battlerAtk))
+        return FALSE;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    if (battlerDef == BATTLE_PARTNER(battlerAtk))
+    {
+        enum MoveTarget target = AI_GetBattlerMoveTargetType(battlerAtk, move);
+        if (target != TARGET_ALLY && target != TARGET_USER_OR_ALLY)
+            return FALSE;
+    }
+
+    gimmickDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, USE_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    if (gimmickDamage.median == 0)
+        return FALSE;
+
+    targetHp = max(1, gBattleMons[battlerDef].hp);
+    if (gimmickDamage.minimum >= targetHp)
+        return ShouldSpendAggressiveGimmick();
+
+    if (gimmickDamage.median * 100 < targetHp * AI_AGGRESSIVE_GIMMICK_MIN_DAMAGE_PERCENT)
+        return FALSE;
+
+    return ShouldSpendAggressiveGimmick();
+}
+
 static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
     if (!ShouldUseZMove(battlerAtk, battlerDef, move))
@@ -5997,7 +6054,10 @@ static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId batt
     if (DoesZMoveImproveDamageRace(battlerAtk, battlerDef, move))
         return TRUE;
 
-    return DoesZMoveImproveLowAccuracyKo(battlerAtk, battlerDef, move);
+    if (DoesZMoveImproveLowAccuracyKo(battlerAtk, battlerDef, move))
+        return TRUE;
+
+    return DoesAggressiveGimmickApplyPressure(battlerAtk, battlerDef, move);
 }
 
 //TODO - this could use some more sophisticated logic
@@ -6641,8 +6701,13 @@ static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId ba
     if (DoesDynamaxOfferStrategicMaxMovePayoff(battlerAtk, battlerDef, move))
         return TRUE;
 
-    return DoesDynamaxImproveChosenMoveKo(battlerAtk, battlerDef, move);
+    if (DoesDynamaxImproveChosenMoveKo(battlerAtk, battlerDef, move))
+        return TRUE;
+
+    return DoesAggressiveGimmickApplyPressure(battlerAtk, battlerDef, move);
 }
+
+static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId opposingBattler);
 
 static bool32 TrySmartFallbackTerastal(enum BattlerId battler)
 {
@@ -6658,9 +6723,17 @@ static bool32 TrySmartFallbackTerastal(enum BattlerId battler)
     SetAIUsingGimmick(battler, USE_GIMMICK);
 
     if (IsBattle1v1())
+    {
         DecideTerastal(battler);
+    }
     else
-        SetAIUsingGimmick(battler, NO_GIMMICK);
+    {
+        enum BattlerId target = GetSmartGimmickTarget(battler, gAiBattleData->chosenTarget[battler]);
+        if (target == SMART_GIMMICK_NO_TARGET)
+            SetAIUsingGimmick(battler, NO_GIMMICK);
+        else
+            DecideTerastalAgainstTarget(battler, target);
+    }
 
     if (IsAIUsingGimmick(battler))
         return TRUE;
@@ -6668,8 +6741,6 @@ static bool32 TrySmartFallbackTerastal(enum BattlerId battler)
     gBattleStruct->gimmick.usableGimmick[battler] = previousGimmick;
     return FALSE;
 }
-
-static void DecideTerastalAgainstTarget(enum BattlerId battler, enum BattlerId opposingBattler);
 
 static bool32 IsIntendedTeraCandidate(enum BattlerId battler, u32 monIndex, struct Pokemon *party)
 {
@@ -6782,6 +6853,44 @@ struct AltTeraCalcs
     struct SimulatedDamage takenWithTera[MAX_MON_MOVES];
     struct SimulatedDamage dealtWithoutTera[MAX_MON_MOVES];
 };
+
+static bool32 DoesAggressiveTeraApplyPressure(enum BattlerId battler, enum BattlerId opposingBattler, struct AltTeraCalcs *altCalcs)
+{
+    u32 targetHp;
+    enum Move *aiMoves;
+
+    if (!HasAggressiveGimmickTiming(battler))
+        return FALSE;
+
+    targetHp = max(1, gBattleMons[opposingBattler].hp);
+    aiMoves = GetMovesArray(battler);
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        u32 damageWithTera;
+        u32 damageWithoutTera;
+
+        if (IsMoveUnusable(moveIndex, aiMoves[moveIndex], gAiLogicData->moveLimitations[battler]) || IsBattleMoveStatus(aiMoves[moveIndex]))
+            continue;
+
+        damageWithTera = gAiLogicData->simulatedDmg[battler][opposingBattler][moveIndex].median;
+        damageWithoutTera = altCalcs->dealtWithoutTera[moveIndex].median;
+
+        if (damageWithTera == 0 || damageWithTera <= damageWithoutTera)
+            continue;
+
+        if (damageWithTera * 100 < targetHp * AI_AGGRESSIVE_GIMMICK_MIN_DAMAGE_PERCENT)
+            continue;
+
+        if (damageWithoutTera != 0
+         && (damageWithTera - damageWithoutTera) * 100 < damageWithoutTera * AI_AGGRESSIVE_TERA_MIN_DAMAGE_BOOST_PERCENT)
+            continue;
+
+        return ShouldSpendAggressiveGimmick();
+    }
+
+    return FALSE;
+}
 
 enum AIConsiderGimmick ShouldTeraFromCalcs(enum BattlerId battler, enum BattlerId opposingBattler, struct AltTeraCalcs *altCalcs);
 
@@ -6986,6 +7095,9 @@ enum AIConsiderGimmick ShouldTeraFromCalcs(enum BattlerId battler, enum BattlerI
     if (IsSmartGimmickLateCommitTurn(battler, opposingBattler)
      && hardPunishingMove == MOVE_NONE
      && (savedFromKo || (takesBigHit && savedFromAllBigHits) || anyOffensiveBenefit || (anyDefensiveBenefit && !anyDefensiveDrawback)))
+        return USE_GIMMICK;
+
+    if (hardPunishingMove == MOVE_NONE && DoesAggressiveTeraApplyPressure(battler, opposingBattler, altCalcs))
         return USE_GIMMICK;
 
     // Decide to conserve tera based on number of possible later oppotunities

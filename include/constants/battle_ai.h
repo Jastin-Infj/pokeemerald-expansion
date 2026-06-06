@@ -46,6 +46,8 @@
 #define AI_FLAG_SMART_MEGA                  AI_FLAG(36)  // AI may delay Mega Evolution / Ultra Burst when the selected turn is better spent setting up.
 #define AI_FLAG_SMART_Z_MOVE                AI_FLAG(37)  // AI keeps Z-Move usage under smart gimmick timing instead of treating the crystal as automatic pressure.
 #define AI_FLAG_ENV_INVERSE_BATTLE          AI_FLAG(38)  // Marker for inverse-battle AI presets. Type matchup calcs still come from B_FLAG_INVERSE_BATTLE.
+#define AI_FLAG_AGGRESSIVE_GIMMICK          AI_FLAG(39)  // AI is more willing to spend a legal gimmick in competitive/debug gauntlet battles.
+#define AI_FLAG_READ_PLAYER_MOVE            AI_FLAG(40)  // Debug/testing AI may use already-confirmed player move choices as its predicted incoming move.
 
 // The following options are enough to have a basic/smart trainer. Any other addtion could make the trainer worse/better depending on the flag
 #define AI_FLAG_BASIC_TRAINER         (AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_TRY_TO_FAINT | AI_FLAG_CHECK_VIABILITY)
