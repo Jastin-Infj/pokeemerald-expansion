@@ -60,13 +60,13 @@ ability popup 自体は上記のうち `BS_ShowAbilityPopup` / `BS_UpdateAbility
 
 注意点:
 
-- `BattleScript_AbilityPopUp` は `tryactivateabilityshield` -> `showabilitypopup` -> `pause B_WAIT_TIME_SHORT` -> `recordability` -> `destroyabilitypopup` -> `pause B_WAIT_TIME_SHORT` -> `sethword sABILITY_OVERWRITE, 0` -> `return` の固定列で、popup 表示と slide-out 待ちまで含む。 通常 message との順序を変えたい場合はこの `pause` の長さに注意する。
-- `BattleScript_AbilityPopUpOverwriteThenNormal` は `setbyte sFIXED_ABILITY_POPUP, TRUE` で popup を「固定表示」状態にして、`updateabilitypopup` で表示中の ability 名を差し替えてから `destroyabilitypopup` と短い `pause` で閉じ切る。 Trace、Imposter のような「他 ability への上書き」用。
+- `BattleScript_AbilityPopUp` は `tryactivateabilityshield` -> `showabilitypopup` -> `pause B_WAIT_TIME_SHORT` -> `recordability` -> `sethword sABILITY_OVERWRITE, 0` -> `return` の固定列で、popup 表示と短い待ちまで含む。 通常 message との順序を変えたい場合はこの `pause` の長さに注意する。
+- `BattleScript_AbilityPopUpOverwriteThenNormal` は `setbyte sFIXED_ABILITY_POPUP, TRUE` で popup を「固定表示」状態にして、`updateabilitypopup` で表示中の ability 名を差し替えてから `destroyabilitypopup` で閉じる。 Trace、Imposter のような「他 ability への上書き」用。
 - `gBattleScripting.fixedPopup` が立っている間は `SpriteCb_AbilityPopUp` の `APU_STATE_IDLE` でタイマーが減らないため、`destroyabilitypopup` を呼ぶまで自動消滅しない。
-- popup は battle message box (`B_WIN_MSG`) を上書きしない。 ただし `printstring` と同時に走らせると、popup の slide-in / slide-out アニメと message の出る・消えるタイミングが重なる。 既存 script では popup 後に短い `pause` を入れ、通常 popup も明示 destroy 後の slide-out を待って message や move animation と被らないようにしている。
+- popup は battle message box (`B_WIN_MSG`) を上書きしない。 ただし `printstring` と同時に走らせると、popup の slide-in / slide-out アニメと message の出る・消えるタイミングが重なる。 既存 script では popup 後に短い `pause` を入れて message と被らないようにしている。
 - `gTestRunnerEnabled` の場合は `TestRunner_Battle_RecordAbilityPopUp` に流したあと、headless なら sprite 自体を作らない。 テストでは popup を「呼んだか」だけが検査される。
 - `IsAnyAbilityPopUpActive()` で初回作成時のみ palette / sheet を load する。 sprite を増やしたい / palette tag を変えたいときは `TAG_ABILITY_POP_UP*` を全部更新する。
-- `BattleScript_AbilityPopUpOverwriteThenNormal` の表示順は実装上「上書き先 ability を最初に出す」: `setbyte sFIXED_ABILITY_POPUP, TRUE` -> `showabilitypopup` (このとき `gBattleScripting.abilityPopupOverwrite` が呼び出し前に set されており、 popup には overwrite 側 ability が表示される) -> `pause` -> `sethword sABILITY_OVERWRITE, 0` -> `updateabilitypopup` (overwrite が消えたので `gBattleMons[battler].ability` を表示) -> `pause` -> `recordability` -> `destroyabilitypopup` -> `pause` -> `setbyte sFIXED_ABILITY_POPUP, FALSE`。 つまり Trace / Imposter のように「元の ability を一瞬出してから真の ability に切り替える」演出に使う。
+- `BattleScript_AbilityPopUpOverwriteThenNormal` の表示順は実装上「上書き先 ability を最初に出す」: `setbyte sFIXED_ABILITY_POPUP, TRUE` -> `showabilitypopup` (このとき `gBattleScripting.abilityPopupOverwrite` が呼び出し前に set されており、 popup には overwrite 側 ability が表示される) -> `pause` -> `sethword sABILITY_OVERWRITE, 0` -> `updateabilitypopup` (overwrite が消えたので `gBattleMons[battler].ability` を表示) -> `pause` -> `recordability` -> `destroyabilitypopup` -> `setbyte sFIXED_ABILITY_POPUP, FALSE`。 つまり Trace / Imposter のように「元の ability を一瞬出してから真の ability に切り替える」演出に使う。
 
 ### 隣接の sprite-only popup (テキスト無し)
 

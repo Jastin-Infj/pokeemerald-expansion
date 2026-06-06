@@ -4490,8 +4490,6 @@ BattleScript_AbilityPopUp::
 	showabilitypopup
 	pause B_WAIT_TIME_SHORT
 	recordability BS_ABILITY_BATTLER
-	destroyabilitypopup
-	pause B_WAIT_TIME_SHORT
 	sethword sABILITY_OVERWRITE, 0
 	return
 
@@ -4508,7 +4506,6 @@ BattleScript_AbilityPopUpOverwriteThenNormal:
 	pause B_WAIT_TIME_SHORT
 	recordability BS_ABILITY_BATTLER
 	destroyabilitypopup
-	pause B_WAIT_TIME_SHORT
 	setbyte sFIXED_ABILITY_POPUP, FALSE
 	return
 
