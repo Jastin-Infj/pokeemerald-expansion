@@ -309,6 +309,8 @@ static void DebugAction_Party_BattleSingles3v3(u8 taskId);
 static void DebugAction_Party_BattleDoubles4v4(u8 taskId);
 static void DebugAction_Party_BattleDmaxZSingles(u8 taskId);
 static void DebugAction_Party_BattleDmaxZDoubles(u8 taskId);
+static void DebugAction_Party_BattleGimmickSingles(u8 taskId);
+static void DebugAction_Party_BattleGimmickDoubles(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, void *selection);
@@ -651,6 +653,8 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Battle 4v4 Double"),  DebugAction_Party_BattleDoubles4v4 },
     { COMPOUND_STRING("Battle Dmax/Z Single"), DebugAction_Party_BattleDmaxZSingles },
     { COMPOUND_STRING("Battle Dmax/Z Double"), DebugAction_Party_BattleDmaxZDoubles },
+    { COMPOUND_STRING("Battle Gimmick Single"), DebugAction_Party_BattleGimmickSingles },
+    { COMPOUND_STRING("Battle Gimmick Double"), DebugAction_Party_BattleGimmickDoubles },
     { NULL }
 };
 
@@ -4936,6 +4940,10 @@ enum DebugTrainerIds
     DEBUG_TRAINER_AI_DMAX_Z_SINGLES,
     DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES,
     DEBUG_TRAINER_AI_DMAX_Z_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_SINGLES,
+    DEBUG_TRAINER_AI_GIMMICK_AUDIT_SINGLES,
+    DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES,
+    DEBUG_TRAINER_AI_GIMMICK_AUDIT_DOUBLES,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -5008,6 +5016,16 @@ static void DebugAction_Party_BattleDmaxZSingles(u8 taskId)
 static void DebugAction_Party_BattleDmaxZDoubles(u8 taskId)
 {
     DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES, DEBUG_TRAINER_AI_DMAX_Z_DOUBLES, FALSE, GIMMICK_ACCESS_Z_POWER_RING | GIMMICK_ACCESS_DYNAMAX_BAND);
+}
+
+static void DebugAction_Party_BattleGimmickSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_SINGLES, DEBUG_TRAINER_AI_GIMMICK_AUDIT_SINGLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGimmickDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES, DEBUG_TRAINER_AI_GIMMICK_AUDIT_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)

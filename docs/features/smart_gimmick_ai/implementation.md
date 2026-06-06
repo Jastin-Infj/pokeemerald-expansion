@@ -31,7 +31,7 @@ Tooling:
 
 For Dynamax, `ShouldUseSmartDynamax()` now accepts these reasons:
 
-- Last available Pokemon.
+- Last available Pokemon, or one-reserve late-commit pressure when the active Pokemon is already low on HP or under immediate KO threat.
 - The current target can otherwise KO the AI Pokemon.
 - A known or predicted opposing move threatens Dynamax-blocked disruption while the AI selected a damaging move:
   - Fake Out-style flinch pressure.
@@ -45,9 +45,11 @@ For Dynamax, `ShouldUseSmartDynamax()` now accepts these reasons:
 
 Weather and terrain decisions call `ShouldSetWeather()`, `ShouldSetFieldStatus()`, and `ShouldClearFieldStatus()` so smart Dynamax follows the same field-state opinions used by normal AI move scoring.
 
-For Mega / Ultra Burst, `ShouldUseSmartMega()` now looks at the target form before spending the gimmick. It allows immediate use for target-form ability payoffs such as trapping or weather control, estimated Speed flips, meaningful defensive improvement under KO pressure, and meaningful attacking-stat improvement for the selected damaging move. It still delays setup turns when there is no immediate pressure, and it can preserve `Air Lock` / `Cloud Nine` during active weather if the target form has no stronger immediate payoff.
+The Dynamax policy is intentionally not "use the strongest attack immediately." The current runtime model treats Dynamax as a board-presence resource: HP scaling can keep an active Pokemon on the field, Max Move effects can change Speed, weather, terrain, Defense, Special Defense, Attack, Special Attack, or opponent-side pressure, and Dynamax can deny disruption such as flinching or forced switching. This matches the Pokemon Wiki mechanics summary for Dynamax's HP increase, 3-turn duration, flinch / forced-switch immunity, Max Guard, and Max Move side effects, the official Sword / Shield Max Move explanation, and Victory Road VGC reports where Dynamax is discussed through Fake Out denial, Max Airstream tempo, Max Steelspike / Max Quake defensive value, and status / positioning pressure.
 
-For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability checks. Status Z-Moves keep their tactical checks. Damaging Z-Moves are conserved unless the AI is on its last Pokemon, the Z-Move converts the selected move into a KO, improves the damage race under immediate KO or trap pressure, or protects a low-accuracy KO line.
+For Mega / Ultra Burst, `ShouldUseSmartMega()` now looks at the target form before spending the gimmick. It allows immediate use for target-form ability payoffs such as trapping or weather control, estimated Speed flips, meaningful defensive improvement under KO pressure, meaningful attacking-stat improvement for the selected damaging move, and one-reserve low-HP late-commit pressure. It still delays setup turns when there is no immediate pressure, and it can preserve `Air Lock` / `Cloud Nine` during active weather if the target form has no stronger immediate payoff.
+
+For Z-Moves, `ShouldUseSmartZMove()` now wraps the existing Z-Move viability checks. Status Z-Moves keep their tactical checks. Damaging Z-Moves are conserved unless the AI is on its last Pokemon, has one reserve left and the active Pokemon is low on HP or under KO threat, the Z-Move converts the selected move into a KO, improves the damage race under immediate KO or trap pressure, or protects a low-accuracy KO line.
 
 For double battle switching, `ShouldSwitchIfDoublePositionBad()` adds a VGC-style positioning check under `AI_FLAG_SMART_SWITCHING`. The AI may hard switch when the active Pokemon has no meaningful pressure into either opposing slot, is threatened by either opposing slot, has enough HP to be worth preserving, and its partner cannot cover the position. The check stays out of `AI_FLAG_SEQUENCE_SWITCHING`, respects existing no-switch gates, avoids overriding the existing Intimidate-blocker contract, and allows double switches when both active Pokemon are pinned.
 
@@ -85,6 +87,8 @@ The debug Party menu now exposes four focused runtime fixtures:
 - `Battle 4v4 Double` builds a level-50 player team of `Incineroar`, `Rillaboom`, `Flutter Mane`, and `Urshifu-Rapid-Strike`, then pits it against a 4-Pokemon AI side selected from a 7-Pokemon weighted doubles pool.
 - `Battle Dmax/Z Single` builds a level-50 player-side Z-Move team, then pits it against a smart AI Dynamax / Gigantamax / Z-Crystal team.
 - `Battle Dmax/Z Double` builds a level-50 player-side VGC-style Z-Move team, then pits it against a smart AI Dynamax / Gigantamax / Z-Crystal doubles team with Tailwind / weather pressure.
+- `Battle Gimmick Single` builds a passive player side and an opponent audit party with lead `Gengarite` Mega, reserve `Mimikium Z`, reserve Gigantamax `Charizard`, and reserve Normal Tera `Dragonite`. It grants all debug gimmick access to prove the opponent's source data and runtime gates can expose every gimmick.
+- `Battle Gimmick Double` builds a passive double player side and an opponent audit party with active Gigantamax `Charizard` plus `Electrium Z` `Tapu Koko`, then reserve `Gengarite` Mega and Normal Tera `Dragonite`. It is an availability audit, separate from the smarter Dmax/Z timing fixtures.
 
 These AI fixtures enable `Smart Trainer`, `Prediction`, `Smart Gimmick`, `Know Opponent Party`, and `Powerful Status` AI flags. The pool entries carry `Pool Weight` plus role tags such as `Lead`, `Ace`, `Support`, `Weather Setter`, and `Weather Abuser`, so the pool-based fixtures also exercise Trainer Party Pool role filtering and weighted selection.
 
@@ -97,7 +101,7 @@ Gimmick access is split from AI timing:
 - `.party` supports `Z Move: Yes`, stored as `TrainerMon.shouldUseZMove` and copied into `gBattleStruct->opponentMonCanZMove` for opponent parties. Ordinary Z-Move availability still requires a matching Z-Crystal and Z-Power access.
 - The earlier itemless Z-Move unlock was removed so AI flags remain tactical timing / ruleset-intent hints, not replacement access items.
 
-Opponent gimmick use is not disabled. AI-side Mega / Z-Move / Dynamax / Tera availability still comes from trainer party data, held items, and the battle gimmick gates, and the focused AI tests confirm that the opponent can spend those gimmicks. Under `AI_FLAG_SMART_GIMMICK_TIMING`, however, trainer gimmick data is permission rather than an immediate command: Dynamax, Z-Move, Mega, and Tera can be conserved until the selected turn has KO, board-control, defensive, setup, or last-Pokemon value.
+Opponent gimmick use is not disabled. AI-side Mega / Z-Move / Dynamax / Tera availability still comes from trainer party data, held items, and the battle gimmick gates, and the focused AI tests confirm that the opponent can spend those gimmicks. The earlier `Battle Dmax/Z Single` and `Battle Dmax/Z Double` fixtures did not include an AI Mega candidate, and their Z-Move users were not both lead-visible, so they were poor "is the opponent allowed to use every gimmick?" audits. The new `Battle Gimmick Single` and `Battle Gimmick Double` fixtures are explicit availability audits. Under `AI_FLAG_SMART_GIMMICK_TIMING`, trainer gimmick data remains permission rather than an immediate command: Dynamax, Z-Move, Mega, and Tera can be conserved until the selected turn has KO, board-control, defensive, setup, late-commit, or last-Pokemon value.
 
 Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This prevents the EXP bar, normal EXP gain, and EV gain in debug battles, including the level-100 EV-gain path that would otherwise still occur when EXP is disabled by level.
 
@@ -105,14 +109,17 @@ Debug battles now skip `BattleTypeAllowsExp()` through `gIsDebugBattle`. This pr
 
 - Conservation baseline: keeps Dynamax unused when another Dynamax user remains and the move has no immediate payoff.
 - Last-Pokemon baseline: spends Dynamax when no reserve remains.
+- One-reserve late-commit baseline: spends Dynamax when the active Pokemon is low on HP and only one reserve remains, even if the opponent is passive.
 - Max Geyser payoff: spends Dynamax to set rain even with a reserve remaining.
 - Max Airstream payoff: spends Dynamax in doubles for Speed-control tempo even with a reserve remaining.
 - Dynamax disruption payoff: spends Dynamax to keep a damaging move live through Fake Out-style flinch or Roar / Whirlwind-style phazing.
 - Smart Z conserve: keeps a damaging Z-Move unused when another Pokemon remains and the Z-Move has no immediate payoff.
 - Smart Z last Pokemon: spends a damaging Z-Move when no reserve remains.
+- Smart Z one-reserve low-HP: spends a damaging Z-Move before it is stranded by over-conservation.
 - Smart Z trap pressure: spends a damaging Z-Move when trapped and the Z-Move improves the damage race.
 - Gimmick access separation: `AI_FLAG_GIMMICK_ENV_ALL` keeps Z-Move timing tactical while Z-Move availability remains tied to Z-Crystals and Z-Power access.
 - Smart Mega Shadow Tag: spends Mega Evolution when the target form's ability creates immediate trapping pressure.
+- Smart Mega low-HP late-commit: spends Mega Evolution with one reserve remaining, while a separate setup-delay test still verifies full-HP no-pressure conservation.
 - Smart Switching doubles: can double switch out of bad double positions when neither partner can cover.
 - Smart Switching doubles guard: stays in a bad position when the partner can cover the target.
 - Smart Switching weather pivot: switches to a `Drizzle` reserve when rain improves reserve pressure.
@@ -136,15 +143,19 @@ Local validation highlights:
 - `rtk make -j16 -O check TESTS='AI runtime knowledge'`: pass, 4 tests. Covers move-category, ability-category, item / hold-effect category mapping, and predicted-move immunity bridges.
 - `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 10 tests.
 - 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 11 tests. Includes the Z-Crystal-based all-gimmick Z-Move regression after access flags were split from AI flags.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV'`: pass, 13 tests. Includes Dynamax / Z / Mega late-commit regressions and the all-gimmick environment checks.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 7 tests. Adds the one-reserve low-HP Dynamax late-commit regression.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_ALL'`: pass, 4 tests. Adds the one-reserve low-HP Mega late-commit regression while keeping full-HP setup-turn delay.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
-- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 3 tests.
+- 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_SMART_Z_MOVE'`: pass, 4 tests. Adds the one-reserve low-HP Z-Move late-commit regression.
 - 2026-06-06 `rtk make -j16 -O check TESTS='AI uses Z-Moves'`: failed 1 existing broad Z-Move AI case, `AI uses Z-Moves -- Z-Detect 1/2`, where the AI selected `Detect` without the Z-Move gimmick. The smart-gimmick filters passed; this broad status-Z Protect heuristic remains a separate follow-up.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_MEGA'`: pass, 1 test.
 - `rtk make -j16 -O check TESTS='AI_FLAG_SMART_TERA'`: pass, 4 tests.
-- `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks.
+- `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY'`: historical pass, 6 tests. Includes Fake Out and phazing disruption-prevention Dynamax checks before the late-commit regression was added.
 - 2026-06-06 `rtk make -j16 -O check TESTS='AI_FLAG_SMART_SWITCHING'`: pass. Includes bad-position double switching, weather / terrain / Tailwind / Trick Room board-control pivots, terrain seed, predicted burn status-benefit, direct and secondary status / confusion support, Skill Swap bridge pivots, predicted-Taunt attacker pivot / stay-in guards, and the double-switch execution guard through the shared predicted-move immunity predicate.
 - `rtk make -j16 -O check TESTS='Protect: AI'`: pass, 9 tests. Covers ignore-protection moves, Unseen Fist, passive singles Protect rejection, boosted-attacker rejection, residual payoff, and second Protect scoring in singles and doubles.
 - `rtk make tools/trainerproc/trainerproc`: pass. Regenerated trainer data from `.party` fixtures, including `Pool Weight`.
+- 2026-06-06 `rtk make tools/trainerproc/trainerproc`: pass. Regenerated debug trainer data for `Battle Gimmick Single` / `Battle Gimmick Double`.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Debug battles do not give exp or EVs'`: pass, 1 test. Covers no EXP bar, no EXP gain, and no EV gain while `gIsDebugBattle` is set.
 - 2026-06-06 `rtk make -j16 -O check TESTS='Trainer Party Pool'`: pass, 9 tests. Regresses pool role filtering and weighted selection behavior used by the debug fixtures.
 - `rtk cargo check --manifest-path tools/runtime_knowledge/Cargo.toml`: pass.
@@ -153,17 +164,30 @@ Local validation highlights:
 - `rtk make -j16 -O check`: attempted again after the Protect / Dmax-vs-Z debug-fixture update and exited 2. The captured output only exposed existing test-runner / known-failing labels (`Tests resume after CRASH`, `Pokemon level up learnsets fit within MAX_LEVEL_UP_MOVES and MAX_RELEARNER_MOVES`); both pass as expected when filtered individually. The focused AI, debug EXP / EV, and Trainer Party Pool checks above are the validation evidence for this update.
 - `rtk make -j1 -O check`: attempted to rule out make-job parallelism, but the run did not progress beyond the initial link warning and was abandoned as non-evidence. The stale `mgba-rom-test-hydra` / `mgba-rom-test` children were killed before handoff.
 - `rtk make -j16 -O debug`: pass.
+- 2026-06-06 `rtk make -j16 -O debug`: pass after adding `Battle Gimmick Single` / `Battle Gimmick Double`.
 - 2026-06-06 `rtk make -j16 -O debug`: pass. Confirms the debug Dmax/Z fixtures build with debug Z-Power / Dynamax access and `.party` `Z Move: Yes` candidates.
 - 2026-06-06 `rtk make -j16 -O debug`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk make -j16 -O all`: pass.
+- 2026-06-06 `rtk make -j16 -O all`: pass after adding late-commit smart-gimmick checks and debug audit fixtures.
 - 2026-06-06 `rtk make -j16 -O all`: pass after the double-switch execution guard.
 - 2026-06-06 `rtk mdbook build docs`: pass with existing missing-root-`CHANGELOG.md` include warning, `CREDITS.md` `</img>` warning, and large search index warning.
 - 2026-06-06 `rtk mdbook build docs`: pass after the double-switch execution guard, with the same existing warnings.
+- 2026-06-06 `rtk mdbook build docs`: pass after the late-commit and debug audit update, with the same existing warnings.
 - mGBA Live: wrapper `/home/jastin/.local/bin/mgba-qt` booted `pokeemerald.gba` to the title screen and captured a screenshot in session `smart-ai-ability-item-knowledge-20260605`. `mgba_live_stop` returned `stopped:true`.
 - mGBA Live: current ROM booted to the title screen and captured `/tmp/debug-vgc-fixtures-20260605.png` in session `debug-vgc-fixtures-20260605`. `mgba_live_stop` returned `stopped:true`, and CLI `status --all` returned `[]`. The debug Party menu battle itself still needs a progressed save or a focused input route for visual confirmation.
 - mGBA Live: current ROM booted in session `smart-ai-protect-dmaxz-20260605`. `mgba_live_start_with_lua_and_view` reported a Lua bridge invalid-context error after starting, but `mgba_live_get_view` returned a rendered frame, `mgba_live_export_screenshot` saved `/tmp/smart-ai-protect-dmaxz-20260605.png`, and `mgba_live_stop` returned `stopped:true`.
 - 2026-06-06 mGBA Live: MCP startup without `DISPLAY` failed with Qt `xcb` display initialization. CLI startup with `DISPLAY=:0` booted `pokeemerald.gba` to the title / demo screen in session `smart-gimmick-access-cli-smoke`, saved `/tmp/smart-gimmick-access-smoke.png`, and `mgba-live-cli stop` returned `stopped:true`.
 - 2026-06-06 mGBA Live: sandboxed CLI startup first failed because the tool could not create `~/.mgba-live-mcp/runtime/sessions/...`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` in session `smart-gimmick-switch-guard-20260606`, saved `/tmp/smart-gimmick-switch-guard-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the exact debug double-battle ASSERT path still needs manual progression to the Party debug fixture.
+- 2026-06-06 mGBA Live: sandboxed CLI startup first failed because it could not create `~/.mgba-live-mcp/runtime/sessions/smart-gimmick-late-audit-20260606`. Rerunning with approval and `DISPLAY=:0` booted `pokeemerald.gba` to the title screen, saved `/tmp/smart-gimmick-late-audit-20260606.png`, and `mgba-live-cli stop` returned `stopped:true`. `status --all` returned `[]`. This was a boot smoke only; the new `Battle Gimmick Single` / `Battle Gimmick Double` menu entries still need manual progression from a debug-enabled save.
+
+## Strategy Sources
+
+The runtime policy above was cross-checked against:
+
+- [Pokemon Wiki / Pokemon battle consideration wiki Dynamax mechanics](https://poke-wiki.net/%E3%83%80%E3%82%A4%E3%83%9E%E3%83%83%E3%82%AF%E3%82%B9): 3-turn duration, switch cancellation, HP scaling by Dynamax level, flinch and forced-switch immunity, Max Guard, Max Move side effects, and double-battle side effects.
+- [Official Pokemon Sword / Shield Dynamax and Max Moves page](https://swordshield.pokemon.com/en-us/gameplay/dynamaxing-max-moves/): Max Moves are powerful but also carry additional effects; status moves become Max Guard; held item freedom means the Dynamax choice depends on the battle state.
+- Victory Road VGC writing: [Incineroar / Fake Out discussion](https://victoryroad.pro/2020/03/02/incineroar-vgc-column/) for Dynamax flinch immunity; [Durant team report](https://victoryroad.pro/2020/01/31/bingjie-dallas-report-finalist/) and [Series 10 report](https://victoryroad.pro/2021/07/20/series-10-introduction/) for Max Steelspike / Max Quake defensive value; [Corviknight / Max Airstream report](https://victoryroad.pro/2020/03/14/zach-kelly-ocic20-report/) for speed and positioning value; team reports as examples that Dynamax is frequently a board-control and survival resource, not only a damage button.
+- Pokemon Battle DataBase / official usage-style data remains the preferred future source for species, item, and move priors. Pokemon Showdown articles remain excluded as strategy source material per project policy.
 
 ## Known Gaps
 

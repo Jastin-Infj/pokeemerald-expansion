@@ -5964,6 +5964,22 @@ static bool32 DoesZMoveImproveDamageRace(enum BattlerId battlerAtk, enum Battler
     return regularHits != 0 && zMoveHits != 0 && zMoveHits < regularHits;
 }
 
+#define SMART_GIMMICK_LATE_COMMIT_HP 67
+
+static bool32 IsSmartGimmickLateCommitTurn(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    if (CountUsablePartyMons(battlerAtk) == 0)
+        return TRUE;
+
+    if (CountUsablePartyMons(battlerAtk) > 1)
+        return FALSE;
+
+    if (CanTargetFaintAi(battlerDef, battlerAtk))
+        return TRUE;
+
+    return GetHealthPercentage(battlerAtk) <= SMART_GIMMICK_LATE_COMMIT_HP;
+}
+
 static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
     if (!ShouldUseZMove(battlerAtk, battlerDef, move))
@@ -5972,7 +5988,7 @@ static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId batt
     if (IsBattleMoveStatus(move))
         return TRUE;
 
-    if (CountUsablePartyMons(battlerAtk) == 0)
+    if (IsSmartGimmickLateCommitTurn(battlerAtk, battlerDef))
         return TRUE;
 
     if (DoesZMoveImproveChosenMoveKo(battlerAtk, battlerDef, move))
@@ -6421,6 +6437,9 @@ static bool32 ShouldUseSmartMega(enum BattlerId battlerAtk, enum BattlerId battl
     if (ShouldSmartMegaPreserveCurrentAbility(battlerAtk, targetAbility))
         return FALSE;
 
+    if (IsSmartGimmickLateCommitTurn(battlerAtk, battlerDef))
+        return TRUE;
+
     if (DoesSmartMegaOfferAbilityPayoff(battlerAtk, battlerDef, targetAbility))
         return TRUE;
 
@@ -6610,7 +6629,7 @@ static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId ba
     if (battlerDef == SMART_GIMMICK_NO_TARGET)
         return CountUsablePartyMons(battlerAtk) == 0;
 
-    if (CountUsablePartyMons(battlerAtk) == 0)
+    if (IsSmartGimmickLateCommitTurn(battlerAtk, battlerDef))
         return TRUE;
 
     if (CanTargetFaintAi(battlerDef, battlerAtk))
@@ -6963,6 +6982,11 @@ enum AIConsiderGimmick ShouldTeraFromCalcs(enum BattlerId battler, enum BattlerI
                 return USE_GIMMICK;
         }
     }
+
+    if (IsSmartGimmickLateCommitTurn(battler, opposingBattler)
+     && hardPunishingMove == MOVE_NONE
+     && (savedFromKo || (takesBigHit && savedFromAllBigHits) || anyOffensiveBenefit || (anyDefensiveBenefit && !anyDefensiveDrawback)))
+        return USE_GIMMICK;
 
     // Decide to conserve tera based on number of possible later oppotunities
     u32 conserveTeraChance = AI_CONSERVE_TERA_CHANCE_PER_MON * (numPossibleTera-1);

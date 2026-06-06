@@ -555,3 +555,197 @@ Z Move: Yes
 - Dazzling Gleam
 - Volt Switch
 - Protect
+
+=== DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_SINGLES ===
+Name: Audit P1
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Singles
+
+Blissey @ ITEM_LEFTOVERS
+Ability: Natural Cure
+Bold Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 4 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Protect
+
+Snorlax @ ITEM_LEFTOVERS
+Ability: Thick Fat
+Careful Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 Def / 252 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Protect
+
+=== DEBUG_TRAINER_AI_GIMMICK_AUDIT_SINGLES ===
+Name: Gimmick S
+AI: Basic Trainer / Omniscient
+Class: Champion
+Battle Type: Singles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+Mimikyu @ ITEM_MIMIKIUM_Z
+Ability: Disguise
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Z Move: Yes
+- Play Rough
+- Shadow Claw
+- Shadow Sneak
+- Swords Dance
+
+Charizard @ ITEM_LIFE_ORB
+Ability: Solar Power
+Timid Nature
+Level: 50
+Gigantamax: Yes
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Heat Wave
+- Air Slash
+- Solar Beam
+- Protect
+
+Dragonite @ ITEM_LUM_BERRY
+Ability: Multiscale
+Adamant Nature
+Level: 50
+Tera Type: Normal
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Extreme Speed
+- Dragon Claw
+- Earthquake
+- Protect
+
+=== DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES ===
+Name: Audit P2
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+
+Blissey @ ITEM_LEFTOVERS
+Ability: Natural Cure
+Bold Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 4 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Protect
+
+Snorlax @ ITEM_LEFTOVERS
+Ability: Thick Fat
+Careful Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 Def / 252 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Protect
+
+Slowbro @ ITEM_SITRUS_BERRY
+Ability: Regenerator
+Bold Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 4 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Protect
+
+Togekiss @ ITEM_SITRUS_BERRY
+Ability: Serene Grace
+Calm Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 Def / 252 SpD
+- Celebrate
+- Celebrate
+- Celebrate
+- Protect
+
+=== DEBUG_TRAINER_AI_GIMMICK_AUDIT_DOUBLES ===
+Name: Gimmick D
+AI: Basic Trainer / Omniscient
+Class: Champion
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Charizard @ ITEM_LIFE_ORB
+Ability: Solar Power
+Timid Nature
+Level: 50
+Gigantamax: Yes
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Heat Wave
+- Air Slash
+- Solar Beam
+- Protect
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Z Move: Yes
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+Dragonite @ ITEM_LUM_BERRY
+Ability: Multiscale
+Adamant Nature
+Level: 50
+Tera Type: Normal
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+- Extreme Speed
+- Dragon Claw
+- Earthquake
+- Protect
