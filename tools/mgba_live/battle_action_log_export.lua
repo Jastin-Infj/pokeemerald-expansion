@@ -7,6 +7,7 @@
 --   _G.BATTLE_ACTION_LOG_ROOT       project root, defaults to "." or POKEEMERALD_ROOT
 --   _G.BATTLE_ACTION_LOG_MAP        map file path, defaults to ROOT/pokeemerald.map
 --   _G.BATTLE_ACTION_LOG_OUT        output path, defaults to /tmp/pokeemerald-battle-action-log.json
+--   _G.BATTLE_ACTION_LOG_SKIP_EMPTY skip writing when no valid entries exist
 --   env POKEEMERALD_ROOT            project root fallback
 --   env BATTLE_ACTION_LOG_OUT       output path fallback
 
@@ -412,6 +413,21 @@ local payload = {
   battler_positions = battler_positions,
   entries = entries,
 }
+
+if _G.BATTLE_ACTION_LOG_SKIP_EMPTY == true and #entries == 0 then
+  return {
+    output = out_path,
+    schema = payload.schema,
+    entries = #entries,
+    sequence = sequence,
+    last_recorded_turn = last_recorded_turn,
+    cursor = cursor,
+    count = count,
+    skipped_invalid = skipped_invalid,
+    skipped_empty = true,
+    frame = frame,
+  }
+end
 
 local out_file = assert(io.open(out_path, "w"), "could not open output file: " .. out_path)
 out_file:write(json_encode(payload))

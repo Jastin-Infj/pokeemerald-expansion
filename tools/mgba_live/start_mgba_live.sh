@@ -12,6 +12,12 @@ Environment:
   ROM            ROM path, default ./pokeemerald.gba
   READY_TIMEOUT  bridge ready timeout in seconds, default 20
   VIDEO_SYNC     set to 0 to skip videoSync=1, default 1
+  BATTLE_ACTION_LOG_AUTOSAVE
+                  set to 0 to skip battle action log autosave, default 1
+  BATTLE_ACTION_LOG_OUT
+                  autosave output, default /tmp/SESSION-battle-action-log-autosave.json
+  BATTLE_ACTION_LOG_AUTOSAVE_INTERVAL
+                  autosave interval in frames, default 120
 
 Examples:
   tools/mgba_live/start_mgba_live.sh
@@ -33,6 +39,8 @@ fps="${2:-${FPS_TARGET:-120}}"
 rom="${3:-${ROM:-$project_root/pokeemerald.gba}}"
 ready_timeout="${READY_TIMEOUT:-20}"
 video_sync="${VIDEO_SYNC:-1}"
+autosave="${BATTLE_ACTION_LOG_AUTOSAVE:-1}"
+autosave_script="$script_dir/battle_action_log_autosave.lua"
 
 if [ -n "${MGBA_LIVE_CLI:-}" ]; then
   mgba_live_cli="$MGBA_LIVE_CLI"
@@ -49,17 +57,28 @@ fi
 
 export DISPLAY="${DISPLAY:-:0}"
 
+script_args=""
+if [ "$autosave" != "0" ]; then
+  export POKEEMERALD_ROOT="${POKEEMERALD_ROOT:-$project_root}"
+  export BATTLE_ACTION_LOG_EXPORTER="${BATTLE_ACTION_LOG_EXPORTER:-$script_dir/battle_action_log_export.lua}"
+  export BATTLE_ACTION_LOG_OUT="${BATTLE_ACTION_LOG_OUT:-/tmp/${session}-battle-action-log-autosave.json}"
+  export BATTLE_ACTION_LOG_AUTOSAVE_INTERVAL="${BATTLE_ACTION_LOG_AUTOSAVE_INTERVAL:-120}"
+  script_args="--script $autosave_script"
+fi
+
 if [ "$video_sync" = "0" ]; then
   "$mgba_live_cli" start \
     --rom "$rom" \
     --session-id "$session" \
     --fps-target "$fps" \
-    --ready-timeout "$ready_timeout"
+    --ready-timeout "$ready_timeout" \
+    $script_args
 else
   "$mgba_live_cli" start \
     --rom "$rom" \
     --session-id "$session" \
     --fps-target "$fps" \
     --ready-timeout "$ready_timeout" \
-    --config videoSync=1
+    --config videoSync=1 \
+    $script_args
 fi

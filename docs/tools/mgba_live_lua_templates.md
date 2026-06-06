@@ -78,7 +78,7 @@ tools\mgba_live\start_mgba_live.bat manual-ai-log 120
 tools\mgba_live\export_battle_action_log.bat manual-ai-log %TEMP%\battle-action-log.json
 ```
 
-この exporter は `pokeemerald.map` から symbol address を解決するため、対象 branch の ROM / map を先に build する。WSL / Linux wrapper は live session がある場合、`SESSION` を省略して active session から export できる。`gBattleActionLog` は battle runtime の EWRAM buffer なので、次の battle 開始や battle state 再初期化の前に export する。
+この exporter は `pokeemerald.map` から symbol address を解決するため、対象 branch の ROM / map を先に build する。WSL / Linux wrapper は live session がある場合、`SESSION` を省略して active session から export できる。`start_mgba_live.sh` / `.bat` は startup script として `tools/mgba_live/battle_action_log_autosave.lua` を読み込み、最後の non-empty snapshot を host に残す。`gBattleActionLog` は battle runtime の EWRAM buffer なので、manual export は次の battle 開始や battle state 再初期化の前に行う。autosaveなしで session が閉じた後は、`archived_sessions` から battle action log は復元できない。
 
 ## Return Values
 
