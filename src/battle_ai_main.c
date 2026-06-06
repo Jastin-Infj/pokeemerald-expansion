@@ -42,6 +42,7 @@
 
 #define READ_PLAYER_PROTECT_TARGET_PENALTY 18
 #define READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY 9
+#define READ_PLAYER_TRICK_ROOM_TOGGLE_PENALTY 12
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
@@ -117,6 +118,34 @@ static bool32 IsReadPlayerTargetUsingSingleProtect(enum BattlerId battlerAtk, en
         return FALSE;
 
     return IsSingleTargetProtectMethod(GetMoveProtectMethod(chosenMove));
+}
+
+static bool32 IsOpposingSideChoosingMoveEffect(enum BattlerId battlerAtk, enum BattleMoveEffects effect, struct AiLogicData *aiData)
+{
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        enum Move move = MOVE_NONE;
+
+        if (IsBattlerAlly(battlerAtk, battlerDef) || !IsBattlerAlive(battlerDef))
+            continue;
+
+        if ((gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+         && !BattlerHasAi(battlerDef)
+         && gChosenActionByBattler[battlerDef] == B_ACTION_USE_MOVE)
+        {
+            move = gChosenMoveByBattler[battlerDef];
+        }
+        else if ((gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_PREDICT_MOVE)
+              && aiData->predictingMove)
+        {
+            move = aiData->predictedMove[battlerDef];
+        }
+
+        if (move != MOVE_NONE && move != MOVE_UNAVAILABLE && GetMoveEffect(move) == effect)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 static bool32 ShouldAvoidReadPlayerProtectTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
@@ -2933,10 +2962,15 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
             else
                 ADJUST_SCORE(-10);
         }
-        else if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_POWERFUL_STATUS))
+        else
         {
+            if (IsOpposingSideChoosingMoveEffect(battlerAtk, EFFECT_TRICK_ROOM, aiData))
+                ADJUST_SCORE(-READ_PLAYER_TRICK_ROOM_TOGGLE_PENALTY);
+
             // Don't set a trick room you don't benefit from.
-            if (!(gFieldStatuses & STATUS_FIELD_TRICK_ROOM) && !ShouldSetFieldStatus(battlerAtk, STATUS_FIELD_TRICK_ROOM))
+            if (!(gFieldStatuses & STATUS_FIELD_TRICK_ROOM)
+             && !ShouldSetFieldStatus(battlerAtk, STATUS_FIELD_TRICK_ROOM)
+             && !(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_POWERFUL_STATUS))
                     ADJUST_SCORE(-10);
             // Don't unset a trick room that doesn't harm you unless it's about to expire.
             else if ((gFieldStatuses & STATUS_FIELD_TRICK_ROOM) && gFieldTimers.trickRoomTimer > 1 && !ShouldClearFieldStatus(battlerAtk, STATUS_FIELD_TRICK_ROOM))
@@ -6660,7 +6694,9 @@ static s32 AI_PowerfulStatus(enum BattlerId battlerAtk, enum BattlerId battlerDe
             ADJUST_SCORE(POWERFUL_STATUS_MOVE);
         break;
     case EFFECT_TRICK_ROOM:
-        if (!(gFieldStatuses & STATUS_FIELD_TRICK_ROOM) && !HasMoveWithEffect(battlerDef, EFFECT_TRICK_ROOM))
+        if (!(gFieldStatuses & STATUS_FIELD_TRICK_ROOM)
+         && !IsOpposingSideChoosingMoveEffect(battlerAtk, EFFECT_TRICK_ROOM, gAiLogicData)
+         && !HasMoveWithEffect(battlerDef, EFFECT_TRICK_ROOM))
             ADJUST_SCORE(POWERFUL_STATUS_MOVE);
         break;
     case EFFECT_MAGIC_ROOM:

@@ -1052,6 +1052,28 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to Trick Room support 
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI protects instead of making a delayed speed-control pivot")
+{
+    GIVEN {
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        ASSUME(GetMoveType(MOVE_BRICK_BREAK) == TYPE_FIGHTING);
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_HITMONTOP) { Speed(30); Moves(MOVE_BRICK_BREAK); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(30); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { HP(100); MaxHP(100); Speed(10); Moves(MOVE_PROTECT, MOVE_TACKLE); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Speed(10); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_SLOWKING) { Speed(5); Moves(MOVE_TRICK_ROOM, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BRICK_BREAK, target: opponentLeft);
+            MOVE(playerRight, MOVE_CELEBRATE, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_PROTECT);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI pivots to a terrain seed plan")
 {
     GIVEN {

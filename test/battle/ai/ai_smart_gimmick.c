@@ -78,6 +78,25 @@ AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI can spend Dynamax against an
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not mirror a selected Trick Room")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_POWERFUL_STATUS | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Speed(50); Moves(MOVE_TRICK_ROOM); }
+        PLAYER(SPECIES_WYNAUT) { Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_DUSCLOPS) { Speed(10); Moves(MOVE_TRICK_ROOM, MOVE_PSYCHIC); }
+        OPPONENT(SPECIES_SNORLAX) { Speed(5); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TRICK_ROOM);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_PSYCHIC);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI scores against selected player Tera type")
 {
     GIVEN {

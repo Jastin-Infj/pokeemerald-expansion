@@ -54,6 +54,7 @@ static bool32 ShouldSwitchIfIntimidateBenefit(struct SwitchAiContext *switchCont
 static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext);
+static bool32 ShouldPreserveDoubleBattlerWithProtect(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
 
@@ -573,6 +574,9 @@ static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchCont
         return FALSE;
 
     if (!IsDoubleBattle())
+        return FALSE;
+
+    if (ShouldPreserveDoubleBattlerWithProtect(switchContext))
         return FALSE;
 
     switchinId = FindDoublePositionSwitchin(switchContext);
@@ -1207,6 +1211,55 @@ static bool32 PartyMonBenefitsFromTrickRoom(struct SwitchAiContext *switchContex
     return TRUE;
 }
 
+static bool32 BattlerHasUsableProtectMove(enum BattlerId battler)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = gBattleMons[battler].moves[moveIndex];
+
+        if (move != MOVE_NONE
+         && move != MOVE_UNAVAILABLE
+         && gBattleMons[battler].pp[moveIndex] > 0
+         && GetMoveEffect(move) == EFFECT_PROTECT)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 ShouldPreserveDoubleBattlerWithProtect(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId battler = switchContext->battler;
+
+    if (!IsDoubleBattle())
+        return FALSE;
+
+    if (!BattlerHasUsableProtectMove(battler))
+        return FALSE;
+
+    if (gBattleMons[battler].status1 & STATUS1_ANY)
+        return FALSE;
+
+    if (gBattleMons[battler].volatiles.yawn
+     || gBattleMons[battler].volatiles.perishSong
+     || gBattleMons[battler].volatiles.cursed
+     || gBattleMons[battler].volatiles.nightmare
+     || gBattleMons[battler].volatiles.leechSeed
+     || gBattleMons[battler].volatiles.infatuation
+     || gBattleMons[battler].volatiles.encoreTimer != 0)
+        return FALSE;
+
+    if (!IsDoubleBattlerUnderPressure(switchContext))
+        return FALSE;
+
+    if (switchContext->incomingMove != MOVE_NONE
+     && switchContext->incomingMove != MOVE_UNAVAILABLE
+     && MoveIgnoresProtect(switchContext->incomingMove))
+        return FALSE;
+
+    return TRUE;
+}
+
 static bool32 ShouldPivotForBoardControl(struct SwitchAiContext *switchContext, bool32 replacesBadField, bool32 hasImmediateEntryEffect)
 {
     if (switchContext->hasImportantStatusMove || switchContext->hasStatRaised)
@@ -1219,7 +1272,21 @@ static bool32 ShouldPivotForBoardControl(struct SwitchAiContext *switchContext, 
         return TRUE;
 
     if (IsDoubleBattle())
-        return hasImmediateEntryEffect || !CanDoubleBattlerMakeProgress(switchContext) || IsDoubleBattlerUnderPressure(switchContext);
+    {
+        if (hasImmediateEntryEffect)
+            return TRUE;
+
+        if (CanDoubleBattlerMakeProgress(switchContext))
+            return FALSE;
+
+        if (!IsDoubleBattlerUnderPressure(switchContext))
+            return FALSE;
+
+        if (ShouldPreserveDoubleBattlerWithProtect(switchContext))
+            return FALSE;
+
+        return TRUE;
+    }
 
     if (!switchContext->canBattlerWin1v1 || switchContext->typeMatchup > UQ_4_12(2.0))
         return TRUE;
@@ -1443,6 +1510,9 @@ static bool32 ShouldSwitchIfAllMovesBad(struct SwitchAiContext *switchContext)
     if (RandomPercentage(RNG_AI_SWITCH_ALL_MOVES_BAD, GetSwitchChance(SHOULD_SWITCH_ALL_MOVES_BAD))
         && (gAiLogicData->mostSuitableMonId[switchContext->battler] != PARTY_SIZE || !ALL_MOVES_BAD_NEEDS_GOOD_SWITCHIN))
     {
+        if (ShouldPreserveDoubleBattlerWithProtect(switchContext))
+            return FALSE;
+
         if (gAiLogicData->mostSuitableMonId[switchContext->battler] == PARTY_SIZE) // No good candidate mons, find any one that can deal damage
             return FindMonWithMoveOfEffectiveness(switchContext, UQ_4_12(1.0));
         else // Good candidate mon, send that in
@@ -2351,6 +2421,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
         return TRUE;
     if (ShouldSwitchIfPredictedTauntPunish(&switchContext))
         return TRUE;
+    if (ShouldPreserveDoubleBattlerWithProtect(&switchContext))
+        return FALSE;
     if (ShouldSwitchIfAllMovesBad(&switchContext))
         return TRUE;
     if (ShouldSwitchIfBadlyStatused(&switchContext))
@@ -2363,6 +2435,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
         return TRUE;
     if (ShouldSwitchIfWishPassing(&switchContext))
         return TRUE;
+    if (ShouldPreserveDoubleBattlerWithProtect(&switchContext))
+        return FALSE;
     if (ShouldSwitchIfHasBadOdds(&switchContext))
         return TRUE;
     if (ShouldSwitchIfEncored(&switchContext))
