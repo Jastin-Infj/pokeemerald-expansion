@@ -62,7 +62,21 @@ This text can contain ]=] safely.
   --timeout 8
 ```
 
-Lua file は tracked source にしない。検証 artifact として `/tmp` に置き、必要な template や注意点だけ docs に残す。
+One-off validation Lua file は tracked source にしない。検証 artifact として `/tmp` に置き、必要な template や注意点だけ docs に残す。
+
+例外として、複数の人や手順で再利用する project tool は `tools/mgba_live/` に置いてよい。現行の reusable tool は `tools/mgba_live/battle_action_log_export.lua` で、`gBattleActionLog` を host JSON に出す。通常は wrapper を使う。
+
+```bash
+tools/mgba_live/export_battle_action_log.sh SESSION /tmp/battle-action-log.json
+```
+
+Windows 側から直接実行する場合:
+
+```bat
+tools\mgba_live\export_battle_action_log.bat SESSION %TEMP%\battle-action-log.json
+```
+
+この exporter は `pokeemerald.map` から symbol address を解決するため、対象 branch の ROM / map を先に build する。
 
 ## Return Values
 

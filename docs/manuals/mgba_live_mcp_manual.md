@@ -84,6 +84,32 @@ rtk env DISPLAY=:0 /home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/m
 `start` を CLI で使う時は、cache path が変わる可能性に注意する。
 固定 path が存在しない場合は `uvx mgba-live-mcp` の cache を確認し直す。
 
+## Reusable Lua Tools
+
+One-off validation Lua files should stay under `/tmp`, but reusable project tools may live under `tools/mgba_live/`.
+
+Current reusable helpers:
+
+| Tool | Purpose |
+|---|---|
+| `tools/mgba_live/battle_action_log_export.lua` | Reads `gBattleActionLog` from the running ROM and writes host JSON. |
+| `tools/mgba_live/export_battle_action_log.sh` | WSL / Linux shortcut for the exporter. |
+| `tools/mgba_live/export_battle_action_log.bat` | Windows shortcut for the exporter when `mgba-live-cli` is on `PATH`. |
+
+Typical WSL / Linux use after a battle turn has been confirmed:
+
+```sh
+tools/mgba_live/export_battle_action_log.sh SESSION /tmp/battle-action-log.json
+```
+
+Typical Windows use:
+
+```bat
+tools\mgba_live\export_battle_action_log.bat SESSION %TEMP%\battle-action-log.json
+```
+
+The exporter resolves symbols from `pokeemerald.map`, so build the current ROM first. It writes schema `pokeemerald.battle_action_log.v1` with header state, battler positions, named moves / items / gimmicks, action names, switch-in party indexes, selected-gimmick markers, resolved switch-in markers, and corrected switch-in markers.
+
 ## Validation Rules
 
 - `make check` は mGBA headless test であり、実画面確認の代替ではない。
