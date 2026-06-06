@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle.h"
 #include "test/battle.h"
 #include "battle_ai_util.h"
 
@@ -110,6 +111,37 @@ AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI scores against the actual se
             SWITCH(player, 1);
             EXPECT_MOVE(opponent, MOVE_SURF);
         }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: command log records all double battle choices")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { HP(500); Speed(100); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WYNAUT) { HP(500); Speed(100); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(500); Speed(50); Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WYNAUT) { HP(500); Speed(50); Moves(MOVE_POUND); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_SCRATCH, target: playerLeft);
+            EXPECT_MOVE(opponentRight, MOVE_POUND, target: playerLeft);
+        }
+    } THEN {
+        enum BattlerId opponentLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId opponentRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftLog = BattleActionLog_GetLastEntry(opponentLeftBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightLog = BattleActionLog_GetLastEntry(opponentRightBattler, 1u << B_ACTION_USE_MOVE);
+
+        EXPECT_EQ(gBattleActionLog.count, 4);
+        EXPECT(leftLog != NULL);
+        EXPECT(rightLog != NULL);
+        EXPECT_EQ(leftLog->move, MOVE_SCRATCH);
+        EXPECT_EQ(leftLog->target, GetBattlerAtPosition(B_POSITION_PLAYER_LEFT));
+        EXPECT_EQ(rightLog->move, MOVE_POUND);
+        EXPECT_EQ(rightLog->target, GetBattlerAtPosition(B_POSITION_PLAYER_LEFT));
     }
 }
 

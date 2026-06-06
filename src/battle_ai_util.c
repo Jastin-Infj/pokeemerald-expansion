@@ -256,6 +256,14 @@ enum Move GetIncomingMove(enum BattlerId battler, enum BattlerId opposingBattler
 
     if (aiData->predictingMove)
         return aiData->predictedMove[opposingBattler];
+
+    if ((gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE) && !BattlerHasAi(opposingBattler))
+    {
+        enum Move loggedMove = BattleActionLog_GetLastSelectedMove(opposingBattler);
+        if (loggedMove != MOVE_NONE)
+            return loggedMove;
+    }
+
     return aiData->lastUsedMove[opposingBattler];
 }
 
@@ -271,6 +279,14 @@ enum Move GetPredictedMove(enum BattlerId battler, enum BattlerId opposingBattle
 
     if (aiData->predictingMove)
         return aiData->predictedMove[opposingBattler];
+
+    if ((gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE) && !BattlerHasAi(opposingBattler))
+    {
+        enum Move loggedMove = BattleActionLog_GetLastSelectedMove(opposingBattler);
+        if (loggedMove != MOVE_NONE)
+            return loggedMove;
+    }
+
     return MOVE_NONE;
 }
 

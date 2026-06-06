@@ -60,6 +60,36 @@
 
 #define BATTLE_BUFFER_LINK_SIZE 0x1000
 
+#define BATTLE_ACTION_LOG_ENTRIES       128
+#define BATTLE_ACTION_LOG_FLAG_VALID    (1 << 0)
+#define BATTLE_ACTION_LOG_FLAG_RESOLVED (1 << 1)
+#define BATTLE_ACTION_LOG_FLAG_CORRECTED (1 << 2)
+#define BATTLE_ACTION_LOG_FLAG_GIMMICK  (1 << 3)
+
+struct BattleActionLogEntry
+{
+    u16 sequence;
+    u16 turn;
+    enum Move move;
+    enum Item item;
+    u8 battler;
+    u8 action;
+    u8 target;
+    u8 moveSlot;
+    u8 partyIndex;
+    enum Gimmick gimmick;
+    u8 flags;
+};
+
+struct BattleActionLog
+{
+    struct BattleActionLogEntry entries[BATTLE_ACTION_LOG_ENTRIES];
+    u16 sequence;
+    u16 lastRecordedTurn;
+    u8 cursor;
+    u8 count;
+};
+
 // Fully Cleared each turn after end turn effects are done. A few things are cleared before end turn effects
 struct ProtectStruct
 {
@@ -970,6 +1000,7 @@ extern u8 gBattleTextBuff2[TEXT_BUFF_ARRAY_COUNT];
 extern u8 gBattleTextBuff3[TEXT_BUFF_ARRAY_COUNT + 13]; //to handle stupidly large z move names
 extern u32 gBattleTypeFlags;
 extern u8 gBattleEnvironment;
+extern struct BattleActionLog gBattleActionLog;
 extern u8 *gBattleAnimBgTileBuffer;
 extern u8 *gBattleAnimBgTilemapBuffer;
 extern u32 gBattleControllerExecFlags;
@@ -1029,6 +1060,12 @@ extern u8 gSentPokesToOpponent[2];
 extern struct BattleEnigmaBerry gEnigmaBerries[MAX_BATTLERS_COUNT];
 extern struct BattleScripting gBattleScripting;
 extern struct BattleStruct *gBattleStruct;
+
+void BattleActionLog_Clear(void);
+void BattleActionLog_RecordConfirmedCommands(void);
+void BattleActionLog_RecordSwitchIn(enum BattlerId battler, u32 partyIndex, bool32 corrected);
+const struct BattleActionLogEntry *BattleActionLog_GetLastEntry(enum BattlerId battler, u32 actionMask);
+enum Move BattleActionLog_GetLastSelectedMove(enum BattlerId battler);
 extern struct StartingStatuses gStartingStatuses;
 extern struct AiBattleData *gAiBattleData;
 extern struct AiThinkingStruct *gAiThinkingStruct;

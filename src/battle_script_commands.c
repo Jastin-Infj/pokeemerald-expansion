@@ -5028,12 +5028,15 @@ static void Cmd_getswitchedmondata(void)
         return;
 
     enum BattleTrainer trainer = GetBattlerTrainer(battler);
-    assertf(IsValidSwitchIn(trainer, gBattleStruct->monToSwitchIntoId[battler]))
+    bool32 corrected = FALSE;
+    if (!IsValidSwitchIn(trainer, gBattleStruct->monToSwitchIntoId[battler]))
     {
         gBattleStruct->monToSwitchIntoId[battler] = GetArbitraryValidSwitchIn(trainer);
+        corrected = TRUE;
     }
 
     gBattlerPartyIndexes[battler] = gBattleStruct->monToSwitchIntoId[battler];
+    BattleActionLog_RecordSwitchIn(battler, gBattlerPartyIndexes[battler], corrected);
 
     BtlController_EmitGetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_ALL_BATTLE, 1u << gBattlerPartyIndexes[battler]);
     MarkBattlerForControllerExec(battler);
