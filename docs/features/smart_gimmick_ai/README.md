@@ -25,6 +25,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
 - Smart switching can also use terrain seeds, status pressure / status prevention, status-benefit switch-ins, and Skill Swap-style ability bridges when those plans create board control.
 - Smart switching can read a predicted `Taunt` as a free-positioning turn: a utility-heavy active Pokemon that cannot punish Taunt in place may pivot directly to an attacker, while Pokemon that can already attack, win the matchup, or ignore Taunt stay in.
+- In read-mode doubles, an already Choice-locked attacker can pivot when it is being ignored, its locked move no longer makes progress, and the available switch-in is not punished by the confirmed player move set.
 - Protect is scored as a turn-gain tool, not a passive singles default. Singles Protect needs a payoff such as residual damage, recovery, choice scouting, Substitute threshold, Disable / Encore follow-up, Wish, or Explosion avoidance. Consecutive Protect is penalized for reduced success odds, but a second Protect can still be selected when the payoff remains.
 
 ## Current Mega / Ultra Burst Payoffs
@@ -73,6 +74,8 @@ The branch now keeps an in-ROM battle action ring buffer (`gBattleActionLog`) fo
 
 For manual read-quality rechecks, use `Party -> Gauntlet Battles -> Read Double`. It starts a level-50 4v4 doubles battle from mirrored 8-Pokemon weighted pools with all gimmick access. Both sides can roll comparable support, speed control, field control, priority pressure, Mega, Z-Move, Dynamax / Gigantamax, and Tera candidates, while the AI side has full read-mode flags enabled.
 
+For a no-legendary Pokemon Champions-style manual check, use `Party -> Gauntlet Battles -> Champs Double`. It starts a fixed 4v4 doubles battle with Mega-only access, using Pokemon visible on the official Champions pages such as Dragonite, Gardevoir, Dondozo, Hydrapple, Lucario, Charizard, Aegislash, and Hisuian Samurott.
+
 Use `tools/mgba_live/start_mgba_live.sh manual-ai-log 120` from WSL / Linux, or `tools\mgba_live\start_mgba_live.bat manual-ai-log 120` from Windows, to open mGBA Live with an explicit 120 FPS target. The helper defaults to 120 FPS when the second argument is omitted. The helper also starts battle action log autosave by default; the latest non-empty snapshot is written to `/tmp/<session>-battle-action-log-autosave.json` on WSL / Linux unless `BATTLE_ACTION_LOG_OUT` is set. Set `BATTLE_ACTION_LOG_AUTOSAVE=0` only when host-side log writes are not wanted.
 
 Use `tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]` from WSL / Linux, or `tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]` from Windows when `mgba-live-cli` is on `PATH`. Both wrappers call `tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live session and write JSON using schema `pokeemerald.battle_action_log.v1`. If the WSL / Linux wrapper is called without a session, it uses the active mGBA Live session when one exists. The JSON includes header state, battler positions, action names, move / item / gimmick names, target battlers, party indexes, selected gimmick markers, resolved switch-in markers, and corrected switch-in markers. Because `gBattleActionLog` is runtime EWRAM, export it during the current battle before starting another battle or returning through a path that reinitializes battle state.
@@ -87,6 +90,7 @@ Double-battle loss review should use exported or autosaved logs as evidence, not
 
 - Bad-position switching preserves a Pokemon that has no useful pressure, is threatened by either opposing slot, and cannot be covered by its partner.
 - Board-control switching can pivot into reserve weather, terrain, Tailwind, Trick Room, terrain seed, direct or secondary status / confusion pressure, status care, and ability-bridge roles when those effects improve pressure or replace an unfavorable field state.
+- Read-mode Choice-role switching lets a locked attacker leave the field when it is not being hit and the locked move is no longer valuable, while rejecting switch-ins that would take punishing known damage.
 
 Singles remain more conservative; the AI still needs bad odds, bad matchup, weak current pressure, a bad field state, or an immediate status-benefit switch-in before it pivots for board control. Doubles allow more proactive pivots because the partner slot and the reserve role can create pressure together.
 

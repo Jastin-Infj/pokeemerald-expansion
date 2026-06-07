@@ -3162,6 +3162,121 @@ Tags: Ace
 - Earth Power
 - Body Press
 
+=== DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES ===
+Name: Champs P1
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+Party Size: 4
+
+Dragonite @ ITEM_DRAGONINITE
+Ability: Multiscale
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 Spe
+Tags: Lead / Ace
+- Dragon Dance
+- Extreme Speed
+- Dragon Claw
+- Protect
+
+Gardevoir @ ITEM_FOCUS_SASH
+Ability: Trace
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Support
+- Dazzling Gleam
+- Moonblast
+- Psychic
+- Protect
+
+Dondozo @ ITEM_LEFTOVERS
+Ability: Unaware
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Atk / 180 SpD
+Tags: Ace
+- Wave Crash
+- Order Up
+- Body Press
+- Protect
+
+Hydrapple @ ITEM_SITRUS_BERRY
+Ability: Regenerator
+Modest Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 SpA / 60 SpD
+Tags: Support
+- Apple Acid
+- Dragon Pulse
+- Giga Drain
+- Protect
+
+=== DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_DOUBLES ===
+Name: Champ Lab
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Omniscient / Know Opponent Party / Powerful Status / Aggressive Gimmick / Read Player Move
+Class: Champion
+Battle Type: Doubles
+Party Size: 4
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Lucario @ ITEM_LUCARIONITE
+Ability: Inner Focus
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Ace
+- Aura Sphere
+- Flash Cannon
+- Vacuum Wave
+- Protect
+
+Charizard @ ITEM_LIFE_ORB
+Ability: Solar Power
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead
+- Heat Wave
+- Air Slash
+- Solar Beam
+- Protect
+
+Aegislash @ ITEM_LEFTOVERS
+Ability: Stance Change
+Quiet Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 4 Def / 252 SpA
+Tags: Support
+- King's Shield
+- Shadow Ball
+- Flash Cannon
+- Wide Guard
+
+HSamurott (SPECIES_SAMUROTT_HISUI) @ ITEM_CLEAR_AMULET
+Ability: Sharpness
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+- Ceaseless Edge
+- Aqua Cutter
+- Sucker Punch
+- Protect
+
 === DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES ===
 Name: Audit P2
 Class: Pkmn Trainer 1

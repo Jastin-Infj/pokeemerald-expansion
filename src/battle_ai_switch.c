@@ -55,6 +55,7 @@ static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchCo
 static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchContext);
+static bool32 ShouldSwitchIfReadChoiceRoleDone(struct SwitchAiContext *switchContext);
 static bool32 ShouldPreserveDoubleBattlerWithProtect(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
@@ -653,6 +654,40 @@ static u32 GetKnownPlayerChosenMoveIndex(enum BattlerId battler, enum Move move)
     return GetMoveIndex(battler, move);
 }
 
+static bool32 CanKnownMoveHitBattlerSlot(enum BattlerId battlerAtk, enum BattlerId target, enum Move move, enum BattlerId chosenTarget)
+{
+    enum MoveTarget moveTarget;
+
+    if (target >= gBattlersCount || !IsBattlerAlive(target))
+        return FALSE;
+    if (IsBattleMoveStatus(move))
+        return FALSE;
+
+    moveTarget = AI_GetBattlerMoveTargetType(battlerAtk, move);
+    switch (moveTarget)
+    {
+    case TARGET_SELECTED:
+    case TARGET_SMART:
+    case TARGET_DEPENDS:
+    case TARGET_OPPONENT:
+    case TARGET_RANDOM:
+    case TARGET_ALLY:
+    case TARGET_USER_OR_ALLY:
+        return chosenTarget == target && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_BOTH:
+        return !IsBattlerAlly(battlerAtk, target) && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_FOES_AND_ALLY:
+    case TARGET_ALL_BATTLERS:
+        return battlerAtk != target && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_USER:
+        return battlerAtk == target && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_USER_AND_ALLY:
+        return IsBattlerAlly(battlerAtk, target) && CanTargetBattler(battlerAtk, target, move);
+    default:
+        return FALSE;
+    }
+}
+
 static bool32 IsKnownPlayerSingleTargetDamageMoveTargetingBattler(enum BattlerId battler, enum BattlerId opposingBattler, enum Move move)
 {
     enum MoveTarget moveTarget;
@@ -673,7 +708,7 @@ static bool32 IsKnownPlayerSingleTargetDamageMoveTargetingBattler(enum BattlerId
     case TARGET_OPPONENT:
     case TARGET_RANDOM:
         chosenTarget = GetKnownPlayerChosenMoveTarget(opposingBattler);
-        return chosenTarget == battler && CanTargetBattler(opposingBattler, battler, move);
+        return CanKnownMoveHitBattlerSlot(opposingBattler, battler, move, chosenTarget);
     default:
         return FALSE;
     }
@@ -738,6 +773,97 @@ static void SetKnownIncomingMoveForSwitchContext(struct SwitchAiContext *switchC
         switchContext->incomingMove = threatMove;
         switchContext->incomingMoveIndex = threatMoveIndex;
     }
+}
+
+static bool32 IsKnownPlayerMoveCommandReadyForSwitch(enum BattlerId battler)
+{
+    if (gBattleMons[battler].volatiles.multipleTurns || gBattleMons[battler].volatiles.rechargeTimer > 0)
+        return TRUE;
+
+    return gChosenMoveByBattler[battler] != MOVE_NONE
+        && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE;
+}
+
+static bool32 IsKnownPlayerCommandReadyForSwitch(enum BattlerId battler)
+{
+    if (!IsOnPlayerSide(battler))
+        return TRUE;
+    if ((gAbsentBattlerFlags & (1u << battler)) || !IsBattlerAlive(battler))
+        return TRUE;
+    if (gBattleStruct->battlerState[battler].commandingDondozo)
+        return TRUE;
+
+    switch (gChosenActionByBattler[battler])
+    {
+    case B_ACTION_USE_MOVE:
+        return IsKnownPlayerMoveCommandReadyForSwitch(battler);
+    case B_ACTION_SWITCH:
+        return gBattleStruct->monToSwitchIntoId[battler] < PARTY_SIZE;
+    case B_ACTION_USE_ITEM:
+    case B_ACTION_RUN:
+    case B_ACTION_SAFARI_WATCH_CAREFULLY:
+    case B_ACTION_SAFARI_BALL:
+    case B_ACTION_SAFARI_POKEBLOCK:
+    case B_ACTION_SAFARI_GO_NEAR:
+    case B_ACTION_SAFARI_RUN:
+    case B_ACTION_WALLY_THROW:
+    case B_ACTION_THROW_BALL:
+    case B_ACTION_DEBUG:
+    case B_ACTION_EXEC_SCRIPT:
+    case B_ACTION_TRY_FINISH:
+    case B_ACTION_FINISHED:
+    case B_ACTION_NOTHING_FAINTED:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 AreKnownPlayerCommandsReadyForSwitch(void)
+{
+    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    {
+        if (!IsKnownPlayerCommandReadyForSwitch(battler))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+static u32 GetKnownPlayerDamageIntoBattlerSlot(enum BattlerId battler, enum DamageCalcContext damageContext)
+{
+    u32 totalDamage = 0;
+
+    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE) || !BattlerHasAi(battler))
+        return 0;
+
+    for (enum BattlerId opposingBattler = 0; opposingBattler < gBattlersCount; opposingBattler++)
+    {
+        enum Move move;
+        enum BattlerId chosenTarget;
+        u32 moveIndex;
+
+        if (IsBattlerAlly(battler, opposingBattler) || !IsBattlerAlive(opposingBattler) || BattlerHasAi(opposingBattler))
+            continue;
+        if (gChosenActionByBattler[opposingBattler] != B_ACTION_USE_MOVE)
+            continue;
+
+        move = gChosenMoveByBattler[opposingBattler];
+        if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+            continue;
+
+        chosenTarget = GetKnownPlayerChosenMoveTarget(opposingBattler);
+        if (!CanKnownMoveHitBattlerSlot(opposingBattler, battler, move, chosenTarget))
+            continue;
+
+        moveIndex = GetKnownPlayerChosenMoveIndex(opposingBattler, move);
+        if (moveIndex >= MAX_MON_MOVES)
+            continue;
+
+        totalDamage += AI_GetDamage(opposingBattler, battler, moveIndex, damageContext, gAiLogicData);
+    }
+
+    return totalDamage;
 }
 
 static bool32 PartyMonHasDamagingMoveOfType(struct Pokemon *mon, enum Type type)
@@ -2539,6 +2665,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
         return TRUE;
     if (ShouldPreserveDoubleBattlerWithProtect(&switchContext))
         return FALSE;
+    if (ShouldSwitchIfReadChoiceRoleDone(&switchContext))
+        return TRUE;
     if (ShouldSwitchIfAllMovesBad(&switchContext))
         return TRUE;
     if (ShouldSwitchIfBadlyStatused(&switchContext))
@@ -3499,6 +3627,157 @@ static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchCo
         return FALSE;
 
     switchinId = FindSwitchinThatSurvivesKnownSingleTargetMove(switchContext);
+    if (switchinId == PARTY_SIZE)
+        return FALSE;
+
+    return SetSwitchinAndSwitch(switchContext->battler, switchinId);
+}
+
+static bool32 IsBattlerChoiceLockedForSwitch(enum BattlerId battler, enum Move *lockedMove)
+{
+    *lockedMove = MOVE_NONE;
+
+    if (gBattleStruct == NULL)
+        return FALSE;
+    if (!HasChoiceEffect(battler))
+        return FALSE;
+    if (gAiLogicData->abilities[battler] != ABILITY_GORILLA_TACTICS && !IsBattlerItemEnabled(battler))
+        return FALSE;
+
+    *lockedMove = gBattleStruct->choicedMove[battler];
+    return *lockedMove != MOVE_NONE && *lockedMove != MOVE_UNAVAILABLE;
+}
+
+static bool32 ChoiceLockedMoveCanMakeDoubleProgress(struct SwitchAiContext *switchContext, enum Move lockedMove)
+{
+    enum BattlerId battler = switchContext->battler;
+    enum BattlerId opposingBattler = switchContext->opposingBattler;
+    enum BattlerId opposingPartner = BATTLE_PARTNER(opposingBattler);
+    enum BattlerId targets[2] = {opposingBattler, opposingPartner};
+    enum MoveTarget moveTarget;
+    u32 moveIndex;
+    u32 totalDamage = 0;
+    u32 totalMaxHp = 0;
+
+    if (IsBattleMoveStatus(lockedMove))
+        return FALSE;
+
+    moveIndex = GetMoveIndex(battler, lockedMove);
+    if (moveIndex >= MAX_MON_MOVES)
+        return FALSE;
+
+    moveTarget = AI_GetBattlerMoveTargetType(battler, lockedMove);
+
+    for (u32 targetIndex = 0; targetIndex < ARRAY_COUNT(targets); targetIndex++)
+    {
+        enum BattlerId target = targets[targetIndex];
+        u32 damage;
+
+        if (!IsBattlerAlive(target))
+            continue;
+        if (!CanKnownMoveHitBattlerSlot(battler, target, lockedMove, target))
+            continue;
+
+        damage = AI_GetDamage(battler, target, moveIndex, AI_ATTACKING, gAiLogicData);
+        totalDamage += damage;
+        totalMaxHp += gBattleMons[target].maxHP;
+
+        if (GetNoOfHitsToKOBattler(battler, target, moveIndex, AI_ATTACKING, CONSIDER_ENDURE) <= 2)
+            return TRUE;
+    }
+
+    if ((IsSpreadMove(moveTarget) || moveTarget == TARGET_ALL_BATTLERS) && totalMaxHp != 0 && totalDamage * 100 >= totalMaxHp * 30)
+        return TRUE;
+
+    return FALSE;
+}
+
+static u32 FindReadChoiceRoleDoneSwitchin(struct SwitchAiContext *switchContext)
+{
+    struct IncomingHealInfo healInfoData;
+    const struct IncomingHealInfo *healInfo = &healInfoData;
+    struct AiLogicData *savedAiLogicData = AllocSaveAiLogicData();
+    struct BattlePokemon *savedBattleMons = AllocSaveBattleMons();
+    u32 savedNotOnField = gBattleStruct->battlerState[switchContext->battler].notOnField;
+    u32 bestMonId = PARTY_SIZE;
+    u32 bestScore = 0;
+
+    GetIncomingHealInfo(switchContext->battler, &healInfoData);
+    gBattleStruct->battlerState[switchContext->battler].notOnField = FALSE;
+
+    for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
+    {
+        u32 originalHp;
+        u32 knownDamage;
+        u32 hitsToKO;
+        u32 score;
+        bool32 canMakeProgress;
+        bool32 isMostSuitable;
+
+        if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
+            continue;
+
+        InitializeSwitchinCandidate(switchContext->battler, monIndex, &switchContext->party[monIndex]);
+        originalHp = gBattleMons[switchContext->battler].hp;
+
+        if (healInfo->healBeforeHazards)
+        {
+            gBattleMons[switchContext->battler].hp = gBattleMons[switchContext->battler].maxHP;
+            if (healInfo->curesStatus)
+                gBattleMons[switchContext->battler].status1 = 0;
+        }
+
+        if (gAiLogicData->abilities[switchContext->battler] == ABILITY_TRUANT && IsTruantMonVulnerable(switchContext->battler, switchContext->incomingBattler))
+            continue;
+
+        knownDamage = GetKnownPlayerDamageIntoBattlerSlot(switchContext->battler, AI_SWITCHIN_DEFENDING);
+        hitsToKO = GetSwitchinHitsToKO(knownDamage, switchContext->battler, healInfo, originalHp);
+        if (knownDamage != 0 && hitsToKO <= AI_DEFENSIVE_KO_THRESHOLD)
+            continue;
+
+        canMakeProgress = CanDoubleBattlerMakeProgress(switchContext);
+        isMostSuitable = gAiLogicData->mostSuitableMonId[switchContext->battler] == monIndex;
+        if (!canMakeProgress && !isMostSuitable)
+            continue;
+
+        score = (canMakeProgress ? 1000 : 0)
+              + (isMostSuitable ? 500 : 0)
+              + (hitsToKO == 0 ? 255 : hitsToKO);
+        if (score > bestScore)
+        {
+            bestMonId = monIndex;
+            bestScore = score;
+        }
+    }
+
+    gBattleStruct->battlerState[switchContext->battler].notOnField = savedNotOnField;
+    FreeRestoreAiLogicData(savedAiLogicData);
+    FreeRestoreBattleMons(savedBattleMons);
+
+    return bestMonId;
+}
+
+static bool32 ShouldSwitchIfReadChoiceRoleDone(struct SwitchAiContext *switchContext)
+{
+    enum Move lockedMove;
+    u32 switchinId;
+
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
+        return FALSE;
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_READ_PLAYER_MOVE))
+        return FALSE;
+    if (!IsDoubleBattle())
+        return FALSE;
+    if (!AreKnownPlayerCommandsReadyForSwitch())
+        return FALSE;
+    if (!IsBattlerChoiceLockedForSwitch(switchContext->battler, &lockedMove))
+        return FALSE;
+    if (GetKnownPlayerDamageIntoBattlerSlot(switchContext->battler, AI_DEFENDING) != 0)
+        return FALSE;
+    if (ChoiceLockedMoveCanMakeDoubleProgress(switchContext, lockedMove))
+        return FALSE;
+
+    switchinId = FindReadChoiceRoleDoneSwitchin(switchContext);
     if (switchinId == PARTY_SIZE)
         return FALSE;
 

@@ -2397,6 +2397,64 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI stays in a bad double positio
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker pivots when ignored and no longer making progress")
+{
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_CHOICE_SCARF].holdEffect == HOLD_EFFECT_CHOICE_SCARF);
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_GARCHOMP) { Level(50); HP(600); MaxHP(600); SpDefense(400); Speed(50); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_DRAGONITE) { Level(50); HP(600); MaxHP(600); SpDefense(400); Speed(40); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_INCINEROAR) { Level(50); Speed(50); Moves(MOVE_CELEBRATE, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_PRIMARINA) { Level(50); Speed(40); Moves(MOVE_CELEBRATE, MOVE_MOONBLAST); }
+        OPPONENT(SPECIES_MILOTIC) { Level(50); Speed(80); Item(ITEM_CHOICE_SCARF); Moves(MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_GARDEVOIR) { Level(50); Speed(20); Moves(MOVE_DAZZLING_GLEAM); }
+        OPPONENT(SPECIES_RILLABOOM) { Level(50); Speed(70); Ability(ABILITY_OVERGROW); Moves(MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_ICE_BEAM);
+            EXPECT_MOVE(opponentRight, MOVE_DAZZLING_GLEAM);
+        }
+        TURN {
+            SWITCH(playerLeft, 2);
+            SWITCH(playerRight, 3);
+            EXPECT_SWITCH(opponentLeft, 2);
+            EXPECT_MOVE(opponentRight, MOVE_DAZZLING_GLEAM);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker stays when the switch-in is unsafe into known spread damage")
+{
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_CHOICE_SCARF].holdEffect == HOLD_EFFECT_CHOICE_SCARF);
+        ASSUME(GetMoveTarget(MOVE_EARTHQUAKE) == TARGET_FOES_AND_ALLY);
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_GARCHOMP) { Level(50); HP(600); MaxHP(600); SpDefense(400); Speed(50); Moves(MOVE_CELEBRATE, MOVE_EARTHQUAKE); }
+        PLAYER(SPECIES_GYARADOS) { Level(50); HP(800); MaxHP(800); SpDefense(500); Speed(40); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_RILLABOOM) { Level(50); Speed(40); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ROTOM_HEAT) { Level(50); Speed(80); Ability(ABILITY_LEVITATE); Item(ITEM_CHOICE_SCARF); Moves(MOVE_THUNDERBOLT); }
+        OPPONENT(SPECIES_ROTOM_FAN) { Level(50); Speed(20); Ability(ABILITY_LEVITATE); Moves(MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_ARCANINE) { Level(50); HP(1); MaxHP(100); Speed(30); Ability(ABILITY_FLASH_FIRE); Moves(MOVE_FLAMETHROWER, MOVE_EXTREME_SPEED); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_THUNDERBOLT);
+            EXPECT_MOVE(opponentRight, MOVE_ICE_BEAM);
+        }
+        TURN {
+            MOVE(playerLeft, MOVE_EARTHQUAKE);
+            SWITCH(playerRight, 2);
+            EXPECT_MOVE(opponentLeft, MOVE_THUNDERBOLT);
+            EXPECT_MOVE(opponentRight, MOVE_ICE_BEAM);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI won't switch out due to bad odds if it can OHKO with a priority move")
 {
     PASSES_RANDOMLY(100, 100, RNG_AI_SWITCH_HASBADODDS);
