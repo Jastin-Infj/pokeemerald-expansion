@@ -45,6 +45,7 @@
 #define READ_PLAYER_KNOWN_KO_ACTION_PENALTY 20
 #define READ_PLAYER_TRICK_ROOM_TOGGLE_PENALTY 12
 #define READ_PLAYER_FOLLOW_ME_PARTNER_DAMAGE_PERCENT 50
+#define READ_PLAYER_REDIRECTION_TARGET_PENALTY 40
 #define HP_DEPENDENT_POWER_MINOR_LOSS 20
 #define HP_DEPENDENT_POWER_MAJOR_LOSS 50
 #define FUTURE_PRESSURE_LOOKAHEAD_TURNS 3
@@ -55,6 +56,7 @@
 #define FUTURE_PRESSURE_BASE_SCORE DECENT_EFFECT
 #define READ_PLAYER_SETUP_PRESSURE_DAMAGE_PERCENT 10
 #define READ_PLAYER_SETUP_PRESSURE_SCORE GOOD_EFFECT
+#define READ_PLAYER_SETUP_DISRUPTION_SCORE (BEST_EFFECT + GOOD_EFFECT)
 #define PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT 15
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
@@ -242,8 +244,46 @@ static bool32 IsReadPlayerMoveGuaranteedFlinch(enum BattlerId battlerAtk, enum B
     return FALSE;
 }
 
+static const struct BattleActionLogEntry *GetReadPlayerCurrentMoveLogEntry(enum BattlerId battler)
+{
+    const struct BattleActionLogEntry *entry = BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+
+    if (entry == NULL || entry->turn != gBattleResults.battleTurnCounter)
+        return NULL;
+    if (entry->move == MOVE_NONE || entry->move == MOVE_UNAVAILABLE)
+        return NULL;
+    return entry;
+}
+
+static bool32 IsReadPlayerBufferedMoveCommand(enum BattlerId battler)
+{
+    return gBattleResources != NULL
+        && IsOnPlayerSide(battler)
+        && gBattleResources->bufferB[battler][1] == B_ACTION_USE_MOVE;
+}
+
+static enum Move GetReadPlayerKnownChosenMove(enum BattlerId battler)
+{
+    const struct BattleActionLogEntry *entry;
+
+    if (gChosenMoveByBattler[battler] != MOVE_NONE && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE)
+    {
+        if (gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
+         || (gChosenActionByBattler[battler] == B_ACTION_NONE && IsReadPlayerBufferedMoveCommand(battler)))
+            return gChosenMoveByBattler[battler];
+    }
+
+    entry = GetReadPlayerCurrentMoveLogEntry(battler);
+    if (entry != NULL)
+        return entry->move;
+
+    return MOVE_NONE;
+}
+
 static enum BattlerId GetReadPlayerChosenMoveTarget(enum BattlerId battler)
 {
+    const struct BattleActionLogEntry *entry;
+
     if (gBattleStruct->moveTarget[battler] < gBattlersCount)
         return gBattleStruct->moveTarget[battler];
 
@@ -254,15 +294,24 @@ static enum BattlerId GetReadPlayerChosenMoveTarget(enum BattlerId battler)
      && gBattleResources->bufferB[battler][3] < gBattlersCount)
         return gBattleResources->bufferB[battler][3];
 
+    entry = GetReadPlayerCurrentMoveLogEntry(battler);
+    if (entry != NULL && entry->target < gBattlersCount)
+        return entry->target;
+
     return MAX_BATTLERS_COUNT;
 }
 
 static u32 GetReadPlayerChosenMoveIndex(enum BattlerId battler, enum Move move)
 {
     u32 moveIndex = gBattleStruct->chosenMovePositions[battler];
+    const struct BattleActionLogEntry *entry;
 
     if (moveIndex < MAX_MON_MOVES && gBattleMons[battler].moves[moveIndex] == move)
         return moveIndex;
+
+    entry = GetReadPlayerCurrentMoveLogEntry(battler);
+    if (entry != NULL && entry->moveSlot < MAX_MON_MOVES && gBattleMons[battler].moves[entry->moveSlot] == move)
+        return entry->moveSlot;
 
     return GetMoveIndex(battler, move);
 }
@@ -294,6 +343,34 @@ static bool32 IsReadPlayerSingleTargetMoveTargetingBattler(enum BattlerId battle
     default:
         return FALSE;
     }
+}
+
+static bool32 IsReadPlayerSelectedMoveEffectTargetingBattler(enum BattlerId battlerAtk, enum BattleMoveEffects effect)
+{
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !BattlerHasAi(battlerAtk))
+        return FALSE;
+
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        enum Move chosenMove;
+
+        if (BattlerHasAi(battlerDef)
+         || !IsBattlerAlive(battlerDef)
+         || IsBattlerAlly(battlerAtk, battlerDef)
+         || gChosenActionByBattler[battlerDef] == B_ACTION_SWITCH)
+            continue;
+
+        chosenMove = GetReadPlayerKnownChosenMove(battlerDef);
+        if (chosenMove == MOVE_NONE || chosenMove == MOVE_UNAVAILABLE)
+            continue;
+        if (GetMoveEffect(chosenMove) != effect)
+            continue;
+        if (IsReadPlayerSingleTargetMoveTargetingBattler(battlerDef, battlerAtk, chosenMove))
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 static bool32 CanKnownMoveHitBattler(enum BattlerId battlerAtk, enum BattlerId target, enum Move move, enum BattlerId chosenTarget)
@@ -502,6 +579,109 @@ static bool32 IsAiPranksterMoveBlockedByTarget(enum BattlerId battlerAtk, enum B
 
     target = AI_GetBattlerMoveTargetType(battlerAtk, move);
     return target != TARGET_DEPENDS && target != TARGET_OPPONENTS_FIELD;
+}
+
+static bool32 CanReadPlayerRedirectionMoveAffectAttacker(enum BattlerId battlerAtk, enum Move redirectionMove, struct AiLogicData *aiData)
+{
+    if (IsPowderMove(redirectionMove)
+     && !IsAffectedByPowderMove(battlerAtk, aiData->abilities[battlerAtk], aiData->holdEffects[battlerAtk]))
+        return FALSE;
+
+    return TRUE;
+}
+
+static bool32 IsReadPlayerRedirectableSingleTargetMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    enum MoveTarget moveTarget;
+
+    if (IsBattlerAlly(battlerAtk, battlerDef)
+     || IsMoveRedirectionPrevented(battlerAtk, move, aiData->abilities[battlerAtk]))
+        return FALSE;
+
+    moveTarget = AI_GetBattlerMoveTargetType(battlerAtk, move);
+    switch (moveTarget)
+    {
+    case TARGET_SELECTED:
+    case TARGET_SMART:
+    case TARGET_DEPENDS:
+    case TARGET_OPPONENT:
+    case TARGET_RANDOM:
+        return CanTargetBattler(battlerAtk, battlerDef, move);
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 ShouldAvoidReadPlayerRedirectionTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !IsDoubleBattle()
+     || !IsReadPlayerRedirectableSingleTargetMove(battlerAtk, battlerDef, move, aiData))
+        return FALSE;
+
+    for (enum BattlerId redirector = 0; redirector < gBattlersCount; redirector++)
+    {
+        enum Move redirectionMove;
+
+        if (redirector == battlerDef
+         || BattlerHasAi(redirector)
+         || !IsBattlerAlive(redirector)
+         || IsBattlerAlly(battlerAtk, redirector)
+         || gChosenActionByBattler[redirector] == B_ACTION_SWITCH)
+            continue;
+
+        redirectionMove = GetReadPlayerKnownChosenMove(redirector);
+        if (redirectionMove == MOVE_NONE || redirectionMove == MOVE_UNAVAILABLE)
+            continue;
+        if (GetMoveEffect(redirectionMove) != EFFECT_FOLLOW_ME)
+            continue;
+        if (!CanReadPlayerRedirectionMoveAffectAttacker(battlerAtk, redirectionMove, aiData))
+            continue;
+        if (CanTargetBattler(battlerAtk, redirector, move))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static s32 GetReadPlayerSetupDisruptionMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    enum Move chosenMove;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !IsReadPlayerSelectedOffensiveSetupThreat(battlerAtk, battlerDef)
+     || IsTargetingPartner(battlerAtk, battlerDef))
+        return NO_INCREASE;
+
+    chosenMove = gChosenMoveByBattler[battlerDef];
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_TAUNT:
+        if (!CanTargetBattler(battlerAtk, battlerDef, move))
+            return NO_INCREASE;
+        if (AI_CanBattlerIgnorePredictedMove(battlerDef, battlerAtk, move)
+         || IsAiPranksterMoveBlockedByTarget(battlerAtk, battlerDef, move))
+            return NO_INCREASE;
+        return READ_PLAYER_SETUP_DISRUPTION_SCORE;
+    case EFFECT_HAZE:
+        if (AI_IsSlower(battlerAtk, battlerDef, move, chosenMove, CONSIDER_PRIORITY))
+            return READ_PLAYER_SETUP_DISRUPTION_SCORE;
+        return NO_INCREASE;
+    default:
+        break;
+    }
+
+    if (GetMoveNonVolatileStatus(move) == MOVE_EFFECT_SLEEP
+     && CanTargetBattler(battlerAtk, battlerDef, move)
+     && AI_CanPutToSleep(battlerAtk, battlerDef, aiData->abilities[battlerDef], move, aiData->partnerMove))
+        return READ_PLAYER_SETUP_DISRUPTION_SCORE;
+
+    if (MoveHasAdditionalEffect(move, MOVE_EFFECT_CLEAR_SMOG)
+     && CanTargetBattler(battlerAtk, battlerDef, move)
+     && AI_IsSlower(battlerAtk, battlerDef, move, chosenMove, CONSIDER_PRIORITY))
+        return READ_PLAYER_SETUP_DISRUPTION_SCORE;
+
+    return NO_INCREASE;
 }
 
 static u32 GetMoveDamageToBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
@@ -2331,6 +2511,9 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
 
     if (ShouldAvoidReadPlayerProtectTarget(battlerAtk, battlerDef, move))
         RETURN_SCORE_MINUS(READ_PLAYER_PROTECT_TARGET_PENALTY);
+
+    if (ShouldAvoidReadPlayerRedirectionTarget(battlerAtk, battlerDef, move, aiData))
+        RETURN_SCORE_MINUS(READ_PLAYER_REDIRECTION_TARGET_PENALTY);
 
     if (ShouldAvoidMoveIntoReadPlayerFakeOut(battlerAtk, move))
         RETURN_SCORE_MINUS(READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY);
@@ -5453,6 +5636,8 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
     // don't get baited into encore
     if (gBattleMoveEffects[moveEffect].encourageEncore
      && HasBattlerSideMoveWithEffect(battlerDef, EFFECT_ENCORE)
+     && (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+      || IsReadPlayerSelectedMoveEffectTargetingBattler(battlerAtk, EFFECT_ENCORE))
      && (B_MENTAL_HERB < GEN_5 || aiData->holdEffects[battlerAtk] != HOLD_EFFECT_MENTAL_HERB))
      {
         if (!AI_IsAbilityOnSide(battlerAtk, ABILITY_AROMA_VEIL)
@@ -5501,6 +5686,9 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
     default:
         break;
     }
+
+    ADJUST_SCORE(GetReadPlayerSetupDisruptionMoveScore(battlerAtk, battlerDef, move, aiData));
+
     // move effect checks
     switch (moveEffect)
     {
