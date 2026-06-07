@@ -629,6 +629,9 @@ static bool32 PartyMonHasMoveEffect(struct Pokemon *mon, enum BattleMoveEffects 
 
 static enum BattlerId GetKnownPlayerChosenMoveTarget(enum BattlerId battler)
 {
+    if (gBattleStruct != NULL && gBattleStruct->moveTarget[battler] < gBattlersCount)
+        return gBattleStruct->moveTarget[battler];
+
     if (gBattleResources != NULL
      && IsOnPlayerSide(battler)
      && gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
@@ -636,9 +639,6 @@ static enum BattlerId GetKnownPlayerChosenMoveTarget(enum BattlerId battler)
      && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE
      && gBattleResources->bufferB[battler][3] < gBattlersCount)
         return gBattleResources->bufferB[battler][3];
-
-    if (gBattleStruct != NULL && gBattleStruct->moveTarget[battler] < gBattlersCount)
-        return gBattleStruct->moveTarget[battler];
 
     return MAX_BATTLERS_COUNT;
 }

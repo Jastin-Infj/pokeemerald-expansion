@@ -3105,6 +3105,98 @@ static bool32 TargetHasOffensiveSetup(enum BattlerId battlerDef)
         || gBattleMons[battlerDef].statStages[STAT_SPEED] > DEFAULT_STAT_STAGE;
 }
 
+static enum BattlerId GetReadPlayerSelectedMoveTarget(enum BattlerId battler)
+{
+    if (gBattleStruct != NULL && gBattleStruct->moveTarget[battler] < gBattlersCount)
+        return gBattleStruct->moveTarget[battler];
+
+    if (gBattleResources != NULL
+     && IsOnPlayerSide(battler)
+     && gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
+     && gChosenMoveByBattler[battler] != MOVE_NONE
+     && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE
+     && gBattleResources->bufferB[battler][3] < gBattlersCount)
+        return gBattleResources->bufferB[battler][3];
+
+    return MAX_BATTLERS_COUNT;
+}
+
+static bool32 IsReadPlayerSelectedMoveTargeting(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    enum MoveTarget moveTarget;
+    enum BattlerId chosenTarget;
+
+    if (BattlerHasAi(battlerAtk)
+     || gChosenActionByBattler[battlerAtk] != B_ACTION_USE_MOVE
+     || gChosenMoveByBattler[battlerAtk] != move)
+        return FALSE;
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
+    moveTarget = AI_GetBattlerMoveTargetType(battlerAtk, move);
+    switch (moveTarget)
+    {
+    case TARGET_SELECTED:
+    case TARGET_SMART:
+    case TARGET_DEPENDS:
+    case TARGET_OPPONENT:
+    case TARGET_RANDOM:
+        chosenTarget = GetReadPlayerSelectedMoveTarget(battlerAtk);
+        if (chosenTarget == battlerDef)
+            return CanTargetBattler(battlerAtk, battlerDef, move);
+        if (chosenTarget < gBattlersCount && IsBattlerAlive(chosenTarget))
+            return FALSE;
+        return CanTargetBattler(battlerAtk, battlerDef, move);
+    case TARGET_BOTH:
+        return !IsBattlerAlly(battlerAtk, battlerDef) && CanTargetBattler(battlerAtk, battlerDef, move);
+    case TARGET_FOES_AND_ALLY:
+    case TARGET_ALL_BATTLERS:
+        return battlerAtk != battlerDef && CanTargetBattler(battlerAtk, battlerDef, move);
+    default:
+        return FALSE;
+    }
+}
+
+static s32 GetReadPlayerProtectThreatScore(enum BattlerId battlerAtk, enum Move move)
+{
+    s32 bestScore = 0;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE))
+        return 0;
+
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        enum Move predictedMove;
+        u32 moveIndex, damage;
+
+        if (IsBattlerAlly(battlerAtk, battlerDef) || !IsBattlerAlive(battlerDef) || BattlerHasAi(battlerDef))
+            continue;
+        if (gChosenActionByBattler[battlerDef] != B_ACTION_USE_MOVE)
+            continue;
+
+        predictedMove = gChosenMoveByBattler[battlerDef];
+        if (!IsReadPlayerSelectedMoveTargeting(battlerDef, battlerAtk, predictedMove))
+            continue;
+        if (MoveIgnoresProtect(predictedMove))
+            continue;
+        if (GetMoveProtectMethod(move) != PROTECT_MAX_GUARD
+         && AI_CanContactBypassProtect(battlerDef, battlerAtk, predictedMove))
+            continue;
+
+        moveIndex = GetMoveIndex(battlerDef, predictedMove);
+        if (moveIndex >= MAX_MON_MOVES)
+            continue;
+
+        damage = AI_GetDamage(battlerDef, battlerAtk, moveIndex, AI_DEFENDING, gAiLogicData);
+        if (damage >= gBattleMons[battlerAtk].hp)
+            bestScore = max(bestScore, BEST_EFFECT);
+        else if (damage * 100 >= gBattleMons[battlerAtk].hp * 50)
+            bestScore = max(bestScore, GOOD_EFFECT);
+    }
+
+    return bestScore;
+}
+
 bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove)
 {
     if (predictedMove == MOVE_NONE || predictedMove == MOVE_UNAVAILABLE || IsBattleMoveStatus(predictedMove))
@@ -3152,6 +3244,8 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
     {
         return WORST_EFFECT;
     }
+
+    score += GetReadPlayerProtectThreatScore(battlerAtk, move);
 
     /*if (GetMoveResultFlags(predictedMove) & (MOVE_RESULT_NO_EFFECT | MOVE_RESULT_MISSED))
     {

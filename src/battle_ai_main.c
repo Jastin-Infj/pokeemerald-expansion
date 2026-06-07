@@ -42,6 +42,7 @@
 
 #define READ_PLAYER_PROTECT_TARGET_PENALTY 18
 #define READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY 9
+#define READ_PLAYER_KNOWN_KO_ACTION_PENALTY 20
 #define READ_PLAYER_TRICK_ROOM_TOGGLE_PENALTY 12
 #define READ_PLAYER_FOLLOW_ME_PARTNER_DAMAGE_PERCENT 50
 #define HP_DEPENDENT_POWER_MINOR_LOSS 20
@@ -241,15 +242,15 @@ static bool32 IsReadPlayerMoveGuaranteedFlinch(enum BattlerId battlerAtk, enum B
 
 static enum BattlerId GetReadPlayerChosenMoveTarget(enum BattlerId battler)
 {
+    if (gBattleStruct->moveTarget[battler] < gBattlersCount)
+        return gBattleStruct->moveTarget[battler];
+
     if (gBattleResources != NULL
      && IsOnPlayerSide(battler)
      && gChosenMoveByBattler[battler] != MOVE_NONE
      && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE
      && gBattleResources->bufferB[battler][3] < gBattlersCount)
         return gBattleResources->bufferB[battler][3];
-
-    if (gBattleStruct->moveTarget[battler] < gBattlersCount)
-        return gBattleStruct->moveTarget[battler];
 
     return MAX_BATTLERS_COUNT;
 }
@@ -411,6 +412,16 @@ static u32 GetKnownEarlierDamageToBattler(enum BattlerId battlerAtk, enum Battle
     }
 
     return totalDamage;
+}
+
+static bool32 ShouldAvoidActionIntoKnownFasterKO(enum BattlerId battlerAtk, enum Move move, struct AiLogicData *aiData)
+{
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE))
+        return FALSE;
+    if (GetMoveEffect(move) == EFFECT_PROTECT)
+        return FALSE;
+
+    return GetKnownEarlierDamageToBattler(battlerAtk, battlerAtk, move, aiData) >= gBattleMons[battlerAtk].hp;
 }
 
 static s32 GetHpDependentPowerRiskPenalty(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
@@ -2277,6 +2288,9 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
 
     if (ShouldAvoidMoveIntoReadPlayerFakeOut(battlerAtk, move))
         RETURN_SCORE_MINUS(READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY);
+
+    if (ShouldAvoidActionIntoKnownFasterKO(battlerAtk, move, aiData))
+        RETURN_SCORE_MINUS(READ_PLAYER_KNOWN_KO_ACTION_PENALTY);
 
     {
         s32 hpDependentPowerPenalty = GetHpDependentPowerRiskPenalty(battlerAtk, battlerDef, move, aiData);

@@ -21,6 +21,7 @@
         Level(50); Item(ITEM_MIRACLE_SEED); Ability(ABILITY_GRASSY_SURGE); Nature(NATURE_ADAMANT); \
         TEST_IVS_PHYSICAL(); \
         MaxHP(207); HP(207); Attack(187); Defense(130); SpDefense(120); Speed(105); \
+        DynamaxLevel(10); \
         Moves(__VA_ARGS__); \
     }
 
@@ -101,6 +102,14 @@
         Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_LIQUID_VOICE); Nature(NATURE_MODEST); \
         TEST_IVS_SPECIAL(); \
         MaxHP(187); HP(187); Attack(70); Defense(105); SpAttack(195); SpDefense(135); Speed(80); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_PRIMARINA_DAMAGED_SUPPORT(...) \
+    OPPONENT(SPECIES_PRIMARINA) { \
+        Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_LIQUID_VOICE); Nature(NATURE_MODEST); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(187); HP(80); Attack(70); Defense(105); SpAttack(195); SpDefense(135); Speed(80); \
         Moves(__VA_ARGS__); \
     }
 
@@ -229,6 +238,26 @@ AI_DOUBLE_BATTLE_TEST("AI uses Rage Powder to protect an ally from a selected si
             MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentRight);
             MOVE(playerRight, MOVE_PROTECT);
             EXPECT_MOVE(opponentLeft, MOVE_RAGE_POWDER);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI protects instead of choosing a slower attack into a selected KO")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_WOOD_HAMMER) == TARGET_SELECTED);
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_POWERFUL_STATUS);
+        PLAYER_VENUSAUR_BULKY(MOVE_PROTECT, MOVE_SLEEP_POWDER, MOVE_SLUDGE_BOMB, MOVE_EARTH_POWER);
+        PLAYER_RILLABOOM_BULKY(MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_FAKE_OUT, MOVE_PROTECT);
+        OPPONENT_COALOSSAL_POLICY(MOVE_HEAT_WAVE, MOVE_ROCK_SLIDE, MOVE_EARTH_POWER, MOVE_BODY_PRESS);
+        OPPONENT_PRIMARINA_DAMAGED_SUPPORT(MOVE_SPARKLING_ARIA, MOVE_MOONBLAST, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_WOOD_HAMMER, target: opponentRight, gimmick: GIMMICK_DYNAMAX);
+            SCORE_GT(opponentRight, MOVE_PROTECT, MOVE_MOONBLAST, target: opponentRight);
+            SCORE_GT(opponentRight, MOVE_PROTECT, MOVE_SPARKLING_ARIA, target: opponentRight);
         }
     }
 }
