@@ -96,6 +96,22 @@
         Moves(__VA_ARGS__); \
     }
 
+#define OPPONENT_PRIMARINA_AQUA_JET_SUPPORT(...) \
+    OPPONENT(SPECIES_PRIMARINA) { \
+        Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_LIQUID_VOICE); Nature(NATURE_MODEST); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(187); HP(187); Attack(70); Defense(105); SpAttack(195); SpDefense(135); Speed(80); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_ARCANINE_SUPPORT(...) \
+    OPPONENT(SPECIES_ARCANINE) { \
+        Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_CAREFUL); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(197); HP(197); Attack(90); Defense(110); SpDefense(145); Speed(115); \
+        Moves(__VA_ARGS__); \
+    }
+
 #define OPPONENT_COALOSSAL_POLICY(...) \
     OPPONENT(SPECIES_COALOSSAL) { \
         Level(50); Item(ITEM_WEAKNESS_POLICY); Ability(ABILITY_STEAM_ENGINE); Nature(NATURE_MODEST); \
@@ -217,12 +233,62 @@ AI_DOUBLE_BATTLE_TEST("AI uses Rage Powder to protect an ally from a selected si
     }
 }
 
-AI_DOUBLE_BATTLE_TEST("AI triggers ally Steam Engine and Weakness Policy with a single-target Water move")
+AI_DOUBLE_BATTLE_TEST("AI triggers ally Steam Engine and Weakness Policy with priority Aqua Jet")
+{
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_WEAKNESS_POLICY].holdEffect == HOLD_EFFECT_WEAKNESS_POLICY);
+        ASSUME(GetMoveType(MOVE_AQUA_JET) == TYPE_WATER);
+        ASSUME(GetMoveTarget(MOVE_AQUA_JET) == TARGET_SELECTED);
+        ASSUME(GetMovePriority(MOVE_AQUA_JET) > 0);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS);
+        PLAYER_RILLABOOM_BULKY(MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF, MOVE_FAKE_OUT, MOVE_PROTECT);
+        PLAYER_VENUSAUR_BULKY(MOVE_SLEEP_POWDER, MOVE_SLUDGE_BOMB, MOVE_EARTH_POWER, MOVE_PROTECT);
+        OPPONENT_PRIMARINA_AQUA_JET_SUPPORT(MOVE_AQUA_JET, MOVE_SPARKLING_ARIA, MOVE_MOONBLAST, MOVE_PROTECT);
+        OPPONENT_COALOSSAL_POLICY(MOVE_HEAT_WAVE, MOVE_ROCK_SLIDE, MOVE_EARTH_POWER, MOVE_BODY_PRESS);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_AQUA_JET, target: opponentRight);
+        }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_AQUA_JET, opponentLeft);
+        ABILITY_POPUP(opponentRight, ABILITY_STEAM_ENGINE);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_HELD_ITEM_EFFECT, opponentRight);
+    } THEN {
+        EXPECT_EQ(opponentRight->statStages[STAT_SPEED], MAX_STAT_STAGE);
+        EXPECT_EQ(opponentRight->statStages[STAT_ATK], DEFAULT_STAT_STAGE + 2);
+        EXPECT_EQ(opponentRight->statStages[STAT_SPATK], DEFAULT_STAT_STAGE + 2);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI can score a harmless non-priority Fire hit to trigger ally Steam Engine")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_FLAME_CHARGE) == TYPE_FIRE);
+        ASSUME(GetMoveTarget(MOVE_FLAME_CHARGE) == TARGET_SELECTED);
+        ASSUME(GetMovePriority(MOVE_FLAME_CHARGE) == 0);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS);
+        PLAYER_RILLABOOM_BULKY(MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF, MOVE_FAKE_OUT, MOVE_PROTECT);
+        PLAYER_VENUSAUR_BULKY(MOVE_SLEEP_POWDER, MOVE_SLUDGE_BOMB, MOVE_EARTH_POWER, MOVE_PROTECT);
+        OPPONENT_ARCANINE_SUPPORT(MOVE_FLAME_CHARGE, MOVE_SNARL, MOVE_PROTECT);
+        OPPONENT_COALOSSAL_POLICY(MOVE_HEAT_WAVE, MOVE_ROCK_SLIDE, MOVE_EARTH_POWER, MOVE_BODY_PRESS);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            SCORE_GT_VAL(opponentLeft, MOVE_FLAME_CHARGE, AI_SCORE_DEFAULT, target: opponentRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI does not use unsafe non-priority Water Gun just to trigger ally Steam Engine")
 {
     GIVEN {
         ASSUME(gItemsInfo[ITEM_WEAKNESS_POLICY].holdEffect == HOLD_EFFECT_WEAKNESS_POLICY);
         ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
         ASSUME(GetMoveTarget(MOVE_WATER_GUN) == TARGET_SELECTED);
+        ASSUME(GetMovePriority(MOVE_WATER_GUN) == 0);
         AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS);
         PLAYER_RILLABOOM_BULKY(MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF, MOVE_FAKE_OUT, MOVE_PROTECT);
         PLAYER_VENUSAUR_BULKY(MOVE_SLEEP_POWDER, MOVE_SLUDGE_BOMB, MOVE_EARTH_POWER, MOVE_PROTECT);
@@ -232,16 +298,8 @@ AI_DOUBLE_BATTLE_TEST("AI triggers ally Steam Engine and Weakness Policy with a 
         TURN {
             MOVE(playerLeft, MOVE_PROTECT);
             MOVE(playerRight, MOVE_PROTECT);
-            EXPECT_MOVE(opponentLeft, MOVE_WATER_GUN);
+            SCORE_LT_VAL(opponentLeft, MOVE_WATER_GUN, AI_SCORE_DEFAULT, target: opponentRight);
         }
-    } SCENE {
-        ANIMATION(ANIM_TYPE_MOVE, MOVE_WATER_GUN, opponentLeft);
-        ABILITY_POPUP(opponentRight, ABILITY_STEAM_ENGINE);
-        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_HELD_ITEM_EFFECT, opponentRight);
-    } THEN {
-        EXPECT_EQ(opponentRight->statStages[STAT_SPEED], MAX_STAT_STAGE);
-        EXPECT_EQ(opponentRight->statStages[STAT_ATK], DEFAULT_STAT_STAGE + 2);
-        EXPECT_EQ(opponentRight->statStages[STAT_SPATK], DEFAULT_STAT_STAGE + 2);
     }
 }
 

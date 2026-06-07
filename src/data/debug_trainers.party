@@ -3134,18 +3134,18 @@ Tags: Lead / Ace
 - Dazzling Gleam
 - Protect
 
-Pelipper @ ITEM_FOCUS_SASH
-Ability: Keen Eye
-Calm Nature
+Primarina @ ITEM_COVERT_CLOAK
+Ability: Liquid Voice
+Modest Nature
 Level: 50
 Tera Type: Water
 Dynamax Level: 10
 IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
-EVs: 252 HP / 4 SpA / 252 SpD
-Tags: Support
-- Water Gun
-- Tailwind
-- Wide Guard
+EVs: 252 HP / 252 SpA / 4 SpD
+Tags: Support / Lead
+- Aqua Jet
+- Sparkling Aria
+- Moonblast
 - Protect
 
 Coalossal @ ITEM_WEAKNESS_POLICY

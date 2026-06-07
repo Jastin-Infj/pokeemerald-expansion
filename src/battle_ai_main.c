@@ -52,6 +52,7 @@
 #define FUTURE_PRESSURE_COVERAGE_DAMAGE_PERCENT 35
 #define FUTURE_PRESSURE_PARTNER_LOW_DAMAGE_PERCENT 15
 #define FUTURE_PRESSURE_BASE_SCORE DECENT_EFFECT
+#define PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT 15
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
@@ -4106,6 +4107,26 @@ static s32 AI_TryToFaint(enum BattlerId battlerAtk, enum BattlerId battlerDef, e
     return score;
 }
 
+static s32 GetTacticalPartnerActivationScore(enum BattlerId battlerAtk, enum BattlerId partner, enum Move move, enum MoveTarget moveTarget, u32 moveIndex)
+{
+    if (moveTarget == TARGET_FOES_AND_ALLY)
+        return DECENT_EFFECT;
+
+    if (GetBattleMovePriority(battlerAtk, gAiLogicData->abilities[battlerAtk], move) > 0)
+        return GOOD_EFFECT;
+
+    if (!IsBattleMoveStatus(move) && GetMovePower(move) != 0 && IsBattlerAlive(partner))
+    {
+        u32 damage = GetMoveDamageToBattler(battlerAtk, partner, moveIndex);
+        u32 hp = gBattleMons[partner].hp;
+
+        if (damage == 0 || damage * 100 <= hp * PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT)
+            return WEAK_EFFECT;
+    }
+
+    return NO_INCREASE;
+}
+
 // double battle logic
 static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score)
 {
@@ -4506,19 +4527,32 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
                 }
                 break;
             case ABILITY_STEAM_ENGINE:
-                if (isFriendlyFireOK && (moveType == TYPE_WATER || moveType == TYPE_FIRE)
-                    && ShouldTriggerAbility(battlerAtk, battlerAtkPartner, atkPartnerAbility))
+                if (isFriendlyFireOK && (moveType == TYPE_WATER || moveType == TYPE_FIRE))
                 {
-                    bool32 triggersWeaknessPolicy = (atkPartnerHoldEffect == HOLD_EFFECT_WEAKNESS_POLICY
-                                                  && aiData->effectiveness[battlerAtk][battlerAtkPartner][gAiThinkingStruct->movesetIndex] >= UQ_4_12(2.0)
-                                                  && (BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_ATK)
-                                                   || BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_SPATK)));
+                    s32 activationScore = GetTacticalPartnerActivationScore(battlerAtk, battlerAtkPartner, move, moveTarget, gAiThinkingStruct->movesetIndex);
 
-                    if (moveTarget == TARGET_FOES_AND_ALLY)
+                    if (activationScore > NO_INCREASE
+                     && ShouldTriggerAbility(battlerAtk, battlerAtkPartner, atkPartnerAbility))
                     {
-                        ADJUST_SCORE(DECENT_EFFECT);
+                        bool32 triggersWeaknessPolicy = (atkPartnerHoldEffect == HOLD_EFFECT_WEAKNESS_POLICY
+                                                      && aiData->effectiveness[battlerAtk][battlerAtkPartner][gAiThinkingStruct->movesetIndex] >= UQ_4_12(2.0)
+                                                      && (BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_ATK)
+                                                       || BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_SPATK)));
+
+                        if (moveTarget == TARGET_FOES_AND_ALLY)
+                        {
+                            ADJUST_SCORE(DECENT_EFFECT);
+                        }
+                        else
+                        {
+                            ADJUST_SCORE(activationScore);
+                        }
+                        ADJUST_SCORE(triggersWeaknessPolicy ? BEST_EFFECT : GOOD_EFFECT);
                     }
-                    ADJUST_SCORE(triggersWeaknessPolicy ? BEST_EFFECT : GOOD_EFFECT);
+                    else
+                    {
+                        isMoveAffectedByPartnerAbility = FALSE;
+                    }
                 }
                 else
                 {
@@ -4658,13 +4692,20 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
         if (!partnerProtecting
          && atkPartnerHoldEffect == HOLD_EFFECT_WEAKNESS_POLICY
          && !IsBattleMoveStatus(move)
-         && isFriendlyFireOK
-         && aiData->effectiveness[battlerAtk][battlerAtkPartner][gAiThinkingStruct->movesetIndex] >= UQ_4_12(2.0)
-         && (BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_ATK)
-         || BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_SPATK)))
+         && isFriendlyFireOK)
         {
-            isMoveAffectedByPartnerAbility = TRUE;
-            ADJUST_SCORE(GOOD_EFFECT);
+            s32 activationScore = GetTacticalPartnerActivationScore(battlerAtk, battlerAtkPartner, move, moveTarget, gAiThinkingStruct->movesetIndex);
+
+            if (activationScore > NO_INCREASE
+             && aiData->effectiveness[battlerAtk][battlerAtkPartner][gAiThinkingStruct->movesetIndex] >= UQ_4_12(2.0)
+             && (BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_ATK)
+             || BattlerStatCanRise(battlerAtkPartner, atkPartnerAbility, STAT_SPATK)))
+            {
+                isMoveAffectedByPartnerAbility = TRUE;
+                if (moveTarget != TARGET_FOES_AND_ALLY)
+                    ADJUST_SCORE(activationScore);
+                ADJUST_SCORE(GOOD_EFFECT);
+            }
         }
 
         // attacker move effects specifically targeting partner
