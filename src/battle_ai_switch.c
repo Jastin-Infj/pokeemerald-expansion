@@ -3772,6 +3772,8 @@ static bool32 ShouldSwitchIfReadChoiceRoleDone(struct SwitchAiContext *switchCon
         return FALSE;
     if (!IsBattlerChoiceLockedForSwitch(switchContext->battler, &lockedMove))
         return FALSE;
+    // A spent locked battler can still be the correct cushion. Do not expose a
+    // reserve when the confirmed player turn is already spending damage here.
     if (GetKnownPlayerDamageIntoBattlerSlot(switchContext->battler, AI_DEFENDING) != 0)
         return FALSE;
     if (ChoiceLockedMoveCanMakeDoubleProgress(switchContext, lockedMove))

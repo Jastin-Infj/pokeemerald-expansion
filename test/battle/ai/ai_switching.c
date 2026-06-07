@@ -2426,6 +2426,34 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker pivots w
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker stays as a cushion when targeted")
+{
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_CHOICE_SCARF].holdEffect == HOLD_EFFECT_CHOICE_SCARF);
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, 0);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_GARCHOMP) { Level(50); HP(600); MaxHP(600); SpDefense(400); Speed(50); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_PRIMARINA) { Level(50); HP(600); MaxHP(600); SpDefense(400); Speed(40); Moves(MOVE_CELEBRATE, MOVE_MOONBLAST); }
+        PLAYER(SPECIES_INCINEROAR) { Level(50); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_MILOTIC) { Level(50); HP(600); MaxHP(600); SpDefense(400); Speed(80); Item(ITEM_CHOICE_SCARF); Moves(MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_GARDEVOIR) { Level(50); Speed(20); Moves(MOVE_DAZZLING_GLEAM); }
+        OPPONENT(SPECIES_RILLABOOM) { Level(50); Speed(70); Ability(ABILITY_OVERGROW); Moves(MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_ICE_BEAM);
+            EXPECT_MOVE(opponentRight, MOVE_DAZZLING_GLEAM);
+        }
+        TURN {
+            SWITCH(playerLeft, 2);
+            MOVE(playerRight, MOVE_MOONBLAST, target:opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_ICE_BEAM);
+            EXPECT_MOVE(opponentRight, MOVE_DAZZLING_GLEAM);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker stays when the switch-in is unsafe into known spread damage")
 {
     GIVEN {

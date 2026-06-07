@@ -25,7 +25,7 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 - Smart switching can use reserve Pokemon as board-control tools: weather setters, terrain setters, Tailwind, and Trick Room can justify a pivot when they flip the field or speed state.
 - Smart switching can also use terrain seeds, status pressure / status prevention, status-benefit switch-ins, and Skill Swap-style ability bridges when those plans create board control.
 - Smart switching can read a predicted `Taunt` as a free-positioning turn: a utility-heavy active Pokemon that cannot punish Taunt in place may pivot directly to an attacker, while Pokemon that can already attack, win the matchup, or ignore Taunt stay in.
-- In read-mode doubles, an already Choice-locked attacker can pivot when it is being ignored, its locked move no longer makes progress, and the available switch-in is not punished by the confirmed player move set.
+- In read-mode doubles, an already Choice-locked attacker can pivot when it is being ignored, its locked move no longer makes progress, and the available switch-in is not punished by the confirmed player move set. If that spent Pokemon is being attacked, it can stay as a cushion instead of exposing a reserve.
 - Protect is scored as a turn-gain tool, not a passive singles default. Singles Protect needs a payoff such as residual damage, recovery, choice scouting, Substitute threshold, Disable / Encore follow-up, Wish, or Explosion avoidance. Consecutive Protect is penalized for reduced success odds, but a second Protect can still be selected when the payoff remains.
 
 ## Current Mega / Ultra Burst Payoffs
@@ -90,7 +90,7 @@ Double-battle loss review should use exported or autosaved logs as evidence, not
 
 - Bad-position switching preserves a Pokemon that has no useful pressure, is threatened by either opposing slot, and cannot be covered by its partner.
 - Board-control switching can pivot into reserve weather, terrain, Tailwind, Trick Room, terrain seed, direct or secondary status / confusion pressure, status care, and ability-bridge roles when those effects improve pressure or replace an unfavorable field state.
-- Read-mode Choice-role switching lets a locked attacker leave the field when it is not being hit and the locked move is no longer valuable, while rejecting switch-ins that would take punishing known damage.
+- Read-mode Choice-role switching lets a locked attacker leave the field when it is not being hit and the locked move is no longer valuable, while rejecting switch-ins that would take punishing known damage. When the confirmed player turn is already hitting the spent Pokemon, the AI can keep it in as a cushion to improve the next reserve's entry.
 
 Singles remain more conservative; the AI still needs bad odds, bad matchup, weak current pressure, a bad field state, or an immediate status-benefit switch-in before it pivots for board control. Doubles allow more proactive pivots because the partner slot and the reserve role can create pressure together.
 
@@ -116,6 +116,7 @@ These runtime heuristics are source-derived rather than copied from a single mat
 - Public 2018 Worlds recaps describe Groundium Z helping escape a Perish Trap matchup, supporting Z-Move use before last-Pokemon turns when trap pressure changes the damage race: https://thegamehaus.com/esports/this-is-for-latin-america-2018-pokemon-world-championships-recap/2018/08/28/
 - The 2017 Worlds finals recap notes a Dark-type switch-in stopping Prankster-boosted Z-Nature Power, so status Z-Moves remain under existing tactical legality / viability checks instead of being blindly conserved or blindly fired: https://www.nintendolife.com/news/2017/08/feature_everything_you_need_to_know_about_the_2017_pokemon_world_championships
 - Future usage / ranking adapters should prefer Pokemon Battle DataBase, official event records, Pokemon Home / Champions-style usage when available, local PartyGen catalogs, and observed battle history. Pokemon Showdown articles are not strategy source material for this branch; raw data or team examples may be inspected only with lower confidence and explicit source tags.
+- PJCS2026 game-division streams are now an accepted source for manual turn-shape review. The official PJCS page lists the 6 June 2026 and 7 June 2026 game-division YouTube Live streams, and Victory Road tracks the event as the 2026 Japan Championships for `Pokemon Champions`: https://www.pokemon.co.jp/ex/pjcs/2026/news/260522_03/ and https://victoryroad.pro/2026-japan/
 
 ## Debug Fixtures
 
