@@ -1242,6 +1242,57 @@ AI_DOUBLE_BATTLE_TEST("AI does not tunnel Kyogre's Thunder into Tornadus when Wa
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI does not Prankster Taunt a Dark-type Incineroar")
+{
+    ASSUME(GetMoveEffect(MOVE_TAUNT) == EFFECT_TAUNT);
+    ASSUME(IsSpeciesOfType(SPECIES_INCINEROAR, TYPE_DARK));
+
+    GIVEN {
+        WITH_CONFIG(B_PRANKSTER_DARK_TYPES, GEN_7);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Level(50); MaxHP(202); HP(202); Defense(120); SpDefense(146); Speed(80); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_MEWTWO) { Level(50); Speed(200); Moves(MOVE_PSYSTRIKE, MOVE_ICE_BEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_TORNADUS) { Level(50); Ability(ABILITY_PRANKSTER); SpAttack(177); Speed(179); Moves(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); MaxHP(205); HP(205); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentRight);
+            MOVE(playerRight, MOVE_PSYSTRIKE, target: opponentRight);
+            SCORE_LT_VAL(opponentLeft, MOVE_TAUNT, AI_SCORE_DEFAULT, target: playerLeft);
+            SCORE_GT(opponentLeft, MOVE_BLEAKWIND_STORM, MOVE_TAUNT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI values Kyogre as the Incineroar damage source when its partner lacks a good hit")
+{
+    u64 aiKnowledgeFlags = AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE;
+
+    PARAMETRIZE { aiKnowledgeFlags = AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE; }
+    PARAMETRIZE { aiKnowledgeFlags = AI_FLAG_PREDICTION | AI_FLAG_KNOW_OPPONENT_PARTY; }
+
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveType(MOVE_WATER_SPOUT) == TYPE_WATER);
+    ASSUME(IsSpeciesOfType(SPECIES_INCINEROAR, TYPE_DARK));
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | aiKnowledgeFlags);
+        PLAYER(SPECIES_INCINEROAR) { Level(50); MaxHP(202); HP(202); Defense(120); SpDefense(146); Speed(80); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_MEWTWO) { Level(50); MaxHP(181); HP(181); Defense(110); SpDefense(110); Speed(200); Moves(MOVE_PSYSTRIKE, MOVE_ICE_BEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_TORNADUS) { Level(50); Ability(ABILITY_PRANKSTER); SpAttack(90); Speed(179); Moves(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_MYSTIC_WATER); MaxHP(205); HP(205); Defense(120); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentRight);
+            MOVE(playerRight, MOVE_PSYSTRIKE, target: opponentLeft);
+            EXPECT_MOVES(opponentRight, MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE);
+            SCORE_GT(opponentRight, MOVE_WATER_SPOUT, MOVE_ICE_BEAM, target: playerLeft);
+            SCORE_GT(opponentRight, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM, target: playerLeft);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI discounts Water Spout when a known faster hit will lower Kyogre's HP")
 {
     ASSUME(GetMoveEffect(MOVE_WATER_SPOUT) == EFFECT_POWER_BASED_ON_USER_HP);
