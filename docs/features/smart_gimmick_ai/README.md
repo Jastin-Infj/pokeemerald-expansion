@@ -70,6 +70,8 @@ Status Z-Moves keep their existing tactical checks because their value is usuall
 
 Read mode also treats selected single-target `Protect` as a hard warning. Ordinary single-target damage into that protected slot receives a large penalty, while a read-mode AI Pokemon with no confirmed incoming threat no longer gets a passive doubles Protect bump just because Protect is generally useful.
 
+Read mode now also treats selected offensive setup moves, such as `Dragon Dance`, as immediate future-pressure threats. Damaging moves that can meaningfully hit that setup user are rewarded, narrow damage into the other slot is discounted when it lets the setup threat through, and `Protect` / `King's Shield` is discounted when it merely shelters one AI Pokemon while another player-side sweeper is known to be boosting.
+
 Read mode also applies soft penalties for ordinary slower actions into confirmed or visible `Fake Out` pressure. This uses actual move priority, so lower-priority `Extreme Speed` is still discounted against Gen 5+ `Fake Out`, while priority blockers such as `Armor Tail` / `Dazzling` / `Queenly Majesty` and Psychic Terrain remove the Fake Out threat.
 
 The branch now keeps an in-ROM battle action ring buffer (`gBattleActionLog`) for command-buffer audits. It records confirmed move / switch / item commands for every live battler each turn, including move slot, target, selected gimmick, and switch-in party index, and it records resolved switch-ins separately. `AI_FLAG_READ_PLAYER_MOVE` can fall back to the current battle's logged selected move when no current confirmed command is available. Normal mGBA still cannot write host files directly, so persistent external logs are exported through mGBA Live / Lua.

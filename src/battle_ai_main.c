@@ -53,6 +53,8 @@
 #define FUTURE_PRESSURE_COVERAGE_DAMAGE_PERCENT 35
 #define FUTURE_PRESSURE_PARTNER_LOW_DAMAGE_PERCENT 15
 #define FUTURE_PRESSURE_BASE_SCORE DECENT_EFFECT
+#define READ_PLAYER_SETUP_PRESSURE_DAMAGE_PERCENT 10
+#define READ_PLAYER_SETUP_PRESSURE_SCORE GOOD_EFFECT
 #define PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT 15
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
@@ -481,7 +483,8 @@ static bool32 IsFuturePressureThreat(enum BattlerId battlerAtk, enum BattlerId b
      || IsBattlerAlly(battlerAtk, battlerDef))
         return FALSE;
 
-    return AnyUsefulStatIsRaised(battlerDef);
+    return AnyUsefulStatIsRaised(battlerDef)
+        || IsReadPlayerSelectedOffensiveSetupThreat(battlerAtk, battlerDef);
 }
 
 static bool32 IsAiPranksterMoveBlockedByTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
@@ -590,6 +593,23 @@ static bool32 MoveMeaningfullyPressuresBattler(enum BattlerId battlerAtk, enum B
         return TRUE;
 
     return (damage * 100 / hp) >= FUTURE_PRESSURE_DAMAGE_PERCENT;
+}
+
+static bool32 MovePressuresReadPlayerSetupThreat(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
+{
+    u32 damage;
+    u32 hp;
+
+    if (!IsReadPlayerSelectedOffensiveSetupThreat(battlerAtk, battlerDef))
+        return FALSE;
+
+    damage = GetMoveDamageToBattler(battlerAtk, battlerDef, moveIndex);
+    if (damage == 0)
+        return FALSE;
+
+    hp = gBattleMons[battlerDef].hp;
+    return damage >= hp
+        || damage * 100 >= hp * READ_PLAYER_SETUP_PRESSURE_DAMAGE_PERCENT;
 }
 
 static u32 GetBestUsableDamageIntoBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef)
@@ -784,11 +804,33 @@ static bool32 ShouldPenalizeSingleTargetOverFuturePressure(enum BattlerId battle
         && HasUsableFutureSpreadPressureIntoBattler(battlerAtk, otherDef);
 }
 
+static s32 GetReadPlayerSetupPressureMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    enum BattlerId otherDef;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || IsTargetingPartner(battlerAtk, battlerDef)
+     || GetMovePower(move) == 0)
+        return 0;
+
+    if (MovePressuresReadPlayerSetupThreat(battlerAtk, battlerDef, moveIndex))
+        return READ_PLAYER_SETUP_PRESSURE_SCORE;
+
+    otherDef = BATTLE_PARTNER(battlerDef);
+    if (!IsDoublesSpreadPressureMove(battlerAtk, move)
+     && !CanIndexMoveFaintTarget(battlerAtk, battlerDef, moveIndex, AI_ATTACKING)
+     && MovePressuresReadPlayerSetupThreat(battlerAtk, otherDef, moveIndex))
+        return -READ_PLAYER_SETUP_PRESSURE_SCORE;
+
+    return 0;
+}
+
 // Lightweight horizon score: every damaging candidate can gain or lose value for spread-board pressure over the next few turns.
 static s32 GetFutureBoardPressureMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
 {
     bool32 choiceLockPressure;
     s32 score;
+    s32 setupPressureScore;
 
     if (!IsDoubleBattle()
      || !HasTwoOpponents(battlerAtk)
@@ -800,6 +842,10 @@ static s32 GetFutureBoardPressureMoveScore(enum BattlerId battlerAtk, enum Battl
     score = FUTURE_PRESSURE_BASE_SCORE;
     if (choiceLockPressure)
         score *= FUTURE_PRESSURE_LOOKAHEAD_TURNS;
+
+    setupPressureScore = GetReadPlayerSetupPressureMoveScore(battlerAtk, battlerDef, move, moveIndex);
+    if (setupPressureScore != 0)
+        return setupPressureScore;
 
     if (ShouldRewardPartnerCoverageDamage(battlerAtk, battlerDef, move, moveIndex))
         return score;
@@ -3389,6 +3435,13 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
                 {
                     ADJUST_SCORE(-10); //Don't protect if you're going to faint after protecting
                 }
+                else if ((gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+                      && !isBattle1v1
+                      && gBattleMons[battlerAtk].volatiles.consecutiveMoveUses != 0
+                      && IsOpposingSideOffensiveSetupThreat(battlerAtk))
+                {
+                    ADJUST_SCORE(-10);
+                }
                 else if (gBattleMons[battlerAtk].volatiles.consecutiveMoveUses == 1 && Random() % 100 < 50)
                 {
                     if (isBattle1v1)
@@ -5897,7 +5950,10 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
         case PROTECT_KINGS_SHIELD:
             if (aiData->abilities[battlerAtk] == ABILITY_STANCE_CHANGE //Special logic for Aegislash
              && gBattleMons[battlerAtk].species == SPECIES_AEGISLASH_BLADE
-             && !IsBattlerIncapacitated(battlerDef, aiData->abilities[battlerDef]))
+             && !IsBattlerIncapacitated(battlerDef, aiData->abilities[battlerDef])
+             && !((gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+               && !IsBattle1v1()
+               && IsOpposingSideOffensiveSetupThreat(battlerAtk)))
             {
                 ADJUST_SCORE(GOOD_EFFECT);
                 break;

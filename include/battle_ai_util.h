@@ -259,6 +259,9 @@ bool32 IsMoveRedirectionPrevented(enum BattlerId battlerAtk, enum Move move, enu
 bool32 IsHazardMove(enum Move move);
 bool32 IsTwoTurnNotSemiInvulnerableMove(enum BattlerId battlerAtk, enum Move move);
 bool32 IsBattlerDamagedByStatus(enum BattlerId battler);
+bool32 BattlerHasOffensiveSetup(enum BattlerId battler);
+bool32 IsReadPlayerSelectedOffensiveSetupThreat(enum BattlerId battlerAtk, enum BattlerId battlerDef);
+bool32 IsOpposingSideOffensiveSetupThreat(enum BattlerId battlerAtk);
 bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove);
 s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum Move predictedMove);
 bool32 ShouldRaiseAnyStat(enum BattlerId battlerAtk, enum BattlerId battlerDef);
@@ -275,6 +278,7 @@ bool32 HasChoiceEffect(enum BattlerId battler);
 bool32 HasThawingMove(enum BattlerId battler);
 bool32 HasMoveUsableWhileAsleep(enum BattlerId battler);
 bool32 IsStatRaisingMove(enum Move move);
+bool32 IsOffensiveStatRaisingMove(enum Move move);
 bool32 IsStatLoweringMove(enum Move move);
 bool32 IsSwitchOutEffect(enum BattleMoveEffects effect);
 bool32 IsChaseEffect(enum BattleMoveEffects effect);

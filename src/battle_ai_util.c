@@ -3098,11 +3098,59 @@ static bool32 HasSinglesProtectWishPayoff(enum BattlerId battlerAtk)
         && gBattleMons[battlerAtk].hp < gBattleMons[battlerAtk].maxHP;
 }
 
-static bool32 TargetHasOffensiveSetup(enum BattlerId battlerDef)
+bool32 BattlerHasOffensiveSetup(enum BattlerId battlerDef)
 {
     return (gBattleMons[battlerDef].statStages[STAT_ATK] > DEFAULT_STAT_STAGE && HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_PHYSICAL))
         || (gBattleMons[battlerDef].statStages[STAT_SPATK] > DEFAULT_STAT_STAGE && HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_SPECIAL))
         || gBattleMons[battlerDef].statStages[STAT_SPEED] > DEFAULT_STAT_STAGE;
+}
+
+bool32 IsReadPlayerSelectedOffensiveSetupThreat(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    enum Move chosenMove;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || battlerDef >= gBattlersCount
+     || !IsBattlerAlive(battlerDef)
+     || BattlerHasAi(battlerDef)
+     || IsBattlerAlly(battlerAtk, battlerDef)
+     || gChosenActionByBattler[battlerDef] != B_ACTION_USE_MOVE)
+        return FALSE;
+
+    chosenMove = gChosenMoveByBattler[battlerDef];
+    if (chosenMove == MOVE_NONE || chosenMove == MOVE_UNAVAILABLE)
+        return FALSE;
+    if (AI_GetBattlerMoveTargetType(battlerDef, chosenMove) != TARGET_USER)
+        return FALSE;
+    if (!IsOffensiveStatRaisingMove(chosenMove))
+        return FALSE;
+
+    return HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_PHYSICAL)
+        || HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_SPECIAL);
+}
+
+static bool32 IsReadPlayerPartnerChoosingOffensiveSetup(enum BattlerId battlerAtk, enum BattlerId protectedFromBattler)
+{
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        if (battlerDef != protectedFromBattler && IsReadPlayerSelectedOffensiveSetupThreat(battlerAtk, battlerDef))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+bool32 IsOpposingSideOffensiveSetupThreat(enum BattlerId battlerAtk)
+{
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        if (IsBattlerAlive(battlerDef)
+         && !IsBattlerAlly(battlerAtk, battlerDef)
+         && (BattlerHasOffensiveSetup(battlerDef) || IsReadPlayerSelectedOffensiveSetupThreat(battlerAtk, battlerDef)))
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 static enum BattlerId GetReadPlayerSelectedMoveTarget(enum BattlerId battler)
@@ -3210,7 +3258,7 @@ bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battler
     if (GetBattlerSecondaryDamage(battlerDef) >= gBattleMons[battlerDef].hp)
         return TRUE;
 
-    if (TargetHasOffensiveSetup(battlerDef) && !HasSinglesProtectWishPayoff(battlerAtk) && !HasSinglesProtectFollowUpPayoff(battlerAtk, battlerDef))
+    if (BattlerHasOffensiveSetup(battlerDef) && !HasSinglesProtectWishPayoff(battlerAtk) && !HasSinglesProtectFollowUpPayoff(battlerAtk, battlerDef))
         return FALSE;
 
     if (IsBattlerDamagedByStatus(battlerDef))
@@ -3252,6 +3300,18 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
         score += readProtectThreatScore;
         if (!IsBattle1v1() && (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE) && readProtectThreatScore == 0)
             score -= DECENT_EFFECT;
+        if (!IsBattle1v1()
+         && (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+         && readProtectThreatScore != 0
+         && uses == 0
+         && IsReadPlayerPartnerChoosingOffensiveSetup(battlerAtk, battlerDef))
+            score -= GOOD_EFFECT;
+        if (!IsBattle1v1()
+         && (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+         && readProtectThreatScore != 0
+         && uses != 0
+         && IsOpposingSideOffensiveSetupThreat(battlerAtk))
+            score -= BEST_EFFECT + GOOD_EFFECT;
     }
 
     /*if (GetMoveResultFlags(predictedMove) & (MOVE_RESULT_NO_EFFECT | MOVE_RESULT_MISSED))
@@ -4006,6 +4066,31 @@ bool32 IsStatRaisingMove(enum Move move)
 {
     return GetMoveEffect(move) == EFFECT_ACUPRESSURE
         || MoveHasAdditionalEffect(move, STAT_CHANGE_EFFECT_PLUS);
+}
+
+bool32 IsOffensiveStatRaisingMove(enum Move move)
+{
+    u32 additionalEffectCount;
+
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || !IsStatRaisingMove(move))
+        return FALSE;
+
+    additionalEffectCount = GetMoveAdditionalEffectCount(move);
+    for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
+    {
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(move, effectIndex);
+
+        if (additionalEffect->moveEffect != STAT_CHANGE_EFFECT_PLUS
+         && additionalEffect->moveEffect != MOVE_EFFECT_STAT_PLUS)
+            continue;
+
+        if (GetStatStage(STAT_ATK, additionalEffect) > 0
+         || GetStatStage(STAT_SPATK, additionalEffect) > 0
+         || GetStatStage(STAT_SPEED, additionalEffect) > 0)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 bool32 IsStatLoweringMove(enum Move move)
