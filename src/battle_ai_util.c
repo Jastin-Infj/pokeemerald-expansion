@@ -3192,6 +3192,8 @@ static s32 GetReadPlayerProtectThreatScore(enum BattlerId battlerAtk, enum Move 
             bestScore = max(bestScore, BEST_EFFECT);
         else if (damage * 100 >= gBattleMons[battlerAtk].hp * 50)
             bestScore = max(bestScore, GOOD_EFFECT);
+        else if (damage != 0)
+            bestScore = max(bestScore, WEAK_EFFECT);
     }
 
     return bestScore;
@@ -3245,7 +3247,12 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
         return WORST_EFFECT;
     }
 
-    score += GetReadPlayerProtectThreatScore(battlerAtk, move);
+    {
+        s32 readProtectThreatScore = GetReadPlayerProtectThreatScore(battlerAtk, move);
+        score += readProtectThreatScore;
+        if (!IsBattle1v1() && (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE) && readProtectThreatScore == 0)
+            score -= DECENT_EFFECT;
+    }
 
     /*if (GetMoveResultFlags(predictedMove) & (MOVE_RESULT_NO_EFFECT | MOVE_RESULT_MISSED))
     {
