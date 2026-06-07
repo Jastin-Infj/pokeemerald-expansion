@@ -46,6 +46,10 @@
 #define READ_PLAYER_FOLLOW_ME_PARTNER_DAMAGE_PERCENT 50
 #define HP_DEPENDENT_POWER_MINOR_LOSS 20
 #define HP_DEPENDENT_POWER_MAJOR_LOSS 50
+#define FUTURE_PRESSURE_LOOKAHEAD_TURNS 3
+#define FUTURE_PRESSURE_DAMAGE_PERCENT 20
+#define FUTURE_PRESSURE_DAMAGE_ADVANTAGE_PERCENT 25
+#define FUTURE_PRESSURE_BASE_SCORE DECENT_EFFECT
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
@@ -55,6 +59,8 @@ static inline void BattleAI_DoAIProcessing_PredictedSwitchin(struct AiThinkingSt
 static bool32 IsPinchBerryItemEffect(enum HoldEffect holdEffect);
 static bool32 DoesAbilityBenefitFromSunOrRain(enum BattlerId battler, enum Ability ability, u32 weather);
 static void AI_CompareDamagingMoves(enum BattlerId battlerAtk, enum BattlerId battlerDef);
+static bool32 IsDoublesSpreadPressureMove(enum BattlerId battlerAtk, enum Move move);
+static s32 GetFutureBoardPressureMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex);
 static u32 GetWindAbilityScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, struct AiLogicData *aiData);
 
 // ewram
@@ -443,6 +449,239 @@ static s32 GetHpDependentPowerRiskPenalty(enum BattlerId battlerAtk, enum Battle
     if (powerLossPercent >= HP_DEPENDENT_POWER_MINOR_LOSS)
         return AWFUL_EFFECT;
     return BAD_EFFECT;
+}
+
+static bool32 BattlerHasChoiceLockPressure(enum BattlerId battlerAtk)
+{
+    if (!HasChoiceEffect(battlerAtk))
+        return FALSE;
+
+    return gAiLogicData->abilities[battlerAtk] == ABILITY_GORILLA_TACTICS
+        || IsBattlerItemEnabled(battlerAtk);
+}
+
+static bool32 IsFuturePressureThreat(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    if (battlerDef >= gBattlersCount
+     || !IsBattlerAlive(battlerDef)
+     || IsBattlerAlly(battlerAtk, battlerDef))
+        return FALSE;
+
+    return AnyUsefulStatIsRaised(battlerDef);
+}
+
+static u32 GetMoveDamageToBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
+{
+    u32 damage;
+
+    if (moveIndex >= MAX_MON_MOVES || battlerDef >= gBattlersCount || !IsBattlerAlive(battlerDef))
+        return 0;
+
+    damage = AI_GetDamage(battlerAtk, battlerDef, moveIndex, AI_ATTACKING, gAiLogicData);
+    return min(damage, gBattleMons[battlerDef].hp);
+}
+
+static u32 GetMoveOpposingBoardDamage(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    enum BattlerId otherDef;
+    u32 damage;
+
+    if (battlerDef >= gBattlersCount || !IsBattlerAlive(battlerDef) || IsBattlerAlly(battlerAtk, battlerDef))
+        return 0;
+
+    damage = GetMoveDamageToBattler(battlerAtk, battlerDef, moveIndex);
+    if (!IsDoublesSpreadPressureMove(battlerAtk, move))
+        return damage;
+
+    otherDef = BATTLE_PARTNER(battlerDef);
+    if (otherDef < gBattlersCount && IsBattlerAlive(otherDef) && !IsBattlerAlly(battlerAtk, otherDef))
+        damage += GetMoveDamageToBattler(battlerAtk, otherDef, moveIndex);
+
+    return damage;
+}
+
+static u32 GetFuturePressureLookaheadDamage(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    u32 turns = BattlerHasChoiceLockPressure(battlerAtk) ? FUTURE_PRESSURE_LOOKAHEAD_TURNS : 1;
+    u32 currentDamage = GetMoveOpposingBoardDamage(battlerAtk, battlerDef, move, moveIndex);
+    enum BattlerId otherDef;
+    u32 futureDamage, otherDamage;
+
+    if (turns <= 1)
+        return currentDamage;
+    if (IsDoublesSpreadPressureMove(battlerAtk, move))
+        return currentDamage * turns;
+
+    futureDamage = GetMoveDamageToBattler(battlerAtk, battlerDef, moveIndex);
+    otherDef = BATTLE_PARTNER(battlerDef);
+    if (otherDef < gBattlersCount && IsBattlerAlive(otherDef) && !IsBattlerAlly(battlerAtk, otherDef))
+    {
+        otherDamage = GetMoveDamageToBattler(battlerAtk, otherDef, moveIndex);
+        if (otherDamage > futureDamage)
+            futureDamage = otherDamage;
+    }
+
+    return currentDamage + futureDamage * (turns - 1);
+}
+
+static bool32 FuturePressureDamageHasAdvantage(u32 strongerPressure, u32 weakerPressure)
+{
+    if (strongerPressure == 0)
+        return FALSE;
+    if (weakerPressure == 0)
+        return TRUE;
+
+    return (u64)strongerPressure * 100 >= (u64)weakerPressure * (100 + FUTURE_PRESSURE_DAMAGE_ADVANTAGE_PERCENT);
+}
+
+static bool32 ShouldUseFuturePressureDamageAxis(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    enum BattlerId otherDef;
+
+    if (BattlerHasChoiceLockPressure(battlerAtk) || IsFuturePressureThreat(battlerAtk, battlerDef))
+        return TRUE;
+
+    otherDef = BATTLE_PARTNER(battlerDef);
+    return IsFuturePressureThreat(battlerAtk, otherDef);
+}
+
+static bool32 MoveMeaningfullyPressuresBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
+{
+    u32 damage = GetMoveDamageToBattler(battlerAtk, battlerDef, moveIndex);
+    u32 hp;
+
+    if (damage == 0)
+        return FALSE;
+    hp = gBattleMons[battlerDef].hp;
+    if (damage >= hp)
+        return TRUE;
+
+    return (damage * 100 / hp) >= FUTURE_PRESSURE_DAMAGE_PERCENT;
+}
+
+static u32 GetBestFutureSpreadPressureDamage(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    enum Move *moves = GetMovesArray(battlerAtk);
+    u32 moveLimitations = gAiLogicData->moveLimitations[battlerAtk];
+    u32 bestPressure = 0;
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+        u32 pressure;
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || GetMovePower(move) == 0
+         || !IsDoublesSpreadPressureMove(battlerAtk, move))
+            continue;
+
+        pressure = GetFuturePressureLookaheadDamage(battlerAtk, battlerDef, move, moveIndex);
+        if (pressure > bestPressure)
+            bestPressure = pressure;
+    }
+
+    return bestPressure;
+}
+
+static bool32 HasUsableFutureSpreadPressureIntoBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    enum Move *moves = GetMovesArray(battlerAtk);
+    u32 moveLimitations = gAiLogicData->moveLimitations[battlerAtk];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || GetMovePower(move) == 0
+         || !IsDoublesSpreadPressureMove(battlerAtk, move))
+            continue;
+
+        if (MoveMeaningfullyPressuresBattler(battlerAtk, battlerDef, moveIndex))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 ShouldRewardFutureSpreadPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    enum BattlerId otherDef;
+    u32 spreadPressure;
+    u32 selectedTargetPressure;
+
+    if (!IsDoublesSpreadPressureMove(battlerAtk, move))
+        return FALSE;
+
+    if (IsFuturePressureThreat(battlerAtk, battlerDef)
+     && MoveMeaningfullyPressuresBattler(battlerAtk, battlerDef, moveIndex))
+        return TRUE;
+
+    otherDef = BATTLE_PARTNER(battlerDef);
+    if (IsFuturePressureThreat(battlerAtk, otherDef)
+     && MoveMeaningfullyPressuresBattler(battlerAtk, otherDef, moveIndex))
+        return TRUE;
+
+    if (!ShouldUseFuturePressureDamageAxis(battlerAtk, battlerDef))
+        return FALSE;
+
+    spreadPressure = GetFuturePressureLookaheadDamage(battlerAtk, battlerDef, move, moveIndex);
+    selectedTargetPressure = GetMoveDamageToBattler(battlerAtk, battlerDef, moveIndex);
+    if (BattlerHasChoiceLockPressure(battlerAtk))
+        selectedTargetPressure *= FUTURE_PRESSURE_LOOKAHEAD_TURNS;
+
+    return FuturePressureDamageHasAdvantage(spreadPressure, selectedTargetPressure);
+}
+
+static bool32 ShouldPenalizeSingleTargetOverFuturePressure(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    enum BattlerId otherDef;
+    u32 candidatePressure;
+    u32 bestSpreadPressure;
+
+    if (IsDoublesSpreadPressureMove(battlerAtk, move)
+     || IsSpreadMove(AI_GetBattlerMoveTargetType(battlerAtk, move))
+     || CanIndexMoveFaintTarget(battlerAtk, battlerDef, moveIndex, AI_ATTACKING)
+     || IsFuturePressureThreat(battlerAtk, battlerDef))
+        return FALSE;
+
+    otherDef = BATTLE_PARTNER(battlerDef);
+    if (!ShouldUseFuturePressureDamageAxis(battlerAtk, battlerDef))
+        return FALSE;
+
+    candidatePressure = GetFuturePressureLookaheadDamage(battlerAtk, battlerDef, move, moveIndex);
+    bestSpreadPressure = GetBestFutureSpreadPressureDamage(battlerAtk, battlerDef);
+    if (FuturePressureDamageHasAdvantage(bestSpreadPressure, candidatePressure))
+        return TRUE;
+
+    return IsFuturePressureThreat(battlerAtk, otherDef)
+        && HasUsableFutureSpreadPressureIntoBattler(battlerAtk, otherDef);
+}
+
+// Lightweight horizon score: every damaging candidate can gain or lose value for spread-board pressure over the next few turns.
+static s32 GetFutureBoardPressureMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    bool32 choiceLockPressure;
+    s32 score;
+
+    if (!IsDoubleBattle()
+     || !HasTwoOpponents(battlerAtk)
+     || IsTargetingPartner(battlerAtk, battlerDef)
+     || GetMovePower(move) == 0)
+        return 0;
+
+    choiceLockPressure = BattlerHasChoiceLockPressure(battlerAtk);
+    score = FUTURE_PRESSURE_BASE_SCORE;
+    if (choiceLockPressure)
+        score *= FUTURE_PRESSURE_LOOKAHEAD_TURNS;
+
+    if (ShouldRewardFutureSpreadPressure(battlerAtk, battlerDef, move, moveIndex))
+        return score;
+
+    if (ShouldPenalizeSingleTargetOverFuturePressure(battlerAtk, battlerDef, move, moveIndex))
+        return -score - (choiceLockPressure ? BEST_DAMAGE_MOVE : 0);
+
+    return 0;
 }
 
 static s32 GetPartnerRecoveryScore(enum BattlerId partner, u32 healPercent)
@@ -6720,6 +6959,11 @@ static s32 AI_CheckViability(enum BattlerId battlerAtk, enum BattlerId battlerDe
             ADJUST_AND_RETURN_SCORE(NO_DAMAGE_OR_FAILS); // No point in checking the move further so return early
         else
         {
+            s32 futurePressureScore = GetFutureBoardPressureMoveScore(battlerAtk, battlerDef, move, gAiThinkingStruct->movesetIndex);
+
+            if (futurePressureScore != 0)
+                ADJUST_SCORE(futurePressureScore);
+
             if (gAiThinkingStruct->aiFlags[battlerAtk] & (AI_FLAG_RISKY | AI_FLAG_PREFER_HIGHEST_DAMAGE_MOVE)
                 && IsBestDmgMove(battlerAtk, battlerDef, AI_ATTACKING, move))
                 ADJUST_SCORE(BEST_DAMAGE_MOVE);

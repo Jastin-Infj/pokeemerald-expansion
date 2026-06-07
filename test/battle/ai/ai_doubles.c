@@ -1265,6 +1265,43 @@ AI_DOUBLE_BATTLE_TEST("AI discounts Water Spout when a known faster hit will low
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI values future spread pressure over a switch read beside boosted Xerneas")
+{
+    enum Item kyogreItem = ITEM_NONE;
+
+    PARAMETRIZE { kyogreItem = ITEM_CHOICE_SPECS; }
+    PARAMETRIZE { kyogreItem = ITEM_MYSTIC_WATER; }
+
+    ASSUME(GetMoveEffect(MOVE_WATER_SPOUT) == EFFECT_POWER_BASED_ON_USER_HP);
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ICE_BEAM) == TARGET_SELECTED);
+    ASSUME(GetMoveEffect(MOVE_GEOMANCY) == EFFECT_GEOMANCY);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Level(50); MaxHP(202); HP(202); Defense(120); SpDefense(146); Speed(80); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_XERNEAS) { Level(50); Item(ITEM_POWER_HERB); MaxHP(241); HP(241); Defense(135); SpAttack(183); SpDefense(150); Speed(119); Moves(MOVE_GEOMANCY, MOVE_DAZZLING_GLEAM, MOVE_PROTECT); }
+        PLAYER(SPECIES_AMOONGUSS) { Level(50); MaxHP(221); HP(221); Defense(120); SpDefense(145); Speed(31); Moves(MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_SPORE, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(kyogreItem); MaxHP(205); HP(205); Defense(120); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(300); HP(300); Speed(1); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        playerRight->statStages[STAT_SPATK] = DEFAULT_STAT_STAGE + 2;
+        playerRight->statStages[STAT_SPDEF] = DEFAULT_STAT_STAGE + 2;
+        playerRight->statStages[STAT_SPEED] = DEFAULT_STAT_STAGE + 2;
+
+        TURN {
+            SWITCH(playerLeft, 2);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVES(opponentLeft, MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE);
+            NOT_EXPECT_MOVE(opponentLeft, MOVE_ICE_BEAM);
+            SCORE_GT(opponentLeft, MOVE_WATER_SPOUT, MOVE_ICE_BEAM, target: playerLeft);
+            SCORE_GT(opponentLeft, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM, target: playerLeft);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI discounts Wring Out when known spread damage will lower the target's HP")
 {
     ASSUME(GetMoveEffect(MOVE_WRING_OUT) == EFFECT_POWER_BASED_ON_TARGET_HP);
