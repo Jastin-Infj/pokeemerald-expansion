@@ -44,6 +44,8 @@
 #define READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY 9
 #define READ_PLAYER_TRICK_ROOM_TOGGLE_PENALTY 12
 #define READ_PLAYER_FOLLOW_ME_PARTNER_DAMAGE_PERCENT 50
+#define HP_DEPENDENT_POWER_MINOR_LOSS 20
+#define HP_DEPENDENT_POWER_MAJOR_LOSS 50
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
@@ -280,6 +282,167 @@ static bool32 IsReadPlayerSingleTargetMoveTargetingBattler(enum BattlerId battle
     default:
         return FALSE;
     }
+}
+
+static bool32 CanKnownMoveHitBattler(enum BattlerId battlerAtk, enum BattlerId target, enum Move move, enum BattlerId chosenTarget)
+{
+    enum MoveTarget moveTarget;
+
+    if (target >= gBattlersCount || !IsBattlerAlive(target))
+        return FALSE;
+    if (IsBattleMoveStatus(move))
+        return FALSE;
+
+    moveTarget = AI_GetBattlerMoveTargetType(battlerAtk, move);
+    switch (moveTarget)
+    {
+    case TARGET_SELECTED:
+    case TARGET_SMART:
+    case TARGET_DEPENDS:
+    case TARGET_OPPONENT:
+    case TARGET_RANDOM:
+    case TARGET_ALLY:
+    case TARGET_USER_OR_ALLY:
+        return chosenTarget == target && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_BOTH:
+        return !IsBattlerAlly(battlerAtk, target) && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_FOES_AND_ALLY:
+    case TARGET_ALL_BATTLERS:
+        return battlerAtk != target && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_USER:
+        return battlerAtk == target && CanTargetBattler(battlerAtk, target, move);
+    case TARGET_USER_AND_ALLY:
+        return IsBattlerAlly(battlerAtk, target) && CanTargetBattler(battlerAtk, target, move);
+    default:
+        return FALSE;
+    }
+}
+
+static enum DamageCalcContext GetKnownMoveDamageContext(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    if (BattlerHasAi(battlerAtk))
+    {
+        if (IsBattlerAlly(battlerAtk, battlerDef))
+            return AI_ATTACKING_PARTNER;
+        return AI_ATTACKING;
+    }
+    if (BattlerHasAi(battlerDef))
+        return AI_DEFENDING;
+    return AI_ATTACKING;
+}
+
+static u32 GetEarlierDamageFromKnownMove(enum BattlerId battlerAtk, enum BattlerId damagedBattler, enum BattlerId source, enum Move move, enum Move sourceMove, u32 sourceMoveIndex, enum BattlerId chosenTarget, struct AiLogicData *aiData)
+{
+    enum DamageCalcContext calcContext;
+    s32 strikeOrder;
+    bool32 canHit;
+    u32 damage;
+
+    if (source >= gBattlersCount || source == battlerAtk || !IsBattlerAlive(source))
+        return 0;
+    if (sourceMove == MOVE_NONE || sourceMove == MOVE_UNAVAILABLE || sourceMoveIndex >= MAX_MON_MOVES)
+        return 0;
+
+    strikeOrder = AI_WhoStrikesFirst(battlerAtk, source, move, sourceMove, CONSIDER_PRIORITY);
+    canHit = CanKnownMoveHitBattler(source, damagedBattler, sourceMove, chosenTarget);
+    if (strikeOrder != AI_IS_SLOWER)
+        return 0;
+    if (!canHit)
+        return 0;
+
+    calcContext = GetKnownMoveDamageContext(source, damagedBattler);
+    damage = AI_GetDamage(source, damagedBattler, sourceMoveIndex, calcContext, aiData);
+    return min(damage, gBattleMons[damagedBattler].hp);
+}
+
+static u32 GetKnownEarlierDamageToBattler(enum BattlerId battlerAtk, enum BattlerId damagedBattler, enum Move move, struct AiLogicData *aiData)
+{
+    u32 totalDamage = 0;
+
+    if (damagedBattler >= gBattlersCount || !IsBattlerAlive(damagedBattler))
+        return 0;
+
+    if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+    {
+        for (enum BattlerId source = 0; source < gBattlersCount; source++)
+        {
+            enum Move sourceMove;
+            u32 sourceMoveIndex;
+            enum BattlerId chosenTarget;
+
+            if (BattlerHasAi(source) || gChosenActionByBattler[source] != B_ACTION_USE_MOVE)
+                continue;
+
+            sourceMove = gChosenMoveByBattler[source];
+            sourceMoveIndex = GetReadPlayerChosenMoveIndex(source, sourceMove);
+            chosenTarget = GetReadPlayerChosenMoveTarget(source);
+            totalDamage += GetEarlierDamageFromKnownMove(battlerAtk, damagedBattler, source, move, sourceMove, sourceMoveIndex, chosenTarget, aiData);
+            if (totalDamage >= gBattleMons[damagedBattler].hp)
+                return gBattleMons[damagedBattler].hp;
+        }
+    }
+
+    if (HasPartnerIgnoreFlags(battlerAtk))
+    {
+        enum BattlerId partner = BATTLE_PARTNER(battlerAtk);
+        enum Move partnerMove = MOVE_NONE;
+        u32 partnerMoveIndex;
+        enum BattlerId chosenTarget = MAX_BATTLERS_COUNT;
+
+        if (partner < battlerAtk && BattlerHasAi(partner) && IsBattlerAlive(partner))
+        {
+            partnerMoveIndex = gAiBattleData->chosenMoveIndex[partner];
+            if (partnerMoveIndex < MAX_MON_MOVES)
+                partnerMove = gBattleMons[partner].moves[partnerMoveIndex];
+            chosenTarget = gAiBattleData->chosenTarget[partner];
+            totalDamage += GetEarlierDamageFromKnownMove(battlerAtk, damagedBattler, partner, move, partnerMove, partnerMoveIndex, chosenTarget, aiData);
+            if (totalDamage >= gBattleMons[damagedBattler].hp)
+                return gBattleMons[damagedBattler].hp;
+        }
+    }
+
+    return totalDamage;
+}
+
+static s32 GetHpDependentPowerRiskPenalty(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    enum BattleMoveEffects moveEffect = GetMoveEffect(move);
+    enum BattlerId hpBattler;
+    u32 incomingDamage, currentHp, maxHp, projectedHp;
+    u32 basePower, currentPower, projectedPower, powerLossPercent;
+
+    if (moveEffect != EFFECT_POWER_BASED_ON_USER_HP && moveEffect != EFFECT_POWER_BASED_ON_TARGET_HP)
+        return 0;
+
+    basePower = GetMovePower(move);
+    if (basePower == 0)
+        return 0;
+
+    hpBattler = (moveEffect == EFFECT_POWER_BASED_ON_USER_HP) ? battlerAtk : battlerDef;
+    if (hpBattler >= gBattlersCount || !IsBattlerAlive(hpBattler) || gBattleMons[hpBattler].maxHP == 0)
+        return 0;
+
+    incomingDamage = GetKnownEarlierDamageToBattler(battlerAtk, hpBattler, move, aiData);
+    if (incomingDamage == 0)
+        return 0;
+
+    currentHp = gBattleMons[hpBattler].hp;
+    maxHp = gBattleMons[hpBattler].maxHP;
+    projectedHp = (incomingDamage >= currentHp) ? 0 : currentHp - incomingDamage;
+    currentPower = currentHp * basePower / maxHp;
+    projectedPower = projectedHp * basePower / maxHp;
+
+    if (currentPower == 0 || projectedPower >= currentPower)
+        return 0;
+    if (projectedHp == 0)
+        return NO_DAMAGE_OR_FAILS;
+
+    powerLossPercent = (100 * (currentPower - projectedPower)) / currentPower;
+    if (powerLossPercent >= HP_DEPENDENT_POWER_MAJOR_LOSS)
+        return WORST_EFFECT;
+    if (powerLossPercent >= HP_DEPENDENT_POWER_MINOR_LOSS)
+        return AWFUL_EFFECT;
+    return BAD_EFFECT;
 }
 
 static s32 GetPartnerRecoveryScore(enum BattlerId partner, u32 healPercent)
@@ -1757,6 +1920,12 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
 
     if (ShouldAvoidMoveIntoReadPlayerFakeOut(battlerAtk, move))
         RETURN_SCORE_MINUS(READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY);
+
+    {
+        s32 hpDependentPowerPenalty = GetHpDependentPowerRiskPenalty(battlerAtk, battlerDef, move, aiData);
+        if (hpDependentPowerPenalty != 0)
+            ADJUST_SCORE(hpDependentPowerPenalty);
+    }
 
     if (IsPowderMove(move) && !IsAffectedByPowderMove(battlerDef, aiData->abilities[battlerDef], aiData->holdEffects[battlerDef]))
         RETURN_SCORE_MINUS(10);

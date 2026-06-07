@@ -1241,3 +1241,48 @@ AI_DOUBLE_BATTLE_TEST("AI does not tunnel Kyogre's Thunder into Tornadus when Wa
         }
     }
 }
+
+AI_DOUBLE_BATTLE_TEST("AI discounts Water Spout when a known faster hit will lower Kyogre's HP")
+{
+    ASSUME(GetMoveEffect(MOVE_WATER_SPOUT) == EFFECT_POWER_BASED_ON_USER_HP);
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_DRAGON_ASCENT) == TARGET_SELECTED);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_RAYQUAZA) { Level(50); Attack(180); Speed(200); Moves(MOVE_DRAGON_ASCENT, MOVE_PROTECT); }
+        PLAYER(SPECIES_INCINEROAR) { Level(50); Speed(80); Moves(MOVE_PROTECT, MOVE_KNOCK_OFF); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); MaxHP(205); HP(205); Defense(120); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_AMOONGUSS) { Level(50); Ability(ABILITY_REGENERATOR); MaxHP(221); HP(221); Speed(31); Moves(MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_SPORE, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_DRAGON_ASCENT, target: opponentLeft);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_ORIGIN_PULSE);
+            NOT_EXPECT_MOVE(opponentLeft, MOVE_WATER_SPOUT);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI discounts Wring Out when known spread damage will lower the target's HP")
+{
+    ASSUME(GetMoveEffect(MOVE_WRING_OUT) == EFFECT_POWER_BASED_ON_TARGET_HP);
+    ASSUME(GetMoveTarget(MOVE_WRING_OUT) == TARGET_SELECTED);
+    ASSUME(GetMoveTarget(MOVE_SURF) == TARGET_FOES_AND_ALLY);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(300); HP(300); SpDefense(50); Speed(10); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_GENGAR) { Level(50); SpAttack(300); Speed(200); Moves(MOVE_SURF, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KANGASKHAN) { Level(50); MaxHP(300); HP(300); SpAttack(200); SpDefense(300); Speed(50); Moves(MOVE_WRING_OUT, MOVE_TRI_ATTACK, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_AMOONGUSS) { Level(50); MaxHP(221); HP(221); SpDefense(300); Speed(31); Moves(MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_SPORE, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_SURF);
+            EXPECT_MOVE(opponentLeft, MOVE_TRI_ATTACK, target: playerLeft);
+            NOT_EXPECT_MOVE(opponentLeft, MOVE_WRING_OUT);
+        }
+    }
+}
