@@ -2774,6 +2774,205 @@ Pool Weight: 7
 - Close Combat
 - Protect
 
+=== DEBUG_TRAINER_PLAYER_GAUNTLET_READ_SINGLES ===
+Name: Read Solo
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 3
+Pool Rules: Basic
+
+Miraidon @ ITEM_CHOICE_SPECS
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Ace
+Pool Weight: 8
+- Electro Drift
+- Thunderbolt
+- Draco Meteor
+- Volt Switch
+
+Koraidon @ ITEM_CLEAR_AMULET
+Jolly Nature
+Level: 50
+Tera Type: Fire
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Lead / Ace
+Pool Weight: 8
+- Collision Course
+- Flare Blitz
+- Dragon Claw
+- Swords Dance
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 7
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+Dragonite @ ITEM_COVERT_CLOAK
+Ability: Multiscale
+Adamant Nature
+Level: 50
+Tera Type: Normal
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+Pool Weight: 7
+- Dragon Dance
+- Extreme Speed
+- Earthquake
+- Roost
+
+Rillaboom @ ITEM_ASSAULT_VEST
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Support
+Pool Weight: 6
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- Knock Off
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Z Move: Yes
+Tags: Lead / Support
+Pool Weight: 6
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
+=== DEBUG_TRAINER_AI_GAUNTLET_READ_SINGLES ===
+Name: Read Solo
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Omniscient / Know Opponent Party / Powerful Status / Aggressive Gimmick / Read Player Move
+Class: Champion
+Battle Type: Singles
+Party Size: 3
+Pool Rules: Basic
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Miraidon @ ITEM_CHOICE_SPECS
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Ace
+Pool Weight: 8
+- Electro Drift
+- Thunderbolt
+- Draco Meteor
+- Volt Switch
+
+Koraidon @ ITEM_CLEAR_AMULET
+Jolly Nature
+Level: 50
+Tera Type: Fire
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Lead / Ace
+Pool Weight: 8
+- Collision Course
+- Flare Blitz
+- Dragon Claw
+- Swords Dance
+
+Gengar @ ITEM_GENGARITE
+Ability: Cursed Body
+Timid Nature
+Level: 50
+Tera Type: Ghost
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+Pool Weight: 7
+- Shadow Ball
+- Sludge Bomb
+- Focus Blast
+- Protect
+
+Dragonite @ ITEM_COVERT_CLOAK
+Ability: Multiscale
+Adamant Nature
+Level: 50
+Tera Type: Normal
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+Pool Weight: 7
+- Dragon Dance
+- Extreme Speed
+- Earthquake
+- Roost
+
+Rillaboom @ ITEM_ASSAULT_VEST
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Support
+Pool Weight: 6
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- Knock Off
+
+Koko (SPECIES_TAPU_KOKO) @ ITEM_ELECTRIUM_Z
+Ability: Electric Surge
+Timid Nature
+Level: 50
+Tera Type: Electric
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Z Move: Yes
+Tags: Lead / Support
+Pool Weight: 6
+- Thunderbolt
+- Dazzling Gleam
+- Volt Switch
+- Protect
+
 === DEBUG_TRAINER_PLAYER_GAUNTLET_READ_DOUBLES ===
 Name: Read VGC
 Class: Pkmn Trainer 1
@@ -3161,6 +3360,97 @@ Tags: Ace
 - Rock Slide
 - Earth Power
 - Body Press
+
+=== DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_SINGLES ===
+Name: Champ P1
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 3
+
+Dragonite @ ITEM_DRAGONINITE
+Ability: Multiscale
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 Spe
+Tags: Lead / Ace
+- Dragon Dance
+- Extreme Speed
+- Dragon Claw
+- Protect
+
+Gardevoir @ ITEM_FOCUS_SASH
+Ability: Trace
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Support
+- Moonblast
+- Psychic
+- Will-O-Wisp
+- Protect
+
+Dondozo @ ITEM_LEFTOVERS
+Ability: Unaware
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Atk / 180 SpD
+Tags: Ace
+- Wave Crash
+- Order Up
+- Body Press
+- Protect
+
+=== DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_SINGLES ===
+Name: Champ Lab
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Omniscient / Know Opponent Party / Powerful Status / Aggressive Gimmick / Read Player Move
+Class: Champion
+Battle Type: Singles
+Party Size: 3
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Lucario @ ITEM_LUCARIONITE
+Ability: Inner Focus
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Ace
+- Aura Sphere
+- Flash Cannon
+- Vacuum Wave
+- Nasty Plot
+
+Charizard @ ITEM_LIFE_ORB
+Ability: Solar Power
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Ace
+- Heat Wave
+- Air Slash
+- Solar Beam
+- Protect
+
+HSamurott (SPECIES_SAMUROTT_HISUI) @ ITEM_CLEAR_AMULET
+Ability: Sharpness
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+- Ceaseless Edge
+- Aqua Cutter
+- Sucker Punch
+- Protect
 
 === DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES ===
 Name: Champs P1
