@@ -3153,18 +3153,35 @@ bool32 IsOpposingSideOffensiveSetupThreat(enum BattlerId battlerAtk)
     return FALSE;
 }
 
-static enum BattlerId GetReadPlayerSelectedMoveTarget(enum BattlerId battler)
+static enum Move GetReadPlayerSelectedMove(enum BattlerId battler)
 {
-    if (gBattleStruct != NULL && gBattleStruct->moveTarget[battler] < gBattlersCount)
-        return gBattleStruct->moveTarget[battler];
-
     if (gBattleResources != NULL
      && IsOnPlayerSide(battler)
      && gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
+     && (gBattleResources->bufferB[battler][2] & ~RET_GIMMICK) < MAX_MON_MOVES)
+        return GetMovesArray(battler)[gBattleResources->bufferB[battler][2] & ~RET_GIMMICK];
+
+    if (gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
      && gChosenMoveByBattler[battler] != MOVE_NONE
-     && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE
+     && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE)
+        return gChosenMoveByBattler[battler];
+
+    if (IsAiFlagPresent(AI_FLAG_READ_PLAYER_MOVE) && !BattlerHasAi(battler))
+        return BattleActionLog_GetLastSelectedMove(battler);
+
+    return MOVE_NONE;
+}
+
+static enum BattlerId GetReadPlayerSelectedMoveTarget(enum BattlerId battler)
+{
+    if (gBattleResources != NULL
+     && IsOnPlayerSide(battler)
+     && gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
      && gBattleResources->bufferB[battler][3] < gBattlersCount)
         return gBattleResources->bufferB[battler][3];
+
+    if (gBattleStruct != NULL && gBattleStruct->moveTarget[battler] < gBattlersCount)
+        return gBattleStruct->moveTarget[battler];
 
     return MAX_BATTLERS_COUNT;
 }
@@ -3175,8 +3192,7 @@ static bool32 IsReadPlayerSelectedMoveTargeting(enum BattlerId battlerAtk, enum 
     enum BattlerId chosenTarget;
 
     if (BattlerHasAi(battlerAtk)
-     || gChosenActionByBattler[battlerAtk] != B_ACTION_USE_MOVE
-     || gChosenMoveByBattler[battlerAtk] != move)
+     || GetReadPlayerSelectedMove(battlerAtk) != move)
         return FALSE;
     if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
         return FALSE;
@@ -3203,6 +3219,70 @@ static bool32 IsReadPlayerSelectedMoveTargeting(enum BattlerId battlerAtk, enum 
     default:
         return FALSE;
     }
+}
+
+static bool32 IsReadPlayerSelectedDamageMoveTargeting(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move *move)
+{
+    enum Move selectedMove = GetReadPlayerSelectedMove(battlerAtk);
+
+    if (!IsAiFlagPresent(AI_FLAG_READ_PLAYER_MOVE)
+     || BattlerHasAi(battlerAtk)
+     || !IsBattlerAlive(battlerAtk)
+     || IsBattlerAlly(battlerAtk, battlerDef)
+     || selectedMove == MOVE_NONE
+     || selectedMove == MOVE_UNAVAILABLE
+     || IsBattleMoveStatus(selectedMove))
+        return FALSE;
+
+    *move = selectedMove;
+    return IsReadPlayerSelectedMoveTargeting(battlerAtk, battlerDef, *move);
+}
+
+static u32 GetReadPlayerSelectedDamageToBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum AIConsiderGimmick considerGimmickDef)
+{
+    uq4_12_t effectiveness;
+    enum AIConsiderGimmick considerGimmickAtk = NO_GIMMICK;
+    struct SimulatedDamage damage;
+    enum Gimmick gimmick;
+
+    if (gBattleStruct != NULL)
+    {
+        gimmick = gBattleStruct->gimmick.usableGimmick[battlerAtk];
+        if (gimmick != GIMMICK_NONE && IsGimmickSelected(battlerAtk, gimmick))
+            considerGimmickAtk = USE_GIMMICK;
+    }
+
+    damage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, considerGimmickAtk, considerGimmickDef, AI_GetWeather(), gFieldStatuses);
+    return damage.maximum;
+}
+
+static enum BattlerId GetReadPlayerKnownKOPressureSource(enum BattlerId battlerAtk, enum AIConsiderGimmick considerGimmickDef)
+{
+    for (enum BattlerId battlerDef = 0; battlerDef < gBattlersCount; battlerDef++)
+    {
+        enum Move move = MOVE_NONE;
+        u32 damage;
+
+        if (!IsReadPlayerSelectedDamageMoveTargeting(battlerDef, battlerAtk, &move))
+            continue;
+
+        damage = GetReadPlayerSelectedDamageToBattler(battlerDef, battlerAtk, move, considerGimmickDef);
+        if (damage >= gBattleMons[battlerAtk].hp && !CanEndureHit(battlerDef, battlerAtk, move))
+            return battlerDef;
+    }
+
+    return MAX_BATTLERS_COUNT;
+}
+
+static bool32 CanKnownReadPlayerFaintAiThisTurn(enum BattlerId battlerAtk, enum AIConsiderGimmick considerGimmickDef)
+{
+    return GetReadPlayerKnownKOPressureSource(battlerAtk, considerGimmickDef) < gBattlersCount;
+}
+
+static bool32 DoesSmartGimmickReduceKnownPlayerKo(enum BattlerId battlerAtk)
+{
+    return CanKnownReadPlayerFaintAiThisTurn(battlerAtk, NO_GIMMICK)
+        && !CanKnownReadPlayerFaintAiThisTurn(battlerAtk, USE_GIMMICK);
 }
 
 static s32 GetReadPlayerProtectThreatScore(enum BattlerId battlerAtk, enum Move move)
@@ -6171,7 +6251,9 @@ static bool32 DoesZMoveImproveDamageRace(enum BattlerId battlerAtk, enum Battler
     if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
         return FALSE;
 
-    if (!CanTargetFaintAi(battlerDef, battlerAtk) && !IsSmartZTrapPressure(battlerAtk, battlerDef))
+    if (!CanTargetFaintAi(battlerDef, battlerAtk)
+     && !CanKnownReadPlayerFaintAiThisTurn(battlerAtk, NO_GIMMICK)
+     && !IsSmartZTrapPressure(battlerAtk, battlerDef))
         return FALSE;
 
     regularDamage = AI_CalcDamage(move, battlerAtk, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
@@ -6191,6 +6273,9 @@ static bool32 DoesZMoveImproveDamageRace(enum BattlerId battlerAtk, enum Battler
 static bool32 IsSmartGimmickLateCommitTurn(enum BattlerId battlerAtk, enum BattlerId battlerDef)
 {
     if (CountUsablePartyMons(battlerAtk) == 0)
+        return TRUE;
+
+    if (CanKnownReadPlayerFaintAiThisTurn(battlerAtk, NO_GIMMICK))
         return TRUE;
 
     if (CountUsablePartyMons(battlerAtk) > 1)
@@ -6431,7 +6516,9 @@ bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum
         dmg = AI_CalcDamageSaveBattlers(chosenMove, battlerAtk, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK);
 
         // don't waste a damaging z move if the normal move will KO
-        if (!IsBattleMoveStatus(chosenMove) && dmg.minimum >= gBattleMons[battlerDef].hp)
+        if (!IsBattleMoveStatus(chosenMove)
+         && dmg.minimum >= gBattleMons[battlerDef].hp
+         && !CanKnownReadPlayerFaintAiThisTurn(battlerAtk, NO_GIMMICK))
         {
             // Risky AI skips accuracy check.
             if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_RISKY)
@@ -6480,6 +6567,11 @@ static bool32 HasSmartFlagForGimmick(enum BattlerId battler, enum Gimmick gimmic
 
 static enum BattlerId GetSmartGimmickTarget(enum BattlerId battlerAtk, enum BattlerId battlerDef)
 {
+    enum BattlerId readKoSource = GetReadPlayerKnownKOPressureSource(battlerAtk, NO_GIMMICK);
+
+    if (readKoSource < gBattlersCount)
+        return readKoSource;
+
     if (battlerDef < gBattlersCount && IsBattlerAlive(battlerDef) && !IsBattlerAlly(battlerAtk, battlerDef))
         return battlerDef;
 
@@ -6696,6 +6788,9 @@ static bool32 ShouldUseSmartMega(enum BattlerId battlerAtk, enum BattlerId battl
 
     targetAbility = GetSmartMegaTargetAbility(battlerAtk, targetSpecies);
 
+    if (DoesSmartGimmickReduceKnownPlayerKo(battlerAtk))
+        return TRUE;
+
     if (DoesSmartMegaImproveSurvival(battlerAtk, battlerDef, targetSpecies))
         return TRUE;
 
@@ -6715,7 +6810,7 @@ static bool32 ShouldUseSmartMega(enum BattlerId battlerAtk, enum BattlerId battl
         return TRUE;
 
     if (IsSmartMegaSetupMove(move))
-        return CanTargetFaintAi(battlerDef, battlerAtk);
+        return CanTargetFaintAi(battlerDef, battlerAtk) || CanKnownReadPlayerFaintAiThisTurn(battlerAtk, NO_GIMMICK);
 
     return TRUE;
 }
@@ -6898,6 +6993,9 @@ static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId ba
         return CountUsablePartyMons(battlerAtk) == 0;
 
     if (IsSmartGimmickLateCommitTurn(battlerAtk, battlerDef))
+        return TRUE;
+
+    if (DoesSmartGimmickReduceKnownPlayerKo(battlerAtk))
         return TRUE;
 
     if (CanTargetFaintAi(battlerDef, battlerAtk))
@@ -7206,6 +7304,9 @@ enum AIConsiderGimmick ShouldTeraFromCalcs(enum BattlerId battler, enum BattlerI
         if (IsIntendedTeraCandidate(battler, monIndex, party))
             numPossibleTera++;
     }
+
+    if (DoesSmartGimmickReduceKnownPlayerKo(battler))
+        return USE_GIMMICK;
 
     u32 aiHp = gBattleMons[battler].hp;
     u32 oppHp = gBattleMons[opposingBattler].hp;
