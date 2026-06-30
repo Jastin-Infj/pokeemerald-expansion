@@ -7717,7 +7717,7 @@ bool32 ShouldTriggerAbility(enum BattlerId battlerAtk, enum BattlerId battlerDef
         case ABILITY_COMPETITIVE:
             return (BattlerStatCanRise(battlerDef, ability, STAT_SPATK) && HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_SPECIAL));
 
-        // TODO: logic for when to trigger Contrary
+        // Move-specific scoring decides whether the reversed stat change is useful.
         case ABILITY_CONTRARY:
             return TRUE;
 
@@ -8535,7 +8535,7 @@ bool32 AI_CanAnyStatChange(enum BattlerId battlerAtk, enum BattlerId battlerDef,
             if (effect->moveEffect == STAT_CHANGE_EFFECT_MINUS)
                 st.stage = -1 * st.stage;
 
-            st.stage = AI_GetAdjustedStatStage(battlerAtk, move, st.stage);
+            st.stage = AI_GetAdjustedStatStage(battlerDef, move, st.stage);
 
             if (CanStatChange(&cv, &st))
                 return TRUE;

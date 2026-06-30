@@ -4923,11 +4923,23 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
             case ABILITY_CONTRARY:
                 if (IsStatLoweringMove(move) && isFriendlyFireOK && ShouldTriggerAbility(battlerAtk, battlerAtkPartner, atkPartnerAbility))
                 {
-                    if (moveTarget == TARGET_FOES_AND_ALLY)
+                    s32 statChangeScore;
+
+                    if (!AI_CanAnyStatChange(battlerAtk, battlerAtkPartner, move))
                     {
-                        ADJUST_SCORE(GOOD_EFFECT);
+                        isMoveAffectedByPartnerAbility = FALSE;
+                        break;
                     }
-                    RETURN_SCORE_PLUS(WEAK_EFFECT);
+
+                    statChangeScore = GetAllyStatChangeScore(battlerAtk, battlerAtkPartner, move);
+                    if (statChangeScore > NO_INCREASE)
+                    {
+                        if (moveTarget == TARGET_FOES_AND_ALLY)
+                            ADJUST_SCORE(GOOD_EFFECT);
+                        RETURN_SCORE_PLUS(statChangeScore);
+                    }
+
+                    isMoveAffectedByPartnerAbility = FALSE;
                 }
                 else
                 {

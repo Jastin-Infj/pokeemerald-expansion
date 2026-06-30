@@ -324,6 +324,7 @@ static void DebugAction_Party_BattleGauntletMixDoubles(u8 taskId);
 static void DebugAction_Party_BattleGauntletReadSingles(u8 taskId);
 static void DebugAction_Party_BattleGauntletReadDoubles(u8 taskId);
 static void DebugAction_Party_BattleGauntletPartnerDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletPartnerTechDoubles(u8 taskId);
 static void DebugAction_Party_BattleGauntletChampionsSingles(u8 taskId);
 static void DebugAction_Party_BattleGauntletChampionsDoubles(u8 taskId);
 
@@ -666,6 +667,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
     { COMPOUND_STRING("Read Single"),   DebugAction_Party_BattleGauntletReadSingles },
     { COMPOUND_STRING("Read Double"),   DebugAction_Party_BattleGauntletReadDoubles },
     { COMPOUND_STRING("Partner Double"), DebugAction_Party_BattleGauntletPartnerDoubles },
+    { COMPOUND_STRING("Partner Tech"),  DebugAction_Party_BattleGauntletPartnerTechDoubles },
     { COMPOUND_STRING("Champs Single"), DebugAction_Party_BattleGauntletChampionsSingles },
     { COMPOUND_STRING("Champs Double"), DebugAction_Party_BattleGauntletChampionsDoubles },
     { NULL }
@@ -5006,6 +5008,8 @@ enum DebugTrainerIds
     DEBUG_TRAINER_AI_GAUNTLET_READ_DOUBLES,
     DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_DOUBLES,
     DEBUG_TRAINER_AI_GAUNTLET_PARTNER_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_TECH_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_PARTNER_TECH_DOUBLES,
     DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_SINGLES,
     DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_SINGLES,
     DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES,
@@ -5157,6 +5161,11 @@ static void DebugAction_Party_BattleGauntletReadDoubles(u8 taskId)
 static void DebugAction_Party_BattleGauntletPartnerDoubles(u8 taskId)
 {
     DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_PARTNER_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletPartnerTechDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_TECH_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_PARTNER_TECH_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
 }
 
 static void DebugAction_Party_BattleGauntletChampionsSingles(u8 taskId)

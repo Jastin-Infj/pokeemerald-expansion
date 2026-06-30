@@ -153,6 +153,46 @@
         Moves(__VA_ARGS__); \
     }
 
+#define OPPONENT_WHIMSICOTT_PRANKSTER(...) \
+    OPPONENT(SPECIES_WHIMSICOTT) { \
+        Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(135); HP(135); Defense(105); SpAttack(97); SpDefense(95); Speed(184); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_GRIMMSNARL_PRANKSTER(...) \
+    OPPONENT(SPECIES_GRIMMSNARL) { \
+        Level(50); Item(ITEM_LIGHT_CLAY); Ability(ABILITY_PRANKSTER); Nature(NATURE_CAREFUL); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(202); HP(202); Attack(140); Defense(95); SpDefense(125); Speed(80); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_LURANTIS_CONTRARY(...) \
+    OPPONENT(SPECIES_LURANTIS) { \
+        Level(50); Item(ITEM_CLEAR_AMULET); Ability(ABILITY_CONTRARY); Nature(NATURE_ADAMANT); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(177); HP(177); Attack(172); Defense(110); SpDefense(110); Speed(75); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_STARAPTOR_LUM(...) \
+    OPPONENT(SPECIES_STARAPTOR) { \
+        Level(50); Item(ITEM_LUM_BERRY); Ability(ABILITY_RECKLESS); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(160); HP(160); Attack(172); Defense(90); SpDefense(80); Speed(167); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_STARAPTOR_NO_CURE(...) \
+    OPPONENT(SPECIES_STARAPTOR) { \
+        Level(50); Item(ITEM_SHARP_BEAK); Ability(ABILITY_RECKLESS); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(160); HP(160); Attack(172); Defense(90); SpDefense(80); Speed(167); \
+        Moves(__VA_ARGS__); \
+    }
+
 #define OPPONENT_TAUROS_ANGER_POINT(...) \
     OPPONENT(SPECIES_TAUROS) { \
         Level(50); Item(ITEM_LUM_BERRY); Ability(ABILITY_ANGER_POINT); Nature(NATURE_JOLLY); \
@@ -366,6 +406,67 @@ AI_DOUBLE_BATTLE_TEST("AI uses a guaranteed critical hit on an Anger Point ally"
             MOVE(playerLeft, MOVE_PROTECT);
             MOVE(playerRight, MOVE_PROTECT);
             EXPECT_MOVE(opponentLeft, MOVE_FROST_BREATH, target: opponentRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI uses Charm on a Contrary physical ally even from minimum Attack")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_CHARM) == EFFECT_STAT_CHANGE);
+        ASSUME(GetMoveTarget(MOVE_CHARM) == TARGET_SELECTED);
+        ASSUME_STAT_CHANGE(MOVE_CHARM, attack: -2);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS);
+        PLAYER_INCINEROAR_BULKY(MOVE_FAKE_OUT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF, MOVE_PROTECT);
+        PLAYER_ARCANINE_BULKY(MOVE_FLARE_BLITZ, MOVE_EXTREME_SPEED, MOVE_SNARL, MOVE_PROTECT);
+        OPPONENT_WHIMSICOTT_PRANKSTER(MOVE_CHARM, MOVE_PROTECT);
+        OPPONENT_LURANTIS_CONTRARY(MOVE_LEAF_BLADE, MOVE_CLOSE_COMBAT, MOVE_SUPERPOWER, MOVE_PROTECT);
+    } WHEN {
+        opponentRight->statStages[STAT_ATK] = MIN_STAT_STAGE;
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            SCORE_GT_VAL(opponentLeft, MOVE_CHARM, AI_SCORE_DEFAULT, target: opponentRight);
+            SCORE_LT_VAL(opponentLeft, MOVE_CHARM, AI_SCORE_DEFAULT, target: opponentLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI scores Swagger on a Lum Berry physical ally")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_SWAGGER) == EFFECT_SWAGGER);
+        ASSUME(GetMoveTarget(MOVE_SWAGGER) == TARGET_SELECTED);
+        ASSUME(gItemsInfo[ITEM_LUM_BERRY].holdEffect == HOLD_EFFECT_CURE_STATUS);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS);
+        PLAYER_INCINEROAR_BULKY(MOVE_FAKE_OUT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF, MOVE_PROTECT);
+        PLAYER_ARCANINE_BULKY(MOVE_FLARE_BLITZ, MOVE_EXTREME_SPEED, MOVE_SNARL, MOVE_PROTECT);
+        OPPONENT_GRIMMSNARL_PRANKSTER(MOVE_SWAGGER, MOVE_SPIRIT_BREAK, MOVE_REFLECT, MOVE_PROTECT);
+        OPPONENT_STARAPTOR_LUM(MOVE_BRAVE_BIRD, MOVE_CLOSE_COMBAT, MOVE_QUICK_ATTACK, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            SCORE_GT_VAL(opponentLeft, MOVE_SWAGGER, AI_SCORE_DEFAULT, target: opponentRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI does not score Swagger on an ally without a confusion guard")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_SWAGGER) == EFFECT_SWAGGER);
+        ASSUME(GetMoveTarget(MOVE_SWAGGER) == TARGET_SELECTED);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS);
+        PLAYER_INCINEROAR_BULKY(MOVE_FAKE_OUT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF, MOVE_PROTECT);
+        PLAYER_ARCANINE_BULKY(MOVE_FLARE_BLITZ, MOVE_EXTREME_SPEED, MOVE_SNARL, MOVE_PROTECT);
+        OPPONENT_GRIMMSNARL_PRANKSTER(MOVE_SWAGGER, MOVE_SPIRIT_BREAK, MOVE_REFLECT, MOVE_PROTECT);
+        OPPONENT_STARAPTOR_NO_CURE(MOVE_BRAVE_BIRD, MOVE_CLOSE_COMBAT, MOVE_QUICK_ATTACK, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            SCORE_LT_VAL(opponentLeft, MOVE_SWAGGER, AI_SCORE_DEFAULT, target: opponentRight);
         }
     }
 }

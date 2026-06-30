@@ -3361,6 +3361,240 @@ Tags: Ace
 - Earth Power
 - Body Press
 
+=== DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_TECH_DOUBLES ===
+Name: Tech P1
+Class: Pkmn Trainer 1
+Pic: Brendan
+Gender: Male
+Music: Male
+Battle Type: Doubles
+Party Size: 4
+Pool Rules: Doubles
+
+Staraptor @ ITEM_STARAPTITE
+Ability: Reckless
+Jolly Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Lead / Ace
+Pool Weight: 8
+- Brave Bird
+- Close Combat
+- Quick Attack
+- Protect
+
+Incineroar @ ITEM_SITRUS_BERRY
+Ability: Intimidate
+Careful Nature
+Level: 50
+Tera Type: Grass
+Dynamax Level: 10
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Def / 180 SpD
+Tags: Lead / Support
+Pool Weight: 7
+- Fake Out
+- Parting Shot
+- Flare Blitz
+- Knock Off
+
+Rillaboom @ ITEM_ASSAULT_VEST
+Ability: Grassy Surge
+Adamant Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 196 Atk / 60 SpD
+Tags: Lead / Support
+Pool Weight: 7
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- Knock Off
+
+Gardevoir @ ITEM_FOCUS_SASH
+Ability: Trace
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Support
+Pool Weight: 5
+- Dazzling Gleam
+- Moonblast
+- Will-O-Wisp
+- Protect
+
+Amoonguss @ ITEM_ROCKY_HELMET
+Ability: Regenerator
+Sassy Nature
+Level: 50
+Tera Type: Water
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 156 Def / 100 SpD
+Tags: Support
+Pool Weight: 5
+- Rage Powder
+- Pollen Puff
+- Spore
+- Protect
+
+Dondozo @ ITEM_LEFTOVERS
+Ability: Unaware
+Adamant Nature
+Level: 50
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 76 Atk / 180 SpD
+Tags: Ace
+Pool Weight: 5
+- Wave Crash
+- Order Up
+- Body Press
+- Protect
+
+=== DEBUG_TRAINER_AI_GAUNTLET_PARTNER_TECH_DOUBLES ===
+Name: Tech Lab
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Omniscient / Know Opponent Party / Powerful Status / Aggressive Gimmick / Read Player Move
+Class: Champion
+Battle Type: Doubles
+Party Size: 4
+Pool Rules: Doubles
+Pic: Steven
+Gender: Male
+Music: Elite Four
+
+Whimsicott @ ITEM_FOCUS_SASH
+Ability: Prankster
+Timid Nature
+Level: 50
+Tera Type: Ghost
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Lead / Support
+Pool Weight: 10
+- Charm
+- Beat Up
+- Tailwind
+- Moonblast
+
+Lurantis @ ITEM_CLEAR_AMULET
+Ability: Contrary
+Adamant Nature
+Level: 50
+Tera Type: Grass
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 4 SpD
+Tags: Lead / Ace
+Pool Weight: 9
+- Leaf Blade
+- Close Combat
+- Superpower
+- Protect
+
+Grimmsnarl @ ITEM_LIGHT_CLAY
+Ability: Prankster
+Careful Nature
+Level: 50
+Tera Type: Steel
+Gigantamax: Yes
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 Atk / 252 SpD
+Tags: Lead / Support
+Pool Weight: 8
+- Swagger
+- Reflect
+- Spirit Break
+- Protect
+
+Staraptor @ ITEM_LUM_BERRY
+Ability: Reckless
+Jolly Nature
+Level: 50
+Tera Type: Normal
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Lead / Ace
+Pool Weight: 8
+- Brave Bird
+- Close Combat
+- Quick Attack
+- Protect
+
+Froslass @ ITEM_FOCUS_SASH
+Ability: Cursed Body
+Timid Nature
+Level: 50
+Tera Type: Ghost
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+Tags: Support
+Pool Weight: 6
+- Frost Breath
+- Icy Wind
+- Will-O-Wisp
+- Protect
+
+Tauros @ ITEM_LUM_BERRY
+Ability: Anger Point
+Jolly Nature
+Level: 50
+Tera Type: Fighting
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 Atk / 252 Spe
+Tags: Ace
+Pool Weight: 6
+- Close Combat
+- Rock Slide
+- Earthquake
+- Protect
+
+Primarina @ ITEM_COVERT_CLOAK
+Ability: Liquid Voice
+Modest Nature
+Level: 50
+Tera Type: Water
+Dynamax Level: 10
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpA / 4 SpD
+Tags: Support
+Pool Weight: 5
+- Aqua Jet
+- Sparkling Aria
+- Moonblast
+- Protect
+
+Coalossal @ ITEM_WEAKNESS_POLICY
+Ability: Steam Engine
+Modest Nature
+Level: 50
+Tera Type: Grass
+Gigantamax: Yes
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 Def / 252 SpA
+Tags: Ace
+Pool Weight: 5
+- Heat Wave
+- Rock Slide
+- Earth Power
+- Body Press
+
+Amoonguss @ ITEM_ROCKY_HELMET
+Ability: Regenerator
+Sassy Nature
+Level: 50
+Tera Type: Water
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 156 Def / 100 SpD
+Tags: Support
+Pool Weight: 5
+- Rage Powder
+- Pollen Puff
+- Spore
+- Protect
+
 === DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_SINGLES ===
 Name: Champ P1
 Class: Pkmn Trainer 1
