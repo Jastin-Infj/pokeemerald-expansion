@@ -68,6 +68,20 @@ Implemented on `feature/champions-run-session-runtime-20260524`:
 
 Latest local evidence:
 
+- 2026-07-01 PartyGen wide catalog expansion on
+  `feature/champions-partygen-16-20260603`:
+  - Added catalog-only wide libraries with 240 single-battle definitions and
+    240 double-battle definitions. They are exposed through
+    `blueprint.catalog.wide_singles` and `blueprint.catalog.wide_doubles`, but
+    are not added to the active journey by default.
+  - `tools/champions_partygen/partygen.sh doctor` passes with 6 journey
+    trainers, 8 blueprints, 527 sets, and 855 source trainer blocks.
+  - `tools/champions_partygen/partygen.sh generate --seed 1234 --out /tmp/champions_partygen_wide_generated.party`
+    passes with 0 errors, 0 warnings, 0 notes.
+  - `tools/champions_partygen/partygen.sh validate --input /tmp/champions_partygen_wide_generated.party`
+    passes with 0 errors, 0 warnings, 0 notes.
+  - `rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml`
+    passes 18 tests.
 - 16.0 PartyGen config-gated branch
   `feature/champions-partygen-16-20260603`:
   - `rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml`

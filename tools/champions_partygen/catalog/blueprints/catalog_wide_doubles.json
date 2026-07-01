@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "blueprintId": "blueprint.catalog.wide_doubles",
+  "stage": "stage.catalog_wide_doubles",
+  "rank": "champion",
+  "setGroups": [
+    "pool.catalog.doubles.gen9_wide"
+  ],
+  "mode": "double",
+  "requireSpreadMove": true,
+  "allowSpeciesDuplicate": true,
+  "partySize": 4,
+  "poolSize": 24,
+  "rulesetId": "POOL_RULESET_DOUBLES",
+  "required": [
+    {
+      "slot": "lead",
+      "roles": [
+        "role.sturdy_lead"
+      ]
+    },
+    {
+      "slot": "ace",
+      "roles": [
+        "role.win_condition"
+      ]
+    }
+  ],
+  "preferred": [
+    {
+      "role": "role.defensive_support",
+      "min": 2,
+      "max": 10
+    },
+    {
+      "role": "role.speed_control",
+      "min": 2,
+      "max": 10
+    }
+  ],
+  "constraints": {
+    "minLocalPoolSize": 24,
+    "maxLocalPoolSize": 32,
+    "speciesClause": false,
+    "itemClause": false
+  }
+}

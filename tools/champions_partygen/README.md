@@ -19,6 +19,20 @@ audit logs and are not emitted to `trainers.party`.
 Blueprint `setGroups` and set `groups` are catalog-only filters. Use them to
 keep one trainer's pool from drawing sets intended for another trainer.
 
+The catalog also includes broad Gen 9-style libraries for future trainer and
+AI debug coverage:
+
+- `catalog/sets/wide_singles.json`: 240 single-battle sets.
+- `catalog/sets/wide_doubles.json`: 240 double-battle sets.
+- `blueprint.catalog.wide_singles` and `blueprint.catalog.wide_doubles` expose
+  those libraries without adding them to the active journey by default.
+
+These wide libraries intentionally cover more than the current Champions
+challenge runtime: Mega Evolution items, Z-Crystals, Dynamax Level,
+Gigantamax, Tera Type, weather cores, spread pressure, speed control,
+redirection, Trick Room, and partner-activation concepts are all represented
+as catalog data for future generated battle / AI test scenarios.
+
 Set `lintTags` are also catalog-only. Use them for weather, terrain, and
 pledge-side concepts that should be linted but should not be emitted to
 trainerproc `Tags`.

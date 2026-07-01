@@ -7,7 +7,7 @@
 | Branch | `feature/champions-partygen-16-20260603` |
 | Status | Source / tool implementation on feature branch; not for direct `master` merge |
 | Primary files | `include/config/champions_partygen.h`, `include/config/battle.h`, `src/data/trainers.party`, `src/data/champions_partygen/trainers.party.inc`, `src/battle_script_commands.c`, `src/battle_util.c`, `tools/champions_partygen/` |
-| Last updated | 2026-06-04 |
+| Last updated | 2026-07-01 |
 
 ### Implemented Contract
 
@@ -30,6 +30,19 @@
 - Added a Tate & Liza double-battle gimmick demo blueprint with 16 generated
   pool members covering Mega Evolution, Z-Moves, Dynamax, Gigantamax,
   Terastallization, combination data, and no-gimmick control sets.
+- Added broad catalog-only Gen 9-style libraries for future generated trainer
+  and AI debug coverage:
+  `tools/champions_partygen/catalog/sets/wide_singles.json` has 240
+  single-battle definitions and `wide_doubles.json` has 240 double-battle
+  definitions.
+- Added `blueprint.catalog.wide_singles` and
+  `blueprint.catalog.wide_doubles` so the wide libraries can be sampled by
+  future PartyGen runs without making them part of the active journey by
+  default.
+- The wide catalog definitions include Mega Evolution held items, Z-Crystals,
+  Dynamax Level, Gigantamax, Tera Type, weather cores, spread-pressure moves,
+  speed control, redirection, Trick Room, and double-battle partner activation
+  concepts.
 - Added explicit PartyGen challenge config:
   `B_CHAMPIONS_PARTYGEN_LEVEL`,
   `B_CHAMPIONS_PARTYGEN_EXP_NORMAL`,
@@ -79,6 +92,10 @@
 - The generated include is intentionally committed as reviewable source data.
   `tools/champions_partygen/local/` audit logs and raw player logs remain
   ignored local artifacts.
+- The wide singles / doubles catalogs are libraries only in this slice. They
+  are validated by PartyGen, but they do not change
+  `src/data/champions_partygen/trainers.party.inc` until a later journey /
+  trainer configuration references their blueprints or groups.
 - Future 16.0-native Champions facility work should start from current
   `master` on a fresh `feature/*` or `integration/*` branch and use this branch
   as the PartyGen reference.
@@ -90,6 +107,9 @@ Detailed evidence is recorded in
 
 - PartyGen Rust tests, `doctor`, generated include `validate`, and `diff`
   passed.
+- Wide catalog expansion checks passed with 527 total catalog sets:
+  240 single-battle wide sets, 240 double-battle wide sets, and the existing 47
+  active / demo sets.
 - The committed `B_CHAMPIONS_PARTYGEN_TRAINERS = 1` config preprocesses
   through trainerproc and emits generated `partySize` / `poolSize` data for
   Sidney, Phoebe, Glacia, Drake, Tate & Liza, and Wallace.

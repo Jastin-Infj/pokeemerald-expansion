@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "blueprintId": "blueprint.catalog.wide_singles",
+  "stage": "stage.catalog_wide_singles",
+  "rank": "champion",
+  "setGroups": [
+    "pool.catalog.singles.gen9_wide"
+  ],
+  "mode": "single",
+  "requireSpreadMove": false,
+  "allowSpeciesDuplicate": true,
+  "partySize": 3,
+  "poolSize": 24,
+  "rulesetId": "POOL_RULESET_BASIC",
+  "required": [
+    {
+      "slot": "lead",
+      "roles": [
+        "role.sturdy_lead"
+      ]
+    },
+    {
+      "slot": "ace",
+      "roles": [
+        "role.win_condition"
+      ]
+    }
+  ],
+  "preferred": [
+    {
+      "role": "role.defensive_support",
+      "min": 1,
+      "max": 8
+    },
+    {
+      "role": "role.speed_control",
+      "min": 1,
+      "max": 8
+    }
+  ],
+  "constraints": {
+    "minLocalPoolSize": 24,
+    "maxLocalPoolSize": 32,
+    "speciesClause": false,
+    "itemClause": false
+  }
+}

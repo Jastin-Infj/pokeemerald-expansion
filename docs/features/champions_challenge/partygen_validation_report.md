@@ -1,5 +1,56 @@
 # Champions Partygen Validation Report
 
+## 2026-07-01 Wide Catalog Expansion Addendum
+
+Branch: `feature/champions-partygen-16-20260603`
+
+Scope:
+
+- Added broad catalog-only PartyGen libraries for future trainer generation and
+  AI debug coverage.
+- `tools/champions_partygen/catalog/sets/wide_singles.json` adds 240
+  single-battle definitions.
+- `tools/champions_partygen/catalog/sets/wide_doubles.json` adds 240
+  double-battle definitions.
+- Added `blueprint.catalog.wide_singles` and
+  `blueprint.catalog.wide_doubles`. They expose the wide libraries without
+  adding them to the active journey by default.
+- The wide libraries cover Gen 9-style and cross-gimmick concepts including
+  Mega Evolution held items, Z-Crystals, Dynamax Level, Gigantamax, Tera Type,
+  weather cores, spread pressure, speed control, redirection, Trick Room, and
+  double-battle partner activation concepts.
+
+Static and tool checks:
+
+```sh
+tools/champions_partygen/partygen.sh doctor
+tools/champions_partygen/partygen.sh generate --seed 1234 --out /tmp/champions_partygen_wide_generated.party
+tools/champions_partygen/partygen.sh validate --input /tmp/champions_partygen_wide_generated.party
+rtk cargo test --manifest-path tools/champions_partygen/Cargo.toml
+git diff --check
+rtk mdbook build docs
+```
+
+Results:
+
+- `doctor`: passed; catalog found 6 journey trainers, 8 blueprints, 527 sets,
+  and 855 source trainer blocks.
+- `generate`: passed with 0 errors, 0 warnings, 0 notes.
+- `validate`: passed with 0 errors, 0 warnings, 0 notes.
+- `cargo test`: passed, 18 tests.
+- `git diff --check`: passed.
+- `mdbook build docs`: passed with existing warnings for missing root
+  `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search index.
+
+Remaining validation boundary:
+
+- This pass validates catalog parsing, generated output, and the PartyGen test
+  suite. The wide libraries are not wired into the active journey or committed
+  `src/data/champions_partygen/trainers.party.inc` output in this slice, so no
+  new ROM runtime battle route was exercised for the wide definitions.
+
+---
+
 ## 2026-06-04 Enabled PartyGen / Double Gimmick Addendum
 
 Branch: `feature/champions-partygen-16-20260603`
