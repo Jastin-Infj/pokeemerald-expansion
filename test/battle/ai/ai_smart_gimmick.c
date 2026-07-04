@@ -308,6 +308,30 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not spend Dynamax on Pr
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not spend Dynamax on Tailwind")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_KNOCK_OFF, MOVE_FLARE_BLITZ, MOVE_PROTECT);
+        OPPONENT(SPECIES_TORNADUS) {
+            Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); DynamaxLevel(10);
+            TEST_IVS_SPECIAL();
+            MaxHP(155); HP(1); Defense(90); SpAttack(177); SpDefense(100); Speed(179);
+            Moves(MOVE_TAILWIND);
+        }
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_KNOCK_OFF, MOVE_FLARE_BLITZ, MOVE_PARTING_SHOT);
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BLEAKWIND_STORM, target: opponentLeft);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_TAILWIND, gimmick: GIMMICK_NONE);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI can spend Dynamax against an already chosen Fake Out")
 {
     GIVEN {
