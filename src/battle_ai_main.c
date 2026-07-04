@@ -4650,7 +4650,8 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     // check specific target
     if (IsTargetingPartner(battlerAtk, battlerDef))
     {
-        bool32 isMoveAffectedByPartnerAbility = TRUE;
+        s32 partnerTargetBaseScore = score;
+        bool32 isMoveAffectedByPartnerAbility = FALSE;
 
         if (wouldPartnerFaint)
         {
@@ -5168,7 +5169,16 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
             }
         } // check partner protecting
 
-        if ((isMoveAffectedByPartnerAbility && (score <= AI_SCORE_DEFAULT)) || !isMoveAffectedByPartnerAbility)
+        if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_ATTACKS_PARTNER)
+         && moveTarget != TARGET_FOES_AND_ALLY
+         && moveTarget != TARGET_BOTH
+         && !isMoveAffectedByPartnerAbility
+         && score <= partnerTargetBaseScore)
+        {
+            RETURN_SCORE_MINUS(50);
+        }
+
+        if (isMoveAffectedByPartnerAbility && score <= AI_SCORE_DEFAULT)
         {
             RETURN_SCORE_MINUS(10);
         }

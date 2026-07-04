@@ -30,7 +30,7 @@ EVs: 252 Atk / 252 Def / 6 SpA
 
 === DEBUG_TRAINER_AI ===
 Name: Debugger
-AI: Smart Trainer
+AI: Smart Trainer / Read Player Move
 Class: Rival
 Battle Type: Singles
 Pic: Steven
@@ -113,7 +113,7 @@ EVs: 4 HP / 252 Atk / 252 Spe
 
 === DEBUG_TRAINER_AI_SINGLES_3V3 ===
 Name: Ladder
-AI: Smart Trainer / Prediction / Smart Gimmick / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Know Opponent Party / Powerful Status / Read Player Move
 Class: Rival
 Battle Type: Singles
 Party Size: 3
@@ -257,7 +257,7 @@ EVs: 4 HP / 252 Atk / 252 Spe
 
 === DEBUG_TRAINER_AI_DOUBLES_4V4 ===
 Name: VGC Test
-AI: Smart Trainer / Prediction / Smart Gimmick / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Know Opponent Party / Powerful Status / Read Player Move
 Class: Champion
 Battle Type: Doubles
 Party Size: 4
@@ -405,7 +405,7 @@ EVs: 4 HP / 252 Atk / 252 Spe
 
 === DEBUG_TRAINER_AI_DMAX_Z_SINGLES ===
 Name: Dmax Wall
-AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status / Read Player Move
 Class: Champion
 Battle Type: Singles
 Pic: Steven
@@ -502,7 +502,7 @@ EVs: 4 HP / 252 SpA / 252 Spe
 
 === DEBUG_TRAINER_AI_DMAX_Z_DOUBLES ===
 Name: Dmax VGC
-AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status
+AI: Smart Trainer / Prediction / Smart Gimmick / Smart Switching / Smart Mon Choices / Know Opponent Party / Powerful Status / Read Player Move
 Class: Champion
 Battle Type: Doubles
 Pic: Steven
@@ -588,7 +588,7 @@ EVs: 252 HP / 4 Def / 252 SpD
 
 === DEBUG_TRAINER_AI_GIMMICK_AUDIT_SINGLES ===
 Name: Gimmick S
-AI: Basic Trainer / Omniscient
+AI: Basic Trainer / Omniscient / Read Player Move
 Class: Champion
 Battle Type: Singles
 Pic: Steven
@@ -3855,7 +3855,7 @@ EVs: 252 HP / 4 Def / 252 SpD
 
 === DEBUG_TRAINER_AI_GIMMICK_AUDIT_DOUBLES ===
 Name: Gimmick D
-AI: Basic Trainer / Omniscient
+AI: Basic Trainer / Omniscient / Read Player Move
 Class: Champion
 Battle Type: Doubles
 Pic: Steven

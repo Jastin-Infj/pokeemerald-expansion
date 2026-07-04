@@ -282,6 +282,28 @@ AI_DOUBLE_BATTLE_TEST("AI uses Rage Powder to protect an ally from a selected si
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI does not target a Rage Powder ally with neutral attacks without payoff")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_RAGE_POWDER) == EFFECT_FOLLOW_ME);
+        ASSUME(GetMoveTarget(MOVE_RAGE_POWDER) == TARGET_USER);
+        ASSUME(GetMoveTarget(MOVE_BODY_PRESS) == TARGET_SELECTED);
+        ASSUME(GetMoveTarget(MOVE_EARTH_POWER) == TARGET_SELECTED);
+        AI_FLAGS(PARTNER_SYNERGY_AI_FLAGS | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_POWERFUL_STATUS);
+        PLAYER_MIRAIDON_THREAT(MOVE_THUNDERBOLT, MOVE_ELECTRO_DRIFT, MOVE_DRACO_METEOR, MOVE_PROTECT);
+        PLAYER_RILLABOOM_BULKY(MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_FAKE_OUT, MOVE_PROTECT);
+        OPPONENT_COALOSSAL_POLICY(MOVE_HEAT_WAVE, MOVE_ROCK_SLIDE, MOVE_EARTH_POWER, MOVE_BODY_PRESS);
+        OPPONENT_AMOONGUSS_SUPPORT(MOVE_RAGE_POWDER, MOVE_SPORE, MOVE_POLLEN_PUFF, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentLeft);
+            MOVE(playerRight, MOVE_PROTECT);
+            SCORE_LT_VAL(opponentLeft, MOVE_BODY_PRESS, AI_SCORE_DEFAULT - 20, target: opponentRight);
+            SCORE_LT_VAL(opponentLeft, MOVE_EARTH_POWER, AI_SCORE_DEFAULT - 20, target: opponentRight);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI protects instead of choosing a slower attack into a selected KO")
 {
     GIVEN {
