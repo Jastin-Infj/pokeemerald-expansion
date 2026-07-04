@@ -1,6 +1,10 @@
 #include "global.h"
 #include "test/battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_util.h"
+#include "battle_setup.h"
+#include "constants/battle.h"
+#include "constants/battle_ai.h"
 
 SINGLE_BATTLE_TEST("AI runtime knowledge maps move categories from move data")
 {
@@ -26,6 +30,54 @@ SINGLE_BATTLE_TEST("AI runtime knowledge maps move categories from move data")
         EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SKILL_SWAP, AI_MOVE_KNOWLEDGE_ABILITY_CONTROL));
         EXPECT(AI_MoveHasKnowledgeFlag(MOVE_IMPRISON, AI_MOVE_KNOWLEDGE_MOVE_DENIAL));
         EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DEFENSE_CURL, AI_MOVE_KNOWLEDGE_COMBO_STATE));
+    }
+}
+
+SINGLE_BATTLE_TEST("NPC trainer AI automatically reads confirmed player commands outside link battles")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TACKLE); MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        u32 savedBattleTypeFlags = gBattleTypeFlags;
+        u32 savedOpponentA = TRAINER_BATTLE_PARAM.opponentA;
+        u64 flags;
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+        TRAINER_BATTLE_PARAM.opponentA = TRAINER_NONE;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(flags & AI_FLAG_BASIC_TRAINER);
+        EXPECT(flags & AI_FLAG_READ_PLAYER_MOVE);
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_FRONTIER;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT);
+        EXPECT(flags & AI_FLAG_CHECK_BAD_MOVE);
+        EXPECT(flags & AI_FLAG_READ_PLAYER_MOVE);
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_LINK;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_RECORDED;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_RECORDED_LINK;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = 0;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(0);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = savedBattleTypeFlags;
+        TRAINER_BATTLE_PARAM.opponentA = savedOpponentA;
     }
 }
 

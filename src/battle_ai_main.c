@@ -1490,6 +1490,26 @@ static bool32 IsSmartBattle(void)
     return gBattleTypeFlags & BATTLE_TYPE_HAS_AI || IsWildMonSmart();
 }
 
+static bool32 ShouldNpcTrainerReadPlayerMove(u64 flags)
+{
+    if (flags == 0)
+        return FALSE;
+    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
+        return FALSE;
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED | BATTLE_TYPE_RECORDED_LINK))
+        return FALSE;
+
+    return TRUE;
+}
+
+static u64 ApplyNpcTrainerReadPlayerMove(u64 flags)
+{
+    if (ShouldNpcTrainerReadPlayerMove(flags))
+        flags |= AI_FLAG_READ_PLAYER_MOVE;
+
+    return flags;
+}
+
 static u64 GetAiFlags(u16 trainerId, enum BattlerId battler)
 {
     u64 flags = 0;
@@ -1536,8 +1556,17 @@ static u64 GetAiFlags(u16 trainerId, enum BattlerId battler)
     if (sDynamicAiFunc != NULL)
         flags |= AI_FLAG_DYNAMIC_FUNC;
 
+    flags = ApplyNpcTrainerReadPlayerMove(flags);
+
     return flags;
 }
+
+#if TESTING
+u64 Test_ApplyNpcTrainerReadPlayerMove(u64 flags)
+{
+    return ApplyNpcTrainerReadPlayerMove(flags);
+}
+#endif
 
 void BattleAI_SetupFlags(void)
 {
@@ -1548,8 +1577,8 @@ void BattleAI_SetupFlags(void)
 
     if (DEBUG_OVERWORLD_MENU && gIsDebugBattle)
     {
-        gAiThinkingStruct->aiFlags[B_BATTLER_1] = gDebugAIFlags;
-        gAiThinkingStruct->aiFlags[B_BATTLER_3] = gDebugAIFlags;
+        gAiThinkingStruct->aiFlags[B_BATTLER_1] = ApplyNpcTrainerReadPlayerMove(gDebugAIFlags);
+        gAiThinkingStruct->aiFlags[B_BATTLER_3] = ApplyNpcTrainerReadPlayerMove(gDebugAIFlags);
         return;
     }
 
