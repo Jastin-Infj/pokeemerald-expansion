@@ -6196,6 +6196,8 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
             ADJUST_SCORE(ProtectChecks(battlerAtk, battlerDef, move, incomingMove));
             break;
         }
+        if (IsConsideringZMove(battlerAtk, battlerDef, move) && GetMoveZEffect(move) != Z_EFFECT_NONE)
+            ADJUST_SCORE(GOOD_EFFECT);
         break;
     case EFFECT_ENDURE:
         if (CanTargetFaintAi(battlerDef, battlerAtk))

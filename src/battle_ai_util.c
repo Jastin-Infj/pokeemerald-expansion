@@ -3335,6 +3335,15 @@ bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battler
     if (IsExplosionMove(predictedMove))
         return TRUE;
 
+    if (GetMoveEffect(predictedMove) == EFFECT_FIRST_TURN_ONLY
+     && IsBattlersFirstTurn(battlerDef)
+     && IsFlinchGuaranteed(battlerDef, battlerAtk, predictedMove))
+    {
+        if (gBattleStruct->gimmick.usableGimmick[battlerAtk] == GIMMICK_DYNAMAX && IsAIUsingGimmick(battlerAtk))
+            return FALSE;
+        return TRUE;
+    }
+
     if (GetBattlerSecondaryDamage(battlerDef) >= gBattleMons[battlerDef].hp)
         return TRUE;
 
@@ -6353,6 +6362,30 @@ static bool32 ShouldUseSmartZMove(enum BattlerId battlerAtk, enum BattlerId batt
     return DoesAggressiveGimmickApplyPressure(battlerAtk, battlerDef, move);
 }
 
+static bool32 HasUsableDamagingBattleMoveOfType(enum BattlerId battler, enum Type type)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = gBattleMons[battler].moves[moveIndex];
+
+        if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || gBattleMons[battler].pp[moveIndex] == 0)
+            continue;
+        if (GetMovePower(move) == 0 && GetMoveEffect(move) != EFFECT_NATURE_POWER)
+            continue;
+
+        enum Type moveType = GetDynamicMoveType(GetBattlerMon(battler), move, battler, MON_IN_BATTLE);
+
+        if (moveType != TYPE_NONE && type == moveType)
+            return TRUE;
+        if (GetMoveType(move) == type)
+            return TRUE;
+        if (GetMoveEffect(move) == EFFECT_NATURE_POWER && GetMoveType(GetNaturePowerMove()) == type)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 //TODO - this could use some more sophisticated logic
 bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move chosenMove)
 {
@@ -6380,10 +6413,11 @@ bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum
             isEager = TRUE;
             break;
         case EFFECT_PROTECT:
-            if (HasDamagingMoveOfType(battlerAtk, GetMoveType(chosenMove)))
+            if (HasUsableDamagingBattleMoveOfType(battlerAtk, GetMoveType(chosenMove)))
                 return FALSE;
-            else
-                isEager = TRUE;
+            else if (IsBattleMoveStatus(chosenMove) && GetMoveZEffect(chosenMove) != Z_EFFECT_NONE)
+                return TRUE;
+            isEager = TRUE;
             break;
         case EFFECT_TELEPORT:
             isEager = TRUE;
