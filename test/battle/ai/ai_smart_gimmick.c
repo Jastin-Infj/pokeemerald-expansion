@@ -489,6 +489,34 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI pressures a selected offensi
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Mega Lucario attacks selected Dragon Dance instead of setting up")
+{
+    GIVEN {
+        ASSUME(IsOffensiveStatRaisingMove(MOVE_DRAGON_DANCE));
+        ASSUME_STAT_CHANGE(MOVE_NASTY_PLOT, spAtk: +2);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_DRAGONITE) {
+            Level(50); Item(ITEM_DRAGONINITE); Ability(ABILITY_MULTISCALE); Nature(NATURE_ADAMANT);
+            TEST_IVS_PHYSICAL();
+            MaxHP(198); HP(198); Attack(186); Defense(115); SpDefense(120); Speed(100);
+            Moves(MOVE_DRAGON_DANCE, MOVE_EXTREME_SPEED, MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_LUCARIO) {
+            Level(50); Item(ITEM_LUCARIONITE); Ability(ABILITY_INNER_FOCUS); Nature(NATURE_TIMID);
+            TEST_IVS_SPECIAL();
+            MaxHP(146); HP(146); Defense(90); SpAttack(167); SpDefense(90); Speed(156);
+            Moves(MOVE_AURA_SPHERE, MOVE_FLASH_CANNON, MOVE_VACUUM_WAVE, MOVE_NASTY_PLOT);
+        }
+        OPPONENT(SPECIES_CHARIZARD) { Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); SpAttack(161); Speed(167); Moves(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_SAMUROTT_HISUI) { Level(50); Item(ITEM_CLEAR_AMULET); Ability(ABILITY_SHARPNESS); Attack(160); Speed(150); Moves(MOVE_CEASELESS_EDGE, MOVE_AQUA_CUTTER, MOVE_SUCKER_PUNCH, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_DRAGON_DANCE);
+            EXPECT_MOVE(opponent, MOVE_FLASH_CANNON);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not hide behind King's Shield while a setup threat is selected")
 {
     GIVEN {

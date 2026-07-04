@@ -821,6 +821,27 @@ static u32 GetBestUsableDamageIntoBattler(enum BattlerId battlerAtk, enum Battle
     return bestDamage;
 }
 
+static bool32 ShouldAvoidSelfSetupIntoReadPlayerSetup(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    u32 damage;
+    u32 hp;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !IsBattle1v1()
+     || AI_GetBattlerMoveTargetType(battlerAtk, move) != TARGET_USER
+     || !IsOffensiveStatRaisingMove(move)
+     || !IsReadPlayerSelectedOffensiveSetupThreat(battlerAtk, battlerDef))
+        return FALSE;
+
+    damage = GetBestUsableDamageIntoBattler(battlerAtk, battlerDef);
+    if (damage == 0)
+        return FALSE;
+
+    hp = gBattleMons[battlerDef].hp;
+    return damage >= hp
+        || damage * 100 >= hp * READ_PLAYER_SETUP_PRESSURE_DAMAGE_PERCENT;
+}
+
 static bool32 IsCoverageDamageMeaningful(enum BattlerId battlerDef, u32 damage)
 {
     u32 hp;
@@ -2953,6 +2974,8 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
         {
             if (!AI_CanAnyStatChange(battlerAtk, battlerAtk, move))
                 ADJUST_SCORE(-10);
+            else if (ShouldAvoidSelfSetupIntoReadPlayerSetup(battlerAtk, battlerDef, move))
+                ADJUST_SCORE(-READ_PLAYER_SETUP_DISRUPTION_SCORE);
         }
         else
         {
