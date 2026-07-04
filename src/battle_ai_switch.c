@@ -7,6 +7,7 @@
 #include "battle_util.h"
 #include "battle_anim.h"
 #include "battle_controllers.h"
+#include "battle_gimmick.h"
 #include "battle_main.h"
 #include "battle_setup.h"
 #include "data.h"
@@ -56,6 +57,7 @@ static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchCont
 static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfReadChoiceRoleDone(struct SwitchAiContext *switchContext);
+static bool32 ShouldStayInForKnownTeraSurvival(struct SwitchAiContext *switchContext);
 static bool32 ShouldPreserveDoubleBattlerWithProtect(struct SwitchAiContext *switchContext);
 static bool32 DoesMostSuitableSwitchinBenefitFromWish(enum BattlerId battler);
 static u32 GetSwitchinCandidate(u32 switchinCategory, enum BattlerId battler, int lastId, enum SwitchType switchType);
@@ -2700,6 +2702,8 @@ bool32 ShouldSwitch(enum BattlerId battler)
         return TRUE;
     if (ShouldSwitchIfPredictedTauntPunish(&switchContext))
         return TRUE;
+    if (ShouldStayInForKnownTeraSurvival(&switchContext))
+        return FALSE;
     if (ShouldSwitchIfKnownSingleTargetKO(&switchContext))
         return TRUE;
     if (ShouldPreserveDoubleBattlerWithProtect(&switchContext))
@@ -3575,6 +3579,69 @@ static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchC
         return FALSE;
 
     return SetSwitchinAndSwitch(switchContext->battler, switchinId);
+}
+
+static bool32 ShouldStayInForKnownTeraSurvival(struct SwitchAiContext *switchContext)
+{
+    enum BattlerId battler = switchContext->battler;
+    enum BattlerId attacker = switchContext->incomingBattler;
+    enum AIConsiderGimmick attackerGimmick = NO_GIMMICK;
+    enum Gimmick attackerSelectedGimmick;
+    struct SimulatedDamage damageWithoutTera, damageWithTera;
+    uq4_12_t effectiveness;
+    enum Move *aiMoves;
+    u32 targetHp;
+    u32 bestDamage = 0;
+
+    if (IsDoubleBattle())
+        return FALSE;
+    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE))
+        return FALSE;
+    if (!(gAiThinkingStruct->aiFlags[battler] & AI_FLAG_SMART_TERA))
+        return FALSE;
+    if (attacker >= gBattlersCount || switchContext->incomingMoveIndex >= MAX_MON_MOVES)
+        return FALSE;
+    if (BattlerHasAi(attacker) || IsBattlerAlly(battler, attacker))
+        return FALSE;
+    if (gChosenActionByBattler[attacker] != B_ACTION_USE_MOVE)
+        return FALSE;
+    if (switchContext->incomingMove == MOVE_NONE || switchContext->incomingMove == MOVE_UNAVAILABLE || IsBattleMoveStatus(switchContext->incomingMove))
+        return FALSE;
+    if (!CanActivateGimmick(battler, GIMMICK_TERA))
+        return FALSE;
+
+    attackerSelectedGimmick = gBattleStruct->gimmick.usableGimmick[attacker];
+    if (attackerSelectedGimmick != GIMMICK_NONE && IsGimmickSelected(attacker, attackerSelectedGimmick))
+        attackerGimmick = USE_GIMMICK;
+
+    damageWithoutTera = AI_CalcDamage(switchContext->incomingMove, attacker, battler, &effectiveness, attackerGimmick, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    damageWithTera = AI_CalcDamage(switchContext->incomingMove, attacker, battler, &effectiveness, attackerGimmick, USE_GIMMICK, AI_GetWeather(), gFieldStatuses);
+    if (damageWithoutTera.maximum < gBattleMons[battler].hp)
+        return FALSE;
+    if (damageWithTera.maximum >= gBattleMons[battler].hp)
+        return FALSE;
+    if (damageWithTera.maximum >= damageWithoutTera.maximum)
+        return FALSE;
+
+    aiMoves = GetMovesArray(battler);
+    targetHp = max(1, gBattleMons[switchContext->opposingBattler].hp);
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        struct SimulatedDamage damage;
+        bool32 isBattlerFirst;
+
+        if (IsMoveUnusable(moveIndex, aiMoves[moveIndex], gAiLogicData->moveLimitations[battler]) || IsBattleMoveStatus(aiMoves[moveIndex]))
+            continue;
+        isBattlerFirst = AI_IsFaster(battler, attacker, aiMoves[moveIndex], switchContext->incomingMove, CONSIDER_PRIORITY);
+        if (!isBattlerFirst)
+            continue;
+
+        damage = AI_CalcDamage(aiMoves[moveIndex], battler, switchContext->opposingBattler, &effectiveness, USE_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+        if (damage.median > bestDamage)
+            bestDamage = damage.median;
+    }
+
+    return bestDamage * 100 >= targetHp * 35;
 }
 
 static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext *switchContext)
