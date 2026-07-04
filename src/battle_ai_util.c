@@ -6904,6 +6904,15 @@ static bool32 IsSmartDynamaxTempoTurn(enum BattlerId battlerAtk, enum BattlerId 
     return gBattleMons[battlerAtk].hp <= gBattleMons[battlerAtk].maxHP / 2;
 }
 
+static bool32 HasSmartDynamaxSideSpeedControl(enum BattlerId battlerAtk)
+{
+    if (gSideStatuses[GetBattlerSide(battlerAtk)] & SIDE_STATUS_TAILWIND)
+        return TRUE;
+
+    return IsDoubleBattle()
+        && PartnerMoveEffectIs(BATTLE_PARTNER(battlerAtk), gAiLogicData->partnerMove, EFFECT_TAILWIND);
+}
+
 static bool32 ShouldSmartDynamaxSetTerrain(enum BattlerId battlerAtk, u32 terrain)
 {
     u32 currentTerrain = gFieldStatuses & STATUS_FIELD_TERRAIN_ANY;
@@ -6912,6 +6921,32 @@ static bool32 ShouldSmartDynamaxSetTerrain(enum BattlerId battlerAtk, u32 terrai
         return TRUE;
 
     return currentTerrain != 0 && currentTerrain != terrain && ShouldClearFieldStatus(battlerAtk, currentTerrain);
+}
+
+static bool32 IsResidualGMaxMove(enum Move maxMove)
+{
+    switch (maxMove)
+    {
+    case MOVE_G_MAX_VINE_LASH:
+    case MOVE_G_MAX_WILDFIRE:
+    case MOVE_G_MAX_CANNONADE:
+    case MOVE_G_MAX_VOLCALITH:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 ShouldSmartDynamaxApplyResidualGMaxPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    if (gSideStatuses[GetBattlerSide(battlerDef)] & SIDE_STATUS_DAMAGE_NON_TYPES)
+        return FALSE;
+
+    if (IsDoubleBattle())
+        return HasTwoOpponents(battlerAtk);
+
+    return CountUsablePartyMons(battlerDef) != 0
+        || GetBestNoOfHitsToKO(battlerDef, battlerAtk, AI_DEFENDING) > 1;
 }
 
 static bool32 DoesDynamaxOfferStrategicMaxMovePayoff(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
@@ -6926,6 +6961,8 @@ static bool32 DoesDynamaxOfferStrategicMaxMovePayoff(enum BattlerId battlerAtk, 
     switch (maxMove)
     {
     case MOVE_MAX_AIRSTREAM:
+        if (HasSmartDynamaxSideSpeedControl(battlerAtk))
+            return FALSE;
         return CanSmartDynamaxRaiseSideStat(battlerAtk, STAT_SPEED)
             && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
     case MOVE_MAX_STRIKE:
@@ -6973,7 +7010,8 @@ static bool32 DoesDynamaxOfferStrategicMaxMovePayoff(enum BattlerId battlerAtk, 
         return CanSmartDynamaxLowerSideStat(battlerDef, STAT_SPDEF)
             && IsSmartDynamaxTempoTurn(battlerAtk, battlerDef);
     default:
-        return FALSE;
+        return IsResidualGMaxMove(maxMove)
+            && ShouldSmartDynamaxApplyResidualGMaxPressure(battlerAtk, battlerDef);
     }
 }
 

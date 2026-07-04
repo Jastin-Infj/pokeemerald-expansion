@@ -4,6 +4,7 @@
 #include "battle_main.h"
 #include "data.h"
 #include "malloc.h"
+#include "pokemon.h"
 #include "random.h"
 #include "string_util.h"
 #include "trainer_pools.h"
@@ -370,6 +371,50 @@ TEST("Trainer Party Pool can choose which functions to use for picking mons")
     CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
     EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_WYNAUT);
     EXPECT(GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_WOBBUFFET);
+    Free(testParty);
+}
+
+TEST("Trainer Party Pool can adapt pruning to the opponent party")
+{
+    struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
+    u32 currTrainer = 17;
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_JOLTEON, 100, 0, OTID_STRUCT_PRESET(0), 31);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_AERODACTYL, 100, 0, OTID_STRUCT_PRESET(1), 31);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_BULBASAUR);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_CHARMANDER);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_SQUIRTLE);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_KYOGRE, 100, 0, OTID_STRUCT_PRESET(0), 31);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_GROUDON, 100, 0, OTID_STRUCT_PRESET(1), 31);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_TORKOAL);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_CHERRIM);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_MEW);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_DRAGONITE, 100, 0, OTID_STRUCT_PRESET(0), 31);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_FARIGIRAF, 100, 0, OTID_STRUCT_PRESET(1), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_DRAGON_DANCE, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_TRICK_ROOM, 0);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_WYNAUT);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_WOBBUFFET);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_EEVEE);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
     Free(testParty);
 }
 

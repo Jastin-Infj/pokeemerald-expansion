@@ -327,6 +327,8 @@ static void DebugAction_Party_BattleGauntletPartnerDoubles(u8 taskId);
 static void DebugAction_Party_BattleGauntletPartnerTechDoubles(u8 taskId);
 static void DebugAction_Party_BattleGauntletChampionsSingles(u8 taskId);
 static void DebugAction_Party_BattleGauntletChampionsDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletEliteSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletEliteDoubles(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, void *selection);
@@ -670,6 +672,8 @@ static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
     { COMPOUND_STRING("Partner Tech"),  DebugAction_Party_BattleGauntletPartnerTechDoubles },
     { COMPOUND_STRING("Champs Single"), DebugAction_Party_BattleGauntletChampionsSingles },
     { COMPOUND_STRING("Champs Double"), DebugAction_Party_BattleGauntletChampionsDoubles },
+    { COMPOUND_STRING("Elite Single"),  DebugAction_Party_BattleGauntletEliteSingles },
+    { COMPOUND_STRING("Elite Double"),  DebugAction_Party_BattleGauntletEliteDoubles },
     { NULL }
 };
 
@@ -5014,6 +5018,10 @@ enum DebugTrainerIds
     DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_SINGLES,
     DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES,
     DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_ELITE_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_ELITE_DOUBLES,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -5176,6 +5184,16 @@ static void DebugAction_Party_BattleGauntletChampionsSingles(u8 taskId)
 static void DebugAction_Party_BattleGauntletChampionsDoubles(u8 taskId)
 {
     DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_DOUBLES, FALSE, GIMMICK_ACCESS_MEGA_RING);
+}
+
+static void DebugAction_Party_BattleGauntletEliteSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_ELITE_SINGLES, FALSE, 0);
+}
+
+static void DebugAction_Party_BattleGauntletEliteDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_ELITE_DOUBLES, FALSE, 0);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)

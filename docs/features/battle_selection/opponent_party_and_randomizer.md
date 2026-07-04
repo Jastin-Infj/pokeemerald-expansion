@@ -60,6 +60,7 @@
 | `POOL_PRUNE_NONE` | prune なし。 |
 | `POOL_PRUNE_TEST` | test prune。 |
 | `POOL_PRUNE_RANDOM_TAG` | random tag prune。 |
+| `POOL_PRUNE_OPPONENT_ADAPTIVE` | player party の速度・天候/伝説級火力・setup/support 傾向を見て `Tag6` / `Tag7` / `Tag8` の戦術群へ寄せる prune。 |
 | `MON_POOL_TAG_LEAD` | lead tag。 |
 | `MON_POOL_TAG_ACE` | ace tag。 |
 | `MON_POOL_TAG_WEATHER_SETTER` | weather setter tag。 |
@@ -160,6 +161,10 @@ Runtime variability check:
 | `Pool Weight` | Pokemon block の `.poolWeight`。1-15、未指定は runtime で 1 扱い。 |
 
 Randomizer 風の trainer party 並び替えは、既存の Trainer Party Pools と `AI_FLAG_RANDOMIZE_PARTY_INDICES` でかなり近いことが確認できた。
+
+`POOL_PRUNE_OPPONENT_ADAPTIVE` は trainer の pool を戦術タグ別に束ねる用途。2026-07-04 時点の運用では
+`Tag6` を高速展開 / 即時圧、`Tag7` を天候・伝説級火力、`Tag8` を妨害・低速 / support 対策として使う。
+runtime は prune 後に `PickMonFromPool()` が party size 分成立するかローカルコピーで確認し、成立しないタグには絞らない。
 
 注意: `trainerproc` は `Party Size` 行があると、`Party Size` が定義 Pokemon 数と同じでも `.poolSize = pokemon_n` を出力する。ここでいう「固定 party」は「source に書いた順番のまま pool を通さず出す party」の意味。`Party Size` と候補数が同じ場合でも、全員は出るが `DoTrainerPartyPool` / `RandomizePoolIndices` / Lead / Ace / custom pick の path に入るため、固定順とは限らない。
 

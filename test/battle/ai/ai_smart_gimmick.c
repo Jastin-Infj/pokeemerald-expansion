@@ -39,6 +39,22 @@
         Moves(__VA_ARGS__); \
     }
 
+#define PLAYER_TAPU_KOKO_Z(...) \
+    PLAYER(SPECIES_TAPU_KOKO) { \
+        Level(50); Item(ITEM_ELECTRIUM_Z); Ability(ABILITY_ELECTRIC_SURGE); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(146); HP(146); Defense(105); SpAttack(147); SpDefense(95); Speed(200); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_LANDORUS(...) \
+    PLAYER(SPECIES_LANDORUS_THERIAN) { \
+        Level(50); Item(ITEM_GROUNDIUM_Z); Ability(ABILITY_INTIMIDATE); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(165); HP(165); Attack(197); Defense(110); SpDefense(100); Speed(157); \
+        Moves(__VA_ARGS__); \
+    }
+
 #define PLAYER_FARIGIRAF(...) \
     PLAYER(SPECIES_FARIGIRAF) { \
         Level(50); Item(ITEM_MENTAL_HERB); Ability(ABILITY_ARMOR_TAIL); Nature(NATURE_SASSY); \
@@ -84,6 +100,14 @@
         Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
         TEST_IVS_SPECIAL(); \
         MaxHP(155); HP(155); Defense(90); SpAttack(177); SpDefense(100); Speed(179); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_WHIMSICOTT(...) \
+    OPPONENT(SPECIES_WHIMSICOTT) { \
+        Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(135); HP(135); Defense(105); SpAttack(129); SpDefense(95); Speed(184); \
         Moves(__VA_ARGS__); \
     }
 
@@ -162,6 +186,14 @@
 #define OPPONENT_CHARIZARD_DMAX(...) \
     OPPONENT(SPECIES_CHARIZARD) { \
         Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); Nature(NATURE_TIMID); DynamaxLevel(10); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(153); HP(153); Defense(99); SpAttack(177); SpDefense(105); Speed(167); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_CHARIZARD_GMAX(...) \
+    OPPONENT(SPECIES_CHARIZARD) { \
+        Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); Nature(NATURE_TIMID); DynamaxLevel(10); GigantamaxFactor(TRUE); \
         TEST_IVS_SPECIAL(); \
         MaxHP(153); HP(153); Defense(99); SpAttack(177); SpDefense(105); Speed(167); \
         Moves(__VA_ARGS__); \
@@ -719,6 +751,24 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax fo
             MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentLeft);
             MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentLeft);
             EXPECT_MOVE(opponentLeft, MOVE_FLY, gimmick: GIMMICK_DYNAMAX);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: G-Max Charizard values Wildfire over redundant Airstream under Tailwind")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        SetStartingStatus(STARTING_STATUS_TAILWIND_OPPONENT_TEMPORARY);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_LANDORUS(MOVE_EARTHQUAKE, MOVE_ROCK_SLIDE, MOVE_FLY, MOVE_PROTECT);
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_SUNNY_DAY, MOVE_MOONBLAST, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_GMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentRight);
+            MOVE(playerRight, MOVE_ROCK_SLIDE, target: opponentLeft);
+            EXPECT_MOVE(opponentRight, MOVE_HEAT_WAVE, gimmick: GIMMICK_DYNAMAX);
         }
     }
 }

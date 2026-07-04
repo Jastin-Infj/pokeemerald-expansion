@@ -120,6 +120,19 @@ User confirmed after fix:
 | Cancel behavior | B / Cancel で selection UI から抜けず、encounter を中断しない。 |
 | excluded flows | Frontier / link / follower partner / two trainers / Pyramid / Hill では selection UI が出ない。 |
 
+## 2026-07-04 Adaptive Trainer Pool
+
+Added `POOL_PRUNE_OPPONENT_ADAPTIVE` for trainer pools. It reads the current
+player party before opponent party generation and chooses a tactic tag:
+`Tag6` for fast pressure, `Tag7` for weather / legendary pressure, and `Tag8`
+for disruption / slow support counterplay. The prune path simulates
+`PickMonFromPool()` on a local copy before disabling other tags, so a bad tag
+layout does not force the trainer into silent fallback.
+
+Debug gauntlet trainer data now includes larger Champion / Elite pools in the
+12-18 candidate range. Singles in this mode stay 3v3, doubles stay 4v4, with
+6v6 reserved for explicit irregular cases.
+
 ## Merge Handoff Notes
 
 `master` へ runtime source を直接入れない。最終統合時は current `master` から
