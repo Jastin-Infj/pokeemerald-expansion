@@ -3803,7 +3803,7 @@ Tags: Lead / Support / Tag8
 Pool Weight: 7
 - Trick Room
 - Psychic
-- Helping Hand
+- Foul Play
 - Thunder Wave
 
 Amoonguss @ ITEM_ROCKY_HELMET
@@ -3815,9 +3815,9 @@ EVs: 252 HP / 156 Def / 100 SpD
 Tags: Support / Tag8
 Pool Weight: 7
 - Spore
-- Rage Powder
-- Pollen Puff
-- Protect
+- Giga Drain
+- Sludge Bomb
+- Clear Smog
 
 TingLu (SPECIES_TING_LU) @ ITEM_LEFTOVERS
 Ability: Vessel of Ruin
@@ -3830,7 +3830,7 @@ Pool Weight: 6
 - Ruination
 - Earthquake
 - Snarl
-- Protect
+- Whirlwind
 
 Dondozo @ ITEM_SITRUS_BERRY
 Ability: Unaware
@@ -3843,7 +3843,7 @@ Pool Weight: 5
 - Wave Crash
 - Order Up
 - Body Press
-- Protect
+- Curse
 
 IronHands (SPECIES_IRON_HANDS) @ ITEM_COVERT_CLOAK
 Ability: Quark Drive
@@ -4368,7 +4368,7 @@ Tags: Lead / Support / Tag8
 Pool Weight: 8
 - Trick Room
 - Psychic
-- Helping Hand
+- Foul Play
 - Thunder Wave
 
 Amoonguss @ ITEM_ROCKY_HELMET
@@ -4380,9 +4380,9 @@ EVs: 252 HP / 156 Def / 100 SpD
 Tags: Support / Tag8
 Pool Weight: 8
 - Spore
-- Rage Powder
-- Pollen Puff
-- Protect
+- Giga Drain
+- Sludge Bomb
+- Clear Smog
 
 TingLu (SPECIES_TING_LU) @ ITEM_LEFTOVERS
 Ability: Vessel of Ruin
@@ -4395,7 +4395,7 @@ Pool Weight: 7
 - Ruination
 - Earthquake
 - Snarl
-- Protect
+- Whirlwind
 
 Dondozo @ ITEM_SITRUS_BERRY
 Ability: Unaware
@@ -4408,7 +4408,7 @@ Pool Weight: 6
 - Wave Crash
 - Order Up
 - Body Press
-- Protect
+- Curse
 
 Archaludon @ ITEM_ASSAULT_VEST
 Ability: Stamina

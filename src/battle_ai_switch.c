@@ -757,6 +757,21 @@ static bool32 GetKnownPlayerSingleTargetDamageThreat(enum BattlerId battler, enu
     return found;
 }
 
+static bool32 ShouldUseKnownIncomingMoveForSingleSwitch(struct SwitchAiContext *switchContext)
+{
+    if (IsDoubleBattle())
+        return FALSE;
+    if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_READ_PLAYER_MOVE))
+        return FALSE;
+    if (switchContext->incomingBattler >= gBattlersCount || switchContext->incomingMoveIndex >= MAX_MON_MOVES)
+        return FALSE;
+    if (switchContext->incomingMove == MOVE_NONE || switchContext->incomingMove == MOVE_UNAVAILABLE)
+        return FALSE;
+    if (BattlerHasAi(switchContext->incomingBattler) || IsBattlerAlly(switchContext->battler, switchContext->incomingBattler))
+        return FALSE;
+    return gChosenActionByBattler[switchContext->incomingBattler] == B_ACTION_USE_MOVE;
+}
+
 static void SetKnownIncomingMoveForSwitchContext(struct SwitchAiContext *switchContext)
 {
     enum BattlerId threatBattler = MAX_BATTLERS_COUNT;
@@ -2532,23 +2547,47 @@ void GetShouldSwitchMoveData(struct SwitchAiContext *switchContext)
     enum BattleMoveEffects aiMoveEffect;
     u32 hitsToKOAI = 0, hitsToKOPlayer = 0, minHitsToKOAI = gBattleMons[switchContext->battler].hp, minHitsToKOAIPriority = gBattleMons[switchContext->battler].hp;
     bool32 isBattlerFirst, isBattlerFirstPriority;
+    bool32 useKnownSingleMove = ShouldUseKnownIncomingMoveForSingleSwitch(switchContext);
 
-    // Get max damage mon could take
-    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    if (useKnownSingleMove)
     {
-        playerMove = SMART_SWITCHING_OMNISCIENT ? gBattleMons[switchContext->opposingBattler].moves[moveIndex] : playerMoves[moveIndex];
-        if (playerMove != MOVE_NONE && !IsBattleMoveStatus(playerMove) && GetMoveEffect(playerMove) != EFFECT_FOCUS_PUNCH && gBattleMons[switchContext->opposingBattler].pp[moveIndex] > 0)
+        bestPlayerMove = switchContext->incomingMove;
+        if (!IsBattleMoveStatus(switchContext->incomingMove) && GetMoveEffect(switchContext->incomingMove) != EFFECT_FOCUS_PUNCH)
         {
-            hitsToKOAI = GetNoOfHitsToKOBattler(switchContext->opposingBattler, switchContext->battler, moveIndex, AI_DEFENDING, CONSIDER_ENDURE);
-            if (hitsToKOAI < minHitsToKOAI && !AI_DoesChoiceEffectBlockMove(switchContext->opposingBattler, playerMove))
+            hitsToKOAI = GetNoOfHitsToKOBattler(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMoveIndex, AI_DEFENDING, CONSIDER_ENDURE);
+            minHitsToKOAI = hitsToKOAI;
+            minHitsToKOAIPriority = 0;
+            if (GetBattleMovePriority(switchContext->incomingBattler, gAiLogicData->abilities[switchContext->incomingBattler], switchContext->incomingMove) > 0)
             {
-                bestPlayerMove = playerMove;
-                minHitsToKOAI = hitsToKOAI;
-            }
-            if (GetBattleMovePriority(switchContext->opposingBattler, gAiLogicData->abilities[switchContext->opposingBattler], playerMove) > 0 && hitsToKOAI < minHitsToKOAIPriority && !AI_DoesChoiceEffectBlockMove(switchContext->opposingBattler, playerMove))
-            {
-                bestPlayerPriorityMove = playerMove;
                 minHitsToKOAIPriority = hitsToKOAI;
+                bestPlayerPriorityMove = switchContext->incomingMove;
+            }
+        }
+        else
+        {
+            minHitsToKOAI = 0;
+            minHitsToKOAIPriority = 0;
+        }
+    }
+    else
+    {
+        // Get max damage mon could take
+        for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+        {
+            playerMove = SMART_SWITCHING_OMNISCIENT ? gBattleMons[switchContext->opposingBattler].moves[moveIndex] : playerMoves[moveIndex];
+            if (playerMove != MOVE_NONE && !IsBattleMoveStatus(playerMove) && GetMoveEffect(playerMove) != EFFECT_FOCUS_PUNCH && gBattleMons[switchContext->opposingBattler].pp[moveIndex] > 0)
+            {
+                hitsToKOAI = GetNoOfHitsToKOBattler(switchContext->opposingBattler, switchContext->battler, moveIndex, AI_DEFENDING, CONSIDER_ENDURE);
+                if (hitsToKOAI < minHitsToKOAI && !AI_DoesChoiceEffectBlockMove(switchContext->opposingBattler, playerMove))
+                {
+                    bestPlayerMove = playerMove;
+                    minHitsToKOAI = hitsToKOAI;
+                }
+                if (GetBattleMovePriority(switchContext->opposingBattler, gAiLogicData->abilities[switchContext->opposingBattler], playerMove) > 0 && hitsToKOAI < minHitsToKOAIPriority && !AI_DoesChoiceEffectBlockMove(switchContext->opposingBattler, playerMove))
+                {
+                    bestPlayerPriorityMove = playerMove;
+                    minHitsToKOAIPriority = hitsToKOAI;
+                }
             }
         }
     }
@@ -3613,8 +3652,6 @@ static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchCo
     if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
         return FALSE;
     if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_READ_PLAYER_MOVE))
-        return FALSE;
-    if (!IsDoubleBattle())
         return FALSE;
     if (switchContext->incomingBattler >= gBattlersCount || switchContext->incomingMoveIndex >= MAX_MON_MOVES)
         return FALSE;

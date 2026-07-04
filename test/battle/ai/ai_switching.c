@@ -2483,6 +2483,42 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker stays wh
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: singles ignore unselected coverage")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 0) == TYPE_ROCK);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 1) == TYPE_GROUND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_BLASTOISE) { Level(50); Speed(20); Moves(MOVE_CELEBRATE, MOVE_WATER_GUN); }
+        OPPONENT(SPECIES_GEODUDE) { Level(50); Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_LOMBRE) { Level(50); Speed(10); Moves(MOVE_MEGA_DRAIN); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponent, MOVE_TACKLE);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: singles switch on selected KO")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_WATER_GUN) == TYPE_WATER);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 0) == TYPE_ROCK);
+        ASSUME(GetSpeciesType(SPECIES_GEODUDE, 1) == TYPE_GROUND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_BLASTOISE) { Level(50); Speed(20); Moves(MOVE_CELEBRATE, MOVE_WATER_GUN); }
+        OPPONENT(SPECIES_GEODUDE) { Level(50); HP(1); MaxHP(100); Speed(10); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_LOMBRE) { Level(50); Speed(10); Moves(MOVE_MEGA_DRAIN); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_WATER_GUN);
+            EXPECT_SWITCH(opponent, 1);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Dmax singles switch-in stops pivoting after absorbing Astral Barrage")
 {
     GIVEN {

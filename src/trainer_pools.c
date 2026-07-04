@@ -2,6 +2,7 @@
 #include "data.h"
 #include "item.h"
 #include "malloc.h"
+#include "move.h"
 #include "pokemon.h"
 #include "random.h"
 #include "trainer_pools.h"
@@ -480,6 +481,19 @@ static bool32 PlayerPartyHasMove(u32 partyIndex, enum Move move)
     return FALSE;
 }
 
+static bool32 PlayerPartyHasMoveEffect(u32 partyIndex, enum BattleMoveEffects effect)
+{
+    for (u32 i = 0; i < MAX_MON_MOVES; i++)
+    {
+        enum Move move = GetMonData(&gParties[B_TRAINER_PLAYER][partyIndex], MON_DATA_MOVE1 + i);
+
+        if (move != MOVE_NONE && GetMoveEffect(move) == effect)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 static bool32 SpeciesAppliesHighLegendaryPressure(enum Species species)
 {
     switch (species)
@@ -536,7 +550,15 @@ static enum PoolTags GetOpponentAdaptivePruneTag(void)
          || PlayerPartyHasMove(i, MOVE_NASTY_PLOT)
          || PlayerPartyHasMove(i, MOVE_FOLLOW_ME)
          || PlayerPartyHasMove(i, MOVE_RAGE_POWDER)
-         || PlayerPartyHasMove(i, MOVE_WIDE_GUARD))
+         || PlayerPartyHasMove(i, MOVE_WIDE_GUARD)
+         || PlayerPartyHasMoveEffect(i, EFFECT_NON_VOLATILE_STATUS)
+         || PlayerPartyHasMoveEffect(i, EFFECT_YAWN)
+         || PlayerPartyHasMoveEffect(i, EFFECT_DARK_VOID)
+         || PlayerPartyHasMoveEffect(i, EFFECT_RESTORE_HP)
+         || PlayerPartyHasMoveEffect(i, EFFECT_MORNING_SUN)
+         || PlayerPartyHasMoveEffect(i, EFFECT_SYNTHESIS)
+         || PlayerPartyHasMoveEffect(i, EFFECT_ROOST)
+         || PlayerPartyHasMoveEffect(i, EFFECT_STRENGTH_SAP))
             setupOrSupportPressure++;
     }
 

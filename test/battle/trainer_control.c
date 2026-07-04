@@ -415,6 +415,30 @@ TEST("Trainer Party Pool can adapt pruning to the opponent party")
     EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_EEVEE);
 
     ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_METAGROSS, 50, 0, OTID_STRUCT_PRESET(0), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_IRON_HEAD, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_ZEN_HEADBUTT, 1);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_BULLET_PUNCH, 2);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_EARTHQUAKE, 3);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_MILOTIC, 50, 0, OTID_STRUCT_PRESET(1), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_SCALD, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_ICE_BEAM, 1);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_RECOVER, 2);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_PROTECT, 3);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][2], SPECIES_BRELOOM, 50, 0, OTID_STRUCT_PRESET(2), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_SPORE, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_MACH_PUNCH, 1);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_BULLET_SEED, 2);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_PROTECT, 3);
+    gPartiesCount[B_TRAINER_PLAYER] = 3;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_WYNAUT);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_WOBBUFFET);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_EEVEE);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
     Free(testParty);
 }
 
