@@ -2483,6 +2483,42 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: choice-locked attacker stays wh
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Dmax singles switch-in stops pivoting after absorbing Astral Barrage")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_CALYREX_SHADOW) {
+            Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_AS_ONE_SHADOW_RIDER); Nature(NATURE_TIMID);
+            MaxHP(176); HP(176); Defense(100); SpAttack(217); SpDefense(120); Speed(222);
+            Moves(MOVE_ASTRAL_BARRAGE, MOVE_PSYSHOCK, MOVE_GIGA_DRAIN, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_CHOICE_SPECS); Ability(ABILITY_DRIZZLE); Nature(NATURE_MODEST);
+            MaxHP(176); HP(176); Defense(110); SpAttack(222); SpDefense(160); Speed(156);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+        OPPONENT(SPECIES_ZACIAN_CROWNED) {
+            Level(50); Item(ITEM_RUSTED_SWORD); Ability(ABILITY_INTREPID_SWORD); Nature(NATURE_JOLLY);
+            MaxHP(167); HP(167); Attack(222); Defense(135); SpDefense(135); Speed(220);
+            Moves(MOVE_BEHEMOTH_BLADE, MOVE_PLAY_ROUGH, MOVE_CLOSE_COMBAT, MOVE_SWORDS_DANCE);
+        }
+        OPPONENT(SPECIES_RILLABOOM) {
+            Level(50); Item(ITEM_ASSAULT_VEST); Ability(ABILITY_GRASSY_SURGE); Nature(NATURE_ADAMANT);
+            MaxHP(207); HP(207); Attack(184); Defense(110); SpDefense(101); Speed(105);
+            Moves(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_ASTRAL_BARRAGE);
+            EXPECT_SWITCH(opponent, 2);
+        }
+        TURN {
+            MOVE(player, MOVE_ASTRAL_BARRAGE);
+            EXPECT_MOVE(opponent, MOVE_GRASSY_GLIDE);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_SWITCHING: AI won't switch out due to bad odds if it can OHKO with a priority move")
 {
     PASSES_RANDOMLY(100, 100, RNG_AI_SWITCH_HASBADODDS);
