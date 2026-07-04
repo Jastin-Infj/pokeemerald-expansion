@@ -6988,6 +6988,9 @@ static bool32 DoesDynamaxBlockIncomingDisruption(enum BattlerId battlerAtk, enum
 
 static bool32 ShouldUseSmartDynamax(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || IsBattleMoveStatus(move))
+        return FALSE;
+
     battlerDef = GetSmartGimmickTarget(battlerAtk, battlerDef);
     if (battlerDef == SMART_GIMMICK_NO_TARGET)
         return CountUsablePartyMons(battlerAtk) == 0;

@@ -284,6 +284,30 @@ AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not spend Dynamax on Protect")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_INCINEROAR(MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF, MOVE_FAKE_OUT, MOVE_PROTECT);
+        PLAYER_RILLABOOM(MOVE_PROTECT, MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_FAKE_OUT);
+        OPPONENT(SPECIES_AMOONGUSS) {
+            Level(50); Item(ITEM_ROCKY_HELMET); Ability(ABILITY_REGENERATOR); Nature(NATURE_SASSY); DynamaxLevel(10);
+            TEST_IVS_SPECIAL();
+            MaxHP(221); HP(40); Defense(120); SpAttack(105); SpDefense(145); Speed(31);
+            Moves(MOVE_PROTECT);
+        }
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FLARE_BLITZ, target: opponentLeft);
+            MOVE(playerRight, MOVE_WOOD_HAMMER, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_PROTECT, gimmick: GIMMICK_NONE);
+        }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI can spend Dynamax against an already chosen Fake Out")
 {
     GIVEN {
