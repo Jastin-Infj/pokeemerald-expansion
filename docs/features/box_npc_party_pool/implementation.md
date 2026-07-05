@@ -72,7 +72,7 @@ Completed on July 5, 2026:
   - Box NPC submenu entries for all six MVP routes.
   - fixed-slot route rejects the current save's invalid Box 1 slots with the
     concise field message `Box 1 slots 1-6 need valid Pokemon.`
-- mGBA Live session `box-npc-party-pool-battle` used debug
+- mGBA Live session `box-npc-party-pool-rerun` used debug
   `PC/Bag -> Fill -> Fill PC Boxes Fast`, then ran `Single slots 1-6`.
   The battle started against Trainer Debugger, and `gPartiesCount` readback
   showed player=1, opponentA=3, partner=0, opponentB=0.
