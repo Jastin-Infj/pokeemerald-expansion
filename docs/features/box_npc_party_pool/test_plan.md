@@ -38,6 +38,14 @@
 - Passed: mGBA Live validation sessions stopped cleanly; final `status --all`
   returned `[]`.
 
+## GitHub Actions
+
+- PR #74 check snapshot after push: `docs_validate` passed.
+- PR #74 check snapshot after push: `build-emerald`, `build-firered`,
+  `build-leafgreen`, `release`, and `test` were pending. They were not re-waited
+  locally because the project handoff rule says not to block on long GitHub
+  Actions runs.
+
 ## Behavioral Cases To Confirm
 
 - Confirmed for current save invalid slots: fixed-slot route rejects before
