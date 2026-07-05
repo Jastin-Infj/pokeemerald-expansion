@@ -27,9 +27,16 @@
   - `Double random`
 - Passed: with the current save's invalid Box 1 slots, `Single slots 1-6`
   rejects cleanly and shows `Box 1 slots 1-6 need valid Pokemon.`
-- Passed: mGBA Live session stopped cleanly.
-- Manual follow-up: prepare six valid non-egg Pokemon in Box 1, then run each
-  route above through an actual battle start.
+- Passed: after filling Box 1 with
+  `PC/Bag -> Fill -> Fill PC Boxes Fast`, `Single slots 1-6` started a trainer
+  battle and `gPartiesCount` readback showed player=1, opponentA=3, partner=0,
+  opponentB=0.
+- Passed: after filling Box 1 and using an in-session Lua copy of player party
+  slot 0 to slot 1 for the current save's double guard, `Double slots 1-6`
+  started a trainer battle and `gPartiesCount` readback showed player=2,
+  opponentA=4, partner=0, opponentB=0.
+- Passed: mGBA Live validation sessions stopped cleanly; final `status --all`
+  returned `[]`.
 
 ## Behavioral Cases To Confirm
 
@@ -37,19 +44,20 @@
   battle start.
 - First-valid and random routes reject when Box 1 has fewer than six valid
   non-egg Pokemon: still requires manual Box setup.
-- Singles create exactly three opponent party slots: still requires manual Box
-  setup.
-- Doubles create exactly four opponent party slots: still requires manual Box
-  setup.
+- Confirmed with debug-filled Box 1: singles create exactly three opponent party
+  slots.
+- Confirmed with debug-filled Box 1: doubles create exactly four opponent party
+  slots.
 - Copied opponent Pokemon start with max HP, no non-volatile status, and restored
-  PP: code path uses `HealPokemon()` after Box copy; still requires manual battle
-  setup to observe in-game.
+  PP: code path uses `HealPokemon()` after Box copy; still requires manual
+  summary / memory inspection to observe each copied stat directly.
 - Source Box 1 Pokemon are not healed, moved, consumed, removed, or overwritten:
   code path only reads Box storage and copies into `gParties`; still requires
   manual before/after storage inspection.
 - DebugPrintf selection output contains the candidate source slots and final
-  source slots: still requires a successful six-Pokemon Box route.
+  source slots: covered by debug-build code path, but the AGBPrint line was not
+  separately exported in the mGBA sessions.
 - Opponent Tera / Dynamax permission is available for copied final members when
   their items / species / config otherwise allow the gimmick: code path applies
-  pending bits after `gBattleStruct` allocation; still requires a successful
-  battle setup with eligible Pokemon.
+  pending bits after `gBattleStruct` allocation; still requires an eligible
+  Pokemon/item setup to observe the actual gimmick button in battle.
