@@ -1,0 +1,74 @@
+#ifndef GUARD_BOX_NPC_PARTY_POOL_H
+#define GUARD_BOX_NPC_PARTY_POOL_H
+
+#define BOX_NPC_POOL_BOX_ID 0
+#define BOX_NPC_CANDIDATE_ROSTER_SIZE 6
+#define BOX_NPC_SINGLE_BATTLE_SIZE 3
+#define BOX_NPC_DOUBLE_BATTLE_SIZE 4
+#define BOX_NPC_SLOT_NONE 0xFF
+
+enum BoxNpcPartyPoolMode
+{
+    BOX_NPC_POOL_BOX1_SLOTS_1_TO_6,
+    BOX_NPC_POOL_BOX1_FIRST_VALID_6,
+    BOX_NPC_POOL_BOX1_RANDOM_VALID_6,
+};
+
+enum BoxNpcBattleFormat
+{
+    BOX_NPC_BATTLE_SINGLE_3,
+    BOX_NPC_BATTLE_DOUBLE_4,
+};
+
+enum BoxNpcBattleMemberMode
+{
+    BOX_NPC_BATTLE_MEMBERS_FIRST_N,
+    BOX_NPC_BATTLE_MEMBERS_RANDOM_N,
+};
+
+enum BoxNpcOpponentGimmickPolicy
+{
+    BOX_NPC_GIMMICK_NATURAL,
+    BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+};
+
+enum BoxNpcPartyPoolError
+{
+    BOX_NPC_PARTY_POOL_ERROR_NONE,
+    BOX_NPC_PARTY_POOL_ERROR_STORAGE_UNAVAILABLE,
+    BOX_NPC_PARTY_POOL_ERROR_FIXED_SLOT_INVALID,
+    BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_VALID_MONS,
+};
+
+struct BoxNpcPartyPoolConfig
+{
+    enum BoxNpcPartyPoolMode poolMode;
+    enum BoxNpcBattleFormat battleFormat;
+    enum BoxNpcBattleMemberMode memberMode;
+    enum BoxNpcOpponentGimmickPolicy gimmickPolicy;
+    u64 aiFlags;
+};
+
+struct BoxNpcPartyPoolResult
+{
+    u8 boxId;
+    u8 candidateSlots[BOX_NPC_CANDIDATE_ROSTER_SIZE];
+    u8 finalSlots[PARTY_SIZE];
+    u8 candidateCount;
+    u8 battleCount;
+    enum BoxNpcPartyPoolMode poolMode;
+    enum BoxNpcBattleFormat battleFormat;
+    enum BoxNpcBattleMemberMode memberMode;
+    enum BoxNpcOpponentGimmickPolicy gimmickPolicy;
+};
+
+bool32 BoxNpcPartyPool_TryBuildOpponentParty(
+    const struct BoxNpcPartyPoolConfig *config,
+    struct BoxNpcPartyPoolResult *result);
+void BoxNpcPartyPool_ApplyPendingBattleInitPolicy(void);
+void BoxNpcPartyPool_ClearPendingBattleInitPolicy(void);
+const struct BoxNpcPartyPoolResult *BoxNpcPartyPool_GetLastResult(void);
+enum BoxNpcPartyPoolError BoxNpcPartyPool_GetLastError(void);
+const u8 *BoxNpcPartyPool_GetLastErrorText(void);
+
+#endif // GUARD_BOX_NPC_PARTY_POOL_H
