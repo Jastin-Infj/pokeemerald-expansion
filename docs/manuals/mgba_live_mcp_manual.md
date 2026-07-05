@@ -115,7 +115,7 @@ tools\mgba_live\start_mgba_live.bat manual-ai-log 120
 tools\mgba_live\export_battle_action_log.bat manual-ai-log %TEMP%\battle-action-log.json
 ```
 
-The exporter resolves symbols from `pokeemerald.map`, so build the current ROM first. It writes schema `pokeemerald.battle_action_log.v1` with header state, battler positions, named moves / items / gimmicks, action names, switch-in party indexes, selected-gimmick markers, resolved switch-in markers, and corrected switch-in markers. The backing log is in EWRAM and is cleared by battle initialization, so export while the target battle is still active. If the session closes before manual export and autosave was not running, the battle action log cannot be recovered from `archived_sessions`.
+The exporter resolves symbols from `pokeemerald.map`, so build the current ROM first. It writes schema `pokeemerald.battle_action_log.v3` with header state, battler positions, named moves / items / gimmicks, action names, switch-in party indexes, selected-gimmick markers, resolved switch-in markers, corrected switch-in markers, AI reason tags such as `clean_damage_preferred`, `perish_escape`, `hax_out`, and `commander_slot_correction`, plus named AI threat flags and AI risk kinds. The backing log is in EWRAM and is cleared by battle initialization, so export while the target battle is still active. If the session closes before manual export and autosave was not running, the battle action log cannot be recovered from `archived_sessions`.
 
 ## Validation Rules
 

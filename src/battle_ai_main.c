@@ -8,6 +8,7 @@
 #include "battle_ai_switch.h"
 #include "battle_ai_main.h"
 #include "battle_ai_record.h"
+#include "battle_util.h"
 #include "battle_stat_change.h"
 #include "battle_controllers.h"
 #include "battle_factory.h"
@@ -57,6 +58,9 @@
 #define READ_PLAYER_SETUP_PRESSURE_DAMAGE_PERCENT 10
 #define READ_PLAYER_SETUP_PRESSURE_SCORE GOOD_EFFECT
 #define READ_PLAYER_SETUP_DISRUPTION_SCORE (BEST_EFFECT + GOOD_EFFECT)
+#define DESPERATION_COMEBACK_DAMAGE_RACE_TURNS 2
+#define DESPERATION_DIRECT_STOP_SCORE (BEST_EFFECT + GOOD_EFFECT)
+#define DESPERATION_SPEED_CONTROL_SCORE DECENT_EFFECT
 #define PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT 15
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
@@ -70,6 +74,23 @@ static void AI_CompareDamagingMoves(enum BattlerId battlerAtk, enum BattlerId ba
 static bool32 IsDoublesSpreadPressureMove(enum BattlerId battlerAtk, enum Move move);
 static s32 GetFutureBoardPressureMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex);
 static u32 GetWindAbilityScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, struct AiLogicData *aiData);
+static s32 GetDesperationStatusSwingScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
+static bool32 AI_HasCleanDamageRaceLine(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
+static bool32 AI_ShouldFishForDesperationComeback(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData, enum AiRiskKind riskKind);
+static bool32 CanDesperationOHKOFish(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
+static s32 GetDesperationComebackMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
+static bool32 ShouldIgnoreAccuracyDropForDesperationPayoff(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 lowAccMoveSlot, u32 highAccMoveSlot);
+static bool32 ShouldAcceptDelayedAttackRisk(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex);
+static bool32 DoesDesperationSpreadSacrificeCreateBoardPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex);
+static s32 GetCommanderDondozoFaintBonus(enum BattlerId battlerDef);
+static bool32 MoveHasChanceEffect(enum BattlerId battlerAtk, enum Move move, enum MoveEffect moveEffect);
+static bool32 MoveCanLowerTargetSpeed(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
+static void AI_ClearDecisionReason(enum BattlerId battler);
+static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind);
+static void AI_SetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex);
+static void AI_SetSwitchDecisionReason(enum BattlerId battler);
+static enum AiDecisionReason AI_GetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex);
+static enum AiDecisionReason AI_GetSwitchDecisionReason(enum BattlerId battler);
 
 // ewram
 EWRAM_DATA const u8 *gAIScriptPtr = NULL;   // Still used in contests
@@ -339,6 +360,8 @@ static bool32 IsReadPlayerSingleTargetMoveTargetingBattler(enum BattlerId battle
     case TARGET_OPPONENT:
     case TARGET_RANDOM:
         chosenTarget = GetReadPlayerChosenMoveTarget(battlerAtk);
+        if (AI_ShouldAvoidCommanderTatsugiriTarget(target, move))
+            return FALSE;
         return chosenTarget == target && CanTargetBattler(battlerAtk, target, move);
     default:
         return FALSE;
@@ -373,6 +396,33 @@ static bool32 IsReadPlayerSelectedMoveEffectTargetingBattler(enum BattlerId batt
     return FALSE;
 }
 
+static bool32 IsReadPlayerSelectedSoundPressureMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move *selectedMove)
+{
+    enum Move move;
+
+    if (selectedMove != NULL)
+        *selectedMove = MOVE_NONE;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || BattlerHasAi(battlerDef)
+     || !IsBattlerAlive(battlerDef)
+     || IsBattlerAlly(battlerAtk, battlerDef)
+     || gChosenActionByBattler[battlerDef] == B_ACTION_SWITCH
+     || gBattleMons[battlerDef].volatiles.throatChopTimer > 0)
+        return FALSE;
+
+    move = GetReadPlayerKnownChosenMove(battlerDef);
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE || !IsSoundMove(move))
+        return FALSE;
+
+    if (IsBattleMoveStatus(move) && GetMoveEffect(move) != EFFECT_PERISH_SONG)
+        return FALSE;
+
+    if (selectedMove != NULL)
+        *selectedMove = move;
+    return TRUE;
+}
+
 static bool32 CanKnownMoveHitBattler(enum BattlerId battlerAtk, enum BattlerId target, enum Move move, enum BattlerId chosenTarget)
 {
     enum MoveTarget moveTarget;
@@ -380,6 +430,8 @@ static bool32 CanKnownMoveHitBattler(enum BattlerId battlerAtk, enum BattlerId t
     if (target >= gBattlersCount || !IsBattlerAlive(target))
         return FALSE;
     if (IsBattleMoveStatus(move))
+        return FALSE;
+    if (AI_ShouldAvoidCommanderTatsugiriTarget(target, move))
         return FALSE;
 
     moveTarget = AI_GetBattlerMoveTargetType(battlerAtk, move);
@@ -1223,7 +1275,11 @@ static bool32 CanReadPlayerFakeOutThreatTarget(enum BattlerId battlerAtk, enum B
         enum BattlerId chosenTarget = GetReadPlayerChosenMoveTarget(battlerDef);
 
         if (chosenTarget < gBattlersCount && CanTargetBattler(battlerDef, chosenTarget, move))
+        {
+            if (AI_ShouldAvoidCommanderTatsugiriTarget(chosenTarget, move))
+                return FALSE;
             return chosenTarget == battlerAtk;
+        }
     }
 
     return !IsBattlerAlly(battlerDef, battlerAtk);
@@ -1686,6 +1742,7 @@ static void ApplyKnownPlayerSwitchCommandsToAiLogicData(void)
 void ComputeAiBattlerDecisions(enum BattlerId battler)
 {
     gAiLogicData->aiCalcInProgress = TRUE;
+    AI_ClearDecisionReason(battler);
 
         AIDebugTimerStart();
 
@@ -1708,6 +1765,7 @@ void ComputeAiBattlerDecisions(enum BattlerId battler)
 
     // AI's move scoring
     gAiBattleData->chosenMoveIndex[battler] = BattleAI_ChooseMoveIndex(battler); // Calculate score and chose move index
+    AI_SetMoveDecisionReason(battler, gAiBattleData->chosenTarget[battler], gAiBattleData->chosenMoveIndex[battler]);
     BattlerChooseNonMoveAction();
     ModifySwitchAfterMoveScoring(battler);
 
@@ -1727,6 +1785,266 @@ void ReconsiderGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef, enu
 
     if (gBattleStruct->gimmick.usableGimmick[battlerAtk] == GIMMICK_TERA && GetMoveEffect(move) == EFFECT_PROTECT)
         SetAIUsingGimmick(battlerAtk, NO_GIMMICK);
+}
+
+static void AI_ClearDecisionReason(enum BattlerId battler)
+{
+    if (gAiBattleData != NULL && battler < MAX_BATTLERS_COUNT)
+    {
+        gAiBattleData->decisionReason[battler] = AI_DECISION_REASON_NONE;
+        gAiBattleData->decisionThreatFlags[battler] = AI_THREAT_STABLE;
+        gAiBattleData->decisionRiskKind[battler] = BATTLE_ACTION_LOG_AI_RISK_NONE;
+    }
+}
+
+static u32 AI_GetDecisionReasonPriority(enum AiDecisionReason reason)
+{
+    switch (reason)
+    {
+    case AI_DECISION_REASON_COMMANDER_SLOT_CORRECTION:
+    case AI_DECISION_REASON_ALLY_SACRIFICE_BOARD_RESET:
+    case AI_DECISION_REASON_PERISH_ESCAPE:
+    case AI_DECISION_REASON_HAX_OUT:
+        return 4;
+    case AI_DECISION_REASON_GIMMICK_STABILIZED:
+    case AI_DECISION_REASON_SETUP_DENIAL:
+    case AI_DECISION_REASON_BOARD_CONTROL:
+    case AI_DECISION_REASON_SWITCH_PRESERVE:
+    case AI_DECISION_REASON_DESPERATION_COMEBACK:
+        return 3;
+    case AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED:
+        return 2;
+    case AI_DECISION_REASON_KNOWN_COMMAND_ANSWER:
+        return 1;
+    case AI_DECISION_REASON_NONE:
+    default:
+        return 0;
+    }
+}
+
+static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind)
+{
+    if (gAiBattleData == NULL || battler >= MAX_BATTLERS_COUNT)
+        return;
+    if (AI_GetDecisionReasonPriority(reason) >= AI_GetDecisionReasonPriority(gAiBattleData->decisionReason[battler]))
+    {
+        gAiBattleData->decisionReason[battler] = reason;
+        gAiBattleData->decisionThreatFlags[battler] = threatFlags;
+        gAiBattleData->decisionRiskKind[battler] = riskKind;
+    }
+}
+
+static u32 AI_GetDecisionThreatFlags(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    struct AiBoardSnapshot snapshot;
+
+    if (AI_BuildBoardSnapshot(battlerAtk, battlerDef, &snapshot))
+        return snapshot.threatFlags;
+    return AI_THREAT_STABLE;
+}
+
+static u8 AI_GetMoveDecisionRiskKind(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex, enum AiDecisionReason reason)
+{
+    enum Move move;
+    u32 accuracy = 100;
+
+    if (battlerAtk >= gBattlersCount || moveIndex >= MAX_MON_MOVES)
+        return BATTLE_ACTION_LOG_AI_RISK_NONE;
+
+    move = gBattleMons[battlerAtk].moves[moveIndex];
+
+    if (reason == AI_DECISION_REASON_HAX_OUT)
+    {
+        if (GetMoveEffect(move) == EFFECT_OHKO)
+            return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_OHKO_FISH);
+        return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_SECONDARY_HAX);
+    }
+
+    if (reason != AI_DECISION_REASON_DESPERATION_COMEBACK)
+        return BATTLE_ACTION_LOG_AI_RISK_NONE;
+
+    if (GetMoveEffect(move) == EFFECT_SEMI_INVULNERABLE || IsTwoTurnNotSemiInvulnerableMove(battlerAtk, move))
+        return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_DELAYED_ATTACK);
+
+    if (battlerDef < gBattlersCount)
+        accuracy = gAiLogicData->moveAccuracy[battlerAtk][battlerDef][moveIndex];
+
+    if (accuracy > 0 && accuracy < 100)
+    {
+        if (IsBattleMoveStatus(move))
+            return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_LOW_ACCURACY_STATUS);
+        return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_LOW_ACCURACY_DAMAGE);
+    }
+
+    return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_HIGH_VARIANCE_COMEBACK);
+}
+
+static u8 AI_GetSwitchDecisionRiskKind(enum AiDecisionReason reason, const struct AiBoardSnapshot *snapshot)
+{
+    if (reason == AI_DECISION_REASON_SWITCH_PRESERVE
+     && AI_BoardHasThreat(snapshot, AI_THREAT_KNOWN_KO_PRESSURE))
+        return BATTLE_ACTION_LOG_AI_RISK(AI_RISK_SWITCH_SURVIVAL);
+
+    return BATTLE_ACTION_LOG_AI_RISK_NONE;
+}
+
+static void AI_SetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
+{
+    enum AiDecisionReason reason = AI_GetMoveDecisionReason(battlerAtk, battlerDef, moveIndex);
+    u32 threatFlags = AI_GetDecisionThreatFlags(battlerAtk, battlerDef);
+    u8 riskKind = AI_GetMoveDecisionRiskKind(battlerAtk, battlerDef, moveIndex, reason);
+
+    AI_SetDecisionReasonTrace(battlerAtk, reason, threatFlags, riskKind);
+}
+
+static void AI_SetSwitchDecisionReason(enum BattlerId battler)
+{
+    enum BattlerId opposingBattler;
+    struct AiBoardSnapshot snapshot;
+    enum AiDecisionReason reason;
+    u8 riskKind = BATTLE_ACTION_LOG_AI_RISK_NONE;
+    u32 threatFlags = AI_THREAT_STABLE;
+
+    if (battler >= gBattlersCount)
+        return;
+
+    opposingBattler = GetOppositeBattler(battler);
+    if (AI_BuildBoardSnapshot(battler, opposingBattler, &snapshot))
+    {
+        threatFlags = snapshot.threatFlags;
+        reason = AI_GetSwitchDecisionReason(battler);
+        riskKind = AI_GetSwitchDecisionRiskKind(reason, &snapshot);
+    }
+    else
+    {
+        reason = AI_GetSwitchDecisionReason(battler);
+    }
+
+    AI_SetDecisionReasonTrace(battler, reason, threatFlags, riskKind);
+}
+
+static bool32 AI_TargetHasCommanderException(enum BattlerId battlerDef)
+{
+    return gBattleStruct != NULL
+        && battlerDef < gBattlersCount
+        && IsBattlerAlive(battlerDef)
+        && gBattleStruct->battlerState[battlerDef].commanderSpecies != SPECIES_NONE;
+}
+
+static bool32 AI_MoveIsHaxOut(enum BattlerId battlerAtk, enum Move move)
+{
+    if (GetMoveEffect(move) == EFFECT_OHKO || GetMoveCriticalHitStage(move) > 0)
+        return TRUE;
+    if (MoveHasAdditionalEffect(move, MOVE_EFFECT_FLINCH)
+     || MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_FLINCH)
+     || MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_PARALYSIS)
+     || MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_FREEZE_OR_FROSTBITE))
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 AI_MoveIsSetupDenial(enum Move move)
+{
+    enum BattleMoveEffects effect = GetMoveEffect(move);
+
+    return effect == EFFECT_TAUNT
+        || effect == EFFECT_HAZE
+        || MoveHasAdditionalEffect(move, MOVE_EFFECT_CLEAR_SMOG);
+}
+
+static bool32 AI_MoveIsBoardControl(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
+{
+    enum BattleMoveEffects effect = GetMoveEffect(move);
+
+    return effect == EFFECT_TAILWIND
+        || effect == EFFECT_TRICK_ROOM
+        || MoveCanLowerTargetSpeed(battlerAtk, battlerDef, move, gAiLogicData)
+        || MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_THROAT_CHOP);
+}
+
+static enum AiDecisionReason AI_GetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
+{
+    enum Move move;
+    struct AiBoardSnapshot snapshot;
+
+    if (battlerAtk >= gBattlersCount || moveIndex >= MAX_MON_MOVES)
+        return AI_DECISION_REASON_NONE;
+
+    move = gBattleMons[battlerAtk].moves[moveIndex];
+    if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+        return AI_DECISION_REASON_NONE;
+
+    if (AI_TargetHasCommanderException(battlerDef))
+        return AI_DECISION_REASON_COMMANDER_SLOT_CORRECTION;
+
+    if (!AI_BuildBoardSnapshot(battlerAtk, battlerDef, &snapshot))
+        return AI_DECISION_REASON_NONE;
+
+    if (!IsBattleMoveStatus(move)
+     && GetMoveEffect(move) != EFFECT_OHKO
+     && battlerDef < gBattlersCount
+     && !IsBattlerAlly(battlerAtk, battlerDef)
+     && CanIndexMoveFaintTarget(battlerAtk, battlerDef, moveIndex, AI_ATTACKING))
+        return AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED;
+
+    if (gBattleStruct->gimmick.usableGimmick[battlerAtk] != GIMMICK_NONE
+     && IsAIUsingGimmick(battlerAtk)
+     && (AI_BoardHasThreat(&snapshot, AI_THREAT_KNOWN_KO_PRESSURE)
+      || AI_BoardHasThreat(&snapshot, AI_THREAT_DAMAGE_RACE)))
+        return AI_DECISION_REASON_GIMMICK_STABILIZED;
+
+    if (AI_BoardHasThreat(&snapshot, AI_THREAT_SETUP_CHECKMATE) && AI_MoveIsSetupDenial(move))
+        return AI_DECISION_REASON_SETUP_DENIAL;
+
+    if (AI_BoardHasThreat(&snapshot, AI_THREAT_MODE_LOSS) && AI_MoveIsBoardControl(battlerAtk, battlerDef, move))
+        return AI_DECISION_REASON_BOARD_CONTROL;
+
+    if (AI_BoardHasThreat(&snapshot, AI_THREAT_DESPERATION))
+    {
+        if (AI_MoveIsHaxOut(battlerAtk, move))
+            return AI_DECISION_REASON_HAX_OUT;
+        return AI_DECISION_REASON_DESPERATION_COMEBACK;
+    }
+
+    if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+        return AI_DECISION_REASON_KNOWN_COMMAND_ANSWER;
+
+    return AI_DECISION_REASON_NONE;
+}
+
+static enum AiDecisionReason AI_GetSwitchDecisionReason(enum BattlerId battler)
+{
+    struct AiBoardSnapshot snapshot;
+    enum BattlerId opposingBattler;
+
+    if (battler >= gBattlersCount)
+        return AI_DECISION_REASON_NONE;
+
+    opposingBattler = GetOppositeBattler(battler);
+    if (!AI_BuildBoardSnapshot(battler, opposingBattler, &snapshot))
+        return AI_DECISION_REASON_NONE;
+
+    if (gAiLogicData->abilities[battler] != ABILITY_SOUNDPROOF)
+    {
+        for (enum BattlerId source = 0; source < gBattlersCount; source++)
+        {
+            if (!IsBattlerAlive(source) || IsBattlerAlly(battler, source) || BattlerHasAi(source))
+                continue;
+            if (gChosenActionByBattler[source] == B_ACTION_USE_MOVE
+             && GetMoveEffect(gChosenMoveByBattler[source]) == EFFECT_PERISH_SONG)
+                return AI_DECISION_REASON_PERISH_ESCAPE;
+        }
+    }
+
+    if (gBattleMons[battler].volatiles.perishSong || AI_BoardHasThreat(&snapshot, AI_THREAT_PERISH_TRAP_CLOCK))
+        return AI_DECISION_REASON_PERISH_ESCAPE;
+    if (AI_BoardHasThreat(&snapshot, AI_THREAT_KNOWN_KO_PRESSURE)
+     || AI_BoardHasThreat(&snapshot, AI_THREAT_MODE_LOSS)
+     || AI_BoardHasThreat(&snapshot, AI_THREAT_SETUP_CHECKMATE))
+        return AI_DECISION_REASON_SWITCH_PRESERVE;
+
+    return AI_DECISION_REASON_NONE;
 }
 
 static u32 ChooseMoveOrAction(enum BattlerId battler)
@@ -1811,6 +2129,7 @@ void AI_TrySwitchOrUseItem(enum BattlerId battler)
             {
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_SWITCH, 0);
                 SetAIUsingGimmick(battler, NO_GIMMICK);
+                AI_SetSwitchDecisionReason(battler);
                 gBattleStruct->AI_monToSwitchIntoId[battler] = monToSwitchId;
                 gBattleStruct->monToSwitchIntoId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
                 gAiLogicData->monToSwitchInId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
@@ -2296,7 +2615,9 @@ static u32 ChooseMoveOrAction_Doubles(enum BattlerId battler)
             {
                 enum Move consideredMove = gBattleMons[battler].moves[moveIndex];
 
-                if (consideredMove != MOVE_NONE && CanTargetBattler(battler, battlerIndex, consideredMove))
+                if (consideredMove != MOVE_NONE
+                 && CanTargetBattler(battler, battlerIndex, consideredMove)
+                 && !AI_ShouldAvoidCommanderTatsugiriTarget(battlerIndex, consideredMove))
                 {
                     if (mostViableMovesNo == 0 || mostViableMovesScores[0] < gAiThinkingStruct->score[moveIndex])
                     {
@@ -2556,7 +2877,7 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     SetTypeBeforeUsingMove(move, battlerAtk);
     moveType = GetBattleMoveType(move);
 
-    if (gBattleStruct->battlerState[battlerDef].commandingDondozo)
+    if (AI_ShouldAvoidCommanderTatsugiriTarget(battlerDef, move))
         RETURN_SCORE_MINUS(20);
 
     if (ShouldAvoidReadPlayerProtectTarget(battlerAtk, battlerDef, move))
@@ -2604,7 +2925,8 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     // Don't choose slow two-turn moves or semi-invulnerable moves that fail under No Guard if the foe can KO us.
     if (CanTargetFaintAi(battlerDef, battlerAtk))
     {
-        if (IsTwoTurnNotSemiInvulnerableMove(battlerAtk, move))
+        if (IsTwoTurnNotSemiInvulnerableMove(battlerAtk, move)
+         && !ShouldAcceptDelayedAttackRisk(battlerAtk, battlerDef, move, gAiThinkingStruct->movesetIndex))
             RETURN_SCORE_MINUS(10);
 
         if (moveEffect == EFFECT_SEMI_INVULNERABLE && aiData->holdEffects[battlerAtk] != HOLD_EFFECT_POWER_HERB)
@@ -3094,9 +3416,10 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
             ADJUST_SCORE(-10);
         break;
     case EFFECT_OHKO:
-        if (!ShouldTryOHKO(battlerAtk, battlerDef, aiData->abilities[battlerAtk], aiData->abilities[battlerDef], move))
+        if (GetActiveGimmick(battlerDef) == GIMMICK_DYNAMAX)
             ADJUST_SCORE(-10);
-        else if (GetActiveGimmick(battlerDef) == GIMMICK_DYNAMAX)
+        else if (!ShouldTryOHKO(battlerAtk, battlerDef, aiData->abilities[battlerAtk], aiData->abilities[battlerDef], move)
+              && !CanDesperationOHKOFish(battlerAtk, battlerDef, move, aiData))
             ADJUST_SCORE(-10);
         break;
     case EFFECT_MIST:
@@ -4376,11 +4699,62 @@ static s32 AI_GetWhichBattlerFasterOrTies(enum BattlerId battlerAtk, enum Battle
     return GetWhichBattlerFasterOrTies(&calcValues, ignoreChosenMoves);
 }
 
+static enum BattlerId GetCommanderTatsugiriForDondozo(enum BattlerId battlerDef)
+{
+    enum BattlerId partner;
+
+    if (gBattleStruct == NULL
+     || battlerDef >= gBattlersCount
+     || gBattleStruct->battlerState[battlerDef].commanderSpecies == SPECIES_NONE)
+        return MAX_BATTLERS_COUNT;
+
+    partner = BATTLE_PARTNER(battlerDef);
+    if (AI_IsBattlerCommanderTatsugiri(partner))
+        return partner;
+
+    return MAX_BATTLERS_COUNT;
+}
+
+static enum HoldEffect GetCommanderTatsugiriHoldEffect(enum BattlerId commander)
+{
+    if (gAiLogicData != NULL)
+        return gAiLogicData->holdEffects[commander];
+
+    return GetBattlerHoldEffect(commander);
+}
+
+static s32 GetCommanderDondozoFaintBonus(enum BattlerId battlerDef)
+{
+    enum BattlerId commander = GetCommanderTatsugiriForDondozo(battlerDef);
+    enum HoldEffect holdEffect;
+    u32 status;
+
+    if (commander >= gBattlersCount)
+        return 0;
+
+    status = gBattleMons[commander].status1;
+    holdEffect = GetCommanderTatsugiriHoldEffect(commander);
+    if ((status & STATUS1_TOXIC_POISON) || holdEffect == HOLD_EFFECT_TOXIC_ORB)
+        return DECENT_EFFECT;
+    if ((status & (STATUS1_POISON | STATUS1_BURN)) || holdEffect == HOLD_EFFECT_FLAME_ORB)
+        return WEAK_EFFECT;
+
+    return WEAK_EFFECT;
+}
+
+#if TESTING
+s32 Test_GetCommanderDondozoFaintBonus(enum BattlerId battlerDef)
+{
+    return GetCommanderDondozoFaintBonus(battlerDef);
+}
+#endif
+
 static s32 AI_TryToFaint(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score)
 {
     u32 movesetIndex = gAiThinkingStruct->movesetIndex;
     enum Move predictedMove = GetPredictedMove(battlerAtk, battlerDef, gAiLogicData);
     bool32 aiIsFaster = AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY);
+    bool32 canFaintTarget;
 
     if (IsTargetingPartner(battlerAtk, battlerDef))
         return score;
@@ -4388,13 +4762,16 @@ static s32 AI_TryToFaint(enum BattlerId battlerAtk, enum BattlerId battlerDef, e
     if (IsBattleMoveStatus(move))
         return score; // status moves aren't accounted here
 
-    if (CanIndexMoveFaintTarget(battlerAtk, battlerDef, movesetIndex, AI_ATTACKING)
-        && (!IsSelfSacrificeEffect(move) || ShouldConsiderSelfSacrificeDamageEffect(battlerAtk, battlerDef, move, aiIsFaster)))
+    canFaintTarget = CanIndexMoveFaintTarget(battlerAtk, battlerDef, movesetIndex, AI_ATTACKING);
+    if (canFaintTarget
+     && (!IsSelfSacrificeEffect(move) || ShouldConsiderSelfSacrificeDamageEffect(battlerAtk, battlerDef, move, aiIsFaster)))
     {
         if (aiIsFaster)
             ADJUST_SCORE(FAST_KILL);
         else
             ADJUST_SCORE(SLOW_KILL);
+
+        ADJUST_SCORE(GetCommanderDondozoFaintBonus(battlerDef));
     }
     else if (CanTargetFaintAi(battlerDef, battlerAtk)
             && AI_GetWhichBattlerFasterOrTies(battlerAtk, battlerDef, TRUE) != AI_IS_FASTER
@@ -4429,6 +4806,49 @@ static s32 GetTacticalPartnerActivationScore(enum BattlerId battlerAtk, enum Bat
     return NO_INCREASE;
 }
 
+static bool32 DoesDesperationSpreadSacrificeCreateBoardPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
+{
+    u32 aliveFoes = 0;
+    u32 pressuredFoes = 0;
+    u32 faintedFoes = 0;
+
+    if (IsExplosionMove(move)
+     || !AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_PARTNER_SACRIFICE))
+        return FALSE;
+    if (CountUsablePartyMons(battlerAtk) == 0
+     && CountUsablePartyMons(BATTLE_PARTNER(battlerAtk)) == 0)
+        return FALSE;
+
+    for (enum BattlerId foe = 0; foe < gBattlersCount; foe++)
+    {
+        u32 damage;
+        u32 hp;
+
+        if (!IsBattlerAlive(foe) || IsBattlerAlly(battlerAtk, foe))
+            continue;
+
+        aliveFoes++;
+        damage = GetMoveDamageToBattler(battlerAtk, foe, moveIndex);
+        hp = gBattleMons[foe].hp;
+        if (damage == 0)
+            continue;
+
+        if (damage >= hp && !CanEndureHit(battlerAtk, foe, move))
+            faintedFoes++;
+
+        if (damage * 100 >= hp * 50)
+            pressuredFoes++;
+    }
+
+    if (aliveFoes == 0 || faintedFoes == 0)
+        return FALSE;
+
+    if (pressuredFoes >= aliveFoes)
+        return TRUE;
+
+    return IsOpposingSideOffensiveSetupThreat(battlerAtk) && pressuredFoes >= 1;
+}
+
 // double battle logic
 static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score)
 {
@@ -4456,6 +4876,12 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     u32 noOfHitsToKOPartner = GetNoOfHitsToKOBattler(battlerAtk, battlerAtkPartner, gAiThinkingStruct->movesetIndex, AI_ATTACKING_PARTNER, CONSIDER_ENDURE);
     bool32 wouldPartnerFaint = hasPartner && CanIndexMoveFaintTarget(battlerAtk, battlerAtkPartner, gAiThinkingStruct->movesetIndex, AI_ATTACKING_PARTNER) && !partnerProtecting;
     bool32 isFriendlyFireOK = !wouldPartnerFaint && (noOfHitsToKOPartner == 0 || noOfHitsToKOPartner > friendlyFireThreshold);
+
+    if (AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_PARTNER_SACRIFICE) && friendlyFireThreshold > FRIENDLY_FIRE_RISKY_THRESHOLD)
+    {
+        friendlyFireThreshold = FRIENDLY_FIRE_RISKY_THRESHOLD;
+        isFriendlyFireOK = !wouldPartnerFaint && (noOfHitsToKOPartner == 0 || noOfHitsToKOPartner > friendlyFireThreshold);
+    }
 
     // check what effect partner is using
     if (aiData->partnerMove != MOVE_NONE && hasPartner)
@@ -4664,6 +5090,10 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
                 || CanIndexMoveFaintTarget(battlerAtk, BATTLE_OPPOSITE(battlerAtkPartner), gAiThinkingStruct->movesetIndex, AI_ATTACKING))
             {
                 if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_WILL_SUICIDE)
+                {
+                    RETURN_SCORE_PLUS(10);
+                }
+                else if (DoesDesperationSpreadSacrificeCreateBoardPressure(battlerAtk, battlerDef, move, gAiThinkingStruct->movesetIndex))
                 {
                     RETURN_SCORE_PLUS(10);
                 }
@@ -5325,6 +5755,38 @@ static u32 GetWindAbilityScore(enum BattlerId battlerAtk, enum BattlerId battler
     return score;
 }
 
+static bool32 ShouldIgnoreAccuracyDropForDesperationPayoff(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 lowAccMoveSlot, u32 highAccMoveSlot)
+{
+    enum Move *moves = GetMovesArray(battlerAtk);
+    enum Move lowAccMove = moves[lowAccMoveSlot];
+    enum Move highAccMove = moves[highAccMoveSlot];
+    u32 lowAccDamage;
+    u32 highAccDamage;
+    u32 targetHp;
+
+    if (!AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_LOW_ACCURACY_DAMAGE))
+        return FALSE;
+
+    if (GetMovePower(lowAccMove) == 0 || GetMovePower(highAccMove) == 0)
+        return FALSE;
+
+    lowAccDamage = gAiLogicData->simulatedDmg[battlerAtk][battlerDef][lowAccMoveSlot].maximum;
+    highAccDamage = gAiLogicData->simulatedDmg[battlerAtk][battlerDef][highAccMoveSlot].maximum;
+    targetHp = gBattleMons[battlerDef].hp;
+
+    if (lowAccDamage >= targetHp
+     && highAccDamage < targetHp
+     && !CanEndureHit(battlerAtk, battlerDef, lowAccMove))
+        return TRUE;
+
+    if (lowAccDamage > highAccDamage
+     && lowAccDamage * 100 >= highAccDamage * 130
+     && highAccDamage < targetHp)
+        return TRUE;
+
+    return FALSE;
+}
+
 static enum MoveComparisonResult CompareMoveAccuracies(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveSlot1, u32 moveSlot2)
 {
     u32 acc1 = gAiLogicData->moveAccuracy[battlerAtk][battlerDef][moveSlot1];
@@ -5334,9 +5796,17 @@ static enum MoveComparisonResult CompareMoveAccuracies(enum BattlerId battlerAtk
         return MOVE_NEUTRAL_COMPARISON;
 
     if (acc1 > acc2)
+    {
+        if (ShouldIgnoreAccuracyDropForDesperationPayoff(battlerAtk, battlerDef, moveSlot2, moveSlot1))
+            return MOVE_NEUTRAL_COMPARISON;
         return MOVE_WON_COMPARISON;
+    }
     else if (acc2 > acc1)
+    {
+        if (ShouldIgnoreAccuracyDropForDesperationPayoff(battlerAtk, battlerDef, moveSlot1, moveSlot2))
+            return MOVE_NEUTRAL_COMPARISON;
         return MOVE_LOST_COMPARISON;
+    }
     return MOVE_NEUTRAL_COMPARISON;
 }
 
@@ -5397,14 +5867,36 @@ static enum MoveComparisonResult CompareMoveSelfSacrifice(enum BattlerId battler
     return MOVE_NEUTRAL_COMPARISON;
 }
 
-static enum MoveComparisonResult CompareMoveTwoTurnEffect(enum BattlerId battlerAtk, enum Move move1, enum Move move2)
+static bool32 ShouldAcceptDelayedAttackRisk(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex)
 {
+    u32 hitsToFaintAi;
+
+    if (!IsTwoTurnNotSemiInvulnerableMove(battlerAtk, move))
+        return FALSE;
+    if (moveIndex >= MAX_MON_MOVES)
+        return FALSE;
+    if (!AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_DELAYED_ATTACK))
+        return FALSE;
+
+    hitsToFaintAi = NoOfHitsForTargetToFaintBattler(battlerDef, battlerAtk, AI_DEFENDING, CONSIDER_ENDURE);
+    if (hitsToFaintAi <= 1)
+        return FALSE;
+
+    return GetNoOfHitsToKOBattler(battlerAtk, battlerDef, moveIndex, AI_ATTACKING, CONSIDER_ENDURE) <= 2;
+}
+
+static enum MoveComparisonResult CompareMoveTwoTurnEffect(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveSlot1, u32 moveSlot2, enum Move *moves)
+{
+    enum Move move1 = moves[moveSlot1];
+    enum Move move2 = moves[moveSlot2];
     bool32 twoTurn1 = IsTwoTurnNotSemiInvulnerableMove(battlerAtk, move1);
     bool32 twoTurn2 = IsTwoTurnNotSemiInvulnerableMove(battlerAtk, move2);
+    bool32 accepted1 = twoTurn1 && ShouldAcceptDelayedAttackRisk(battlerAtk, battlerDef, move1, moveSlot1);
+    bool32 accepted2 = twoTurn2 && ShouldAcceptDelayedAttackRisk(battlerAtk, battlerDef, move2, moveSlot2);
 
-    if (twoTurn1 && !twoTurn2)
+    if (twoTurn1 && !twoTurn2 && !accepted1)
         return MOVE_LOST_COMPARISON;
-    if (twoTurn2 && !twoTurn1)
+    if (twoTurn2 && !twoTurn1 && !accepted2)
         return MOVE_WON_COMPARISON;
     return MOVE_NEUTRAL_COMPARISON;
 }
@@ -5568,7 +6060,7 @@ static void AI_CompareDamagingMoves(enum BattlerId battlerAtk, enum BattlerId ba
                             break;
                         }
                     }
-                    switch (CompareMoveTwoTurnEffect(battlerAtk, moves[currId], moves[compareId]))
+                    switch (CompareMoveTwoTurnEffect(battlerAtk, battlerDef, currId, compareId, moves))
                     {
                     case MOVE_WON_COMPARISON:
                         tempMoveScores[currId] += MathUtil_Exponent(MAX_MON_MOVES, PRIORITY_NOT_CHARGING);
@@ -5676,6 +6168,257 @@ static s32 AI_CalcHoldEffectMoveScore(enum BattlerId battlerAtk, enum BattlerId 
     return score;
 }
 
+static s32 GetDesperationStatusSwingScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    enum MoveEffect status = GetMoveNonVolatileStatus(move);
+    enum Move predictedMove = GetPredictedMove(battlerAtk, battlerDef, aiData);
+    enum Ability defAbility = aiData->abilities[battlerDef];
+
+    if (!AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_LOW_ACCURACY_STATUS))
+        return NO_INCREASE;
+    if (AI_HasCleanDamageRaceLine(battlerAtk, battlerDef, move, aiData))
+        return NO_INCREASE;
+
+    switch (status)
+    {
+    case MOVE_EFFECT_SLEEP:
+        if (AI_CanPutToSleep(battlerAtk, battlerDef, defAbility, move, aiData->partnerMove))
+            return GOOD_EFFECT;
+        break;
+    case MOVE_EFFECT_BURN:
+        if (AI_CanBurn(battlerAtk, battlerDef, defAbility, BATTLE_PARTNER(battlerAtk), move, aiData->partnerMove)
+         && (HasMoveWithCategory(battlerDef, DAMAGE_CATEGORY_PHYSICAL) || BattlerHasOffensiveSetup(battlerDef)))
+            return GOOD_EFFECT;
+        break;
+    case MOVE_EFFECT_PARALYSIS:
+        if (AI_CanParalyze(battlerAtk, battlerDef, defAbility, move, aiData->partnerMove)
+         && (AI_IsSlower(battlerAtk, battlerDef, move, predictedMove, DONT_CONSIDER_PRIORITY) || BattlerHasOffensiveSetup(battlerDef)))
+            return GOOD_EFFECT;
+        break;
+    default:
+        break;
+    }
+
+    return NO_INCREASE;
+}
+
+static bool32 AI_HasCleanDamageRaceLine(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    enum Move *moves = GetMovesArray(battlerAtk);
+    u32 moveLimitations = aiData->moveLimitations[battlerAtk];
+    u32 bestDamage = 0;
+    u32 attackerHits;
+    u32 defenderHits;
+    enum Move predictedMove;
+
+    if (battlerDef >= gBattlersCount
+     || !IsBattlerAlive(battlerDef)
+     || IsBattlerAlly(battlerAtk, battlerDef))
+        return TRUE;
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move candidate = moves[moveIndex];
+        u32 damage;
+
+        if (IsMoveUnusable(moveIndex, candidate, moveLimitations)
+         || GetMovePower(candidate) == 0
+         || GetMoveEffect(candidate) == EFFECT_OHKO)
+            continue;
+
+        if (CanIndexMoveFaintTarget(battlerAtk, battlerDef, moveIndex, AI_ATTACKING))
+            return TRUE;
+
+        damage = AI_GetDamage(battlerAtk, battlerDef, moveIndex, AI_ATTACKING, aiData);
+        if (bestDamage < damage)
+            bestDamage = damage;
+    }
+
+    attackerHits = GetNoOfHitsToKOBattlerDmg(bestDamage, battlerDef);
+    if (attackerHits == 0 || attackerHits == UNKNOWN_NO_OF_HITS || attackerHits > DESPERATION_COMEBACK_DAMAGE_RACE_TURNS)
+        return FALSE;
+
+    defenderHits = NoOfHitsForTargetToFaintBattler(battlerDef, battlerAtk, AI_DEFENDING, CONSIDER_ENDURE);
+    if (defenderHits == 0 || defenderHits == UNKNOWN_NO_OF_HITS)
+        return TRUE;
+
+    predictedMove = GetPredictedMove(battlerAtk, battlerDef, aiData);
+    if (attackerHits < defenderHits)
+        return TRUE;
+    if (attackerHits == defenderHits && AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY))
+        return TRUE;
+
+    return FALSE;
+}
+
+static bool32 AI_ShouldFishForDesperationComeback(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData, enum AiRiskKind riskKind)
+{
+    if (!AI_RiskGovernorAllows(battlerAtk, battlerDef, riskKind))
+        return FALSE;
+    if (AI_HasCleanDamageRaceLine(battlerAtk, battlerDef, move, aiData))
+        return FALSE;
+
+    return TRUE;
+}
+
+static bool32 MoveHasChanceEffect(enum BattlerId battlerAtk, enum Move move, enum MoveEffect moveEffect)
+{
+    u32 additionalEffectCount = GetMoveAdditionalEffectCount(move);
+
+    for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
+    {
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(move, effectIndex);
+
+        if (additionalEffect->self || additionalEffect->moveEffect != moveEffect)
+            continue;
+        if (CalcSecondaryEffectChance(battlerAtk, gAiLogicData->abilities[battlerAtk], additionalEffect) > 0)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 MoveCanLowerTargetSpeed(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    u32 additionalEffectCount = GetMoveAdditionalEffectCount(move);
+
+    if (IsAdditionalEffectBlocked(battlerAtk, aiData->abilities[battlerAtk], battlerDef, aiData->abilities[battlerDef]))
+        return FALSE;
+
+    for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
+    {
+        const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(move, effectIndex);
+        s32 stage;
+
+        if (additionalEffect->self || additionalEffect->moveEffect != MOVE_EFFECT_STAT_MINUS)
+            continue;
+
+        stage = -1 * GetStatStage(STAT_SPEED, additionalEffect);
+        if (aiData->abilities[battlerDef] == ABILITY_CONTRARY
+         && !DoesBattlerIgnoreAbilityChecks(battlerAtk, aiData->abilities[battlerAtk], move))
+            stage = -1 * stage;
+
+        if (stage < 0 && gBattleMons[battlerDef].statStages[STAT_SPEED] > MIN_STAT_STAGE)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 HasKnownSoundMove(enum BattlerId battler)
+{
+    enum Move *moves = GetMovesArray(battler);
+    u32 moveLimitations = gAiLogicData->moveLimitations[battler];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        if (!IsMoveUnusable(moveIndex, moves[moveIndex], moveLimitations) && IsSoundMove(moves[moveIndex]))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 CanDesperationOHKOFish(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    if (!AI_ShouldFishForDesperationComeback(battlerAtk, battlerDef, move, aiData, AI_RISK_OHKO_FISH))
+        return FALSE;
+    if (GetMoveEffect(move) != EFFECT_OHKO)
+        return FALSE;
+    if (GetActiveGimmick(battlerDef) == GIMMICK_DYNAMAX)
+        return FALSE;
+    if (gBattleMons[battlerAtk].level < gBattleMons[battlerDef].level)
+        return FALSE;
+    if (aiData->holdEffects[battlerDef] == HOLD_EFFECT_FOCUS_SASH && AI_BattlerAtMaxHp(battlerDef))
+        return FALSE;
+    if (!DoesBattlerIgnoreAbilityChecks(battlerAtk, aiData->abilities[battlerAtk], move) && aiData->abilities[battlerDef] == ABILITY_STURDY)
+        return FALSE;
+
+    return TRUE;
+}
+
+static s32 GetDesperationComebackMoveScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
+{
+    s32 score = 0;
+    enum Move incomingMove;
+    enum Move predictedMove;
+    enum Ability defAbility;
+
+    if (!AI_ShouldFishForDesperationComeback(battlerAtk, battlerDef, move, aiData, AI_RISK_SECONDARY_HAX))
+        return NO_INCREASE;
+
+    incomingMove = GetIncomingMove(battlerAtk, battlerDef, aiData);
+    predictedMove = GetPredictedMove(battlerAtk, battlerDef, aiData);
+    defAbility = aiData->abilities[battlerDef];
+
+    if (CanDesperationOHKOFish(battlerAtk, battlerDef, move, aiData))
+        ADJUST_SCORE(BEST_EFFECT);
+
+    if (GetMoveEffect(move) == EFFECT_FIRST_TURN_ONLY
+     && IsBattlersFirstTurn(battlerAtk)
+     && MoveHasAdditionalEffect(move, MOVE_EFFECT_FLINCH)
+     && AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY)
+     && !IsAdditionalEffectBlocked(battlerAtk, aiData->abilities[battlerAtk], battlerDef, defAbility)
+     && !DoesSubstituteBlockMove(battlerAtk, battlerDef, move))
+        ADJUST_SCORE(DESPERATION_DIRECT_STOP_SCORE);
+    else if (MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_FLINCH)
+          && AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY)
+          && !IsAdditionalEffectBlocked(battlerAtk, aiData->abilities[battlerAtk], battlerDef, defAbility)
+          && !DoesSubstituteBlockMove(battlerAtk, battlerDef, move))
+        ADJUST_SCORE(GOOD_EFFECT);
+
+    if (MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_PARALYSIS)
+     && AI_CanParalyze(battlerAtk, battlerDef, defAbility, move, aiData->partnerMove))
+        ADJUST_SCORE(DECENT_EFFECT);
+
+    if (MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_FREEZE_OR_FROSTBITE)
+     && CanBeFrozen(battlerAtk, battlerDef, defAbility))
+        ADJUST_SCORE(DECENT_EFFECT);
+
+    if ((GetMoveCriticalHitStage(move) > 0 || MoveAlwaysCrits(move))
+     && defAbility != ABILITY_SHELL_ARMOR
+     && defAbility != ABILITY_BATTLE_ARMOR
+     && !(gSideStatuses[GetBattlerSide(battlerDef)] & SIDE_STATUS_LUCKY_CHANT))
+        ADJUST_SCORE(WEAK_EFFECT);
+
+    switch (GetMoveEffect(move))
+    {
+    case EFFECT_TAUNT:
+        if (incomingMove != MOVE_NONE
+         && IsBattleMoveStatus(incomingMove)
+         && AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY))
+            ADJUST_SCORE(DESPERATION_DIRECT_STOP_SCORE);
+        break;
+    case EFFECT_TRICK_ROOM:
+        if (!IsBattle1v1()
+         && !(gFieldStatuses & STATUS_FIELD_TRICK_ROOM)
+         && ShouldSetFieldStatus(battlerAtk, STATUS_FIELD_TRICK_ROOM))
+            ADJUST_SCORE(DESPERATION_SPEED_CONTROL_SCORE);
+        break;
+    case EFFECT_TAILWIND:
+        if (!IsBattle1v1()
+         && !(gSideStatuses[GetBattlerSide(battlerAtk)] & SIDE_STATUS_TAILWIND)
+         && !(gFieldStatuses & STATUS_FIELD_TRICK_ROOM))
+            ADJUST_SCORE(DESPERATION_SPEED_CONTROL_SCORE);
+        break;
+    default:
+        break;
+    }
+
+    if (!IsBattle1v1())
+    {
+        if (MoveCanLowerTargetSpeed(battlerAtk, battlerDef, move, aiData))
+            ADJUST_SCORE(DESPERATION_SPEED_CONTROL_SCORE);
+
+        if (MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_THROAT_CHOP)
+         && HasKnownSoundMove(battlerDef)
+         && AI_IsFaster(battlerAtk, battlerDef, move, predictedMove, CONSIDER_PRIORITY))
+            ADJUST_SCORE(DESPERATION_DIRECT_STOP_SCORE);
+    }
+
+    return score;
+}
+
 static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData)
 {
     // move data
@@ -5761,6 +6504,8 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
         break;
     }
 
+    ADJUST_SCORE(GetDesperationStatusSwingScore(battlerAtk, battlerDef, move, aiData));
+    ADJUST_SCORE(GetDesperationComebackMoveScore(battlerAtk, battlerDef, move, aiData));
     ADJUST_SCORE(GetReadPlayerSetupDisruptionMoveScore(battlerAtk, battlerDef, move, aiData));
 
     // move effect checks
@@ -6306,6 +7051,17 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
             else if (predictedEffect == EFFECT_SEMI_INVULNERABLE && !IsSemiInvulnerable(battlerDef, CHECK_ALL))
                 ADJUST_SCORE(GOOD_EFFECT);
         }
+        if (AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_DELAYED_ATTACK)
+         && CanTargetFaintAi(battlerDef, battlerAtk)
+         && aiData->abilities[battlerAtk] != ABILITY_NO_GUARD
+         && aiData->abilities[battlerDef] != ABILITY_NO_GUARD
+         && GetNoOfHitsToKOBattler(battlerAtk, battlerDef, movesetIndex, AI_ATTACKING, CONSIDER_ENDURE) <= 2)
+            ADJUST_SCORE(GOOD_EFFECT);
+        break;
+    case EFFECT_SOLAR_BEAM:
+    case EFFECT_TWO_TURNS_ATTACK:
+        if (ShouldAcceptDelayedAttackRisk(battlerAtk, battlerDef, move, movesetIndex))
+            ADJUST_SCORE(GOOD_EFFECT);
         break;
     case EFFECT_FIRST_TURN_ONLY:
         if (IsBattlersFirstTurn(battlerAtk) && !IsTargetingPartner(battlerAtk, battlerDef))
@@ -7306,6 +8062,18 @@ static s32 AI_CalcAdditionalEffectScore(enum BattlerId battlerAtk, enum BattlerI
                     ADJUST_SCORE(GOOD_EFFECT);
                 break;
             case MOVE_EFFECT_THROAT_CHOP:
+            {
+                enum Move selectedSoundMove;
+
+                if (IsReadPlayerSelectedSoundPressureMove(battlerAtk, battlerDef, &selectedSoundMove))
+                {
+                    if (AI_IsFaster(battlerAtk, battlerDef, move, selectedSoundMove, CONSIDER_PRIORITY))
+                        ADJUST_SCORE(BEST_EFFECT);
+                    else
+                        ADJUST_SCORE(DECENT_EFFECT);
+                    break;
+                }
+
                 for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
                 {
                     if (defBestMoves[moveIndex] == MOVE_NONE)
@@ -7332,6 +8100,7 @@ static s32 AI_CalcAdditionalEffectScore(enum BattlerId battlerAtk, enum BattlerI
                     }
                 }
                 break;
+            }
             case MOVE_EFFECT_WRAP:
                 if (!HasMoveWithEffect(battlerDef, EFFECT_RAPID_SPIN) && ShouldTrap(battlerAtk, battlerDef, move))
                     ADJUST_SCORE(BEST_EFFECT);

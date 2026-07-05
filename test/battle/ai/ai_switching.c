@@ -1,5 +1,6 @@
 #include "global.h"
 #include "test/battle.h"
+#include "battle_ai_switch.h"
 
 AI_SINGLE_BATTLE_TEST("AI gets baited by Protect Switch tactics") // This behavior is to be fixed.
 {
@@ -31,6 +32,56 @@ AI_SINGLE_BATTLE_TEST("AI picks an injured ally to receive Healing Wish") // Hea
         OPPONENT(SPECIES_WOBBUFFET);
     } WHEN {
         TURN { EXPECT_MOVE(opponent, MOVE_HEALING_WISH); EXPECT_SEND_OUT(opponent, 1); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Switch AI counts Sitrus Berry as twenty-five percent single-use healing")
+{
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_SITRUS_BERRY].holdEffect == HOLD_EFFECT_RESTORE_PCT_HP);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(100); HP(100); Item(ITEM_SITRUS_BERRY); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        EXPECT_EQ(Test_GetSwitchinSingleUseItemHealing(aiBattler, playerBattler, 50), 25);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Switch AI combines multiple damage rolls as an exact distribution")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); EXPECT_MOVE(opponent, MOVE_CELEBRATE); }
+    } THEN {
+        struct SimulatedDamage singleDamage[] = {
+            { .minimum = 85, .median = 93, .maximum = 100 },
+        };
+        struct SimulatedDamage doubleDamage[] = {
+            { .minimum = 85, .median = 93, .maximum = 100 },
+            { .minimum = 85, .median = 93, .maximum = 100 },
+        };
+        u32 minimum, median, roll14Of16, roll15Of16, maximum;
+
+        Test_GetCombinedDamageRollSummary(singleDamage, ARRAY_COUNT(singleDamage), &minimum, &median, &roll14Of16, &roll15Of16, &maximum);
+        EXPECT_EQ(minimum, 85);
+        EXPECT_EQ(median, 93);
+        EXPECT_EQ(roll14Of16, 98);
+        EXPECT_EQ(roll15Of16, 99);
+        EXPECT_EQ(maximum, 100);
+
+        Test_GetCombinedDamageRollSummary(doubleDamage, ARRAY_COUNT(doubleDamage), &minimum, &median, &roll14Of16, &roll15Of16, &maximum);
+        EXPECT_EQ(minimum, 170);
+        EXPECT_EQ(median, 185);
+        EXPECT_EQ(roll14Of16, 193);
+        EXPECT_EQ(roll15Of16, 195);
+        EXPECT_EQ(maximum, 200);
     }
 }
 
@@ -146,6 +197,107 @@ AI_SINGLE_BATTLE_TEST("AI switches if Perish Song is about to kill")
             TURN { EXPECT_SWITCH(opponent, 1); }
     } SCENE {
         MESSAGE(AI_TRAINER_NAME " sent out Crobat!");
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI switches to Soundproof against a read Perish Song when it cannot stop it")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(IsSoundMove(MOVE_PERISH_SONG));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(300); HP(300); Speed(100); Moves(MOVE_PERISH_SONG); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(300); HP(300); Speed(1); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_EXPLOUD) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_STRENGTH); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_PERISH_SONG); EXPECT_SWITCH(opponent, 1); }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_SWITCH);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_PERISH_ESCAPE);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI switches to Soundproof against a read lethal sound move")
+{
+    GIVEN {
+        ASSUME(IsSoundMove(MOVE_BOOMBURST));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_EXPLOUD) { Level(50); SpAttack(160); Speed(120); Moves(MOVE_BOOMBURST); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(150); HP(75); SpDefense(60); Speed(1); Moves(MOVE_STRENGTH); }
+        OPPONENT(SPECIES_ELECTRODE) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_THUNDERBOLT); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_BOOMBURST); EXPECT_SWITCH(opponent, 1); }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_SWITCH);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_SWITCH_PRESERVE);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI switches to Soundproof against read nonlethal sound pressure")
+{
+    GIVEN {
+        ASSUME(IsSoundMove(MOVE_HYPER_VOICE));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_EXPLOUD) { Level(50); SpAttack(170); Speed(120); Moves(MOVE_HYPER_VOICE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(180); HP(180); SpDefense(80); Speed(1); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_ELECTRODE) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_THUNDERBOLT); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_HYPER_VOICE); EXPECT_SWITCH(opponent, 1); }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_SWITCH);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_KNOWN_COMMAND_ANSWER);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI switches to Soundproof against read spread sound pressure")
+{
+    GIVEN {
+        ASSUME(IsSoundMove(MOVE_BOOMBURST));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_EXPLOUD) { Level(50); SpAttack(160); Speed(120); Moves(MOVE_BOOMBURST); }
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); Speed(1); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(150); HP(75); SpDefense(60); Speed(1); Moves(MOVE_STRENGTH); }
+        OPPONENT(SPECIES_ELECTRODE) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_THUNDERBOLT); }
+        OPPONENT(SPECIES_EXPLOUD) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_STRENGTH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BOOMBURST);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_SWITCH(opponentLeft, 2);
+            EXPECT_MOVE(opponentRight, MOVE_THUNDERBOLT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI does not switch to Soundproof against nonlethal sound pressure when it wins the race")
+{
+    GIVEN {
+        ASSUME(IsSoundMove(MOVE_HYPER_VOICE));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_EXPLOUD) { Level(50); MaxHP(120); HP(80); SpAttack(120); Speed(1); Moves(MOVE_HYPER_VOICE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(180); HP(180); Attack(220); Speed(120); Moves(MOVE_STRENGTH); }
+        OPPONENT(SPECIES_ELECTRODE) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_THUNDERBOLT); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_HYPER_VOICE); EXPECT_MOVE(opponent, MOVE_STRENGTH); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI does not switch to Soundproof against read sound pressure when it can KO first")
+{
+    GIVEN {
+        ASSUME(IsSoundMove(MOVE_BOOMBURST));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_EXPLOUD) { Level(50); MaxHP(150); HP(1); Speed(1); Moves(MOVE_BOOMBURST); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); Attack(120); Speed(120); Moves(MOVE_STRENGTH); }
+        OPPONENT(SPECIES_ELECTRODE) { Ability(ABILITY_SOUNDPROOF); Speed(1); Moves(MOVE_THUNDERBOLT); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_BOOMBURST); EXPECT_MOVE(opponent, MOVE_STRENGTH); }
     }
 }
 

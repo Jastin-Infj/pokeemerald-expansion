@@ -67,7 +67,7 @@ This generator reads the current expansion source and emits JSON for moves, abil
 
 The merge order should be:
 
-1. local expansion catalog: constants, config-gated move fields, AI knowledge flags, and item hold effects.
+1. local expansion catalog: constants, config-gated move fields, status Z-Move effect fields, AI knowledge flags, and item hold effects.
 2. checked-in trainer-party / PartyGen catalogs: trainer-owned sets and debug fixtures.
 3. external category audits: Pokemon Wiki categories and official mechanic references.
 4. usage / tournament adapters: VGC, official singles events, Champions ranking / usage data, and player result data.
@@ -83,7 +83,7 @@ Mega / Ultra Burst is not the same kind of resource as Z-Move, Dynamax, or Tera.
 - Mega / Ultra Burst can still be delayed when the pre-form ability has immediate value, such as weather denial, scouting, or a setup turn with no pressure.
 - Dynamax is usually the highest-value spend because it changes HP, damage race, disruption resistance, and board effects at the same time.
 - Tera is usually the next strongest spend because it changes defensive and offensive typing while preserving normal move choice.
-- Z-Move is usually below Tera as a one-shot spend, but can outrank Tera when it converts a KO, breaks a trap, bypasses accuracy risk, or gives a decisive status Z effect.
+- Z-Move is usually below Tera as a one-shot spend, but can outrank Tera when it converts a KO, breaks a trap, bypasses accuracy risk, or gives a decisive status Z effect. Status Z effect families are cataloged separately so arbitration can compare, for example, one-shot redirection, HP recovery, replacement healing, critical boost, and stat reset effects without hardcoding each source move.
 - Combined environments should compare resources rather than evaluating each gimmick in isolation.
 
 Default arbitration order when multiple spends look similarly good:
@@ -155,6 +155,33 @@ Recommended board tags:
 - `board_flip`: action changes losing board to neutral or winning board.
 - `future_checkmate`: action creates a forced win line over the next one to three turns.
 
+## Near-Term Checkmate / Comeback Policy
+
+The AI may lower reliability thresholds only when the board is close to decided against it. This is not an HP threshold. The trigger should be a two-to-three-turn loss clock, such as trapped or no-reserve Perish Song, known same-turn KO with no reserve or visible opposing setup pressure, a selected setup move that will make the next turn unwinnable, or a board where the opponent can force the end before the AI can create stable damage.
+
+Clean lines come first. If the AI can KO, likely KO, win the short damage race with ordinary damage, switch to a safe answer, or spend a gimmick to stabilize, it should prefer that line over hax fishing. OHKO moves, flinch chance, paralysis, freeze / frostbite, critical-hit fishing, and low-accuracy status are fallback outs for positions where stable play no longer has a credible route.
+
+Singles and doubles should be evaluated separately:
+
+- Singles comeback outs are mostly direct: damage, Protect payoff, switch, flinch, status, OHKO, or crit.
+- Doubles comeback outs include board stops and order changes: Fake Out-style flinch, Taunt, Tailwind, Trick Room, Icy Wind-style Speed drops, Throat Chop / sound denial, and partner-assisted repositioning.
+- Deliberate ally sacrifice is legal only when the ally is role-complete or the next board is meaningfully better, the move creates opposing-side pressure, and a reserve can use the opened slot.
+- Ally-targeted Speed manipulation such as Scary Face under Trick Room needs a turn-order and survival check. It should not be treated as generally useful just because it changes Speed.
+- Soundproof switching is a switch-layer answer to sound moves and Perish Song. It should be considered alongside switch-in punishment, trapping, and whether the current active still has a better direct out.
+
+Recommended comeback tags:
+
+- `desperation_comeback`
+- `clean_damage_preferred`
+- `hax_out`
+- `ohko_fish`
+- `flinch_fish`
+- `crit_fish`
+- `speed_order_flip`
+- `sound_denial`
+- `ally_sacrifice_board_reset`
+- `commander_slot_correction`
+
 ## Reserve Value Policy
 
 Reserve value must be evaluated every turn.
@@ -208,6 +235,9 @@ Recommended reason tags:
 - `ko_conversion`
 - `damage_race`
 - `low_accuracy_stabilized`
+- `desperation_comeback`
+- `clean_damage_preferred`
+- `hax_out`
 - `defensive_type_flip`
 - `offensive_stab_gain`
 - `max_move_board_control`
@@ -226,6 +256,8 @@ Recommended reason tags:
 - `two_vs_one_pressure`
 - `reserve_preserved`
 - `sack_role_complete`
+- `ally_sacrifice_board_reset`
+- `commander_slot_correction`
 - `config_rule_applied`
 - `script_edge_case`
 
@@ -352,9 +384,9 @@ The long-term runtime layer should be able to answer:
 
 ## Current Gap List
 
-- Max Move / G-Max unique effects are not yet fully exposed as reusable AI knowledge flags.
+- Max Move side-effect families and G-Max unique / residual effects are exposed as reusable AI move knowledge flags, but most non-residual G-Max unique effects still need tactic-specific scoring.
 - Status Z-Move effects are still mostly evaluated through existing Z viability logic rather than the shared runtime knowledge layer.
-- Tera defensive evaluation still needs a richer "new weakness introduced" check.
+- Tera defensive evaluation now rejects pure defensive Tera lines that introduce a new large-hit weakness, but it still does not run a full multi-turn defensive type search.
 - Combined gimmick environments need a central resource arbitration pass so Mega / Z / Dynamax / Tera decisions are compared consistently.
 - Ability and item categories are broad runtime knowledge flags; deeper scoring still needs targeted predicates such as "this item protects the exact line the opponent is threatening".
 - Battle-script-only edge behavior still needs audit coverage for mechanics that do not surface cleanly through `GetMoveEffect()`, move flags, ability constants, or hold effects.

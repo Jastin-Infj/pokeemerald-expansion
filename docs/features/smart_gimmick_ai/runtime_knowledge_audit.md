@@ -89,7 +89,7 @@ The first runtime layer is now exposed through `include/battle_ai_util.h`:
 - `AI_ItemHasKnowledgeFlag(item, flag)`
 - `AI_CanBattlerIgnorePredictedMove(battlerDef, battlerAtk, move)`
 
-`AI_GetMoveKnowledgeFlags()` maps existing expansion move tags into AI-readable categories: contact, sound, ballistic, powder, slicing, punching, biting, pulse, dance, wind, healing, Magic Coat-affected / Magic Coat, Snatch-affected / Snatch, ability-control, move-denial, and combo-state moves.
+`AI_GetMoveKnowledgeFlags()` maps existing expansion move tags into AI-readable categories: contact, sound, ballistic, powder, slicing, punching, biting, pulse, dance, wind, healing, Magic Coat-affected / Magic Coat, Snatch-affected / Snatch, ability-control, move-denial, and combo-state moves. It also tags transformed Max Moves by side-effect family: Speed control, weather, terrain, stat control, G-Max unique effects, residual G-Max pressure, and G-Max hazards. Status Z-Move effects are now tagged by family as status Z, stat reset, stat boost, critical boost, redirection, HP recovery, and replacement healing.
 
 `AI_GetAbilityKnowledgeFlags()` maps ability IDs into AI-readable strategy groups: move immunity, move power, damage race, status interaction, field control, positioning, ability control, stat control, item control, priority, and form / state.
 
@@ -107,7 +107,7 @@ cargo run --manifest-path tools/runtime_knowledge/Cargo.toml -- --out /tmp/runti
 
 The generator reads the local expansion runtime and emits review JSON for:
 
-- moves, including core move fields, move-shape flags, conditional config / generation-gated expressions, and AI move knowledge tags.
+- moves, including core move fields, move-shape flags, status Z-Move effect fields, Max / G-Max side-effect flags, G-Max hazard tags, conditional config / generation-gated expressions, and AI move knowledge tags.
 - abilities, including constants and AI ability knowledge tags parsed from `AI_GetAbilityKnowledgeFlags`.
 - hold effects, including constants and AI hold-effect knowledge tags parsed from `AI_GetHoldEffectKnowledgeFlags`.
 - items, including hold effects / params and inherited item knowledge tags.
@@ -143,6 +143,7 @@ These are mostly already encoded by move flags:
 - phazing
 - priority
 - protection / substitute / Magic Coat / Snatch / Mirror Move / Copycat / Sleep Talk / Encore bans
+- status Z-Move side effects: stat reset, stat boost, critical boost, redirection, HP recovery, and replacement healing.
 
 ### Move Outcome
 

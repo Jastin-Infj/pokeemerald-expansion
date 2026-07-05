@@ -69,6 +69,66 @@ const MOVE_COMBO_STATE_EFFECTS: &[&str] = &[
     "EFFECT_STOCKPILE",
 ];
 
+const MAX_SPEED_CONTROL_MOVES: &[&str] = &["MOVE_MAX_AIRSTREAM", "MOVE_MAX_STRIKE"];
+
+const MAX_WEATHER_MOVES: &[&str] = &[
+    "MOVE_MAX_FLARE",
+    "MOVE_MAX_GEYSER",
+    "MOVE_MAX_ROCKFALL",
+    "MOVE_MAX_HAILSTORM",
+];
+
+const MAX_TERRAIN_MOVES: &[&str] = &[
+    "MOVE_MAX_LIGHTNING",
+    "MOVE_MAX_OVERGROWTH",
+    "MOVE_MAX_STARFALL",
+    "MOVE_MAX_MINDSTORM",
+];
+
+const MAX_STAT_CONTROL_MOVES: &[&str] = &[
+    "MOVE_MAX_KNUCKLE",
+    "MOVE_MAX_OOZE",
+    "MOVE_MAX_QUAKE",
+    "MOVE_MAX_STEELSPIKE",
+    "MOVE_MAX_WYRMWIND",
+    "MOVE_MAX_FLUTTERBY",
+    "MOVE_MAX_PHANTASM",
+    "MOVE_MAX_DARKNESS",
+];
+
+const GMAX_RESIDUAL_MOVES: &[&str] = &[
+    "MOVE_G_MAX_VINE_LASH",
+    "MOVE_G_MAX_WILDFIRE",
+    "MOVE_G_MAX_CANNONADE",
+    "MOVE_G_MAX_VOLCALITH",
+];
+
+const GMAX_HAZARD_MOVES: &[&str] = &["MOVE_G_MAX_STONESURGE", "MOVE_G_MAX_STEELSURGE"];
+
+const Z_STAT_BOOST_EFFECTS: &[&str] = &[
+    "Z_EFFECT_ATK_UP_1",
+    "Z_EFFECT_ATK_UP_2",
+    "Z_EFFECT_ATK_UP_3",
+    "Z_EFFECT_DEF_UP_1",
+    "Z_EFFECT_DEF_UP_2",
+    "Z_EFFECT_DEF_UP_3",
+    "Z_EFFECT_SPD_UP_1",
+    "Z_EFFECT_SPD_UP_2",
+    "Z_EFFECT_SPD_UP_3",
+    "Z_EFFECT_SPATK_UP_1",
+    "Z_EFFECT_SPATK_UP_2",
+    "Z_EFFECT_SPATK_UP_3",
+    "Z_EFFECT_SPDEF_UP_1",
+    "Z_EFFECT_SPDEF_UP_2",
+    "Z_EFFECT_SPDEF_UP_3",
+    "Z_EFFECT_ACC_UP_1",
+    "Z_EFFECT_ACC_UP_2",
+    "Z_EFFECT_ACC_UP_3",
+    "Z_EFFECT_EVSN_UP_1",
+    "Z_EFFECT_EVSN_UP_2",
+    "Z_EFFECT_EVSN_UP_3",
+];
+
 const SOURCE_FILES: &[&str] = &[
     "include/battle_ai_util.h",
     "include/constants/abilities.h",
@@ -477,6 +537,14 @@ fn parse_assignment(block: &str, field: &str) -> Option<String> {
     None
 }
 
+fn parse_z_move_effect(block: &str) -> Option<String> {
+    let z_move = parse_assignment(block, "zMove")?;
+    z_move
+        .split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_'))
+        .find(|token| token.starts_with("Z_EFFECT_"))
+        .map(ToString::to_string)
+}
+
 fn parse_compound_string(block: &str, field: &str) -> Option<String> {
     let needle = format!(".{field}");
     let start = block.find(&needle)?;
@@ -592,6 +660,44 @@ fn extract_tokens_with_prefix(text: &str, prefix: &str) -> BTreeSet<String> {
     tokens
 }
 
+fn add_z_effect_knowledge_flags(z_effect: &str, knowledge_flags: &mut BTreeSet<String>) {
+    if z_effect == "Z_EFFECT_NONE" {
+        return;
+    }
+
+    knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_STATUS".to_string());
+
+    match z_effect {
+        "Z_EFFECT_RESET_STATS" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_STAT_RESET".to_string());
+        }
+        "Z_EFFECT_ALL_STATS_UP_1" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_STAT_BOOST".to_string());
+        }
+        "Z_EFFECT_BOOST_CRITS" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_CRIT_BOOST".to_string());
+        }
+        "Z_EFFECT_FOLLOW_ME" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_REDIRECTION".to_string());
+        }
+        "Z_EFFECT_CURSE" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_STAT_BOOST".to_string());
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_RECOVERY".to_string());
+        }
+        "Z_EFFECT_RECOVER_HP" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_RECOVERY".to_string());
+        }
+        "Z_EFFECT_RESTORE_REPLACEMENT_HP" => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_RECOVERY".to_string());
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_REPLACEMENT_HEAL".to_string());
+        }
+        _ if Z_STAT_BOOST_EFFECTS.contains(&z_effect) => {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_Z_STAT_BOOST".to_string());
+        }
+        _ => {}
+    }
+}
+
 fn parse_moves(
     root: &Path,
     flag_defines: &HashMap<String, FlagDefine>,
@@ -653,6 +759,32 @@ fn parse_moves(
             if combo_state.contains(effect.as_str()) {
                 knowledge_flags.insert("AI_MOVE_KNOWLEDGE_COMBO_STATE".to_string());
             }
+        }
+
+        if MAX_SPEED_CONTROL_MOVES.contains(&move_id.as_str()) {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_MAX_SPEED_CONTROL".to_string());
+        }
+        if MAX_WEATHER_MOVES.contains(&move_id.as_str()) {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_MAX_WEATHER".to_string());
+        }
+        if MAX_TERRAIN_MOVES.contains(&move_id.as_str()) {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_MAX_TERRAIN".to_string());
+        }
+        if MAX_STAT_CONTROL_MOVES.contains(&move_id.as_str()) {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_MAX_STAT_CONTROL".to_string());
+        }
+        if move_id.starts_with("MOVE_G_MAX_") {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_GMAX_UNIQUE".to_string());
+        }
+        if GMAX_RESIDUAL_MOVES.contains(&move_id.as_str()) {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_GMAX_RESIDUAL".to_string());
+        }
+        if GMAX_HAZARD_MOVES.contains(&move_id.as_str()) {
+            knowledge_flags.insert("AI_MOVE_KNOWLEDGE_GMAX_HAZARD".to_string());
+        }
+        if let Some(z_effect) = parse_z_move_effect(&block) {
+            fields.insert("zMoveEffect".to_string(), z_effect.clone());
+            add_z_effect_knowledge_flags(&z_effect, &mut knowledge_flags);
         }
 
         let ai_knowledge_flags: Vec<String> = knowledge_flags.into_iter().collect();

@@ -1,6 +1,8 @@
 #include "global.h"
 #include "test/battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_util.h"
+#include "battle_main.h"
 
 AI_DOUBLE_BATTLE_TEST("AI won't use a Weather changing move if partner already chose such move")
 {
@@ -136,6 +138,56 @@ AI_DOUBLE_BATTLE_TEST("AI skips Trick/Bestow if the target has a Substitute")
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI targets Commander Dondozo instead of swallowed Tatsugiri")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_TATSUGIRI) { Ability(ABILITY_COMMANDER); }
+        PLAYER(SPECIES_DONDOZO);
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WYNAUT) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            EXPECT_MOVE(opponentLeft, MOVE_SCRATCH, target: playerRight);
+            SCORE_LT_VAL(opponentLeft, MOVE_SCRATCH, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI scores Commander Dondozo KO knowing poisoned Tatsugiri remains")
+{
+    enum Item item = ITEM_NONE;
+    u32 status = STATUS1_NONE;
+    s32 expectedCommanderBonus = 0;
+
+    PARAMETRIZE { item = ITEM_TOXIC_ORB; status = STATUS1_NONE; expectedCommanderBonus = DECENT_EFFECT; }
+    PARAMETRIZE { item = ITEM_NONE; status = STATUS1_TOXIC_POISON; expectedCommanderBonus = DECENT_EFFECT; }
+    PARAMETRIZE { item = ITEM_NONE; status = STATUS1_POISON; expectedCommanderBonus = WEAK_EFFECT; }
+
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_TOXIC_ORB].holdEffect == HOLD_EFFECT_TOXIC_ORB);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_TATSUGIRI) { Ability(ABILITY_COMMANDER); Item(item); Status1(status); }
+        PLAYER(SPECIES_DONDOZO);
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WYNAUT) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    } THEN {
+        enum BattlerId commander = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId dondozo = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
+
+        gBattleStruct->battlerState[commander].commandingDondozo = TRUE;
+        gBattleStruct->battlerState[dondozo].commanderSpecies = gBattleMons[commander].species;
+        gBattleMons[commander].volatiles.semiInvulnerable = STATE_COMMANDER;
+
+        EXPECT_EQ(Test_GetCommanderDondozoFaintBonus(dondozo), expectedCommanderBonus);
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI considers status orbs and abilities for Trick/Bestow")
 {
     enum Move move = MOVE_NONE;
@@ -194,7 +246,7 @@ AI_DOUBLE_BATTLE_TEST("AI gifts Utility Umbrella only when it removes the foe's 
 
     GIVEN {
         ASSUME(gItemsInfo[ITEM_UTILITY_UMBRELLA].holdEffect == HOLD_EFFECT_UTILITY_UMBRELLA);
-        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
         PLAYER(targetSpecies) { Ability(targetAbility); }
         PLAYER(weatherSpecies) { Ability(weatherAbility); }
         OPPONENT(attackerSpecies) { Ability(attackerAbility); Item(ITEM_UTILITY_UMBRELLA); Moves(MOVE_TRICK, MOVE_SCRATCH); }
@@ -227,7 +279,7 @@ AI_DOUBLE_BATTLE_TEST("AI steals Utility Umbrella to handle sun and Dry Skin but
 
     GIVEN {
         ASSUME(gItemsInfo[ITEM_UTILITY_UMBRELLA].holdEffect == HOLD_EFFECT_UTILITY_UMBRELLA);
-        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
         PLAYER(targetSpecies) { Ability(targetAbility); Item(ITEM_UTILITY_UMBRELLA); }
         PLAYER(weatherSpecies) { Ability(weatherAbility); }
         OPPONENT(attackerSpecies) { Ability(attackerAbility); Item(ITEM_NONE); Moves(MOVE_TRICK, MOVE_SCRATCH); }
@@ -579,6 +631,42 @@ AI_DOUBLE_BATTLE_TEST("AI will choose Earthquake if it kills one opposing mon an
         TURN { MOVE(playerLeft, MOVE_SCRATCH); }
         TURN { MOVE(playerRight, MOVE_SCRATCH); }
         TURN { EXPECT_MOVE(opponentLeft, MOVE_EARTHQUAKE); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI only sacrifices a partner with spread damage for desperation board pressure")
+{
+    bool32 desperate;
+    u64 aiFlags;
+    enum Move playerRightMove;
+    enum Move playerRightSecondMove;
+
+    PARAMETRIZE { desperate = FALSE; aiFlags = AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT; playerRightMove = MOVE_CELEBRATE;    playerRightSecondMove = MOVE_CELEBRATE; }
+    PARAMETRIZE { desperate = TRUE;  aiFlags = AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE; playerRightMove = MOVE_SWORDS_DANCE; playerRightSecondMove = MOVE_STRENGTH; }
+
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_EARTHQUAKE) == TARGET_FOES_AND_ALLY);
+        ASSUME(GetMoveType(MOVE_EARTHQUAKE) == TYPE_GROUND);
+        ASSUME_STAT_CHANGE(MOVE_SWORDS_DANCE, attack: +2);
+        AI_FLAGS(aiFlags);
+        PLAYER(SPECIES_WOBBUFFET) { HP(1); Speed(1); Moves(MOVE_STRENGTH); }
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(400); HP(400); Speed(1); Moves(playerRightMove, playerRightSecondMove); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(1); Speed(100); Moves(MOVE_EARTHQUAKE, MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(1); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(1); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_STRENGTH, target: opponentLeft);
+            if (desperate)
+                MOVE(playerRight, playerRightMove);
+            if (desperate)
+            {
+                SCORE_GT(opponentLeft, MOVE_EARTHQUAKE, MOVE_SCRATCH, target: playerLeft);
+                EXPECT_MOVE(opponentLeft, MOVE_EARTHQUAKE);
+            }
+            else
+                EXPECT_MOVE(opponentLeft, MOVE_SCRATCH, target: playerLeft);
+        }
     }
 }
 
@@ -941,6 +1029,46 @@ AI_DOUBLE_BATTLE_TEST("AI uses Trick Room intelligently")
             TURN { EXPECT_MOVE(opponentRight, MOVE_TRICK_ROOM); }
         else
             TURN { NOT_EXPECT_MOVE(opponentRight, MOVE_TRICK_ROOM); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI scores ally Speed drop under Trick Room to reverse move order")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        ASSUME_STAT_CHANGE(MOVE_SCARY_FACE, speed: -2);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_TRY_TO_FAINT | AI_FLAG_CHECK_VIABILITY | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_SNORLAX) { Level(50); MaxHP(1); HP(1); Defense(10); Speed(120); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); Speed(200); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); Speed(90); Moves(MOVE_CELEBRATE, MOVE_SCARY_FACE); }
+        OPPONENT(SPECIES_MACHAMP) { Level(50); MaxHP(80); HP(80); Attack(300); SpDefense(10); Speed(100); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId playerLeftBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId aiLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId aiRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+
+        SetBattleMonMoveSlot(&gBattleMons[aiRightBattler], MOVE_CLOSE_COMBAT, 0);
+        BattleAI_SetupAIData(0xF, aiLeftBattler);
+        gAiLogicData->speedStats[playerLeftBattler] = GetBattlerTotalSpeedStat(playerLeftBattler, gAiLogicData->abilities[playerLeftBattler], gAiLogicData->holdEffects[playerLeftBattler]);
+        gAiLogicData->speedStats[aiLeftBattler] = GetBattlerTotalSpeedStat(aiLeftBattler, gAiLogicData->abilities[aiLeftBattler], gAiLogicData->holdEffects[aiLeftBattler]);
+        gAiLogicData->speedStats[aiRightBattler] = GetBattlerTotalSpeedStat(aiRightBattler, gAiLogicData->abilities[aiRightBattler], gAiLogicData->holdEffects[aiRightBattler]);
+
+        EXPECT(gAiLogicData->speedStats[aiRightBattler] > gAiLogicData->speedStats[playerLeftBattler]);
+        EXPECT(gAiLogicData->speedStats[aiRightBattler] / 2 < gAiLogicData->speedStats[playerLeftBattler]);
+
+        gFieldStatuses &= ~STATUS_FIELD_TRICK_ROOM;
+        EXPECT(GetAllyStatChangeScore(aiLeftBattler, aiRightBattler, MOVE_SCARY_FACE) <= NO_INCREASE);
+
+        gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 5;
+        EXPECT(GetAllyStatChangeScore(aiLeftBattler, aiRightBattler, MOVE_SCARY_FACE) > NO_INCREASE);
     }
 }
 

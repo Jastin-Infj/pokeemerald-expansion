@@ -57,6 +57,43 @@ local FLAG_NAMES = {
   { mask = FLAG_GIMMICK, name = "selected_gimmick" },
 }
 
+local AI_REASON_NAMES = {
+  [0] = "none",
+  [1] = "clean_damage_preferred",
+  [2] = "known_command_answer",
+  [3] = "gimmick_stabilized",
+  [4] = "switch_preserve",
+  [5] = "board_control",
+  [6] = "setup_denial",
+  [7] = "perish_escape",
+  [8] = "desperation_comeback",
+  [9] = "hax_out",
+  [10] = "ally_sacrifice_board_reset",
+  [11] = "commander_slot_correction",
+}
+
+local AI_THREAT_NAMES = {
+  { mask = 1, name = "damage_race" },
+  { mask = 2, name = "known_ko_pressure" },
+  { mask = 4, name = "setup_checkmate" },
+  { mask = 8, name = "perish_trap_clock" },
+  { mask = 16, name = "mode_loss" },
+  { mask = 32, name = "desperation" },
+}
+
+local AI_RISK_NAMES = {
+  [0] = "none",
+  [1] = "high_variance_comeback",
+  [2] = "low_accuracy_status",
+  [3] = "low_accuracy_damage",
+  [4] = "secondary_hax",
+  [5] = "ohko_fish",
+  [6] = "delayed_attack",
+  [7] = "partner_sacrifice",
+  [8] = "second_protect",
+  [9] = "switch_survival",
+}
+
 local function join_path(root, leaf)
   if root == "" or root == "." then
     return "./" .. leaf
@@ -290,6 +327,21 @@ local function flag_name_list(flags)
   return names
 end
 
+local function ai_threat_name_list(flags)
+  local names = {}
+  if flags == 0 then
+    names[#names + 1] = "stable"
+    return names
+  end
+
+  for _, info in ipairs(AI_THREAT_NAMES) do
+    if has_mask(flags, info.mask) then
+      names[#names + 1] = info.name
+    end
+  end
+  return names
+end
+
 local function read_entry(base, ring_index, move_names, item_names, gimmick_names, battler_positions)
   local offset = base + ring_index * ENTRY_SIZE
   local battler = u8(offset + 8)
@@ -305,7 +357,10 @@ local function read_entry(base, ring_index, move_names, item_names, gimmick_name
   local item = u16(offset + 6)
   local action = u8(offset + 9)
   local gimmick = u32(offset + 16)
-  local flags = u8(offset + 20)
+  local ai_reason = u8(offset + 20)
+  local flags = u8(offset + 21)
+  local ai_threat_flags = u8(offset + 22)
+  local ai_risk_kind = u8(offset + 23)
 
   return {
     ring_index = ring_index,
@@ -329,6 +384,12 @@ local function read_entry(base, ring_index, move_names, item_names, gimmick_name
     party_index = u8(offset + 12),
     gimmick = gimmick,
     gimmick_name = gimmick_names[gimmick] or ("GIMMICK_" .. tostring(gimmick)),
+    ai_reason = ai_reason,
+    ai_reason_name = AI_REASON_NAMES[ai_reason] or ("AI_REASON_" .. tostring(ai_reason)),
+    ai_threat_flags = ai_threat_flags,
+    ai_threat_names = ai_threat_name_list(ai_threat_flags),
+    ai_risk_kind = ai_risk_kind,
+    ai_risk_name = AI_RISK_NAMES[ai_risk_kind] or ("AI_RISK_" .. tostring(ai_risk_kind)),
     flags = flags,
     flag_names = flag_name_list(flags),
     valid = has_mask(flags, FLAG_VALID),
@@ -393,7 +454,7 @@ if emu.currentFrame ~= nil then
 end
 
 local payload = {
-  schema = "pokeemerald.battle_action_log.v1",
+  schema = "pokeemerald.battle_action_log.v3",
   generated_at_utc = os.date("!%Y-%m-%dT%H:%M:%SZ"),
   frame = frame,
   source = {

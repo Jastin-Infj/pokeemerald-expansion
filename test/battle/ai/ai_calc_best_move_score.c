@@ -110,6 +110,36 @@ AI_SINGLE_BATTLE_TEST("AI will select Throat Chop if the sound move is the best 
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI reads a selected sound move and uses Throat Chop immediately")
+{
+    GIVEN {
+        ASSUME(MoveHasAdditionalEffect(MOVE_THROAT_CHOP, MOVE_EFFECT_THROAT_CHOP) == TRUE);
+        ASSUME(GetMovePower(MOVE_PSYCHIC_FANGS) > GetMovePower(MOVE_THROAT_CHOP));
+        ASSUME(GetMovePower(MOVE_HYPER_VOICE) > GetMovePower(MOVE_FLAME_BURST));
+        ASSUME(IsSoundMove(MOVE_HYPER_VOICE));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_REGIROCK) { Speed(15); Moves(MOVE_HYPER_VOICE, MOVE_FLAME_BURST); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(20); Moves(MOVE_THROAT_CHOP, MOVE_PSYCHIC_FANGS); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_HYPER_VOICE); EXPECT_MOVE(opponent, MOVE_THROAT_CHOP); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI reads a selected sound status move and uses Throat Chop immediately")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(IsSoundMove(MOVE_PERISH_SONG));
+        ASSUME(MoveHasAdditionalEffect(MOVE_THROAT_CHOP, MOVE_EFFECT_THROAT_CHOP) == TRUE);
+        ASSUME(GetMovePower(MOVE_PSYCHIC_FANGS) > GetMovePower(MOVE_THROAT_CHOP));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_REGIROCK) { MaxHP(300); HP(300); Speed(15); Moves(MOVE_PERISH_SONG, MOVE_FLAME_BURST); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(20); Moves(MOVE_THROAT_CHOP, MOVE_PSYCHIC_FANGS); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_PERISH_SONG); EXPECT_MOVE(opponent, MOVE_THROAT_CHOP); }
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI will incentivise multiple best damage moves in cases of damage ties and KOs")
 {
     u32 hp;

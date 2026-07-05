@@ -277,7 +277,10 @@ static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battle
     entry->moveSlot = MAX_MON_MOVES;
     entry->partyIndex = PARTY_SIZE;
     entry->gimmick = GIMMICK_NONE;
+    entry->aiReason = AI_DECISION_REASON_NONE;
     entry->flags = BATTLE_ACTION_LOG_FLAG_VALID;
+    entry->aiThreatFlags = 0;
+    entry->aiRiskKind = BATTLE_ACTION_LOG_AI_RISK_NONE;
 
     gBattleActionLog.cursor++;
     if (gBattleActionLog.cursor >= BATTLE_ACTION_LOG_ENTRIES)
@@ -286,6 +289,16 @@ static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battle
         gBattleActionLog.count++;
 
     return entry;
+}
+
+static void BattleActionLog_CopyAiDecisionTrace(struct BattleActionLogEntry *entry, enum BattlerId battler)
+{
+    if (entry == NULL || !BattlerHasAi(battler) || gAiBattleData == NULL)
+        return;
+
+    entry->aiReason = gAiBattleData->decisionReason[battler];
+    entry->aiThreatFlags = gAiBattleData->decisionThreatFlags[battler];
+    entry->aiRiskKind = gAiBattleData->decisionRiskKind[battler];
 }
 
 void BattleActionLog_RecordConfirmedCommands(void)
@@ -302,6 +315,7 @@ void BattleActionLog_RecordConfirmedCommands(void)
             continue;
 
         entry = BattleActionLog_Append(battler, gChosenActionByBattler[battler]);
+        BattleActionLog_CopyAiDecisionTrace(entry, battler);
         switch (gChosenActionByBattler[battler])
         {
         case B_ACTION_USE_MOVE:
@@ -329,6 +343,7 @@ void BattleActionLog_RecordSwitchIn(enum BattlerId battler, u32 partyIndex, bool
     struct BattleActionLogEntry *entry = BattleActionLog_Append(battler, B_ACTION_SWITCH);
 
     entry->partyIndex = partyIndex;
+    BattleActionLog_CopyAiDecisionTrace(entry, battler);
     entry->flags |= BATTLE_ACTION_LOG_FLAG_RESOLVED;
     if (corrected)
         entry->flags |= BATTLE_ACTION_LOG_FLAG_CORRECTED;

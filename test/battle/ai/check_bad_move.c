@@ -1,6 +1,7 @@
 #include "global.h"
 #include "test/battle.h"
 #include "battle_ai_util.h"
+#include "battle_gimmick.h"
 #include "move.h"
 
 AI_SINGLE_BATTLE_TEST("AI will not try to lower opposing stats if target is protected by it's ability")
@@ -75,7 +76,7 @@ AI_SINGLE_BATTLE_TEST("AI predicts semi-invulnerable entry and chooses a move th
         ASSUME(GetMoveTwoTurnAttackStatus(MOVE_DIVE) == STATE_UNDERWATER);
         ASSUME(!MoveDamagesUnderWater(MOVE_THUNDERBOLT));
         ASSUME(MoveDamagesUnderWater(MOVE_SURF));
-        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE | AI_FLAG_READ_PLAYER_MOVE);
         PLAYER(SPECIES_MAGIKARP) { Speed(2); Moves(playerMove); }
         OPPONENT(SPECIES_WOBBUFFET) { Speed(1); Moves(MOVE_THUNDERBOLT, MOVE_SURF); }
     } WHEN {
@@ -114,7 +115,7 @@ AI_SINGLE_BATTLE_TEST("Protect: AI avoids Protect vs Unseen Fist contact (Single
     GIVEN {
         ASSUME(GetMoveEffect(protectMove) == EFFECT_PROTECT);
         ASSUME(MoveMakesContact(MOVE_TACKLE));
-        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE | AI_FLAG_READ_PLAYER_MOVE);
         PLAYER(species) { Ability(ability); Moves(MOVE_TACKLE); }
         OPPONENT(SPECIES_WOBBUFFET) { Moves(protectMove, MOVE_SCRATCH, MOVE_DISABLE); }
     } WHEN {
@@ -263,6 +264,401 @@ AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect when residual damage c
             MOVE(player, MOVE_TACKLE);
             SCORE_GT_VAL(opponent, MOVE_PROTECT, AI_SCORE_DEFAULT);
         }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect when Grassy Terrain recovery creates payoff")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_GRASSY_TERRAIN) == EFFECT_GRASSY_TERRAIN);
+        SetStartingStatus(STARTING_STATUS_GRASSY_TERRAIN_TEMPORARY);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(160); HP(80); Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_TACKLE);
+            SCORE_GT_VAL(opponent, MOVE_PROTECT, AI_SCORE_DEFAULT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect when Leftovers recovery creates payoff")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(160); HP(80); Item(ITEM_LEFTOVERS); Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_TACKLE);
+            SCORE_GT_VAL(opponent, MOVE_PROTECT, AI_SCORE_DEFAULT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect when Sitrus Berry threshold follows end-turn chip")
+{
+    PASSES_RANDOMLY(PREDICT_MOVE_CHANCE, 100, RNG_AI_PREDICT_MOVE);
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_SITRUS_BERRY].holdEffect == HOLD_EFFECT_RESTORE_PCT_HP);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICT_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(100); HP(51); Status1(STATUS1_POISON); Item(ITEM_SITRUS_BERRY); Moves(MOVE_PROTECT, MOVE_SCRATCH); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_TACKLE);
+            SCORE_GT_VAL(opponent, MOVE_PROTECT, AI_SCORE_DEFAULT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI recovery estimate includes Leech Seed drain from a seeded target")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_LEECH_SEED) == EFFECT_LEECH_SEED);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(160); HP(160); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(100); HP(40); Moves(MOVE_PROTECT, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gBattleMons[playerBattler].volatiles.leechSeed = LEECHSEEDED_BY(aiBattler);
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT_EQ(Test_GetProtectEndTurnRecovery(aiBattler), 20);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn the last opposing Tailwind turn")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(999); HP(999); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gSideStatuses[B_SIDE_PLAYER] |= SIDE_STATUS_TAILWIND;
+        gSideTimers[B_SIDE_PLAYER].tailwindTimer = 1;
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) > 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn the last Trick Room turn")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(999); HP(999); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 1;
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) > 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn the last opposing screen turn")
+{
+    enum Move aiMove;
+    u32 screenStatus;
+
+    PARAMETRIZE { aiMove = MOVE_DOUBLE_EDGE; screenStatus = SIDE_STATUS_REFLECT; }
+    PARAMETRIZE { aiMove = MOVE_PSYCHIC;     screenStatus = SIDE_STATUS_LIGHTSCREEN; }
+    PARAMETRIZE { aiMove = MOVE_DOUBLE_EDGE; screenStatus = SIDE_STATUS_AURORA_VEIL; }
+
+    GIVEN {
+        ASSUME(GetMoveCategory(MOVE_DOUBLE_EDGE) == DAMAGE_CATEGORY_PHYSICAL);
+        ASSUME(GetMoveCategory(MOVE_PSYCHIC) == DAMAGE_CATEGORY_SPECIAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(80); HP(80); Defense(100); SpDefense(100); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(40); Attack(200); SpAttack(200); Speed(120); Moves(MOVE_PROTECT, aiMove, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gSideStatuses[B_SIDE_PLAYER] |= screenStatus;
+        if (screenStatus == SIDE_STATUS_REFLECT)
+            gSideTimers[B_SIDE_PLAYER].reflectTimer = 1;
+        else if (screenStatus == SIDE_STATUS_LIGHTSCREEN)
+            gSideTimers[B_SIDE_PLAYER].lightscreenTimer = 1;
+        else
+            gSideTimers[B_SIDE_PLAYER].auroraVeilTimer = 1;
+
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) > 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI does not burn the last opposing screen turn when it can break screens")
+{
+    GIVEN {
+        ASSUME(MoveHasAdditionalEffect(MOVE_BRICK_BREAK, MOVE_EFFECT_BREAK_SCREEN));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(80); HP(80); Defense(100); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(40); Attack(200); Speed(120); Moves(MOVE_PROTECT, MOVE_BRICK_BREAK, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gSideStatuses[B_SIDE_PLAYER] |= SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_PLAYER].reflectTimer = 1;
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(!ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) <= 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI does not burn opposing screens when its own final screen is needed")
+{
+    GIVEN {
+        ASSUME(GetMoveCategory(MOVE_DOUBLE_EDGE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Attack(500); Defense(100); Speed(120); Moves(MOVE_DOUBLE_EDGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(200); HP(150); Attack(220); Defense(100); Speed(80); Moves(MOVE_PROTECT, MOVE_DOUBLE_EDGE, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gSideStatuses[B_SIDE_PLAYER] |= SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_PLAYER].reflectTimer = 1;
+        gSideStatuses[B_SIDE_OPPONENT] |= SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_OPPONENT].reflectTimer = 1;
+        gBattleMons[playerBattler].hp = 80;
+
+        EXPECT(!ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DOUBLE_EDGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DOUBLE_EDGE) <= 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn final rain before a boosted attack")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_SURF) == TYPE_WATER);
+        ASSUME(GetMoveCategory(MOVE_SURF) == DAMAGE_CATEGORY_SPECIAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(100); HP(100); SpAttack(200); SpDefense(100); Speed(120); Moves(MOVE_SURF, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(100); SpAttack(200); SpDefense(100); Speed(80); Moves(MOVE_PROTECT, MOVE_PSYCHIC, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            gBattleWeather = B_WEATHER_RAIN_NORMAL;
+            gBattleStruct->weatherDuration = 1;
+            MOVE(player, MOVE_SURF);
+            EXPECT_MOVE(opponent, MOVE_PROTECT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI does not burn final rain if Swift Swim speed expires too")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_SURF) == TYPE_WATER);
+        ASSUME(GetMoveCategory(MOVE_SURF) == DAMAGE_CATEGORY_SPECIAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(100); HP(100); SpAttack(300); SpDefense(100); Speed(120); Moves(MOVE_SURF, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(40); SpAttack(300); SpDefense(100); Speed(80); Ability(ABILITY_SWIFT_SWIM); Moves(MOVE_PROTECT, MOVE_PSYCHIC, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gBattleWeather = B_WEATHER_RAIN_NORMAL;
+        gBattleStruct->weatherDuration = 1;
+        gAiLogicData->speedStats[aiBattler] = GetBattlerTotalSpeedStat(aiBattler, gAiLogicData->abilities[aiBattler], gAiLogicData->holdEffects[aiBattler]);
+        gAiLogicData->speedStats[playerBattler] = GetBattlerTotalSpeedStat(playerBattler, gAiLogicData->abilities[playerBattler], gAiLogicData->holdEffects[playerBattler]);
+        gBattleMons[playerBattler].hp = 40;
+
+        EXPECT(!ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_SURF));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_SURF) <= 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn final Electric Terrain before a boosted attack")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_THUNDERBOLT) == TYPE_ELECTRIC);
+        ASSUME(GetMoveCategory(MOVE_THUNDERBOLT) == DAMAGE_CATEGORY_SPECIAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(100); HP(100); SpAttack(200); SpDefense(100); Speed(120); Moves(MOVE_THUNDERBOLT, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(100); SpAttack(200); SpDefense(100); Speed(80); Moves(MOVE_PROTECT, MOVE_PSYCHIC, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            gFieldStatuses |= STATUS_FIELD_ELECTRIC_TERRAIN;
+            gFieldTimers.terrainTimer = 1;
+            MOVE(player, MOVE_THUNDERBOLT);
+            EXPECT_MOVE(opponent, MOVE_PROTECT);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values Max Guard to burn the last opposing Dynamax turn")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_MAX_GUARD) == EFFECT_PROTECT);
+        ASSUME(GetMoveProtectMethod(MOVE_MAX_GUARD) == PROTECT_MAX_GUARD);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); DynamaxLevel(10); MaxHP(200); HP(200); Attack(240); Defense(100); SpDefense(100); Speed(80); Moves(MOVE_FLARE_BLITZ, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); DynamaxLevel(10); MaxHP(220); HP(220); Attack(240); Defense(100); SpDefense(100); Speed(120); Moves(MOVE_GIGA_IMPACT, MOVE_PROTECT, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        SetActiveGimmick(playerBattler, GIMMICK_DYNAMAX);
+        SetActiveGimmick(aiBattler, GIMMICK_DYNAMAX);
+        gBattleStruct->dynamax.dynamaxTurns[playerBattler] = 1;
+        gBattleStruct->dynamax.dynamaxTurns[aiBattler] = 2;
+        gBattleStruct->chosenMovePositions[playerBattler] = 0;
+        gBattleStruct->chosenMovePositions[aiBattler] = 0;
+
+        EXPECT_GT(ProtectChecks(aiBattler, playerBattler, MOVE_MAX_GUARD, MOVE_FLARE_BLITZ), 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values Protect to burn final opposing Dynamax when chip damage is survivable")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); DynamaxLevel(10); MaxHP(200); HP(200); Attack(240); Defense(100); SpDefense(100); Speed(80); Moves(MOVE_FLARE_BLITZ, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(300); HP(300); Attack(500); Defense(100); SpDefense(100); Speed(120); Moves(MOVE_GIGA_IMPACT, MOVE_PROTECT, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        SetActiveGimmick(playerBattler, GIMMICK_DYNAMAX);
+        gBattleStruct->dynamax.dynamaxTurns[playerBattler] = 1;
+        gBattleStruct->chosenMovePositions[playerBattler] = 0;
+        gBattleStruct->chosenMovePositions[aiBattler] = 0;
+
+        EXPECT_GT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_FLARE_BLITZ), 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI does not spend its own final Max Guard only to burn opposing Dynamax")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_MAX_GUARD) == EFFECT_PROTECT);
+        ASSUME(GetMoveProtectMethod(MOVE_MAX_GUARD) == PROTECT_MAX_GUARD);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); DynamaxLevel(10); MaxHP(200); HP(200); Attack(240); Defense(100); SpDefense(100); Speed(80); Moves(MOVE_FLARE_BLITZ, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); DynamaxLevel(10); MaxHP(220); HP(220); Attack(240); Defense(100); SpDefense(100); Speed(120); Moves(MOVE_GIGA_IMPACT, MOVE_PROTECT, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        SetActiveGimmick(playerBattler, GIMMICK_DYNAMAX);
+        SetActiveGimmick(aiBattler, GIMMICK_DYNAMAX);
+        gBattleStruct->dynamax.dynamaxTurns[playerBattler] = 1;
+        gBattleStruct->dynamax.dynamaxTurns[aiBattler] = 1;
+        gBattleStruct->chosenMovePositions[playerBattler] = 0;
+        gBattleStruct->chosenMovePositions[aiBattler] = 0;
+
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_MAX_GUARD, MOVE_FLARE_BLITZ) <= 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect while opposing Perish count expires")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(999); HP(999); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gBattleMons[playerBattler].volatiles.perishSong = TRUE;
+        gBattleMons[playerBattler].volatiles.perishSongTimer = 0;
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) > 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI does not value singles Protect when both Perish counts expire")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(999); HP(999); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gBattleMons[playerBattler].volatiles.perishSong = TRUE;
+        gBattleMons[playerBattler].volatiles.perishSongTimer = 0;
+        gBattleMons[aiBattler].volatiles.perishSong = TRUE;
+        gBattleMons[aiBattler].volatiles.perishSongTimer = 0;
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(!ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) <= 0);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Protect: AI does not waste its own final Tailwind while burning Trick Room")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(999); HP(999); Speed(120); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(80); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_TAILWIND, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); FORCED_MOVE(opponent); }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 1;
+        gSideStatuses[B_SIDE_OPPONENT] |= SIDE_STATUS_TAILWIND;
+        gSideTimers[B_SIDE_OPPONENT].tailwindTimer = 1;
+        gBattleMons[aiBattler].hp = 40;
+
+        EXPECT(!ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
+        EXPECT_EQ(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE), NO_DAMAGE_OR_FAILS);
     }
 }
 

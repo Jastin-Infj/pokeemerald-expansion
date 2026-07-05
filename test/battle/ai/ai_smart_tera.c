@@ -69,6 +69,21 @@ AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_TERA: AI will tera if it gets saved from a 
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_TERA: AI avoids defensive Tera that introduces a new major weakness")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_FLAMETHROWER) == TYPE_FIRE);
+        ASSUME(GetMoveType(MOVE_THUNDERBOLT) == TYPE_ELECTRIC);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_TERA | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); SpAttack(115); Speed(90); Moves(MOVE_FLAMETHROWER, MOVE_THUNDERBOLT); }
+        OPPONENT(SPECIES_VENUSAUR) { Level(50); MaxHP(180); HP(180); SpDefense(120); Speed(100); Moves(MOVE_GIGA_DRAIN); TeraType(TYPE_WATER); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_FLAMETHROWER); EXPECT_MOVE(opponent, MOVE_GIGA_DRAIN, gimmick: GIMMICK_NONE); }
+    } SCENE {
+        NOT MESSAGE("The opposing Venusaur terastallized into the Water type!");
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI stays and teras instead of switching from a selected KO it can outpace")
 {
     GIVEN {

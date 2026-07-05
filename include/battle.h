@@ -65,6 +65,24 @@
 #define BATTLE_ACTION_LOG_FLAG_RESOLVED (1 << 1)
 #define BATTLE_ACTION_LOG_FLAG_CORRECTED (1 << 2)
 #define BATTLE_ACTION_LOG_FLAG_GIMMICK  (1 << 3)
+#define BATTLE_ACTION_LOG_AI_RISK_NONE  0
+#define BATTLE_ACTION_LOG_AI_RISK(kind) ((kind) + 1)
+
+enum AiDecisionReason
+{
+    AI_DECISION_REASON_NONE,
+    AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED,
+    AI_DECISION_REASON_KNOWN_COMMAND_ANSWER,
+    AI_DECISION_REASON_GIMMICK_STABILIZED,
+    AI_DECISION_REASON_SWITCH_PRESERVE,
+    AI_DECISION_REASON_BOARD_CONTROL,
+    AI_DECISION_REASON_SETUP_DENIAL,
+    AI_DECISION_REASON_PERISH_ESCAPE,
+    AI_DECISION_REASON_DESPERATION_COMEBACK,
+    AI_DECISION_REASON_HAX_OUT,
+    AI_DECISION_REASON_ALLY_SACRIFICE_BOARD_RESET,
+    AI_DECISION_REASON_COMMANDER_SLOT_CORRECTION,
+};
 
 struct BattleActionLogEntry
 {
@@ -78,8 +96,12 @@ struct BattleActionLogEntry
     u8 moveSlot;
     u8 partyIndex;
     enum Gimmick gimmick;
+    u8 aiReason;
     u8 flags;
+    u8 aiThreatFlags;
+    u8 aiRiskKind;
 };
+STATIC_ASSERT(sizeof(struct BattleActionLogEntry) == 24, BattleActionLogEntrySizeChanged)
 
 struct BattleActionLog
 {
@@ -769,6 +791,9 @@ struct AiBattleData
     u8 playerStallMons[PARTY_SIZE];
     u8 chosenMoveIndex[MAX_BATTLERS_COUNT];
     u8 chosenTarget[MAX_BATTLERS_COUNT];
+    u8 decisionReason[MAX_BATTLERS_COUNT];
+    u8 decisionThreatFlags[MAX_BATTLERS_COUNT];
+    u8 decisionRiskKind[MAX_BATTLERS_COUNT];
     u16 aiUsingGimmick:6;
     u8 actionFlee:1;
     u8 choiceWatch:1;

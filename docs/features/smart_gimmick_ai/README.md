@@ -47,9 +47,11 @@ The AI may still delay Mega on setup turns, and may preserve `Air Lock` / `Cloud
 - Weather control: `Max Flare`, `Max Geyser`, `Max Rockfall`, and `Max Hailstorm`.
 - Terrain control: `Max Lightning`, `Max Overgrowth`, `Max Starfall`, and `Max Mindstorm`.
 - Side-wide stat pressure: `Max Knuckle`, `Max Ooze`, `Max Quake`, `Max Steelspike`, `Max Wyrmwind`, `Max Flutterby`, `Max Phantasm`, and `Max Darkness`.
+- G-Max hazard pressure: `G-Max Stonesurge` and `G-Max Steelsurge` can justify Dynamax when the corresponding hazard is not already on the opposing side and the normal hazard setup checks agree.
 - Disruption prevention: a known or predicted Fake Out-style flinch or Roar / Whirlwind-style phazing move can justify Dynamax when the AI selected a damaging move.
 
 The weather and terrain checks reuse the existing AI field-status evaluators so this feature does not invent a separate weather / terrain opinion system.
+The runtime knowledge layer also exposes Max Move side-effect categories for speed control, weather, terrain, stat control, G-Max unique effects, residual G-Max pressure, and G-Max hazards so later scoring can reuse the same move predicates.
 
 ## Current Z-Move Payoffs
 
@@ -61,6 +63,9 @@ The weather and terrain checks reuse the existing AI field-status evaluators so 
 - The base move already has a KO line, but the Z-Move avoids a low-accuracy miss.
 
 Status Z-Moves keep their existing tactical checks because their value is usually the Z-status effect rather than raw damage.
+The runtime knowledge layer now tags status Z effects by family: stat reset, stat boost, critical boost, redirection, HP recovery, and replacement healing. This gives later arbitration and scoring work a shared predicate layer for remaining `Z-Haze`, `Z-Tailwind`, `Z-Trick Room`, and `Z-Parting Shot` tactics instead of requiring per-move ad hoc checks.
+
+Smart defensive Tera now rejects pure defensive Tera lines that fix one large hit while introducing a different opponent move as a new large-hit weakness. KO conversion, true KO prevention, and offensive pressure remain stronger reasons.
 
 ## Current Debug Gauntlet Read Mode
 
@@ -76,7 +81,7 @@ Read mode also distinguishes "the player side has Encore" from "Encore is select
 
 Read mode also applies soft penalties for ordinary slower actions into confirmed or visible `Fake Out` pressure. This uses actual move priority, so lower-priority `Extreme Speed` is still discounted against Gen 5+ `Fake Out`, while priority blockers such as `Armor Tail` / `Dazzling` / `Queenly Majesty` and Psychic Terrain remove the Fake Out threat.
 
-The branch now keeps an in-ROM battle action ring buffer (`gBattleActionLog`) for command-buffer audits. It records confirmed move / switch / item commands for every live battler each turn, including move slot, target, selected gimmick, and switch-in party index, and it records resolved switch-ins separately. `AI_FLAG_READ_PLAYER_MOVE` can fall back to the current battle's logged selected move when no current confirmed command is available. Normal mGBA still cannot write host files directly, so persistent external logs are exported through mGBA Live / Lua.
+The branch now keeps an in-ROM battle action ring buffer (`gBattleActionLog`) for command-buffer audits. It records confirmed move / switch / item commands for every live battler each turn, including move slot, target, selected gimmick, switch-in party index, AI reason tag, and compact AI trace fields for board threat flags and the relevant risk family. It also records resolved switch-ins separately. `AI_FLAG_READ_PLAYER_MOVE` can fall back to the current battle's logged selected move when no current confirmed command is available. Normal mGBA still cannot write host files directly, so persistent external logs are exported through mGBA Live / Lua.
 
 For manual read-quality rechecks, use `Party -> Gauntlet Battles -> Read Single` or `Read Double`. `Read Single` starts a level-50 3v3 singles battle from mirrored 6-Pokemon weighted pools with all gimmick access. `Read Double` starts a level-50 4v4 doubles battle from mirrored 8-Pokemon weighted pools with all gimmick access. Both sides can roll comparable support, speed control, field control, priority pressure, Mega, Z-Move, Dynamax / Gigantamax, and Tera candidates, while the AI side has full read-mode flags enabled.
 
@@ -86,7 +91,7 @@ For Champion / Elite NPC-mode manual checks, use `Party -> Gauntlet Battles -> C
 
 Use `tools/mgba_live/start_mgba_live.sh manual-ai-log 120` from WSL / Linux, or `tools\mgba_live\start_mgba_live.bat manual-ai-log 120` from Windows, to open mGBA Live with an explicit 120 FPS target. The helper defaults to 120 FPS when the second argument is omitted. The helper also starts battle action log autosave by default; the latest non-empty snapshot is written to `/tmp/<session>-battle-action-log-autosave.json` on WSL / Linux unless `BATTLE_ACTION_LOG_OUT` is set. Set `BATTLE_ACTION_LOG_AUTOSAVE=0` only when host-side log writes are not wanted.
 
-Use `tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]` from WSL / Linux, or `tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]` from Windows when `mgba-live-cli` is on `PATH`. Both wrappers call `tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live session and write JSON using schema `pokeemerald.battle_action_log.v1`. If the WSL / Linux wrapper is called without a session, it uses the active mGBA Live session when one exists. The JSON includes header state, battler positions, action names, move / item / gimmick names, target battlers, party indexes, selected gimmick markers, resolved switch-in markers, and corrected switch-in markers. Because `gBattleActionLog` is runtime EWRAM, export it during the current battle before starting another battle or returning through a path that reinitializes battle state.
+Use `tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]` from WSL / Linux, or `tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]` from Windows when `mgba-live-cli` is on `PATH`. Both wrappers call `tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live session and write JSON using schema `pokeemerald.battle_action_log.v3`. If the WSL / Linux wrapper is called without a session, it uses the active mGBA Live session when one exists. The JSON includes header state, battler positions, action names, move / item / gimmick names, target battlers, party indexes, selected gimmick markers, resolved switch-in markers, corrected switch-in markers, AI reason tags, named AI threat flags, and named AI risk kinds. Because `gBattleActionLog` is runtime EWRAM, export it during the current battle before starting another battle or returning through a path that reinitializes battle state.
 
 Double-battle loss review should use exported or autosaved logs as evidence, not memory of a single loss. Treat one loss as a candidate pattern only. Prefer repeated patterns such as over-pivoting, under-protecting a pinned slot, ignoring spread pressure, or spending a gimmick into low board value before changing runtime weights, so the AI does not overfit to one player line.
 
@@ -136,6 +141,7 @@ See `docs/tutorials/ai_flags.md` for the ID table and expected first-turn behavi
 
 ## Documents
 
+- [Goal](goal.md)
 - [Investigation](investigation.md)
 - [Implementation](implementation.md)
 - [AI Runtime Knowledge Audit](runtime_knowledge_audit.md)

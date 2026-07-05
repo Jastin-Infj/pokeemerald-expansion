@@ -161,6 +161,7 @@
       - [Investigation](features/battle_selection/investigation.md)
       - [Opponent Party and Randomizer](features/battle_selection/opponent_party_and_randomizer.md)
     - [Smart Gimmick AI](features/smart_gimmick_ai/README.md)
+      - [Goal](features/smart_gimmick_ai/goal.md)
       - [Investigation](features/smart_gimmick_ai/investigation.md)
       - [Implementation](features/smart_gimmick_ai/implementation.md)
       - [AI Runtime Knowledge Audit](features/smart_gimmick_ai/runtime_knowledge_audit.md)
