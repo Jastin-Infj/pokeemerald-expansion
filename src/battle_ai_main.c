@@ -63,6 +63,14 @@
 #define DESPERATION_SPEED_CONTROL_SCORE DECENT_EFFECT
 #define PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT 15
 
+struct AiDecisionLineTrace
+{
+    u8 lineFlags;
+    u8 stableLineFamily;
+    u8 fallbackLineFamily;
+    u8 lossClock;
+};
+
 static u32 ChooseMoveOrAction(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Singles(enum BattlerId battler);
 static u32 ChooseMoveOrAction_Doubles(enum BattlerId battler);
@@ -86,7 +94,7 @@ static s32 GetCommanderDondozoFaintBonus(enum BattlerId battlerDef);
 static bool32 MoveHasChanceEffect(enum BattlerId battlerAtk, enum Move move, enum MoveEffect moveEffect);
 static bool32 MoveCanLowerTargetSpeed(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
 static void AI_ClearDecisionReason(enum BattlerId battler);
-static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind);
+static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind, const struct AiDecisionLineTrace *lineTrace);
 static void AI_SetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex);
 static void AI_SetSwitchDecisionReason(enum BattlerId battler);
 static enum AiDecisionReason AI_GetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex);
@@ -1794,6 +1802,10 @@ static void AI_ClearDecisionReason(enum BattlerId battler)
         gAiBattleData->decisionReason[battler] = AI_DECISION_REASON_NONE;
         gAiBattleData->decisionThreatFlags[battler] = AI_THREAT_STABLE;
         gAiBattleData->decisionRiskKind[battler] = BATTLE_ACTION_LOG_AI_RISK_NONE;
+        gAiBattleData->decisionLineFlags[battler] = 0;
+        gAiBattleData->decisionStableLineFamily[battler] = AI_CANDIDATE_LINE_NONE;
+        gAiBattleData->decisionFallbackLineFamily[battler] = AI_CANDIDATE_LINE_NONE;
+        gAiBattleData->decisionLossClock[battler] = 0;
     }
 }
 
@@ -1822,7 +1834,23 @@ static u32 AI_GetDecisionReasonPriority(enum AiDecisionReason reason)
     }
 }
 
-static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind)
+static struct AiDecisionLineTrace AI_GetDecisionLineTrace(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    struct AiShortHorizon horizon;
+    struct AiDecisionLineTrace lineTrace = {0};
+
+    if (AI_EvaluateShortHorizon(battlerAtk, battlerDef, &horizon))
+    {
+        lineTrace.lineFlags = horizon.lineFlags;
+        lineTrace.stableLineFamily = horizon.preferredStableLine.family;
+        lineTrace.fallbackLineFamily = horizon.fallbackRiskLine.family;
+        lineTrace.lossClock = horizon.lossClock;
+    }
+
+    return lineTrace;
+}
+
+static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind, const struct AiDecisionLineTrace *lineTrace)
 {
     if (gAiBattleData == NULL || battler >= MAX_BATTLERS_COUNT)
         return;
@@ -1831,6 +1859,13 @@ static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionRea
         gAiBattleData->decisionReason[battler] = reason;
         gAiBattleData->decisionThreatFlags[battler] = threatFlags;
         gAiBattleData->decisionRiskKind[battler] = riskKind;
+        if (lineTrace != NULL)
+        {
+            gAiBattleData->decisionLineFlags[battler] = lineTrace->lineFlags;
+            gAiBattleData->decisionStableLineFamily[battler] = lineTrace->stableLineFamily;
+            gAiBattleData->decisionFallbackLineFamily[battler] = lineTrace->fallbackLineFamily;
+            gAiBattleData->decisionLossClock[battler] = lineTrace->lossClock;
+        }
     }
 }
 
@@ -1893,8 +1928,9 @@ static void AI_SetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId b
     enum AiDecisionReason reason = AI_GetMoveDecisionReason(battlerAtk, battlerDef, moveIndex);
     u32 threatFlags = AI_GetDecisionThreatFlags(battlerAtk, battlerDef);
     u8 riskKind = AI_GetMoveDecisionRiskKind(battlerAtk, battlerDef, moveIndex, reason);
+    struct AiDecisionLineTrace lineTrace = AI_GetDecisionLineTrace(battlerAtk, battlerDef);
 
-    AI_SetDecisionReasonTrace(battlerAtk, reason, threatFlags, riskKind);
+    AI_SetDecisionReasonTrace(battlerAtk, reason, threatFlags, riskKind, &lineTrace);
 }
 
 static void AI_SetSwitchDecisionReason(enum BattlerId battler)
@@ -1904,6 +1940,7 @@ static void AI_SetSwitchDecisionReason(enum BattlerId battler)
     enum AiDecisionReason reason;
     u8 riskKind = BATTLE_ACTION_LOG_AI_RISK_NONE;
     u32 threatFlags = AI_THREAT_STABLE;
+    struct AiDecisionLineTrace lineTrace;
 
     if (battler >= gBattlersCount)
         return;
@@ -1920,7 +1957,8 @@ static void AI_SetSwitchDecisionReason(enum BattlerId battler)
         reason = AI_GetSwitchDecisionReason(battler);
     }
 
-    AI_SetDecisionReasonTrace(battler, reason, threatFlags, riskKind);
+    lineTrace = AI_GetDecisionLineTrace(battler, opposingBattler);
+    AI_SetDecisionReasonTrace(battler, reason, threatFlags, riskKind, &lineTrace);
 }
 
 static bool32 AI_TargetHasCommanderException(enum BattlerId battlerDef)

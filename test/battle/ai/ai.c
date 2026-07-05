@@ -1066,6 +1066,11 @@ AI_SINGLE_BATTLE_TEST("AI short horizon suppresses hax when clean damage answers
         EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED);
         EXPECT((opponentLog->aiThreatFlags & AI_THREAT_PERISH_TRAP_CLOCK) != 0);
         EXPECT_EQ(opponentLog->aiRiskKind, BATTLE_ACTION_LOG_AI_RISK_NONE);
+        EXPECT((opponentLog->aiLineFlags & AI_SHORT_LINE_CLEAN_DAMAGE) != 0);
+        EXPECT((opponentLog->aiLineFlags & AI_SHORT_LINE_HIGH_VARIANCE) != 0);
+        EXPECT_EQ(opponentLog->aiStableLineFamily, AI_CANDIDATE_LINE_CLEAN_DAMAGE);
+        EXPECT_EQ(opponentLog->aiFallbackLineFamily, AI_CANDIDATE_LINE_HIGH_VARIANCE);
+        EXPECT_EQ(opponentLog->aiLossClock, 2);
     }
 }
 

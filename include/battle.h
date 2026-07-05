@@ -100,8 +100,12 @@ struct BattleActionLogEntry
     u8 flags;
     u8 aiThreatFlags;
     u8 aiRiskKind;
+    u8 aiLineFlags;
+    u8 aiStableLineFamily;
+    u8 aiFallbackLineFamily;
+    u8 aiLossClock;
 };
-STATIC_ASSERT(sizeof(struct BattleActionLogEntry) == 24, BattleActionLogEntrySizeChanged)
+STATIC_ASSERT(sizeof(struct BattleActionLogEntry) == 28, BattleActionLogEntrySizeChanged)
 
 struct BattleActionLog
 {
@@ -794,6 +798,10 @@ struct AiBattleData
     u8 decisionReason[MAX_BATTLERS_COUNT];
     u8 decisionThreatFlags[MAX_BATTLERS_COUNT];
     u8 decisionRiskKind[MAX_BATTLERS_COUNT];
+    u8 decisionLineFlags[MAX_BATTLERS_COUNT];
+    u8 decisionStableLineFamily[MAX_BATTLERS_COUNT];
+    u8 decisionFallbackLineFamily[MAX_BATTLERS_COUNT];
+    u8 decisionLossClock[MAX_BATTLERS_COUNT];
     u16 aiUsingGimmick:6;
     u8 actionFlee:1;
     u8 choiceWatch:1;

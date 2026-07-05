@@ -281,6 +281,10 @@ static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battle
     entry->flags = BATTLE_ACTION_LOG_FLAG_VALID;
     entry->aiThreatFlags = 0;
     entry->aiRiskKind = BATTLE_ACTION_LOG_AI_RISK_NONE;
+    entry->aiLineFlags = 0;
+    entry->aiStableLineFamily = 0;
+    entry->aiFallbackLineFamily = 0;
+    entry->aiLossClock = 0;
 
     gBattleActionLog.cursor++;
     if (gBattleActionLog.cursor >= BATTLE_ACTION_LOG_ENTRIES)
@@ -299,6 +303,10 @@ static void BattleActionLog_CopyAiDecisionTrace(struct BattleActionLogEntry *ent
     entry->aiReason = gAiBattleData->decisionReason[battler];
     entry->aiThreatFlags = gAiBattleData->decisionThreatFlags[battler];
     entry->aiRiskKind = gAiBattleData->decisionRiskKind[battler];
+    entry->aiLineFlags = gAiBattleData->decisionLineFlags[battler];
+    entry->aiStableLineFamily = gAiBattleData->decisionStableLineFamily[battler];
+    entry->aiFallbackLineFamily = gAiBattleData->decisionFallbackLineFamily[battler];
+    entry->aiLossClock = gAiBattleData->decisionLossClock[battler];
 }
 
 void BattleActionLog_RecordConfirmedCommands(void)

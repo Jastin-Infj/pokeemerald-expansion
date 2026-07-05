@@ -12,7 +12,7 @@
 --   env BATTLE_ACTION_LOG_OUT       output path fallback
 
 local ENTRY_CAPACITY = 128
-local ENTRY_SIZE = 24
+local ENTRY_SIZE = 28
 local HEADER_OFFSET = ENTRY_CAPACITY * ENTRY_SIZE
 
 local FLAG_VALID = 1
@@ -92,6 +92,25 @@ local AI_RISK_NAMES = {
   [7] = "partner_sacrifice",
   [8] = "second_protect",
   [9] = "switch_survival",
+}
+
+local AI_SHORT_LINE_NAMES = {
+  { mask = 1, name = "clean_damage" },
+  { mask = 2, name = "switch_escape" },
+  { mask = 4, name = "setup_denial" },
+  { mask = 8, name = "mode_control" },
+  { mask = 16, name = "reserve_entry" },
+  { mask = 32, name = "high_variance" },
+}
+
+local AI_CANDIDATE_LINE_NAMES = {
+  [0] = "none",
+  [1] = "clean_damage",
+  [2] = "switch_escape",
+  [3] = "setup_denial",
+  [4] = "mode_control",
+  [5] = "reserve_entry",
+  [6] = "high_variance",
 }
 
 local function join_path(root, leaf)
@@ -342,6 +361,21 @@ local function ai_threat_name_list(flags)
   return names
 end
 
+local function ai_short_line_name_list(flags)
+  local names = {}
+  if flags == 0 then
+    names[#names + 1] = "none"
+    return names
+  end
+
+  for _, info in ipairs(AI_SHORT_LINE_NAMES) do
+    if has_mask(flags, info.mask) then
+      names[#names + 1] = info.name
+    end
+  end
+  return names
+end
+
 local function read_entry(base, ring_index, move_names, item_names, gimmick_names, battler_positions)
   local offset = base + ring_index * ENTRY_SIZE
   local battler = u8(offset + 8)
@@ -361,6 +395,10 @@ local function read_entry(base, ring_index, move_names, item_names, gimmick_name
   local flags = u8(offset + 21)
   local ai_threat_flags = u8(offset + 22)
   local ai_risk_kind = u8(offset + 23)
+  local ai_line_flags = u8(offset + 24)
+  local ai_stable_line_family = u8(offset + 25)
+  local ai_fallback_line_family = u8(offset + 26)
+  local ai_loss_clock = u8(offset + 27)
 
   return {
     ring_index = ring_index,
@@ -390,6 +428,13 @@ local function read_entry(base, ring_index, move_names, item_names, gimmick_name
     ai_threat_names = ai_threat_name_list(ai_threat_flags),
     ai_risk_kind = ai_risk_kind,
     ai_risk_name = AI_RISK_NAMES[ai_risk_kind] or ("AI_RISK_" .. tostring(ai_risk_kind)),
+    ai_line_flags = ai_line_flags,
+    ai_line_names = ai_short_line_name_list(ai_line_flags),
+    ai_stable_line_family = ai_stable_line_family,
+    ai_stable_line_name = AI_CANDIDATE_LINE_NAMES[ai_stable_line_family] or ("AI_CANDIDATE_LINE_" .. tostring(ai_stable_line_family)),
+    ai_fallback_line_family = ai_fallback_line_family,
+    ai_fallback_line_name = AI_CANDIDATE_LINE_NAMES[ai_fallback_line_family] or ("AI_CANDIDATE_LINE_" .. tostring(ai_fallback_line_family)),
+    ai_loss_clock = ai_loss_clock,
     flags = flags,
     flag_names = flag_name_list(flags),
     valid = has_mask(flags, FLAG_VALID),
@@ -454,7 +499,7 @@ if emu.currentFrame ~= nil then
 end
 
 local payload = {
-  schema = "pokeemerald.battle_action_log.v3",
+  schema = "pokeemerald.battle_action_log.v4",
   generated_at_utc = os.date("!%Y-%m-%dT%H:%M:%SZ"),
   frame = frame,
   source = {
