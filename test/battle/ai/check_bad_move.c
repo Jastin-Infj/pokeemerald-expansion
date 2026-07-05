@@ -485,6 +485,229 @@ AI_DOUBLE_BATTLE_TEST("Protect: AI does not waste doubles final Tailwind while b
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("Protect: AI values doubles Protect when the partner can punish final opposing screen")
+{
+    GIVEN {
+        ASSUME(GetMoveCategory(MOVE_DOUBLE_EDGE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(180); HP(180); Defense(100); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(40); Defense(100); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Attack(240); Speed(120); Moves(MOVE_DOUBLE_EDGE, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithScreen;
+        s32 scoreWithoutScreen;
+
+        gSideStatuses[B_SIDE_PLAYER] |= SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_PLAYER].reflectTimer = 1;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithScreen = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        gSideStatuses[B_SIDE_PLAYER] &= ~SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_PLAYER].reflectTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutScreen = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        EXPECT_GT(scoreWithScreen, scoreWithoutScreen);
+        EXPECT_GT(scoreWithScreen, 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI does not burn final opposing screen when the partner can break it")
+{
+    GIVEN {
+        ASSUME(MoveHasAdditionalEffect(MOVE_BRICK_BREAK, MOVE_EFFECT_BREAK_SCREEN));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Defense(100); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(40); Defense(100); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Attack(240); Speed(120); Moves(MOVE_BRICK_BREAK, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithScreen;
+        s32 scoreWithoutScreen;
+
+        gSideStatuses[B_SIDE_PLAYER] |= SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_PLAYER].reflectTimer = 1;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithScreen = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        gSideStatuses[B_SIDE_PLAYER] &= ~SIDE_STATUS_REFLECT;
+        gSideTimers[B_SIDE_PLAYER].reflectTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutScreen = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        EXPECT_LE(scoreWithScreen, scoreWithoutScreen);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI values doubles Protect when final Electric Terrain lets the partner punish")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_THUNDERBOLT) == TYPE_ELECTRIC);
+        ASSUME(GetMoveCategory(MOVE_THUNDERBOLT) == DAMAGE_CATEGORY_SPECIAL);
+        ASSUME(GetMoveCategory(MOVE_DOUBLE_EDGE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Defense(100); SpAttack(240); SpDefense(100); Speed(80); Moves(MOVE_THUNDERBOLT, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(80); Defense(100); SpDefense(100); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Attack(240); Speed(120); Moves(MOVE_DOUBLE_EDGE, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithFinalTerrain;
+        s32 scoreWithoutTerrain;
+
+        gFieldStatuses |= STATUS_FIELD_ELECTRIC_TERRAIN;
+        gFieldTimers.terrainTimer = 1;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithFinalTerrain = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_THUNDERBOLT);
+
+        gFieldStatuses &= ~STATUS_FIELD_ELECTRIC_TERRAIN;
+        gFieldTimers.terrainTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutTerrain = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_THUNDERBOLT);
+
+        EXPECT_GT(scoreWithFinalTerrain, scoreWithoutTerrain);
+        EXPECT_GT(scoreWithFinalTerrain, 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI does not burn nonfinal Electric Terrain for a partner attack")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_THUNDERBOLT) == TYPE_ELECTRIC);
+        ASSUME(GetMoveCategory(MOVE_THUNDERBOLT) == DAMAGE_CATEGORY_SPECIAL);
+        ASSUME(GetMoveCategory(MOVE_DOUBLE_EDGE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Defense(100); SpAttack(240); SpDefense(100); Speed(80); Moves(MOVE_THUNDERBOLT, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(80); Defense(100); SpDefense(100); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(120); HP(120); Attack(240); Speed(120); Moves(MOVE_DOUBLE_EDGE, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithNonfinalTerrain;
+        s32 scoreWithoutTerrain;
+
+        gFieldStatuses |= STATUS_FIELD_ELECTRIC_TERRAIN;
+        gFieldTimers.terrainTimer = 2;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithNonfinalTerrain = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_THUNDERBOLT);
+
+        gFieldStatuses &= ~STATUS_FIELD_ELECTRIC_TERRAIN;
+        gFieldTimers.terrainTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutTerrain = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_THUNDERBOLT);
+
+        EXPECT_EQ(scoreWithNonfinalTerrain, scoreWithoutTerrain);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI values doubles Protect while opposing Perish count expires")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(40); HP(40); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithPerish;
+        s32 scoreWithoutPerish;
+
+        gBattleMons[playerBattler].volatiles.perishSong = TRUE;
+        gBattleMons[playerBattler].volatiles.perishSongTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithPerish = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        gBattleMons[playerBattler].volatiles.perishSong = FALSE;
+        gBattleMons[playerBattler].volatiles.perishSongTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutPerish = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        EXPECT_GT(scoreWithPerish, scoreWithoutPerish);
+        EXPECT_GT(scoreWithPerish, 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI does not value doubles Protect when both Perish counts expire")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(40); HP(40); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(120); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithBothPerish;
+        s32 scoreWithoutPerish;
+
+        gBattleMons[playerBattler].volatiles.perishSong = TRUE;
+        gBattleMons[playerBattler].volatiles.perishSongTimer = 0;
+        gBattleMons[aiBattler].volatiles.perishSong = TRUE;
+        gBattleMons[aiBattler].volatiles.perishSongTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithBothPerish = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        gBattleMons[playerBattler].volatiles.perishSong = FALSE;
+        gBattleMons[aiBattler].volatiles.perishSong = FALSE;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutPerish = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        EXPECT_LE(scoreWithBothPerish, scoreWithoutPerish);
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn the last opposing screen turn")
 {
     enum Move aiMove;

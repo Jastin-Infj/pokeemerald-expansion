@@ -3799,6 +3799,67 @@ static bool32 ShouldUseProtectToBurnFinalOpponentScreens(enum BattlerId battlerA
     return FALSE;
 }
 
+static bool32 ShouldUseDoublesProtectToBurnPartnerScreenTimer(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove)
+{
+    enum BattlerId partner;
+    enum BattleSide aiSide = GetBattlerSide(battlerAtk);
+    enum BattleSide foeSide = GetBattlerSide(battlerDef);
+    u32 finalScreenStatuses = GetFinalScreenStatuses(foeSide);
+    enum Move *moves;
+    u32 moveLimitations;
+
+    if (IsBattle1v1())
+        return FALSE;
+
+    if (aiSide == foeSide || finalScreenStatuses == 0)
+        return FALSE;
+
+    if (MoveIgnoresProtect(predictedMove)
+     || AI_CanContactBypassProtect(battlerDef, battlerAtk, predictedMove))
+        return FALSE;
+
+    if (!PredictedMoveThreatensProtectBattler(battlerAtk, battlerDef, predictedMove))
+        return FALSE;
+
+    partner = BATTLE_PARTNER(battlerAtk);
+    if (partner >= gBattlersCount || !IsBattlerAlive(partner))
+        return FALSE;
+
+    moves = GetMovesArray(partner);
+    moveLimitations = gAiLogicData->moveLimitations[partner];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+        uq4_12_t effectiveness;
+        struct SimulatedDamage damageWithScreens;
+        struct SimulatedDamage damageAfterExpiry;
+        u32 savedFoeSideStatuses;
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || IsBattleMoveStatus(move)
+         || GetMovePower(move) == 0
+         || !IsMoveAffectedByFinalScreenStatuses(move, finalScreenStatuses)
+         || (GetAIEffectGroupFromMove(partner, move) & AI_EFFECT_BREAK_SCREENS))
+            continue;
+
+        if (!CanUseScreenExpiryAttackNextTurn(partner, battlerDef, move, predictedMove))
+            continue;
+
+        damageWithScreens = AI_CalcDamage(move, partner, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+
+        savedFoeSideStatuses = gSideStatuses[foeSide];
+        gSideStatuses[foeSide] &= ~finalScreenStatuses;
+        damageAfterExpiry = AI_CalcDamage(move, partner, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, AI_GetWeather(), gFieldStatuses);
+        gSideStatuses[foeSide] = savedFoeSideStatuses;
+
+        if (TimerExpiryCreatesAttackPayoff(damageWithScreens, damageAfterExpiry, gBattleMons[battlerDef].hp))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 static bool32 IsWeatherFinalTurn(void)
 {
     u32 weather = AI_GetWeather();
@@ -3900,6 +3961,75 @@ static bool32 ShouldUseProtectToBurnFinalWeatherOrTerrain(enum BattlerId battler
         if (incomingAfterExpiry.median >= gBattleMons[battlerAtk].hp
          && damageAfterExpiry.median < gBattleMons[battlerDef].hp)
             continue;
+
+        if (attackPayoff || (incomingPayoff && damageAfterExpiry.median * 2 >= gBattleMons[battlerDef].hp))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 ShouldUseDoublesProtectToBurnPartnerTerrainTimer(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove)
+{
+    enum BattlerId partner;
+    u32 currentWeather = AI_GetWeather();
+    u32 afterWeather = currentWeather;
+    u32 currentFieldStatuses = gFieldStatuses;
+    u32 afterFieldStatuses = currentFieldStatuses;
+    bool32 finalTerrain = IsTerrainFinalTurn();
+    uq4_12_t effectiveness;
+    struct SimulatedDamage incomingBeforeExpiry;
+    struct SimulatedDamage incomingAfterExpiry;
+    struct SimulatedDamage partnerIncomingAfterExpiry;
+    bool32 incomingPayoff;
+    enum Move *moves;
+    u32 moveLimitations;
+
+    if (IsBattle1v1())
+        return FALSE;
+
+    if (!finalTerrain)
+        return FALSE;
+
+    if (MoveIgnoresProtect(predictedMove)
+     || AI_CanContactBypassProtect(battlerDef, battlerAtk, predictedMove))
+        return FALSE;
+
+    if (!PredictedMoveThreatensProtectBattler(battlerAtk, battlerDef, predictedMove))
+        return FALSE;
+
+    partner = BATTLE_PARTNER(battlerAtk);
+    if (partner >= gBattlersCount || !IsBattlerAlive(partner))
+        return FALSE;
+
+    afterFieldStatuses &= ~STATUS_FIELD_TERRAIN_ANY;
+
+    incomingBeforeExpiry = AI_CalcDamage(predictedMove, battlerDef, battlerAtk, &effectiveness, NO_GIMMICK, NO_GIMMICK, currentWeather, currentFieldStatuses);
+    incomingAfterExpiry = AI_CalcDamage(predictedMove, battlerDef, battlerAtk, &effectiveness, NO_GIMMICK, NO_GIMMICK, afterWeather, afterFieldStatuses);
+    incomingPayoff = TimerExpiryReducesIncomingThreat(incomingBeforeExpiry, incomingAfterExpiry, gBattleMons[battlerAtk].hp);
+    partnerIncomingAfterExpiry = AI_CalcDamage(predictedMove, battlerDef, partner, &effectiveness, NO_GIMMICK, NO_GIMMICK, afterWeather, afterFieldStatuses);
+
+    moves = GetMovesArray(partner);
+    moveLimitations = gAiLogicData->moveLimitations[partner];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+        struct SimulatedDamage damageBeforeExpiry;
+        struct SimulatedDamage damageAfterExpiry;
+        bool32 attackPayoff;
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || IsBattleMoveStatus(move)
+         || GetMovePower(move) == 0)
+            continue;
+
+        if (!FieldExpiryLeavesUsableNextTurn(partner, battlerDef, move, predictedMove, partnerIncomingAfterExpiry, afterWeather, afterFieldStatuses))
+            continue;
+
+        damageBeforeExpiry = AI_CalcDamage(move, partner, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, currentWeather, currentFieldStatuses);
+        damageAfterExpiry = AI_CalcDamage(move, partner, battlerDef, &effectiveness, NO_GIMMICK, NO_GIMMICK, afterWeather, afterFieldStatuses);
+        attackPayoff = TimerExpiryCreatesAttackPayoff(damageBeforeExpiry, damageAfterExpiry, gBattleMons[battlerDef].hp);
 
         if (attackPayoff || (incomingPayoff && damageAfterExpiry.median * 2 >= gBattleMons[battlerDef].hp))
             return TRUE;
@@ -4822,6 +4952,11 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
      && GetBattlerSecondaryDamage(protectThreatBattler) < gBattleMons[protectThreatBattler].hp)
         return NO_DAMAGE_OR_FAILS;
 
+    if (!IsBattle1v1()
+     && BothBattlersPerishThisTurn(battlerAtk, protectThreatBattler)
+     && !IsExplosionMove(predictedMove))
+        return NO_DAMAGE_OR_FAILS;
+
     {
         s32 readProtectThreatScore = GetReadPlayerProtectThreatScore(battlerAtk, move);
         score += readProtectThreatScore;
@@ -4853,7 +4988,10 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
         {
             if (!IsBattle1v1())
             {
-                if (ShouldUseDoublesProtectToBurnPartnerTimer(battlerAtk, protectThreatBattler, predictedMove))
+                if (ShouldUseDoublesProtectToBurnPartnerTimer(battlerAtk, protectThreatBattler, predictedMove)
+                 || ShouldUseDoublesProtectToBurnPartnerScreenTimer(battlerAtk, protectThreatBattler, predictedMove)
+                 || ShouldUseDoublesProtectToBurnPartnerTerrainTimer(battlerAtk, protectThreatBattler, predictedMove)
+                 || ShouldUseProtectForOpponentPerishFall(battlerAtk, protectThreatBattler, predictedMove))
                     score += GOOD_EFFECT;
                 else
                     score += DECENT_EFFECT;
