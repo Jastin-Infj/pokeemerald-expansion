@@ -62,6 +62,11 @@
 - Source Box 1 Pokemon are not healed, moved, consumed, removed, or overwritten:
   code path only reads Box storage and copies into `gParties`; still requires
   manual before/after storage inspection.
+- Player-side held item / Berry restore is intentionally not revalidated in this
+  standalone Box NPC branch. Use the existing Battle Item Restore Policy shelf
+  (`feature/battle-item-restore-current-master-20260519` /
+  `feature/battle-item-restore-policy`) when building the later integrated debug
+  lab branch.
 - DebugPrintf selection output contains the candidate source slots and final
   source slots: covered by debug-build code path, but the AGBPrint line was not
   separately exported in the mGBA sessions.
