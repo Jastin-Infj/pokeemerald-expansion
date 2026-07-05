@@ -170,6 +170,25 @@ enum AiShortHorizonLine
     AI_SHORT_LINE_HIGH_VARIANCE   = 1 << 5,
 };
 
+enum AiCandidateLineFamily
+{
+    AI_CANDIDATE_LINE_NONE,
+    AI_CANDIDATE_LINE_CLEAN_DAMAGE,
+    AI_CANDIDATE_LINE_SWITCH_ESCAPE,
+    AI_CANDIDATE_LINE_SETUP_DENIAL,
+    AI_CANDIDATE_LINE_MODE_CONTROL,
+    AI_CANDIDATE_LINE_RESERVE_ENTRY,
+    AI_CANDIDATE_LINE_HIGH_VARIANCE,
+};
+
+struct AiCandidateLine
+{
+    enum AiCandidateLineFamily family;
+    enum AiShortHorizonLine line;
+    u8 turn;
+    bool32 stable;
+};
+
 struct AiBoardSnapshot
 {
     enum BattlerId battlerAtk;
@@ -197,6 +216,8 @@ struct AiShortHorizon
     u8 lossClock;
     bool32 isValid;
     bool32 stableLineAvailable;
+    struct AiCandidateLine preferredStableLine;
+    struct AiCandidateLine fallbackRiskLine;
 };
 
 static inline bool32 IsMoveUnusable(u32 moveIndex, enum Move move, u32 moveLimitations)

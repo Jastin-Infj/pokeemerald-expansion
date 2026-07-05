@@ -6305,6 +6305,18 @@ static bool32 MoveCanLowerTargetSpeed(enum BattlerId battlerAtk, enum BattlerId 
     return FALSE;
 }
 
+static bool32 ShouldScoreSecondaryHaxLine(enum BattlerId battlerAtk, enum BattlerId battlerDef)
+{
+    struct AiBoardSnapshot snapshot;
+
+    if (!AI_BuildBoardSnapshot(battlerAtk, battlerDef, &snapshot))
+        return TRUE;
+    if (!AI_BoardHasThreat(&snapshot, AI_THREAT_DESPERATION))
+        return TRUE;
+
+    return AI_RiskGovernorAllows(battlerAtk, battlerDef, AI_RISK_SECONDARY_HAX);
+}
+
 static bool32 HasKnownSoundMove(enum BattlerId battler)
 {
     enum Move *moves = GetMovesArray(battler);
@@ -8021,7 +8033,8 @@ static s32 AI_CalcAdditionalEffectScore(enum BattlerId battlerAtk, enum BattlerI
                 }
                 break;
             case MOVE_EFFECT_FLINCH:
-                if (ShouldTryToFlinch(battlerAtk, battlerDef, aiData->abilities[battlerAtk], aiData->abilities[battlerDef], move))
+                if (ShouldScoreSecondaryHaxLine(battlerAtk, battlerDef)
+                 && ShouldTryToFlinch(battlerAtk, battlerDef, aiData->abilities[battlerAtk], aiData->abilities[battlerDef], move))
                     score += 2;
                 break;
             case MOVE_EFFECT_POISON:

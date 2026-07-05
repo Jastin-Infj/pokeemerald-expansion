@@ -46,6 +46,20 @@ struct KnownPlayerDamageRollSummary
     u32 roll15Of16;
     u32 maximum;
 };
+enum FocusedSwitchCandidateKind
+{
+    FOCUSED_SWITCH_CANDIDATE_NONE,
+    FOCUSED_SWITCH_CANDIDATE_SAFE,
+    FOCUSED_SWITCH_CANDIDATE_ROLL_SURVIVAL,
+    FOCUSED_SWITCH_CANDIDATE_CUSHION,
+    FOCUSED_SWITCH_CANDIDATE_SACRIFICE,
+};
+struct FocusedSwitchCandidate
+{
+    u32 monIndex;
+    u32 score;
+    enum FocusedSwitchCandidateKind kind;
+};
 static bool32 CanUseSuperEffectiveMoveAgainstOpponents(enum BattlerId battler, enum BattlerId opposingBattler);
 static bool32 CanUseSuperEffectiveMoveAgainstOpponent(enum BattlerId battler, enum BattlerId opposingBattler);
 static u32 GetSwitchinHazardsDamage(enum BattlerId battler);
@@ -4338,6 +4352,11 @@ static bool32 PartyMonHasFocusedSacrificeSupportValue(struct Pokemon *mon)
         || PartyMonHasMoveEffect(mon, EFFECT_PARTING_SHOT);
 }
 
+static bool32 FocusedSacrificeHasNextBoardPayoff(bool32 consumesFakeOut, bool32 hasSupportValue, bool32 isFocusSash)
+{
+    return consumesFakeOut || hasSupportValue || isFocusSash;
+}
+
 static bool32 ShouldAcceptFocusedSwitchinRollSurvival(
     struct SwitchAiContext *switchContext,
     const struct KnownPlayerDamageRollSummary *damage,
@@ -4390,7 +4409,86 @@ static bool32 ShouldAcceptFocusedSwitchinRollSurvival(
     return TRUE;
 }
 
-static u32 FindKnownFocusedSlotCollapseSwitchin(struct SwitchAiContext *switchContext)
+static bool32 BuildKnownFocusedSlotCollapseSwitchCandidate(
+    u32 monIndex,
+    u32 knownDamage,
+    u32 hitsToKO,
+    u32 rollHitsToKO,
+    u32 rollScoreBonus,
+    bool32 acceptsRollSurvival,
+    bool32 consumesFakeOut,
+    bool32 canMakeProgress,
+    bool32 isMostSuitable,
+    bool32 isFocusSash,
+    bool32 isChoiceReserve,
+    bool32 hasSupportValue,
+    struct FocusedSwitchCandidate *candidate)
+{
+    bool32 isSafe = knownDamage == 0 || hitsToKO == 0 || hitsToKO > AI_DEFENSIVE_KO_THRESHOLD;
+
+    if (candidate == NULL)
+        return FALSE;
+
+    *candidate = (struct FocusedSwitchCandidate){
+        .monIndex = monIndex,
+        .score = 0,
+        .kind = FOCUSED_SWITCH_CANDIDATE_NONE,
+    };
+
+    if (isSafe)
+    {
+        candidate->kind = FOCUSED_SWITCH_CANDIDATE_SAFE;
+        candidate->score = 10000
+                         + (canMakeProgress ? 1000 : 0)
+                         + (isMostSuitable ? 500 : 0)
+                         + (hasSupportValue ? 100 : 0)
+                         + (hitsToKO == 0 ? 255 : hitsToKO);
+        return TRUE;
+    }
+
+    if (acceptsRollSurvival)
+    {
+        candidate->kind = FOCUSED_SWITCH_CANDIDATE_ROLL_SURVIVAL;
+        candidate->score = 4000
+                         + rollScoreBonus
+                         + (canMakeProgress ? 350 : 0)
+                         + (isMostSuitable ? 200 : 0)
+                         + (hasSupportValue ? 150 : 0)
+                         + (isFocusSash ? 100 : 0)
+                         + (rollHitsToKO == 0 ? 255 : rollHitsToKO * 10);
+        return TRUE;
+    }
+
+    if (hitsToKO > 1)
+    {
+        candidate->kind = FOCUSED_SWITCH_CANDIDATE_CUSHION;
+        candidate->score = 2500
+                         + (canMakeProgress ? 300 : 0)
+                         + (isMostSuitable ? 150 : 0)
+                         + (hasSupportValue ? 100 : 0)
+                         + (!isChoiceReserve ? 80 : 0)
+                         + hitsToKO * 20;
+        return TRUE;
+    }
+
+    if (isChoiceReserve && !hasSupportValue && !isFocusSash)
+        return FALSE;
+    if (!FocusedSacrificeHasNextBoardPayoff(consumesFakeOut, hasSupportValue, isFocusSash))
+        return FALSE;
+    if (!hasSupportValue && !isFocusSash && canMakeProgress && isMostSuitable)
+        return FALSE;
+
+    candidate->kind = FOCUSED_SWITCH_CANDIDATE_SACRIFICE;
+    candidate->score = 1000
+                     + (consumesFakeOut ? 350 : 0)
+                     + (isFocusSash ? 300 : 0)
+                     + (hasSupportValue ? 250 : 0)
+                     + (!isChoiceReserve ? 100 : 0)
+                     + (!isMostSuitable ? 75 : 0);
+    return TRUE;
+}
+
+static u32 FindKnownFocusedSlotCollapseSwitchin(struct SwitchAiContext *switchContext, bool32 consumesFakeOut)
 {
     struct IncomingHealInfo healInfoData;
     const struct IncomingHealInfo *healInfo = &healInfoData;
@@ -4415,16 +4513,15 @@ static u32 FindKnownFocusedSlotCollapseSwitchin(struct SwitchAiContext *switchCo
         u32 hitsToKO;
         u32 rollHitsToKO = 0;
         u32 rollScoreBonus = 0;
-        u32 score;
         enum Item item;
         enum HoldEffect holdEffect;
-        bool32 isSafe;
         bool32 isFocusSash;
         bool32 isChoiceReserve;
         bool32 hasSupportValue;
         bool32 canMakeProgress;
         bool32 isMostSuitable;
         bool32 acceptsRollSurvival;
+        struct FocusedSwitchCandidate candidate;
 
         if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
             continue;
@@ -4445,7 +4542,6 @@ static u32 FindKnownFocusedSlotCollapseSwitchin(struct SwitchAiContext *switchCo
         GetKnownPlayerDamageRollSummaryIntoBattlerSlot(switchContext->battler, &damageRolls);
         knownDamage = damageRolls.maximum != 0 ? damageRolls.maximum : GetKnownPlayerDamageIntoBattlerSlot(switchContext->battler, AI_SWITCHIN_DEFENDING);
         hitsToKO = GetSwitchinHitsToKO(knownDamage, switchContext->battler, healInfo, originalHp);
-        isSafe = knownDamage == 0 || hitsToKO == 0 || hitsToKO > AI_DEFENSIVE_KO_THRESHOLD;
         canMakeProgress = CanDoubleBattlerMakeProgress(switchContext);
         isMostSuitable = gAiLogicData->mostSuitableMonId[switchContext->battler] == monIndex;
         item = GetMonData(&switchContext->party[monIndex], MON_DATA_HELD_ITEM);
@@ -4465,52 +4561,26 @@ static u32 FindKnownFocusedSlotCollapseSwitchin(struct SwitchAiContext *switchCo
             &rollHitsToKO,
             &rollScoreBonus);
 
-        if (isSafe)
-        {
-            score = 10000
-                  + (canMakeProgress ? 1000 : 0)
-                  + (isMostSuitable ? 500 : 0)
-                  + (hasSupportValue ? 100 : 0)
-                  + (hitsToKO == 0 ? 255 : hitsToKO);
-        }
-        else if (acceptsRollSurvival)
-        {
-            score = 4000
-                  + rollScoreBonus
-                  + (canMakeProgress ? 350 : 0)
-                  + (isMostSuitable ? 200 : 0)
-                  + (hasSupportValue ? 150 : 0)
-                  + (isFocusSash ? 100 : 0)
-                  + (rollHitsToKO == 0 ? 255 : rollHitsToKO * 10);
-        }
-        else if (hitsToKO > 1)
-        {
-            score = 2500
-                  + (canMakeProgress ? 300 : 0)
-                  + (isMostSuitable ? 150 : 0)
-                  + (hasSupportValue ? 100 : 0)
-                  + (!isChoiceReserve ? 80 : 0)
-                  + hitsToKO * 20;
-        }
-        else
-        {
-            if (isChoiceReserve && !hasSupportValue && !isFocusSash)
-                continue;
-            if (!hasSupportValue && !isFocusSash && canMakeProgress && isMostSuitable)
-                continue;
+        if (!BuildKnownFocusedSlotCollapseSwitchCandidate(
+            monIndex,
+            knownDamage,
+            hitsToKO,
+            rollHitsToKO,
+            rollScoreBonus,
+            acceptsRollSurvival,
+            consumesFakeOut,
+            canMakeProgress,
+            isMostSuitable,
+            isFocusSash,
+            isChoiceReserve,
+            hasSupportValue,
+            &candidate))
+            continue;
 
-            score = 1000
-                  + (isFocusSash ? 300 : 0)
-                  + (hasSupportValue ? 250 : 0)
-                  + (!isChoiceReserve ? 100 : 0)
-                  + (!isMostSuitable ? 75 : 0)
-                  + (hitsToKO > 1 ? hitsToKO * 10 : 0);
-        }
-
-        if (score > bestScore)
+        if (candidate.score > bestScore)
         {
-            bestMonId = monIndex;
-            bestScore = score;
+            bestMonId = candidate.monIndex;
+            bestScore = candidate.score;
         }
     }
 
@@ -4545,7 +4615,7 @@ static bool32 ShouldSwitchIfKnownFocusedSlotCollapse(struct SwitchAiContext *swi
     if (!IsBattlerWorthFocusedPreserve(switchContext))
         return FALSE;
 
-    switchinId = FindKnownFocusedSlotCollapseSwitchin(switchContext);
+    switchinId = FindKnownFocusedSlotCollapseSwitchin(switchContext, hasFakeOut);
     if (switchinId == PARTY_SIZE)
         return FALSE;
 

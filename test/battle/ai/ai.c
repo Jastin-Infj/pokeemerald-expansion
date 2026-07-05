@@ -1045,6 +1045,30 @@ AI_SINGLE_BATTLE_TEST("AI fishes for flinch against a read Perish Song only with
     }
 }
 
+AI_SINGLE_BATTLE_TEST("AI short horizon suppresses hax when clean damage answers read Perish Song")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(MoveHasAdditionalEffect(MOVE_STOMP, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMovePower(MOVE_BOOMBURST) > GetMovePower(MOVE_STOMP));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(300); HP(55); Speed(1); Moves(MOVE_PERISH_SONG); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(100); Moves(MOVE_STOMP, MOVE_BOOMBURST); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PERISH_SONG);
+            EXPECT_MOVE(opponent, MOVE_BOOMBURST);
+        }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_USE_MOVE);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED);
+        EXPECT((opponentLog->aiThreatFlags & AI_THREAT_PERISH_TRAP_CLOCK) != 0);
+        EXPECT_EQ(opponentLog->aiRiskKind, BATTLE_ACTION_LOG_AI_RISK_NONE);
+    }
+}
+
 AI_SINGLE_BATTLE_TEST("AI logs hax out reason for desperate read Perish Song flinch")
 {
     GIVEN {

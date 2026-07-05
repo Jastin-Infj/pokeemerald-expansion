@@ -810,6 +810,35 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI accepts a 15-of-16 survival 
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI rejects a doomed sacrifice when it does not improve next board")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        ASSUME(GetMoveTarget(MOVE_BLEAKWIND_STORM) == TARGET_BOTH);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_CHOICE_SPECS); Ability(ABILITY_DRIZZLE); Nature(NATURE_MODEST);
+            TEST_IVS_SPECIAL();
+            MaxHP(176); HP(35); Defense(110); SpAttack(222); SpDefense(160); Speed(140);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+        OPPONENT(SPECIES_MAGIKARP) {
+            Level(50); Item(ITEM_NONE); Nature(NATURE_TIMID);
+            MaxHP(40); HP(40); Defense(20); SpDefense(20); Speed(80);
+            Moves(MOVE_SPLASH);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentRight);
+            MOVE(playerRight, MOVE_BLEAKWIND_STORM);
+            EXPECT_MOVES(opponentRight, MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not switch Mega Gengar to Incineroar against a punishing known cross-slot hit")
 {
     GIVEN {

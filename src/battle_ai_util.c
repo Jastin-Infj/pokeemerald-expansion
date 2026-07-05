@@ -4420,6 +4420,62 @@ static u8 GetShortHorizonLossClock(const struct AiBoardSnapshot *snapshot)
     return 0;
 }
 
+static enum AiCandidateLineFamily GetCandidateLineFamily(enum AiShortHorizonLine line)
+{
+    switch (line)
+    {
+    case AI_SHORT_LINE_CLEAN_DAMAGE:
+        return AI_CANDIDATE_LINE_CLEAN_DAMAGE;
+    case AI_SHORT_LINE_SWITCH_ESCAPE:
+        return AI_CANDIDATE_LINE_SWITCH_ESCAPE;
+    case AI_SHORT_LINE_SETUP_DENIAL:
+        return AI_CANDIDATE_LINE_SETUP_DENIAL;
+    case AI_SHORT_LINE_MODE_CONTROL:
+        return AI_CANDIDATE_LINE_MODE_CONTROL;
+    case AI_SHORT_LINE_RESERVE_ENTRY:
+        return AI_CANDIDATE_LINE_RESERVE_ENTRY;
+    case AI_SHORT_LINE_HIGH_VARIANCE:
+        return AI_CANDIDATE_LINE_HIGH_VARIANCE;
+    case AI_SHORT_LINE_NONE:
+    default:
+        return AI_CANDIDATE_LINE_NONE;
+    }
+}
+
+static bool32 IsStableShortHorizonLine(enum AiShortHorizonLine line)
+{
+    return line == AI_SHORT_LINE_CLEAN_DAMAGE
+        || line == AI_SHORT_LINE_SWITCH_ESCAPE
+        || line == AI_SHORT_LINE_SETUP_DENIAL
+        || line == AI_SHORT_LINE_MODE_CONTROL;
+}
+
+static void AddShortHorizonCandidateLine(struct AiShortHorizon *horizon, enum AiShortHorizonLine line, u8 turn)
+{
+    struct AiCandidateLine candidate;
+
+    if (horizon == NULL || line == AI_SHORT_LINE_NONE)
+        return;
+
+    candidate = (struct AiCandidateLine){
+        .family = GetCandidateLineFamily(line),
+        .line = line,
+        .turn = turn,
+        .stable = IsStableShortHorizonLine(line),
+    };
+
+    horizon->lineFlags |= line;
+    if (candidate.stable && !horizon->stableLineAvailable)
+    {
+        horizon->stableLineAvailable = TRUE;
+        horizon->preferredStableLine = candidate;
+    }
+    else if (!candidate.stable && horizon->fallbackRiskLine.family == AI_CANDIDATE_LINE_NONE)
+    {
+        horizon->fallbackRiskLine = candidate;
+    }
+}
+
 bool32 AI_EvaluateShortHorizon(enum BattlerId battlerAtk, enum BattlerId battlerDef, struct AiShortHorizon *horizon)
 {
     if (horizon == NULL)
@@ -4433,22 +4489,18 @@ bool32 AI_EvaluateShortHorizon(enum BattlerId battlerAtk, enum BattlerId battler
     horizon->lossClock = GetShortHorizonLossClock(&horizon->snapshot);
 
     if (HasShortHorizonCleanDamage(battlerAtk, battlerDef))
-        horizon->lineFlags |= AI_SHORT_LINE_CLEAN_DAMAGE;
+        AddShortHorizonCandidateLine(horizon, AI_SHORT_LINE_CLEAN_DAMAGE, 0);
     if (horizon->snapshot.perishTrapClock && horizon->snapshot.aiReserveCount > 0 && AI_CanBattlerEscape(battlerAtk))
-        horizon->lineFlags |= AI_SHORT_LINE_SWITCH_ESCAPE;
+        AddShortHorizonCandidateLine(horizon, AI_SHORT_LINE_SWITCH_ESCAPE, 0);
     if ((horizon->snapshot.opposingSetupPressure || horizon->snapshot.targetSetupPressure) && HasShortHorizonSetupDenialMove(battlerAtk))
-        horizon->lineFlags |= AI_SHORT_LINE_SETUP_DENIAL;
+        AddShortHorizonCandidateLine(horizon, AI_SHORT_LINE_SETUP_DENIAL, 0);
     if (horizon->snapshot.modeLoss && HasShortHorizonModeControlMove(battlerAtk))
-        horizon->lineFlags |= AI_SHORT_LINE_MODE_CONTROL;
+        AddShortHorizonCandidateLine(horizon, AI_SHORT_LINE_MODE_CONTROL, 0);
     if (!IsBattle1v1() && (horizon->snapshot.aiReserveCount > 0 || horizon->snapshot.partnerReserveCount > 0))
-        horizon->lineFlags |= AI_SHORT_LINE_RESERVE_ENTRY;
+        AddShortHorizonCandidateLine(horizon, AI_SHORT_LINE_RESERVE_ENTRY, 1);
     if (AI_BoardHasThreat(&horizon->snapshot, AI_THREAT_DESPERATION))
-        horizon->lineFlags |= AI_SHORT_LINE_HIGH_VARIANCE;
+        AddShortHorizonCandidateLine(horizon, AI_SHORT_LINE_HIGH_VARIANCE, 0);
 
-    horizon->stableLineAvailable = (horizon->lineFlags & (AI_SHORT_LINE_CLEAN_DAMAGE
-                                                        | AI_SHORT_LINE_SWITCH_ESCAPE
-                                                        | AI_SHORT_LINE_SETUP_DENIAL
-                                                        | AI_SHORT_LINE_MODE_CONTROL)) != 0;
     return TRUE;
 }
 
@@ -4496,7 +4548,8 @@ bool32 AI_RiskGovernorAllows(enum BattlerId battlerAtk, enum BattlerId battlerDe
     case AI_RISK_SECONDARY_HAX:
     case AI_RISK_OHKO_FISH:
     case AI_RISK_DELAYED_ATTACK:
-        return AI_BoardHasThreat(snapshot, AI_THREAT_DESPERATION);
+        return AI_BoardHasThreat(snapshot, AI_THREAT_DESPERATION)
+            && !horizon.stableLineAvailable;
     default:
         return FALSE;
     }
