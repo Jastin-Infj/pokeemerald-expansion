@@ -43,8 +43,12 @@ Implemented runtime shape:
   the current player party.
 - Smart Gimmick AI read-mode flags and battle action log export are not included
   because they are not on `master`.
-- Player-side held item restore remains a dependency for a later debug lab
-  integration branch.
+- Player-side held item restore is not reimplemented here because the
+  berry-inclusive fix already exists on the Battle Item Restore Policy shelves
+  (`feature/battle-item-restore-current-master-20260519` /
+  `feature/battle-item-restore-policy`). A later debug lab integration branch
+  should combine that shelf with Box NPC Party Pool instead of duplicating the
+  battle-end restore logic.
 - Box preview UI is not included.
 - Box ranges beyond Box 1 are not included.
 
