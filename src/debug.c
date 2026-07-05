@@ -5064,6 +5064,7 @@ static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
     gDebugAIFlags = config->aiFlags;
     gIsDebugBattle = TRUE;
     gBattleEnvironment = BattleSetup_GetEnvironmentId();
+    CalculatePlayerPartyCount();
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
     Debug_DestroyMenu_Full(taskId);

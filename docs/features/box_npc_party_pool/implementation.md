@@ -26,6 +26,8 @@ Implemented runtime shape:
   routes.
 - Debug routes use the current player party and require at least one usable
   Pokemon for singles or two usable Pokemon for doubles.
+- Debug routes recalculate the current player party count before battle start,
+  then recalculate the opponent party count after copying Box 1 members.
 - Debug routes set a strong existing `master` AI flag preset and mark the battle
   as a debug battle.
 - A narrow battle init hook applies pending opponent Tera / Dynamax permission
@@ -70,11 +72,15 @@ Completed on July 5, 2026:
   - Box NPC submenu entries for all six MVP routes.
   - fixed-slot route rejects the current save's invalid Box 1 slots with the
     concise field message `Box 1 slots 1-6 need valid Pokemon.`
-- mGBA Live session `box-npc-party-pool-final` was stopped cleanly after
-  validation.
-
-Remaining manual validation:
-
-- Populate Box 1 with six valid battle-ready Pokemon and confirm the routes
-  enter real single and double battles with the expected 3 / 4 opponent party
-  counts.
+- mGBA Live session `box-npc-party-pool-battle` used debug
+  `PC/Bag -> Fill -> Fill PC Boxes Fast`, then ran `Single slots 1-6`.
+  The battle started against Trainer Debugger, and `gPartiesCount` readback
+  showed player=1, opponentA=3, partner=0, opponentB=0.
+- mGBA Live session `box-npc-party-pool-double-rerun2` used debug
+  `PC/Bag -> Fill -> Fill PC Boxes Fast`, copied player party slot 0 to slot 1
+  in-session with Lua to satisfy the current save's two-usable-Pokemon double
+  guard, then ran `Double slots 1-6`. The battle started against Trainer
+  Debugger, and `gPartiesCount` readback showed player=2, opponentA=4,
+  partner=0, opponentB=0.
+- mGBA Live sessions were stopped cleanly after validation, and final
+  `status --all` returned `[]`.
