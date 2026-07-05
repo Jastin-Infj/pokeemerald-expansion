@@ -3565,6 +3565,119 @@ static bool32 ShouldUseProtectToBurnFinalTrickRoom(enum BattlerId battlerAtk, en
         && WouldOutspeedAfterFinalTrickRoomExpires(battlerAtk, battlerDef, predictedMove);
 }
 
+static bool32 PartnerHasTimerExpiryKoMove(enum BattlerId partner, enum BattlerId battlerDef)
+{
+    enum Move *moves;
+    u32 moveLimitations;
+
+    if (partner >= gBattlersCount
+     || battlerDef >= gBattlersCount
+     || !IsBattlerAlive(partner)
+     || !IsBattlerAlive(battlerDef)
+     || IsBattlerAlly(partner, battlerDef))
+        return FALSE;
+
+    moves = GetMovesArray(partner);
+    moveLimitations = gAiLogicData->moveLimitations[partner];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || IsBattleMoveStatus(move)
+         || GetMovePower(move) == 0
+         || !CanTargetBattler(partner, battlerDef, move))
+            continue;
+
+        if (CanIndexMoveFaintTarget(partner, battlerDef, moveIndex, AI_ATTACKING))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 PartnerCanImmediatelyKoBeforeThreat(enum BattlerId partner, enum BattlerId battlerDef, enum Move predictedMove)
+{
+    enum Move *moves;
+    u32 moveLimitations;
+
+    if (partner >= gBattlersCount
+     || battlerDef >= gBattlersCount
+     || !IsBattlerAlive(partner)
+     || !IsBattlerAlive(battlerDef)
+     || IsBattlerAlly(partner, battlerDef))
+        return FALSE;
+
+    moves = GetMovesArray(partner);
+    moveLimitations = gAiLogicData->moveLimitations[partner];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || IsBattleMoveStatus(move)
+         || GetMovePower(move) == 0
+         || !CanTargetBattler(partner, battlerDef, move)
+         || !CanIndexMoveFaintTarget(partner, battlerDef, moveIndex, AI_ATTACKING))
+            continue;
+
+        if (AI_IsFaster(partner, battlerDef, move, predictedMove, CONSIDER_PRIORITY))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 ShouldUseDoublesProtectToBurnPartnerTimer(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove)
+{
+    enum BattlerId partner;
+
+    if (IsBattle1v1())
+        return FALSE;
+
+    if (predictedMove == MOVE_NONE || predictedMove == MOVE_UNAVAILABLE || IsBattleMoveStatus(predictedMove))
+        return FALSE;
+
+    if (MoveIgnoresProtect(predictedMove)
+     || AI_CanContactBypassProtect(battlerDef, battlerAtk, predictedMove))
+        return FALSE;
+
+    if (!PredictedMoveThreatensProtectBattler(battlerAtk, battlerDef, predictedMove))
+        return FALSE;
+
+    partner = BATTLE_PARTNER(battlerAtk);
+    if (partner >= gBattlersCount || !IsBattlerAlive(partner))
+        return FALSE;
+
+    if (!PartnerHasTimerExpiryKoMove(partner, battlerDef))
+        return FALSE;
+
+    return WouldOutspeedAfterOpposingTailwindExpires(partner, battlerDef, predictedMove)
+        || WouldOutspeedAfterFinalTrickRoomExpires(partner, battlerDef, predictedMove);
+}
+
+static bool32 WouldWasteOwnFinalTailwindWhileBurningTrickRoomInDoubles(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove)
+{
+    enum BattlerId partner;
+
+    if (IsBattle1v1())
+        return FALSE;
+
+    if (!IsTailwindFinalTurn(GetBattlerSide(battlerAtk)) || !IsTrickRoomFinalTurn())
+        return FALSE;
+
+    if (WouldOutspeedAfterFinalTrickRoomExpires(battlerAtk, battlerDef, predictedMove))
+        return FALSE;
+
+    if (ShouldUseDoublesProtectToBurnPartnerTimer(battlerAtk, battlerDef, predictedMove))
+        return FALSE;
+
+    partner = BATTLE_PARTNER(battlerAtk);
+    return !PartnerCanImmediatelyKoBeforeThreat(partner, battlerDef, predictedMove);
+}
+
 static u32 GetFinalScreenStatuses(enum BattleSide side)
 {
     u32 statuses = 0;
@@ -4701,6 +4814,14 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
      && GetBattlerSecondaryDamage(protectThreatBattler) < gBattleMons[protectThreatBattler].hp)
         return NO_DAMAGE_OR_FAILS;
 
+    if (!IsBattle1v1()
+     && WouldWasteOwnFinalTailwindWhileBurningTrickRoomInDoubles(battlerAtk, protectThreatBattler, predictedMove)
+     && !IsExplosionMove(predictedMove)
+     && !HasSinglesProtectRecoveryPayoff(battlerAtk)
+     && !IsBattlerDamagedByStatus(protectThreatBattler)
+     && GetBattlerSecondaryDamage(protectThreatBattler) < gBattleMons[protectThreatBattler].hp)
+        return NO_DAMAGE_OR_FAILS;
+
     {
         s32 readProtectThreatScore = GetReadPlayerProtectThreatScore(battlerAtk, move);
         score += readProtectThreatScore;
@@ -4731,7 +4852,12 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
         if (predictedMove != MOVE_NONE && predictedMove != MOVE_UNAVAILABLE && !IsBattleMoveStatus(predictedMove))
         {
             if (!IsBattle1v1())
-                score += DECENT_EFFECT;
+            {
+                if (ShouldUseDoublesProtectToBurnPartnerTimer(battlerAtk, protectThreatBattler, predictedMove))
+                    score += GOOD_EFFECT;
+                else
+                    score += DECENT_EFFECT;
+            }
             else if (ShouldUseProtectionToBurnFinalOpponentDynamax(battlerAtk, protectThreatBattler, predictedMove, GetMoveProtectMethod(move)))
                 score += DECENT_EFFECT;
             else if (ShouldUseSinglesProtect(battlerAtk, protectThreatBattler, predictedMove))

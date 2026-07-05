@@ -1,5 +1,6 @@
 #include "global.h"
 #include "test/battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_util.h"
 #include "battle_gimmick.h"
 #include "move.h"
@@ -376,6 +377,111 @@ AI_SINGLE_BATTLE_TEST("Protect: AI values singles Protect to burn the last Trick
 
         EXPECT(ShouldUseSinglesProtect(aiBattler, playerBattler, MOVE_DRAGON_RAGE));
         EXPECT(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE) > 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI values doubles Protect when the partner can punish final opposing Tailwind")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(40); HP(40); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(60); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(120); Speed(120); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithTimer;
+        s32 scoreWithoutTimer;
+
+        gSideStatuses[B_SIDE_PLAYER] |= SIDE_STATUS_TAILWIND;
+        gSideTimers[B_SIDE_PLAYER].tailwindTimer = 1;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithTimer = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        gSideStatuses[B_SIDE_PLAYER] &= ~SIDE_STATUS_TAILWIND;
+        gSideTimers[B_SIDE_PLAYER].tailwindTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutTimer = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        EXPECT_GT(scoreWithTimer, scoreWithoutTimer);
+        EXPECT_GT(scoreWithTimer, 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI values doubles Protect when the partner can punish final Trick Room")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(40); HP(40); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(60); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(120); Speed(120); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        s32 scoreWithTimer;
+        s32 scoreWithoutTimer;
+
+        gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 1;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithTimer = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        gFieldStatuses &= ~STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 0;
+        BattleAI_SetupAIData(0xF, aiBattler);
+        scoreWithoutTimer = ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE);
+
+        EXPECT_GT(scoreWithTimer, scoreWithoutTimer);
+        EXPECT_GT(scoreWithTimer, 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Protect: AI does not waste doubles final Tailwind while burning Trick Room without partner payoff")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(40); HP(40); Speed(80); Moves(MOVE_DRAGON_RAGE, MOVE_CELEBRATE); }
+        PLAYER(SPECIES_SHUCKLE) { Speed(20); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(40); Speed(60); Moves(MOVE_PROTECT, MOVE_SCRATCH, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(120); HP(120); Speed(20); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId aiBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 1;
+        gSideStatuses[B_SIDE_OPPONENT] |= SIDE_STATUS_TAILWIND;
+        gSideTimers[B_SIDE_OPPONENT].tailwindTimer = 1;
+        BattleAI_SetupAIData(0xF, aiBattler);
+
+        EXPECT_EQ(ProtectChecks(aiBattler, playerBattler, MOVE_PROTECT, MOVE_DRAGON_RAGE), NO_DAMAGE_OR_FAILS);
     }
 }
 
