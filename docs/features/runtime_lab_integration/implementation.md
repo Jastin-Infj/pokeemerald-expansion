@@ -67,10 +67,10 @@ the existing base runtime already provides that policy.
 
 ## Merge Handoff
 
-The Smart candidate must be reviewed as a PR into
-`integration/runtime-lab-20260716`. Before merge, verify base/head SHAs, the
-complete file list, local validation, mGBA Live evidence for both feature
-families, and GitHub docs validation. Do not use this candidate for a
+The Smart candidate is staged as PR #78 into
+`integration/runtime-lab-20260716`. Its base/head SHAs, complete 83-file list,
+local validation, and mGBA Live evidence for both feature families were
+reviewed; GitHub `docs_validate` passed. Do not use this candidate for a
 docs-only `master` PR.
 
 Fresh combined validation passed normal/debug ROM builds, full `make check`,

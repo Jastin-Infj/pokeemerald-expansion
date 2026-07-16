@@ -5,7 +5,7 @@
 - Branch: `integration/runtime-lab-smart-ai-pr-20260716`.
 - Base: `integration/runtime-lab-20260716` at `b0ac9061ce`.
 - Smart reapply commit: `611933abf0`.
-- Runtime PR: pending creation; base must remain the integration target.
+- Runtime PR: #78, targeting the integration target.
 
 ## Static and Build Validation
 
@@ -86,3 +86,6 @@ choices remain user acceptance testing rather than a compile-time guarantee.
 Long GitHub Actions were not re-waited before handoff. The candidate has fresh
 local normal/debug builds, full checks, mdBook output, and combined mGBA Live
 evidence; the standalone Smart shelf retains its own prior CI evidence.
+PR #78 `docs_validate` passed in 7 seconds. Emerald, FireRed, LeafGreen,
+release, and test jobs were still pending when the branch was handed off and
+were intentionally not re-waited.
