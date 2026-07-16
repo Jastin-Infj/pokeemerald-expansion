@@ -1,5 +1,38 @@
 # Smart Gimmick AI Test Plan
 
+## Completion Gate - July 16, 2026
+
+| Check | Result |
+| --- | --- |
+| `rtk git diff --check` | Passed before completion staging |
+| `rtk make -j16 -O check TESTS="AI thinking time doesn't explode"` | Passed, 6 tests |
+| Focused Eiscue no-clean-line fallback test | Passed, 1 test |
+| `rtk make -j16 -O check` | Passed; the five failures from the previous PR run are closed locally |
+| `rtk make -j16 -O all` | Passed |
+| `rtk make -j16 -O debug` | Passed |
+| `rtk mdbook build docs` | Passed with existing missing-include, closing-tag, and large-index warnings |
+| mGBA Live `smart-ai-completion-20260716` | Passed focused debug-route validation; final session list `[]` |
+
+The previous PR #72 `test` job failed on four thinking-time ceilings and one
+Eiscue move expectation. Local diagnosis showed that ordinary no-flag timing
+still passed, while Smart/read-mode paths paid the intended bounded cost of the
+short-horizon and confirmed-command logic. The Eiscue case had no clean damage
+race and correctly selected an Icicle Crash flinch comeback, matching the
+desperation requirement. The completion test commit updates those contracts
+without changing runtime source.
+
+mGBA Live used a copied ROM and save under the ignored
+`.cache/mgba-live-roms/smart-ai-completion-20260716/` path, leaving the user's
+root save untouched. The session reached the full eighteen-entry Gauntlet menu,
+showed its `Read Single`, `Read Double`, partner, Champion, and Elite routes,
+started `Read Single`, and advanced through a live first turn until the forced
+party replacement screen. A controlled `gBattleOutcome = WIN` write ended the
+battle only after that route evidence was visible.
+
+This is the accepted interim completion gate. The longer planner items in
+`goal.md` remain explicit future work and move to a new branch rather than
+keeping this feature branch indefinitely open for tuning.
+
 ## Required Validation
 
 | Check | Command | Status |

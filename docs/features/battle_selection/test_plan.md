@@ -109,6 +109,19 @@ MVP で触らない予定の領域が壊れていないことを確認する。
 | partygen pool party test | pool trainer だけ `Party Size` / `Pool Rules` / `Tags` が出ること |
 | partygen trainerproc edge test | `Copy Pool`、`Macro`、Ball、Tera / Dynamax 排他、header preserve を検査すること |
 | partygen target test | FRLG / battle partner / test `.party` を default で書き換えないこと |
+| adaptive trainer pool prune test | `POOL_PRUNE_OPPONENT_ADAPTIVE` が player party 傾向を読んで成立する tactic tag へ絞ること |
+
+## 2026-07-04 Adaptive Pool Checks
+
+| Command / Check | Result | Notes |
+|---|---|---|
+| `rtk make -j16 -O check TESTS='Trainer Party Pool'` | Pass | 10 tests。adaptive prune covers fast pressure -> `Tag6`, weather / legendary pressure -> `Tag7`, and setup / support pressure -> `Tag8`, plus basic pool, prune, pick function, and weight regression。 |
+| `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE: G-Max Charizard'` | Pass | Tailwind 下で redundant Airstream より G-Max Wildfire を評価する回帰。 |
+| `rtk make -j16 -O check TESTS='AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax for Max Airstream'` | Pass | Tailwind なしの Max Airstream spend 回帰。 |
+| `rtk make -j16 -O debug` | Pass | debug menu / debug trainer data を含む debug ROM build。linker RWX warning は既存。 |
+| `rtk make -j16 -O all` | Pass | adaptive tag mapping correction 後の通常 ROM build。linker RWX warning は既存。 |
+| `rtk mdbook build docs` | Pass | Exit 0 after the adaptive pool and NPC fixture-size docs。既存の missing root `CHANGELOG.md` include、`CREDITS.md` `</img>`、large search index warning は継続。 |
+| mGBA Live boot / bridge smoke | Pass / partial runtime | Session `adaptive-pool-smoke-20260704` booted the rebuilt `pokeemerald.gba`, exported `/tmp/adaptive-pool-smoke-20260704.png`, and Lua returned `{ok=true, validation=adaptive_pool_smoke_20260704}` on a 10-second retry after an initial 5-second timeout. A follow-up session `adaptive-pool-elite-double-smoke-20260704` booted the same updated ROM after adding the Elite double fixture, exported `/tmp/adaptive-pool-elite-double-smoke-20260704.png`, returned Lua `{ok=true, validation=adaptive_pool_elite_double_smoke_20260704}`, and stopped cleanly. After correcting the adaptive tag map, session `adaptive-tag-map-smoke-20260704` booted the rebuilt ROM, exported `/tmp/adaptive-tag-map-smoke-20260704.png`, returned Lua `{ok=true, validation=adaptive_tag_map_smoke_20260704}`, and stopped cleanly. Existing sessions `manual-ai-watch-20260704c` and stale `read-gimmick-pressure-20260630` were left untouched. |
 
 ## Open Questions
 
