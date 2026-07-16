@@ -25,6 +25,7 @@
 #include "constants/items.h"
 #include "constants/moves.h"
 #include "config/save.h"
+#include "battle_team.h"
 
 // Prevent cross-jump optimization.
 #define BLOCK_CROSS_JUMP asm("");
@@ -271,6 +272,7 @@ struct SaveBlock3
 #if APRICORN_TREE_COUNT > 0
     u8 apricornTrees[NUM_APRICORN_TREE_BYTES];
 #endif
+    struct BattleTeamRegistry battleTeamRegistry;
 }; /* max size 1624 bytes */
 
 extern struct SaveBlock3 *gSaveBlock3Ptr;

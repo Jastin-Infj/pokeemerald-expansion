@@ -59,6 +59,22 @@ the next integration step is to combine it with the Smart Gimmick AI branch and
 map the debug route to read-mode / smart-gimmick AI presets plus battle action
 logging.
 
+## Battle Team Boxes Extension
+
+The stacked `feature/battle-team-boxes-20260716` branch extends this module
+without changing the legacy route contract:
+
+- Candidate and final result metadata now retain both Box ID and Box position.
+- `BOX_NPC_POOL_REGISTERED_BATTLE_TEAM` reads one complete six-member team.
+- Team sources may span any Pokemon Storage Boxes.
+- Debug menus expose Team 1-3 first/random routes for 3v3 singles and 4v4
+  doubles, while all six legacy Box 1 routes remain available.
+- Candidate/final debug logs now print `box:slot` pairs.
+
+The registry, Pokemon Storage UI, source locks, save migration, and extension
+validation are documented under
+[Battle Team Boxes](../battle_team_boxes/implementation.md).
+
 ## Validation
 
 Completed on July 5, 2026:

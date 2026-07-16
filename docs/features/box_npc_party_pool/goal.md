@@ -6,6 +6,11 @@ Implemented as the standalone MVP on
 `feature/box-npc-party-pool-20260705`. This document remains the dependency
 survey and design record for the runtime implementation.
 
+The follow-up `feature/battle-team-boxes-20260716` is stacked on this branch. It
+generalizes source metadata from a Box 1 slot to `{boxId, boxPosition}` and adds
+registered six-member teams without removing the legacy Box 1 routes. See
+[Battle Team Boxes goal](../battle_team_boxes/goal.md).
+
 ## Purpose
 
 Create a debug-friendly opponent party source where Pokemon stored in Pokemon
@@ -157,6 +162,8 @@ Longer-term integration direction:
 
 - Select from all boxes, not only Box 1.
 - Select from a configured box range.
+- Implemented in the Battle Team Boxes follow-up: register six ordered sources
+  from arbitrary Boxes and use a selected team as the candidate roster.
 - Weighted selection from markings, held item, level, species role, or future
   catalog tags.
 - Integrate Pokemon State Editor so the user can quickly edit EVs, IVs, level,

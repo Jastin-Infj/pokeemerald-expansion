@@ -46,6 +46,13 @@
   locally because the project handoff rule says not to block on long GitHub
   Actions runs.
 
+## Battle Team Boxes Extension
+
+The stacked follow-up adds focused tests for multi-Box registered sources,
+opponent copy healing, source preservation, registration validity, and stale
+reference cleanup. Its build, mGBA Live, and remaining manual evidence are kept
+in [Battle Team Boxes test plan](../battle_team_boxes/test_plan.md).
+
 ## Behavioral Cases To Confirm
 
 - Confirmed for current save invalid slots: fixed-slot route rejects before
