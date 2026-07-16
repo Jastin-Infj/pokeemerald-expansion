@@ -60,6 +60,7 @@
 | `POOL_PRUNE_NONE` | prune なし。 |
 | `POOL_PRUNE_TEST` | test prune。 |
 | `POOL_PRUNE_RANDOM_TAG` | random tag prune。 |
+| `POOL_PRUNE_OPPONENT_ADAPTIVE` | player party の速度・天候/伝説級火力・setup/support 傾向を見て `Tag6` / `Tag7` / `Tag8` の戦術群へ寄せる prune。 |
 | `MON_POOL_TAG_LEAD` | lead tag。 |
 | `MON_POOL_TAG_ACE` | ace tag。 |
 | `MON_POOL_TAG_WEATHER_SETTER` | weather setter tag。 |
@@ -112,6 +113,24 @@ flowchart TD
 
 `RandomizePoolIndices` は party index の shuffle を行う。`AI_FLAG_RANDOMIZE_PARTY_INDICES` がある場合、poolSize 0 でも partySize を temporary pool として扱う path があることを確認した。
 
+Runtime variability check:
+
+- `B_POOL_SETTING_CONSISTENT_RNG == FALSE` かつ
+  `B_POOL_SETTING_USE_FIXED_SEED == FALSE` では、pool shuffle は global
+  `Random32()` を使う。テスト `Trainer Party Pool varies across runtime RNG
+  seeds` は、同じ pool trainer でも `SeedRng()` を変えると選出結果が変わる
+  ことを確認する。
+- 同じ seed / 同じ frame の debug entry point、prebattle preview cache、
+  `Pool Pick Functions: Lowest`、候補が slot ごとに 1 体まで絞られる rules /
+  tags、または illegal pool fallback では、runtime が同じ party を出している
+  ように見える。
+- `Pool Weight` が指定された trainer は weighted shuffle を使う。重みは
+  Lead / Ace / Other の scan 前の pool order にだけ効くため、slot tag と
+  rules は hard constraint のまま残る。高 weight の通常候補が Lead tag
+  候補を押しのけることはない。
+- `Pool Pick Functions: Lowest` は original pool index を優先するため、weight
+  の影響をほぼ受けない。固定順検証用として扱う。
+
 ## Config
 
 `include/config/battle.h` で確認した pool 関連 config:
@@ -139,8 +158,13 @@ flowchart TD
 | `Pool Pick Functions` | `.poolPickIndex`。 |
 | `Pool Prune` | `.poolPruneIndex`。 |
 | `Copy Pool` | `.overrideTrainer` など。 |
+| `Pool Weight` | Pokemon block の `.poolWeight`。1-15、未指定は runtime で 1 扱い。 |
 
 Randomizer 風の trainer party 並び替えは、既存の Trainer Party Pools と `AI_FLAG_RANDOMIZE_PARTY_INDICES` でかなり近いことが確認できた。
+
+`POOL_PRUNE_OPPONENT_ADAPTIVE` は trainer の pool を戦術タグ別に束ねる用途。2026-07-04 時点の運用では
+`Tag6` を高速展開 / 即時圧、`Tag7` を天候・伝説級火力、`Tag8` を妨害・低速 / support 対策として使う。
+runtime は prune 後に `PickMonFromPool()` が party size 分成立するかローカルコピーで確認し、成立しないタグには絞らない。
 
 注意: `trainerproc` は `Party Size` 行があると、`Party Size` が定義 Pokemon 数と同じでも `.poolSize = pokemon_n` を出力する。ここでいう「固定 party」は「source に書いた順番のまま pool を通さず出す party」の意味。`Party Size` と候補数が同じ場合でも、全員は出るが `DoTrainerPartyPool` / `RandomizePoolIndices` / Lead / Ace / custom pick の path に入るため、固定順とは限らない。
 
@@ -177,7 +201,7 @@ Level: 50
 Tags: Ace
 ```
 
-既存 tutorial は [How to use Trainer Party Pools](../../tutorials/how_to_trainer_party_pool.md)。Lead / Ace / Weather Setter / Weather Abuser / Support などの tag を付けると、単純な完全 random ではなく「先発候補」「切り札候補」「天候役」のような役割を残せる。
+既存 tutorial は [How to use Trainer Party Pools](../../tutorials/how_to_trainer_party_pool.md)。Lead / Ace / Weather Setter / Weather Abuser / Support などの tag を付けると、単純な完全 random ではなく「先発候補」「切り札候補」「天候役」のような役割を残せる。`Pool Weight` はその役割候補内の出やすさを調整するために使う。
 
 ## Runtime Pool vs External Generator
 
