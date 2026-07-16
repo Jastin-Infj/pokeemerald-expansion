@@ -115,6 +115,7 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
 
 ## Merge Handoff
 
-This is an implementation branch and is not eligible for a docs-only `master`
-merge. While Box NPC PR #74 remains open, review this as a stacked PR with base
-`feature/box-npc-party-pool-20260705`. Do not merge either PR automatically.
+This implementation is staged as draft PR #75 and is not eligible for a
+docs-only `master` merge. While Box NPC PR #74 remains open, review it as a
+stacked PR with base `feature/box-npc-party-pool-20260705`. Do not merge either
+PR automatically.
