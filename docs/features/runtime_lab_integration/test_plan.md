@@ -120,5 +120,6 @@ Local handoff results on July 16, 2026:
   `8a473503ee281dd83ef7d93904a0c7b946348ea9` and
   `d77376aec91336a2d066526fa710f015d70bb520`; both exactly match the
   integration commit versions used by the successful combined mGBA Live run.
-- GitHub PR metadata and `docs_validate` remain pending until the handoff
-  branch is pushed.
+- Master handoff PR #79 targets `master`, reports the same 32-file scope, and
+  is mergeable. Its first-head `docs_validate` passed in 11 seconds. Long
+  build/test Actions were pending and were intentionally not re-waited.
