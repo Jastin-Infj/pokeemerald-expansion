@@ -20,9 +20,18 @@ single/double routes, reproduced the fixed-slot invalid-Box rejection, then used
 `Single slots 1-6`. The live battle showed three opponent party markers and the
 `gPartiesCount` bytes at `0x02031c20` were `[1, 3, 0, 0]`.
 
-This is a runtime reapply PR into the dedicated integration target. It is not a
-docs / Lua-only master PR. Battle Team Boxes and Smart Gimmick AI are excluded
-and require their own later PRs.
+This gate records the Box-only runtime reapply merged as PR #76. It was not a
+docs / Lua-only master PR. Battle Team Boxes and Smart Gimmick AI were excluded
+from that first PR and require their own later PRs.
+
+## Battle Team Boxes Integration
+
+Box reapply PR #76 merged into the dedicated integration target before the
+Battle Team candidate was created. The dependent reapply adds focused tests for
+multi-Box registered sources, opponent copy healing, source preservation,
+registration validity, stale reference cleanup, and the intentional SaveBlock3
+size change. Its fresh integration validation is kept in
+[Battle Team Boxes test plan](../battle_team_boxes/test_plan.md).
 
 ## Local Build Checks
 

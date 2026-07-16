@@ -58,8 +58,8 @@ current `master` `1f77705e45`:
 The GitHub repository currently reports no `master` branch protection and no
 matching ruleset. Repository policy is therefore enforced by branch lineage,
 PR base/head inspection, complete file-list review, and the docs / Lua-only
-master gate. This runtime candidate targets only the dedicated integration
-branch and must not be retargeted or merged into `master`.
+master gate. The Box-only candidate targeted the dedicated integration branch
+and merged as PR #76; it was never eligible for `master`.
 
 Fresh reapply validation passed:
 
@@ -72,6 +72,23 @@ Fresh reapply validation passed:
 - Live `gPartiesCount` bytes were `[1, 3, 0, 0]`, confirming one player party
   member and three opponent members for the tested singles route.
 - The session stopped cleanly and final managed status was `[]`.
+
+## Battle Team Boxes Integration Extension
+
+After Box reapply PR #76 merged at `17b67dfe98`, the dependent candidate
+`integration/runtime-lab-battle-team-pr-20260716` extends this module without
+changing the legacy route contract:
+
+- Candidate and final result metadata retain both Box ID and Box position.
+- `BOX_NPC_POOL_REGISTERED_BATTLE_TEAM` reads one complete six-member team.
+- Team sources may span any Pokemon Storage Boxes.
+- Debug menus expose Team 1-3 first/random routes for 3v3 singles and 4v4
+  doubles, while all six legacy Box 1 routes remain available.
+- Candidate/final debug logs print `box:slot` pairs.
+
+The registry, Pokemon Storage UI, source locks, SaveBlock3 migration, and
+extension validation are documented under
+[Battle Team Boxes](../battle_team_boxes/implementation.md).
 
 ## Not In This Slice
 

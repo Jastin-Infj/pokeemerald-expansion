@@ -6,6 +6,36 @@ The implementation adds a persistent three-by-six Box reference registry, a
 Pokemon Storage management UI, registered-source protection, and Box NPC debug
 battle routes for each team.
 
+## July 16, 2026 Runtime-Lab Reapply
+
+- Integration target before this slice: `17b67dfe98`, produced by merged Box
+  NPC reapply PR #76.
+- Candidate: `integration/runtime-lab-battle-team-pr-20260716`.
+- Source shelf: `feature/battle-team-boxes-20260716` at `ba98fed382`, draft
+  PR #75.
+- Reapplied commits: `993549034c`, `71518fec1d`, and `ba98fed382`.
+- Runtime/source files match the standalone Battle Team shelf; the only
+  additional differences from that shelf are newer Box integration handoff
+  documentation.
+- The reapplied Battle Team slice changes 19 files. The final PR changes 23
+  files after adding four Box-side integration handoff documents. The
+  highest-risk contracts are the SaveBlock3 increase from 4 to 84 bytes and the
+  registered-source restrictions across Pokemon Storage destructive actions.
+- This candidate does not contain Smart Gimmick AI and does not target
+  `master`.
+
+Fresh validation passed:
+
+- `rtk make -j16 -O all`.
+- `rtk make -j16 -O debug`.
+- `rtk make -j16 -O check`.
+- mGBA Live session `battle-team-reapply-20260716` continued the existing
+  copied save, rendered the Battle Team list and empty six-slot grid, opened the
+  register action and Box-only selector, returned to the same manager slot on
+  cancel, rendered all four Team 1 battle modes, and rejected the incomplete
+  team with `Battle Team needs six valid Pokemon.`.
+- The session stopped cleanly and final managed status was `[]`.
+
 ## Runtime Changes
 
 ### Registry

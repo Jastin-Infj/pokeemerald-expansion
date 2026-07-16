@@ -5,6 +5,11 @@
 Implemented on `feature/battle-team-boxes-20260716` as a stacked extension of
 `feature/box-npc-party-pool-20260705` at `71e9d602f0`.
 
+On July 16, 2026, its three commits were reapplied onto the dedicated
+runtime-lab target after Box NPC PR #76 merged. The fresh candidate is
+`integration/runtime-lab-battle-team-pr-20260716`; Smart Gimmick AI is not in
+this PR.
+
 The implementation branch is intentionally separate from Smart Gimmick AI.
 Box-authored opponent teams are useful to that AI, but team storage and AI move
 selection have different ownership and validation risk.

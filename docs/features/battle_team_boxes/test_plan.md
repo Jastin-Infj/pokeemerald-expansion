@@ -1,5 +1,29 @@
 # Battle Team Boxes Test Plan
 
+## Fresh Reapply Gate - July 16, 2026
+
+| Check | Result |
+|---|---|
+| Base | Box NPC integration merge `17b67dfe98` from PR #76 |
+| Source shelf | `feature/battle-team-boxes-20260716` at `ba98fed382`; PR #75 |
+| Source comparison | Runtime/source files match the standalone Battle Team shelf |
+| Diff scope | 23 files total: 19-file Battle Team slice plus 4 Box integration handoff docs |
+| `rtk make -j16 -O all` | Passed; existing linker RWX and source PNG warnings only |
+| `rtk make -j16 -O debug` | Passed; existing linker RWX warning only |
+| `rtk make -j16 -O check` | Passed; existing test-runner format and linker RWX warnings only |
+| mGBA Live | Passed `battle-team-reapply-20260716`; final status `[]` |
+
+The fresh mGBA run used copied ROM/save files under `/tmp`. It confirmed old
+save continuation, lazy empty-registry initialization, Team 1-3 list rendering,
+the six-slot grid, register/cancel actions, Box-only selection, return to the
+same manager slot, all four Team 1 battle modes, and incomplete-team rejection.
+The exhaustive standalone evidence for six registrations, battle construction,
+source-byte preservation, in-game save, process restart, and registry
+persistence remains recorded below and in PR #75.
+
+This is the second runtime-lab PR and targets only the dedicated integration
+branch. It must not be retargeted to `master`.
+
 ## Automated Checks
 
 | Check | Result |

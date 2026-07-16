@@ -12,6 +12,12 @@ On July 16, 2026, the validated standalone slice was reapplied onto the fresh
 runtime-lab PR. Battle Team Boxes follows it as the dependent second PR, and
 Smart Gimmick AI remains a separate third reapply PR.
 
+Box reapply PR #76 is merged into the dedicated integration target at
+`17b67dfe98`. The second candidate
+`integration/runtime-lab-battle-team-pr-20260716` generalizes source metadata
+to `{boxId, boxPosition}` and adds registered six-member teams without removing
+the legacy Box 1 routes. See [Battle Team Boxes goal](../battle_team_boxes/goal.md).
+
 ## Purpose
 
 Create a debug-friendly opponent party source where Pokemon stored in Pokemon
@@ -164,6 +170,8 @@ Longer-term integration direction:
 
 - Select from all boxes, not only Box 1.
 - Select from a configured box range.
+- Implemented by the dependent Battle Team reapply: register six ordered
+  sources from arbitrary Boxes and use a selected team as the candidate roster.
 - Weighted selection from markings, held item, level, species role, or future
   catalog tags.
 - Integrate Pokemon State Editor so the user can quickly edit EVs, IVs, level,
