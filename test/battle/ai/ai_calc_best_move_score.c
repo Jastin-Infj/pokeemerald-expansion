@@ -261,7 +261,8 @@ AI_SINGLE_BATTLE_TEST("Belly Drum - physical move >50pct damage vs ice face alre
         PLAYER(SPECIES_EMBOAR){ Level(44); Nature(NATURE_ADAMANT); Ability(ABILITY_BLAZE); Item(ITEM_MUSCLE_BAND); HP(164); MaxHP(164); Speed(75); Moves(MOVE_EARTHQUAKE); }
         OPPONENT(SPECIES_EISCUE_NOICE){ Level(42); Nature(NATURE_JOLLY); Ability(ABILITY_ICE_FACE); Item(ITEM_SALAC_BERRY); HP(128); MaxHP(128); Speed(139); Moves(MOVE_BELLY_DRUM, MOVE_ICICLE_CRASH, MOVE_LIQUIDATION); }
     } WHEN {
-        TURN { MOVE(player, MOVE_EARTHQUAKE); EXPECT_MOVE(opponent, MOVE_LIQUIDATION); }
+        // No clean damage race remains, so the smart fallback uses flinch odds.
+        TURN { MOVE(player, MOVE_EARTHQUAKE); EXPECT_MOVE(opponent, MOVE_ICICLE_CRASH); }
     }
 }
 
