@@ -12,6 +12,7 @@ enum BoxNpcPartyPoolMode
     BOX_NPC_POOL_BOX1_SLOTS_1_TO_6,
     BOX_NPC_POOL_BOX1_FIRST_VALID_6,
     BOX_NPC_POOL_BOX1_RANDOM_VALID_6,
+    BOX_NPC_POOL_REGISTERED_BATTLE_TEAM,
 };
 
 enum BoxNpcBattleFormat
@@ -38,6 +39,8 @@ enum BoxNpcPartyPoolError
     BOX_NPC_PARTY_POOL_ERROR_STORAGE_UNAVAILABLE,
     BOX_NPC_PARTY_POOL_ERROR_FIXED_SLOT_INVALID,
     BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_VALID_MONS,
+    BOX_NPC_PARTY_POOL_ERROR_INVALID_BATTLE_TEAM,
+    BOX_NPC_PARTY_POOL_ERROR_BATTLE_TEAM_INCOMPLETE,
 };
 
 struct BoxNpcPartyPoolConfig
@@ -46,16 +49,17 @@ struct BoxNpcPartyPoolConfig
     enum BoxNpcBattleFormat battleFormat;
     enum BoxNpcBattleMemberMode memberMode;
     enum BoxNpcOpponentGimmickPolicy gimmickPolicy;
+    u8 battleTeamId;
     u64 aiFlags;
 };
 
 struct BoxNpcPartyPoolResult
 {
-    u8 boxId;
-    u8 candidateSlots[BOX_NPC_CANDIDATE_ROSTER_SIZE];
-    u8 finalSlots[PARTY_SIZE];
+    struct BattleTeamSlot candidateSources[BOX_NPC_CANDIDATE_ROSTER_SIZE];
+    struct BattleTeamSlot finalSources[PARTY_SIZE];
     u8 candidateCount;
     u8 battleCount;
+    u8 battleTeamId;
     enum BoxNpcPartyPoolMode poolMode;
     enum BoxNpcBattleFormat battleFormat;
     enum BoxNpcBattleMemberMode memberMode;

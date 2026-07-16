@@ -92,12 +92,13 @@
 enum PcMonSelectionType
 {
     SELECT_PC_MON_NORMAL,
-    SELECT_PC_MON_TRADE, // Also used for Lotad / Seedot size check
+    SELECT_PC_MON_TRADE,
     SELECT_PC_MON_DAYCARE,
     SELECT_PC_MON_MOVE_TUTOR,
     SELECT_PC_MON_MOVE_DELETER,
     SELECT_PC_MON_MOVE_RELEARNER,
     SELECT_PC_MON_EVOLUTION,
+    SELECT_PC_MON_SIZE_CHECK,
 };
 
 enum CanMoveBeLearned

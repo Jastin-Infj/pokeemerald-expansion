@@ -29,7 +29,8 @@ struct PcMonSelection
     u32       (*isMonInvalid)(struct BoxPokemon *);
     const u8* postSelectionScript;
     u32       isStrict:1;
-    u32       padding:31;
+    u32       removesFromStorage:1;
+    u32       padding:30;
 };
 
 static EWRAM_DATA u8 sSelectionType = 0;
@@ -45,13 +46,14 @@ static u32 ChooseBoxMon_CanEvolve(struct BoxPokemon *boxmon);
 
 static const struct PcMonSelection sPcMonSelectionTypes[] =
 {
-    [SELECT_PC_MON_NORMAL] = {ChoosePartyMon, ChooseBoxMon_NoFilter, NULL, FALSE},
-    [SELECT_PC_MON_TRADE] = {ChoosePartyMon, ChooseBoxMon_IsMatchingSpecies, NULL, FALSE},
-    [SELECT_PC_MON_DAYCARE] = {ChooseSendDaycareMon, ChooseBoxMon_IsNotEgg, NULL, TRUE},
-    [SELECT_PC_MON_MOVE_TUTOR] = {ChooseMonForMoveTutor, ChooseBoxMon_CanMonLearnSpecialVarMove, MoveTutor_AfterChooseBoxMon, FALSE},
-    [SELECT_PC_MON_MOVE_DELETER] = {ChoosePartyMon, ChooseBoxMon_CanMonDeleteMove, NULL, FALSE},
-    [SELECT_PC_MON_MOVE_RELEARNER] = {ChooseMonForMoveRelearner, ChooseBoxMon_CanRelearnMoves, NULL, FALSE},
-    [SELECT_PC_MON_EVOLUTION] = {ChoosePartyMon, ChooseBoxMon_CanEvolve, NULL, FALSE},
+    [SELECT_PC_MON_NORMAL] = {ChoosePartyMon, ChooseBoxMon_NoFilter, NULL, FALSE, FALSE},
+    [SELECT_PC_MON_TRADE] = {ChoosePartyMon, ChooseBoxMon_IsMatchingSpecies, NULL, FALSE, TRUE},
+    [SELECT_PC_MON_DAYCARE] = {ChooseSendDaycareMon, ChooseBoxMon_IsNotEgg, NULL, TRUE, TRUE},
+    [SELECT_PC_MON_MOVE_TUTOR] = {ChooseMonForMoveTutor, ChooseBoxMon_CanMonLearnSpecialVarMove, MoveTutor_AfterChooseBoxMon, FALSE, FALSE},
+    [SELECT_PC_MON_MOVE_DELETER] = {ChoosePartyMon, ChooseBoxMon_CanMonDeleteMove, NULL, FALSE, FALSE},
+    [SELECT_PC_MON_MOVE_RELEARNER] = {ChooseMonForMoveRelearner, ChooseBoxMon_CanRelearnMoves, NULL, FALSE, FALSE},
+    [SELECT_PC_MON_EVOLUTION] = {ChoosePartyMon, ChooseBoxMon_CanEvolve, NULL, FALSE, FALSE},
+    [SELECT_PC_MON_SIZE_CHECK] = {ChoosePartyMon, ChooseBoxMon_IsMatchingSpecies, NULL, FALSE, FALSE},
 };
 
 static u32 ChooseBoxMon_NoFilter(struct BoxPokemon *boxmon)
@@ -141,6 +143,12 @@ bool32 CanBoxMonBeSelected(struct BoxPokemon *boxmon)
     if (!sPcMonSelectionTypes[sSelectionType].isStrict)
         return TRUE;
     return !IsBoxMonExcluded(boxmon);
+}
+
+bool32 DoesCurrentBoxMonSelectionRemoveFromStorage(void)
+{
+    return sSelectionType < ARRAY_COUNT(sPcMonSelectionTypes)
+        && sPcMonSelectionTypes[sSelectionType].removesFromStorage;
 }
 
 static void Task_ChooseBoxMon(u8 taskId)

@@ -302,6 +302,7 @@ static void DebugAction_Party_ClearPokerus(u8 taskId);
 static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
+static void DebugAction_Party_BattleTeamManager(u8 taskId);
 static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
@@ -633,6 +634,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_EditPokemon[] =
 static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleSlotsFirst =
 {
     .poolMode = BOX_NPC_POOL_BOX1_SLOTS_1_TO_6,
+    .battleTeamId = BATTLE_TEAM_SLOT_NONE,
     .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
     .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
     .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
@@ -642,6 +644,7 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleSlotsFirst =
 static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleFirstValid =
 {
     .poolMode = BOX_NPC_POOL_BOX1_FIRST_VALID_6,
+    .battleTeamId = BATTLE_TEAM_SLOT_NONE,
     .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
     .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
     .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
@@ -651,6 +654,7 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleFirstValid =
 static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleRandom =
 {
     .poolMode = BOX_NPC_POOL_BOX1_RANDOM_VALID_6,
+    .battleTeamId = BATTLE_TEAM_SLOT_NONE,
     .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
     .memberMode = BOX_NPC_BATTLE_MEMBERS_RANDOM_N,
     .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
@@ -660,6 +664,7 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleRandom =
 static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleSlotsFirst =
 {
     .poolMode = BOX_NPC_POOL_BOX1_SLOTS_1_TO_6,
+    .battleTeamId = BATTLE_TEAM_SLOT_NONE,
     .battleFormat = BOX_NPC_BATTLE_DOUBLE_4,
     .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
     .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
@@ -669,6 +674,7 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleSlotsFirst =
 static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleFirstValid =
 {
     .poolMode = BOX_NPC_POOL_BOX1_FIRST_VALID_6,
+    .battleTeamId = BATTLE_TEAM_SLOT_NONE,
     .battleFormat = BOX_NPC_BATTLE_DOUBLE_4,
     .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
     .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
@@ -678,13 +684,83 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleFirstValid =
 static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleRandom =
 {
     .poolMode = BOX_NPC_POOL_BOX1_RANDOM_VALID_6,
+    .battleTeamId = BATTLE_TEAM_SLOT_NONE,
     .battleFormat = BOX_NPC_BATTLE_DOUBLE_4,
     .memberMode = BOX_NPC_BATTLE_MEMBERS_RANDOM_N,
     .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
     .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
 };
 
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
+#define REGISTERED_TEAM_CONFIG(teamId_, format_, memberMode_)                         \
+    {                                                                                 \
+        .poolMode = BOX_NPC_POOL_REGISTERED_BATTLE_TEAM,                              \
+        .battleTeamId = (teamId_),                                                     \
+        .battleFormat = (format_),                                                     \
+        .memberMode = (memberMode_),                                                   \
+        .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,         \
+        .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,                                             \
+    }
+
+enum {
+    TEAM_BATTLE_SINGLE_FIRST,
+    TEAM_BATTLE_SINGLE_RANDOM,
+    TEAM_BATTLE_DOUBLE_FIRST,
+    TEAM_BATTLE_DOUBLE_RANDOM,
+    TEAM_BATTLE_MODE_COUNT,
+};
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_RegisteredTeams[BATTLE_TEAM_COUNT][TEAM_BATTLE_MODE_COUNT] =
+{
+    [0] =
+    {
+        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
+        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
+        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
+        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
+    },
+    [1] =
+    {
+        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
+        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
+        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
+        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
+    },
+    [2] =
+    {
+        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
+        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
+        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
+        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
+    },
+};
+
+#undef REGISTERED_TEAM_CONFIG
+
+#define BATTLE_TEAM_DEBUG_MENU(teamId_)                                                                                                    \
+    { COMPOUND_STRING("Single first 3"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_SINGLE_FIRST] },  \
+    { COMPOUND_STRING("Single random 3"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_SINGLE_RANDOM] }, \
+    { COMPOUND_STRING("Double first 4"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_DOUBLE_FIRST] },  \
+    { COMPOUND_STRING("Double random 4"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_DOUBLE_RANDOM] }, \
+    { NULL }
+
+static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam1[] =
+{
+    BATTLE_TEAM_DEBUG_MENU(0)
+};
+
+static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam2[] =
+{
+    BATTLE_TEAM_DEBUG_MENU(1)
+};
+
+static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam3[] =
+{
+    BATTLE_TEAM_DEBUG_MENU(2)
+};
+
+#undef BATTLE_TEAM_DEBUG_MENU
+
+static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleLegacy[] =
 {
     { COMPOUND_STRING("Single slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleSlotsFirst },
     { COMPOUND_STRING("Single first valid"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleFirstValid },
@@ -692,6 +768,16 @@ static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
     { COMPOUND_STRING("Double slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleSlotsFirst },
     { COMPOUND_STRING("Double first valid"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleFirstValid },
     { COMPOUND_STRING("Double random"),     DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleRandom },
+    { NULL }
+};
+
+static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
+{
+    { COMPOUND_STRING("Manage Battle Teams"), DebugAction_Party_BattleTeamManager },
+    { COMPOUND_STRING("Battle Team 1…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam1 },
+    { COMPOUND_STRING("Battle Team 2…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam2 },
+    { COMPOUND_STRING("Battle Team 3…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam3 },
+    { COMPOUND_STRING("Legacy Box 1 pool…"),   DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
     { NULL }
 };
 
@@ -5023,6 +5109,12 @@ static void DebugAction_Party_BattleSingle(u8 taskId)
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
     Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_BattleTeamManager(u8 taskId)
+{
+    Debug_DestroyMenu_Full(taskId);
+    ShowPokemonStorageBattleTeamManager();
 }
 
 static void DebugAction_Party_BoxNpcBattleShowMessage(u8 taskId, const u8 *message)
