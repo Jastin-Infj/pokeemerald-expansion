@@ -46,6 +46,20 @@ If using `trainers.h`, these tags are applied to mons with the field `.tags`, se
 
 Pokemon can have up to 32 different tags, but anything beyond the 8 initial tags has to be implemented. The numbered tags can be renamed too to better signify their purpose for developers.
 
+### Pool weights
+
+`Pool Weight: 1` through `Pool Weight: 15` can be applied to individual
+Pokemon in `trainers.party`. Unspecified Pokemon use weight 1.
+
+Pool weights affect the shuffled pool order before the Lead / Ace / Other pick
+functions scan it. This means tags and pool rules remain hard constraints:
+a high-weight untagged Pokemon cannot steal a Lead slot from a tagged Lead
+candidate, but among eligible Lead candidates the higher-weight one is more
+likely to be seen first.
+
+If using `trainers.h`, the equivalent field is `.poolWeight`. A value of 0 is
+treated as the default weight 1.
+
 ## Trainer options
 A few more trainer options are introduced in order to further customize how the pool picking process works.
 
@@ -103,20 +117,24 @@ Vulpix
 Ability: Drought
 Level: 4
 Tags: Lead / Weather Setter
+Pool Weight: 3
 
 Torkoal
 Ability: Drought
 Level: 4
 Tags: Lead / Weather Setter
+Pool Weight: 2
 
 Bulbasaur
 Ability: Chlorophyll
 Level: 4
 Tags: Lead / Weather Abuser
+Pool Weight: 4
 
 Cherrim
 Level: 4
 Tags: Lead / Weather Abuser
+Pool Weight: 1
 ```
 Here Tiana has been given a pool that's set up for a double battle with weather. Using the default pool rule `Weather Doubles` it will only pick one of each of the weather setters and abusers which Tiana will lead with. Tiana will also pick either Mew or Giratina as her Ace mon, and the last slot will be filled with one of Zigzagoon, Shroomish, Psyduck or Shellder.
 
@@ -127,3 +145,28 @@ This file also has settings for other pool options.
 - `B_POOL_SETTING_CONSISTENT_RNG`, `TRUE` or `FALSE`, the party generated will always be the same on a particular save (RNG dependant on trainerId and encountered trainer).
 - `B_POOL_SETTING_USE_FIXED_SEED`, `TRUE` or `FALSE`, the party generated will always be the same on a particular compiled ROM (RNG dependant on a chosen seed and encountered trainer).
 - `B_POOL_SETTING_FIXED_SEED`, seed to use for fixed seed, does nothing if `B_POOL_SETTING_USE_FIXED_SEED` is `FALSE`.
+
+## Debugging repeated pool results
+
+The runtime pool randomizer shuffles the pool order in `src/trainer_pools.c`
+before applying the lead / ace / other pick functions. With the default pick
+functions, different runtime RNG seeds can produce different selected Pokemon.
+If a trainer appears to produce the same party every time, check these cases
+first:
+
+- `B_POOL_SETTING_CONSISTENT_RNG` or `B_POOL_SETTING_USE_FIXED_SEED` is enabled.
+- The trainer uses `Pool Pick Functions: Lowest`, which intentionally prefers
+  the lowest original pool index and ignores most of the shuffled order.
+- The pool rules / tags leave only one valid candidate for each slot. Weight
+  only applies among candidates that survive the slot tags and pool rules.
+- The pool is illegal for the requested party size, causing the engine to fall
+  back to the trainer's source order.
+- The encounter is using a prebattle preview / team-view cache; in that route,
+  battle init should consume the same generated party that was previewed.
+- A test or debug entry point starts from the same RNG seed and same frame every
+  time. The unit test runner intentionally seeds RNG with 0 unless a test
+  changes it.
+
+Pokemon-specific pool weights are runtime weights, not legality filters. Use
+tags, pool rules, and prune functions to decide what can appear, then use
+`Pool Weight` to bias which eligible candidate appears more often.

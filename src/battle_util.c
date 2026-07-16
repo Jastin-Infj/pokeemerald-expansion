@@ -8429,7 +8429,7 @@ bool32 CanMegaEvolve(enum BattlerId battler)
     // Check if Player has a Mega Ring.
     if (!TESTING
         && (position == B_POSITION_PLAYER_LEFT || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && position == B_POSITION_PLAYER_RIGHT))
-        && !CheckBagHasItem(ITEM_MEGA_RING, 1))
+        && !HasGimmickAccess(battler, GIMMICK_MEGA))
         return FALSE;
 
     // Check if Trainer has already Mega Evolved.
@@ -8470,7 +8470,7 @@ bool32 CanUltraBurst(enum BattlerId battler)
     // Check if Player has a Z-Ring
     if (!TESTING && (position == B_POSITION_PLAYER_LEFT
         || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && position == B_POSITION_PLAYER_RIGHT))
-        && !CheckBagHasItem(ITEM_Z_POWER_RING, 1))
+        && !HasGimmickAccess(battler, GIMMICK_ULTRA_BURST))
         return FALSE;
 
     // Check if Trainer has already Ultra Bursted.
@@ -9341,6 +9341,20 @@ enum MoveTarget GetBattlerMoveTargetType(enum BattlerId battler, enum Move move)
 
 bool32 CanTargetBattler(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move)
 {
+    if (battlerAtk == battlerDef)
+    {
+        switch (GetBattlerMoveTargetType(battlerAtk, move))
+        {
+        case TARGET_USER:
+        case TARGET_USER_OR_ALLY:
+        case TARGET_USER_AND_ALLY:
+        case TARGET_FIELD:
+        case TARGET_ALL_BATTLERS:
+            break;
+        default:
+            return FALSE;
+        }
+    }
     if (GetMoveEffect(move) == EFFECT_HIT_ENEMY_HEAL_ALLY
     &&  IsBattlerAlly(battlerAtk, battlerDef)
     &&  gBattleMons[battlerAtk].volatiles.healBlock)

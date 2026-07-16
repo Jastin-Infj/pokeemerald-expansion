@@ -4,6 +4,48 @@
 
 The feature adds smart timing flags for battle gimmicks, expands Dynamax timing beyond immediate damage, adds Mega / Ultra Burst payoff checks, adds a smart conservation layer for damaging Z-Moves, tunes Protect as a board-payoff move instead of a passive default, and provides debug battle fixtures for competitive-style 3v3 singles, 4v4 doubles, and Dmax-vs-Z checks.
 
+## Completion Handoff
+
+Status on July 16, 2026: accepted as an interim-complete Smart Gimmick AI
+snapshot. No further tactical tuning is planned on this branch before the
+Battle Team integration line is created.
+
+- Runtime branch: `feature/smart-gimmick-ai-16-20260604`.
+- Runtime code completion commit: `46ed9d403f`.
+- Current-master documentation ancestry merge: `dd55f9a45d`.
+- Review shelf: draft PR #72, targeting `master` but not approved for runtime
+  merge under the repository's master policy.
+- The old PR check failure contained four AI thinking-time ceilings and one
+  pre-desperation Eiscue move expectation. The completion commit keeps the
+  ordinary no-flag ceilings unchanged, gives bounded Smart/read-mode analysis
+  approximately ten percent headroom over measured frame counts, and records
+  the intended no-clean-line flinch fallback.
+- Remaining full two-to-three-turn search, richer candidate traces, broad ally
+  order planning, and longer recovery/chip simulation are accepted backlog for
+  a later planner feature. They are not silently represented as complete.
+
+Completion validation:
+
+- `rtk make -j16 -O check`: passed after the five old PR failures were closed.
+- Focused thinking-time filter: all six tests passed; no-flag singles and
+  doubles ceilings remain unchanged.
+- Focused Eiscue fallback regression: passed with the intentional Icicle Crash
+  flinch line when no clean damage race remains.
+- `rtk make -j16 -O all`: passed.
+- `rtk make -j16 -O debug`: passed.
+- `rtk mdbook build docs`: passed with the existing missing root
+  `CHANGELOG.md`, `CREDITS.md` closing-tag, and large search-index warnings.
+- mGBA Live session `smart-ai-completion-20260716` booted the rebuilt debug ROM,
+  continued the copied save, rendered the complete Gauntlet Battles menu,
+  started `Read Single`, advanced through a live first turn to forced party
+  replacement, returned to the overworld, and stopped cleanly. Final managed
+  session status was `[]`.
+
+Integration order after this handoff is Smart Gimmick AI, Box NPC Party Pool,
+then Battle Team Boxes on a new `integration/*` branch. The integration branch
+owns its own conflict resolution, validation evidence, and PR. It does not
+change the docs/Lua-only policy for `master`.
+
 Runtime files:
 
 - `include/constants/battle_ai.h`

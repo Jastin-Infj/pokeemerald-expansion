@@ -56,6 +56,7 @@ Optional fields for Pokemon:
     - Gigantamax (Yes/No, sets to Gigantamax factor)
                  (doesn't do anything to Pokemon without a Gigantamax form, also sets "shouldDynamax" to True)
     - Tera Type (Set to a Type, either Fire or TYPE_FIRE, also sets "shouldTerastal" to True)
+    - Z Move (Yes/No, marks this Pokemon as an explicit trainer Z-Move candidate; ordinary Z-Move use still requires a matching Z-Crystal and Z-Power access)
 Moves are defined with a - (dash) followed by a single space, then the move name.
 Either "- Tackle" or "- MOVE_TACKLE" works. One move per line.
 Moves have to be the last lines of a Pokemon.
@@ -16877,3 +16878,258 @@ Double Battle: No
 Kyogre
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+=== TRAINER_SMART_GIMMICK_DMAX_CONSERVE ===
+Name: GIM DMAX1
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Dynamax Only
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+=== TRAINER_SMART_GIMMICK_DMAX_LAST ===
+Name: GIM DMAX2
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Dynamax Only
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+=== TRAINER_SMART_GIMMICK_MEGA_SETUP ===
+Name: GIM MEGA
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Force Setup First Turn / Omniscient / Gimmick Env All
+
+Venusaur @ Venusaurite
+Calm Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Growth
+- Sludge Bomb
+
+=== TRAINER_SMART_GIMMICK_Z_MOVE ===
+Name: GIM Z
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env All
+
+Wobbuffet @ Normalium Z
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Quick Attack
+
+=== TRAINER_SMART_GIMMICK_TERA_ONLY ===
+Name: GIM TERA
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Tera Only
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Water
+- Aqua Tail
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+
+=== TRAINER_SMART_GIMMICK_DMAX_TERA ===
+Name: GIM DT
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Omniscient / Gimmick Env Dynamax Tera
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Water
+- Aqua Tail
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+Dynamax Level: 10
+- Scratch
+
+=== TRAINER_SMART_GIMMICK_ALL_SINGLE ===
+Name: GIM ALL1
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer / Force Setup First Turn / Omniscient / Gimmick Env All
+
+Venusaur @ Venusaurite
+Calm Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Growth
+- Sludge Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Water
+- Aqua Tail
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Dynamax Level: 10
+- Scratch
+
+Wobbuffet @ Normalium Z
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Quick Attack
+
+=== TRAINER_SMART_GIMMICK_ALL_DOUBLE ===
+Name: GIM ALL2
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: Yes
+AI: Basic Trainer / Force Setup First Turn / Omniscient / Gimmick Env All
+
+Venusaur @ Venusaurite
+Calm Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Growth
+- Sludge Bomb
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Tera Type: Water
+- Aqua Tail
+
+Wobbuffet
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+Dynamax Level: 10
+- Scratch
+
+Wobbuffet @ Normalium Z
+Brave Nature
+Level: 100
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Quick Attack
+
+=== TRAINER_SMART_SWITCH_DEBUG ===
+Name: SW DEBUG
+Class: Rival
+Pic: Steven
+Gender: Male
+Music: Intense
+Double Battle: Yes
+AI: Basic Trainer / Smart Switching / Smart Mon Choices / Omniscient / Predict Move
+
+Zigzagoon
+Brave Nature
+Level: 60
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Spore
+- Reflect
+- Celebrate
+
+Zigzagoon
+Brave Nature
+Level: 60
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 6 SpD
+- Celebrate
+
+Slowbro
+Modest Nature
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 SpA / 6 Def
+- Scald
+- Psybeam
+- Slack Off
+
+Ursaring
+Adamant Nature
+Ability: Guts
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Atk / 6 Def
+- Facade
+- Slash
+
+Gengar
+Timid Nature
+Level: 80
+IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 6 HP / 252 SpA / 252 Spe
+- Shadow Ball
+- Sludge Bomb

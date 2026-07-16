@@ -12,6 +12,12 @@ enum Gimmick
     GIMMICKS_COUNT,
 };
 
+#define GIMMICK_ACCESS_MEGA_RING       (1 << 0)
+#define GIMMICK_ACCESS_Z_POWER_RING    (1 << 1)
+#define GIMMICK_ACCESS_DYNAMAX_BAND    (1 << 2)
+#define GIMMICK_ACCESS_TERA_ORB        (1 << 3)
+#define GIMMICK_ACCESS_ALL             (GIMMICK_ACCESS_MEGA_RING | GIMMICK_ACCESS_Z_POWER_RING | GIMMICK_ACCESS_DYNAMAX_BAND | GIMMICK_ACCESS_TERA_ORB)
+
 struct GimmickInfo
 {
     const struct SpritePalette *triggerPal;        // trigger gfx data
@@ -29,6 +35,9 @@ bool32 IsGimmickSelected(enum BattlerId battler, enum Gimmick gimmick);
 void SetActiveGimmick(enum BattlerId battler, enum Gimmick gimmick);
 enum Gimmick GetActiveGimmick(enum BattlerId battler);
 bool32 ShouldTrainerBattlerUseGimmick(enum BattlerId battler, enum Gimmick gimmick);
+bool32 HasGimmickAccessOverride(enum Gimmick gimmick);
+bool32 HasGimmickAccess(enum BattlerId battler, enum Gimmick gimmick);
+bool32 IsDynamaxBattleEnabled(enum BattlerId battler);
 bool32 HasTrainerUsedGimmick(enum BattlerId battler, enum Gimmick gimmick);
 void SetGimmickAsActivated(enum BattlerId battler, enum Gimmick gimmick);
 

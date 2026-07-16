@@ -3,6 +3,7 @@
 
 #include "battle_ai_main.h"
 #include "battle_ai_field_statuses.h"
+#include "constants/items.h"
 
 // Roll boundaries used by AI when scoring. Doesn't affect actual damage dealt.
 #define MAX_ROLL_PERCENTAGE DMG_ROLL_PERCENT_HI
@@ -53,6 +54,67 @@ enum AIPivot
     SHOULD_PIVOT,
 };
 
+#define AI_MOVE_KNOWLEDGE_NONE               0
+#define AI_MOVE_KNOWLEDGE_CONTACT            (1u <<  0)
+#define AI_MOVE_KNOWLEDGE_SOUND              (1u <<  1)
+#define AI_MOVE_KNOWLEDGE_BALLISTIC          (1u <<  2)
+#define AI_MOVE_KNOWLEDGE_POWDER             (1u <<  3)
+#define AI_MOVE_KNOWLEDGE_SLICING            (1u <<  4)
+#define AI_MOVE_KNOWLEDGE_PUNCHING           (1u <<  5)
+#define AI_MOVE_KNOWLEDGE_BITING             (1u <<  6)
+#define AI_MOVE_KNOWLEDGE_PULSE              (1u <<  7)
+#define AI_MOVE_KNOWLEDGE_DANCE              (1u <<  8)
+#define AI_MOVE_KNOWLEDGE_WIND               (1u <<  9)
+#define AI_MOVE_KNOWLEDGE_HEALING            (1u << 10)
+#define AI_MOVE_KNOWLEDGE_MAGIC_COAT         (1u << 11)
+#define AI_MOVE_KNOWLEDGE_SNATCH             (1u << 12)
+#define AI_MOVE_KNOWLEDGE_ABILITY_CONTROL    (1u << 13)
+#define AI_MOVE_KNOWLEDGE_MOVE_DENIAL        (1u << 14)
+#define AI_MOVE_KNOWLEDGE_COMBO_STATE        (1u << 15)
+#define AI_MOVE_KNOWLEDGE_MAX_SPEED_CONTROL  (1u << 16)
+#define AI_MOVE_KNOWLEDGE_MAX_WEATHER        (1u << 17)
+#define AI_MOVE_KNOWLEDGE_MAX_TERRAIN        (1u << 18)
+#define AI_MOVE_KNOWLEDGE_MAX_STAT_CONTROL   (1u << 19)
+#define AI_MOVE_KNOWLEDGE_GMAX_UNIQUE        (1u << 20)
+#define AI_MOVE_KNOWLEDGE_GMAX_RESIDUAL      (1u << 21)
+#define AI_MOVE_KNOWLEDGE_Z_STATUS           (1u << 22)
+#define AI_MOVE_KNOWLEDGE_Z_STAT_RESET       (1u << 23)
+#define AI_MOVE_KNOWLEDGE_Z_STAT_BOOST       (1u << 24)
+#define AI_MOVE_KNOWLEDGE_Z_CRIT_BOOST       (1u << 25)
+#define AI_MOVE_KNOWLEDGE_Z_REDIRECTION      (1u << 26)
+#define AI_MOVE_KNOWLEDGE_Z_RECOVERY         (1u << 27)
+#define AI_MOVE_KNOWLEDGE_Z_REPLACEMENT_HEAL (1u << 28)
+#define AI_MOVE_KNOWLEDGE_GMAX_HAZARD        (1u << 29)
+
+#define AI_ABILITY_KNOWLEDGE_NONE            0
+#define AI_ABILITY_KNOWLEDGE_MOVE_IMMUNITY   (1u <<  0)
+#define AI_ABILITY_KNOWLEDGE_MOVE_POWER      (1u <<  1)
+#define AI_ABILITY_KNOWLEDGE_DAMAGE_RACE     (1u <<  2)
+#define AI_ABILITY_KNOWLEDGE_STATUS          (1u <<  3)
+#define AI_ABILITY_KNOWLEDGE_FIELD_CONTROL   (1u <<  4)
+#define AI_ABILITY_KNOWLEDGE_POSITIONING     (1u <<  5)
+#define AI_ABILITY_KNOWLEDGE_ABILITY_CONTROL (1u <<  6)
+#define AI_ABILITY_KNOWLEDGE_STAT_CONTROL    (1u <<  7)
+#define AI_ABILITY_KNOWLEDGE_ITEM_CONTROL    (1u <<  8)
+#define AI_ABILITY_KNOWLEDGE_PRIORITY        (1u <<  9)
+#define AI_ABILITY_KNOWLEDGE_FORM_STATE      (1u << 10)
+
+#define AI_HOLD_EFFECT_KNOWLEDGE_NONE                 0
+#define AI_HOLD_EFFECT_KNOWLEDGE_DAMAGE_RACE          (1u <<  0)
+#define AI_HOLD_EFFECT_KNOWLEDGE_DEFENSIVE_RACE       (1u <<  1)
+#define AI_HOLD_EFFECT_KNOWLEDGE_STAT_CONTROL         (1u <<  2)
+#define AI_HOLD_EFFECT_KNOWLEDGE_SPEED_CONTROL        (1u <<  3)
+#define AI_HOLD_EFFECT_KNOWLEDGE_RECOVERY             (1u <<  4)
+#define AI_HOLD_EFFECT_KNOWLEDGE_STATUS_CURE          (1u <<  5)
+#define AI_HOLD_EFFECT_KNOWLEDGE_SELF_STATUS          (1u <<  6)
+#define AI_HOLD_EFFECT_KNOWLEDGE_FIELD_DURATION       (1u <<  7)
+#define AI_HOLD_EFFECT_KNOWLEDGE_CONTACT_PUNISH       (1u <<  8)
+#define AI_HOLD_EFFECT_KNOWLEDGE_MOVE_SHAPE           (1u <<  9)
+#define AI_HOLD_EFFECT_KNOWLEDGE_ABILITY_PROTECTION   (1u << 10)
+#define AI_HOLD_EFFECT_KNOWLEDGE_CHOICE_LOCK          (1u << 11)
+#define AI_HOLD_EFFECT_KNOWLEDGE_POSITIONING          (1u << 12)
+#define AI_HOLD_EFFECT_KNOWLEDGE_GIMMICK              (1u << 13)
+
 enum WeatherState
 {
     WEATHER_INACTIVE,
@@ -73,6 +135,91 @@ enum ConsiderPriority
     CONSIDER_PRIORITY,
 };
 
+enum AiThreatClass
+{
+    AI_THREAT_STABLE            = 0,
+    AI_THREAT_DAMAGE_RACE       = 1 << 0,
+    AI_THREAT_KNOWN_KO_PRESSURE = 1 << 1,
+    AI_THREAT_SETUP_CHECKMATE   = 1 << 2,
+    AI_THREAT_PERISH_TRAP_CLOCK = 1 << 3,
+    AI_THREAT_MODE_LOSS         = 1 << 4,
+    AI_THREAT_DESPERATION       = 1 << 5,
+};
+
+enum AiRiskKind
+{
+    AI_RISK_HIGH_VARIANCE_COMEBACK,
+    AI_RISK_LOW_ACCURACY_STATUS,
+    AI_RISK_LOW_ACCURACY_DAMAGE,
+    AI_RISK_SECONDARY_HAX,
+    AI_RISK_OHKO_FISH,
+    AI_RISK_DELAYED_ATTACK,
+    AI_RISK_PARTNER_SACRIFICE,
+    AI_RISK_SECOND_PROTECT,
+    AI_RISK_SWITCH_SURVIVAL,
+};
+
+enum AiShortHorizonLine
+{
+    AI_SHORT_LINE_NONE            = 0,
+    AI_SHORT_LINE_CLEAN_DAMAGE    = 1 << 0,
+    AI_SHORT_LINE_SWITCH_ESCAPE   = 1 << 1,
+    AI_SHORT_LINE_SETUP_DENIAL    = 1 << 2,
+    AI_SHORT_LINE_MODE_CONTROL    = 1 << 3,
+    AI_SHORT_LINE_RESERVE_ENTRY   = 1 << 4,
+    AI_SHORT_LINE_HIGH_VARIANCE   = 1 << 5,
+};
+
+enum AiCandidateLineFamily
+{
+    AI_CANDIDATE_LINE_NONE,
+    AI_CANDIDATE_LINE_CLEAN_DAMAGE,
+    AI_CANDIDATE_LINE_SWITCH_ESCAPE,
+    AI_CANDIDATE_LINE_SETUP_DENIAL,
+    AI_CANDIDATE_LINE_MODE_CONTROL,
+    AI_CANDIDATE_LINE_RESERVE_ENTRY,
+    AI_CANDIDATE_LINE_HIGH_VARIANCE,
+};
+
+struct AiCandidateLine
+{
+    enum AiCandidateLineFamily family;
+    enum AiShortHorizonLine line;
+    u8 turn;
+    bool32 stable;
+};
+
+struct AiBoardSnapshot
+{
+    enum BattlerId battlerAtk;
+    enum BattlerId battlerDef;
+    enum BattlerId partner;
+    u32 aiReserveCount;
+    u32 partnerReserveCount;
+    u32 threatFlags;
+    bool32 isValid;
+    bool32 hasPartner;
+    bool32 noReserve;
+    bool32 perishTrapClock;
+    bool32 knownKoPressure;
+    bool32 opposingSetupPressure;
+    bool32 targetSetupPressure;
+    bool32 targetImmediateKoPressure;
+    bool32 nearTermDamageClock;
+    bool32 modeLoss;
+};
+
+struct AiShortHorizon
+{
+    struct AiBoardSnapshot snapshot;
+    u32 lineFlags;
+    u8 lossClock;
+    bool32 isValid;
+    bool32 stableLineAvailable;
+    struct AiCandidateLine preferredStableLine;
+    struct AiCandidateLine fallbackRiskLine;
+};
+
 static inline bool32 IsMoveUnusable(u32 moveIndex, enum Move move, u32 moveLimitations)
 {
     return move == MOVE_NONE
@@ -87,6 +234,8 @@ bool32 AI_IsSlower(enum BattlerId battlerAi, enum BattlerId battlerDef, enum Mov
 bool32 AI_RandLessThan(u32 val);
 bool32 AI_IsBattlerGrounded(enum BattlerId battler);
 enum MoveTarget AI_GetBattlerMoveTargetType(enum BattlerId battler, enum Move move);
+bool32 AI_IsBattlerCommanderTatsugiri(enum BattlerId battler);
+bool32 AI_ShouldAvoidCommanderTatsugiriTarget(enum BattlerId battlerDef, enum Move move);
 enum Ability AI_GetMoldBreakerSanitizedAbility(enum BattlerId battlerAtk, enum Ability abilityAtk, enum Ability abilityDef, enum HoldEffect holdEffectDef, enum Move move);
 u32 AI_GetDamage(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex, enum DamageCalcContext calcContext, struct AiLogicData *aiData);
 bool32 IsAiFlagPresent(u64 flag);
@@ -150,6 +299,8 @@ bool32 IsConsideringZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, 
 bool32 ShouldUseZMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move chosenMove);
 void SetAIUsingGimmick(enum BattlerId battler, enum AIConsiderGimmick use);
 bool32 IsAIUsingGimmick(enum BattlerId battler);
+void DecideGimmickBeforeMoveSelection(enum BattlerId battler);
+void ReconsiderSmartGimmick(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move);
 void DecideTerastal(enum BattlerId battler);
 bool32 CanEndureHit(enum BattlerId battler, enum BattlerId battlerTarget, enum Move move);
 bool32 ShouldFinalGambit(enum BattlerId battlerAtk, enum BattlerId battlerDef, bool32 aiIsFaster);
@@ -209,6 +360,19 @@ bool32 IsMoveRedirectionPrevented(enum BattlerId battlerAtk, enum Move move, enu
 bool32 IsHazardMove(enum Move move);
 bool32 IsTwoTurnNotSemiInvulnerableMove(enum BattlerId battlerAtk, enum Move move);
 bool32 IsBattlerDamagedByStatus(enum BattlerId battler);
+bool32 BattlerHasOffensiveSetup(enum BattlerId battler);
+bool32 IsReadPlayerSelectedOffensiveSetupThreat(enum BattlerId battlerAtk, enum BattlerId battlerDef);
+bool32 IsOpposingSideOffensiveSetupThreat(enum BattlerId battlerAtk);
+bool32 AI_BuildBoardSnapshot(enum BattlerId battlerAtk, enum BattlerId battlerDef, struct AiBoardSnapshot *snapshot);
+u32 AI_ClassifyBoardThreat(const struct AiBoardSnapshot *snapshot);
+bool32 AI_BoardHasThreat(const struct AiBoardSnapshot *snapshot, enum AiThreatClass threat);
+bool32 AI_EvaluateShortHorizon(enum BattlerId battlerAtk, enum BattlerId battlerDef, struct AiShortHorizon *horizon);
+bool32 AI_ShortHorizonHasLine(const struct AiShortHorizon *horizon, enum AiShortHorizonLine line);
+bool32 AI_RiskGovernorAllows(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum AiRiskKind riskKind);
+bool32 AI_IsNearTermDesperationPressure(enum BattlerId battlerAtk, enum BattlerId battlerDef);
+bool32 AI_ShouldAcceptDesperationRisk(enum BattlerId battlerAtk, enum BattlerId battlerDef);
+bool32 ShouldUseSinglesProtect(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move predictedMove);
+u32 Test_GetProtectEndTurnRecovery(enum BattlerId battler);
 s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, enum Move predictedMove);
 bool32 ShouldRaiseAnyStat(enum BattlerId battlerAtk, enum BattlerId battlerDef);
 bool32 ShouldSetWeather(enum BattlerId battler, u32 weather);
@@ -224,6 +388,7 @@ bool32 HasChoiceEffect(enum BattlerId battler);
 bool32 HasThawingMove(enum BattlerId battler);
 bool32 HasMoveUsableWhileAsleep(enum BattlerId battler);
 bool32 IsStatRaisingMove(enum Move move);
+bool32 IsOffensiveStatRaisingMove(enum Move move);
 bool32 IsStatLoweringMove(enum Move move);
 bool32 IsSwitchOutEffect(enum BattleMoveEffects effect);
 bool32 IsChaseEffect(enum BattleMoveEffects effect);
@@ -328,6 +493,18 @@ bool32 IsBattlerItemEnabled(enum BattlerId battler);
 bool32 IsBattlerPredictedToSwitch(enum BattlerId battler);
 enum Move GetIncomingMove(enum BattlerId battler, enum BattlerId opposingBattler, struct AiLogicData *aiData);
 enum Move GetPredictedMove(enum BattlerId battler, enum BattlerId opposingBattler, struct AiLogicData *aiData);
+u32 AI_GetMoveKnowledgeFlags(enum Move move);
+bool32 AI_MoveHasKnowledgeFlag(enum Move move, u32 flag);
+bool32 AI_IsMoveAbilityControl(enum Move move);
+bool32 AI_IsMoveDenial(enum Move move);
+bool32 AI_IsMoveComboState(enum Move move);
+u32 AI_GetAbilityKnowledgeFlags(enum Ability ability);
+bool32 AI_AbilityHasKnowledgeFlag(enum Ability ability, u32 flag);
+u32 AI_GetHoldEffectKnowledgeFlags(enum HoldEffect holdEffect);
+bool32 AI_HoldEffectHasKnowledgeFlag(enum HoldEffect holdEffect, u32 flag);
+u32 AI_GetItemKnowledgeFlags(enum Item item);
+bool32 AI_ItemHasKnowledgeFlag(enum Item item, u32 flag);
+bool32 AI_CanBattlerIgnorePredictedMove(enum BattlerId battlerDef, enum BattlerId battlerAtk, enum Move move);
 bool32 AI_OpponentCanFaintAiWithMod(enum BattlerId battler, u32 healAmount);
 bool32 ShouldInstructPartner(enum BattlerId partner, enum Move move);
 bool32 CanMoveBeBouncedBack(enum BattlerId battler, enum Move move);

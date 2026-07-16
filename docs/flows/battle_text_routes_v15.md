@@ -45,10 +45,10 @@ flowchart TD
 | `data/battle_scripts_1.s` の末尾 (`BattleScript_AbilityPopUpTarget`, `BattleScript_AbilityPopUp`, `BattleScript_AbilityPopUpScripting`, `BattleScript_AbilityPopUpOverwriteThenNormal`) | 呼び出されるラッパー script。 各 script は呼び出し前に `gBattlerAbility` または `gBattleScripting.abilityPopupOverwrite` を別途 set してから `call` する前提。 |
 | `asm/macros/battle_script.inc` (`showabilitypopup`, `updateabilitypopup`, `destroyabilitypopup`) | `callnative` 経由で C 側へ。 |
 | `src/battle_script_commands.c` (`BS_ShowAbilityPopup`, `BS_UpdateAbilityPopup`, `BS_DestroyAbilityPopup`) | battle script からの entry。 `BS_ShowAbilityPopup` は `CreateAbilityPopUp(gBattlerAbility, gBattleMons[gBattlerAbility].ability, IsDoubleBattle())` を直接呼ぶだけ。 |
-| `src/battle_interface.c` (`CreateAbilityPopUp`, `UpdateAbilityPopup`, `DestroyAbilityPopUp`, `Task_FreeAbilityPopUpGfx`, `SpriteCb_AbilityPopUp`) | sprite 2 枚を作って横スライドさせる。 |
+| `src/battle_interface.c` (`CreateAbilityPopUp`, `UpdateAbilityPopup`, `DestroyAbilityPopUp`, `Task_FreeAbilityPopUpGfx`, `SpriteCb_AbilityPopUp`, `TryFreeSharedBattleInterfacePalette`) | sprite 2 枚を作って横スライドさせる。 |
 | `gBattleScripting.abilityPopupOverwrite`, `gBattleScripting.fixedPopup`, `gBattleStruct->battlerState[battler].activeAbilityPopUps`, `gBattleStruct->abilityPopUpSpriteIds[battler]` | popup 1 つに対する状態。 |
 | `TAG_ABILITY_POP_UP*`, `sSpriteSheet_AbilityPopUp`, `sSpritePalette_AbilityPopUp`, `ABILITY_POP_UP_POS_X_*`, `ABILITY_POP_UP_WAIT_FRAMES`, `APU_STATE_*` | sprite 側の定数。 同じ palette tag は Last Used Ball、 Move Info Window でも共有される (下記)。 |
-| `IsAnyAbilityPopUpActive` | `gBattleStruct->battlerState[*].activeAbilityPopUps` を集約。 1 つでも残っていれば true。 `Task_FreeAbilityPopUpGfx` の destroy 判定と palette 解放制御に使う。 |
+| `IsAnyAbilityPopUpActive` | `gBattleStruct->battlerState[*].activeAbilityPopUps` を集約。 1 つでも残っていれば true。 `Task_FreeAbilityPopUpGfx` の destroy 判定に使う。 |
 
 `Cmd` table 整理 (battle script command 一覧、参考):
 
@@ -66,6 +66,7 @@ ability popup 自体は上記のうち `BS_ShowAbilityPopup` / `BS_UpdateAbility
 - popup は battle message box (`B_WIN_MSG`) を上書きしない。 ただし `printstring` と同時に走らせると、popup の slide-in / slide-out アニメと message の出る・消えるタイミングが重なる。 既存 script では popup 後に短い `pause` を入れて message と被らないようにしている。
 - `gTestRunnerEnabled` の場合は `TestRunner_Battle_RecordAbilityPopUp` に流したあと、headless なら sprite 自体を作らない。 テストでは popup を「呼んだか」だけが検査される。
 - `IsAnyAbilityPopUpActive()` で初回作成時のみ palette / sheet を load する。 sprite を増やしたい / palette tag を変えたいときは `TAG_ABILITY_POP_UP*` を全部更新する。
+- `TAG_ABILITY_POP_UP` palette は Ability Popup、Last Used Ball Window、Move Info Window で共有される。 そのため palette 解放は `TryFreeSharedBattleInterfacePalette()` に集約し、 ability popup 用 sheet、 Last Used Ball sheet、 Move Info sheet がすべて解放済みのときだけ実行する。 Move Info Window が閉じる途中で ability popup の palette を先に解放すると、表示中 popup が後続 animation の sprite palette に置き換わって色化けする。
 - `BattleScript_AbilityPopUpOverwriteThenNormal` の表示順は実装上「上書き先 ability を最初に出す」: `setbyte sFIXED_ABILITY_POPUP, TRUE` -> `showabilitypopup` (このとき `gBattleScripting.abilityPopupOverwrite` が呼び出し前に set されており、 popup には overwrite 側 ability が表示される) -> `pause` -> `sethword sABILITY_OVERWRITE, 0` -> `updateabilitypopup` (overwrite が消えたので `gBattleMons[battler].ability` を表示) -> `pause` -> `recordability` -> `destroyabilitypopup` -> `setbyte sFIXED_ABILITY_POPUP, FALSE`。 つまり Trace / Imposter のように「元の ability を一瞬出してから真の ability に切り替える」演出に使う。
 
 ### 隣接の sprite-only popup (テキスト無し)
@@ -77,7 +78,7 @@ ability popup と同じ `TAG_ABILITY_POP_UP` palette を共有する sprite popu
 | Last Used Ball | `TryAddLastUsedBallItemSprites`, `TryHideLastUsedBall`, `sSpriteTemplate_LastUsedBallWindow`, `sSpriteSheet_LastUsedBallWindow`, `TAG_LAST_BALL_WINDOW`, `B_LAST_USED_BALL`, `B_LAST_USED_BALL_BUTTON`, `B_LAST_USED_BALL_CYCLE`, `gBattleStruct->ballSpriteIds[]`, `gBallToDisplay` | 行動選択 menu の左下に最後に投げたボールアイコンを出す。 `CanThrowLastUsedBall` で trainer / frontier 戦は弾く。 |
 | Move Info Window | `TryToAddMoveInfoWindow`, `TryToHideMoveInfoWindow`, `sSpriteTemplate_MoveInfoWindow`, `sSpriteSheet_MoveInfoWindow`, `MOVE_INFO_WINDOW_TAG`, `B_SHOW_MOVE_DESCRIPTION`, `B_MOVE_DESCRIPTION_BUTTON`, `gBattleStruct->moveInfoSpriteId` | 技選択時に L/R ボタンで move description を呼び出すための「ヒント窓」 sprite。 押した後に出す本体の説明文は `BattlePutTextOnWindow(..., B_WIN_MOVE_DESCRIPTION)` で表示 (text 経路) される。 |
 
-palette は共通だが tile sheet (`TAG_LAST_BALL_WINDOW`, `MOVE_INFO_WINDOW_TAG`) は別。 destroy 関数で残っている popup を確認してから palette を解放する点も ability popup と同じ。
+palette は共通だが tile sheet (`TAG_LAST_BALL_WINDOW`, `MOVE_INFO_WINDOW_TAG`) は別。 destroy 関数は共通 helper を通して、 ability popup sheet を含む全利用者が消えている場合だけ palette を解放する。
 
 ## Trainer Slide Message
 

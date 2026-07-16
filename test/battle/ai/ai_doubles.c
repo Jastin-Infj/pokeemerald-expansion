@@ -1,6 +1,8 @@
 #include "global.h"
 #include "test/battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_util.h"
+#include "battle_main.h"
 
 AI_DOUBLE_BATTLE_TEST("AI won't use a Weather changing move if partner already chose such move")
 {
@@ -136,6 +138,56 @@ AI_DOUBLE_BATTLE_TEST("AI skips Trick/Bestow if the target has a Substitute")
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI targets Commander Dondozo instead of swallowed Tatsugiri")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_TATSUGIRI) { Ability(ABILITY_COMMANDER); }
+        PLAYER(SPECIES_DONDOZO);
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WYNAUT) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            EXPECT_MOVE(opponentLeft, MOVE_SCRATCH, target: playerRight);
+            SCORE_LT_VAL(opponentLeft, MOVE_SCRATCH, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI scores Commander Dondozo KO knowing poisoned Tatsugiri remains")
+{
+    enum Item item = ITEM_NONE;
+    u32 status = STATUS1_NONE;
+    s32 expectedCommanderBonus = 0;
+
+    PARAMETRIZE { item = ITEM_TOXIC_ORB; status = STATUS1_NONE; expectedCommanderBonus = DECENT_EFFECT; }
+    PARAMETRIZE { item = ITEM_NONE; status = STATUS1_TOXIC_POISON; expectedCommanderBonus = DECENT_EFFECT; }
+    PARAMETRIZE { item = ITEM_NONE; status = STATUS1_POISON; expectedCommanderBonus = WEAK_EFFECT; }
+
+    GIVEN {
+        ASSUME(gItemsInfo[ITEM_TOXIC_ORB].holdEffect == HOLD_EFFECT_TOXIC_ORB);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_TATSUGIRI) { Ability(ABILITY_COMMANDER); Item(item); Status1(status); }
+        PLAYER(SPECIES_DONDOZO);
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WYNAUT) { Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    } THEN {
+        enum BattlerId commander = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId dondozo = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
+
+        gBattleStruct->battlerState[commander].commandingDondozo = TRUE;
+        gBattleStruct->battlerState[dondozo].commanderSpecies = gBattleMons[commander].species;
+        gBattleMons[commander].volatiles.semiInvulnerable = STATE_COMMANDER;
+
+        EXPECT_EQ(Test_GetCommanderDondozoFaintBonus(dondozo), expectedCommanderBonus);
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI considers status orbs and abilities for Trick/Bestow")
 {
     enum Move move = MOVE_NONE;
@@ -194,7 +246,7 @@ AI_DOUBLE_BATTLE_TEST("AI gifts Utility Umbrella only when it removes the foe's 
 
     GIVEN {
         ASSUME(gItemsInfo[ITEM_UTILITY_UMBRELLA].holdEffect == HOLD_EFFECT_UTILITY_UMBRELLA);
-        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
         PLAYER(targetSpecies) { Ability(targetAbility); }
         PLAYER(weatherSpecies) { Ability(weatherAbility); }
         OPPONENT(attackerSpecies) { Ability(attackerAbility); Item(ITEM_UTILITY_UMBRELLA); Moves(MOVE_TRICK, MOVE_SCRATCH); }
@@ -227,7 +279,7 @@ AI_DOUBLE_BATTLE_TEST("AI steals Utility Umbrella to handle sun and Dry Skin but
 
     GIVEN {
         ASSUME(gItemsInfo[ITEM_UTILITY_UMBRELLA].holdEffect == HOLD_EFFECT_UTILITY_UMBRELLA);
-        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT);
         PLAYER(targetSpecies) { Ability(targetAbility); Item(ITEM_UTILITY_UMBRELLA); }
         PLAYER(weatherSpecies) { Ability(weatherAbility); }
         OPPONENT(attackerSpecies) { Ability(attackerAbility); Item(ITEM_NONE); Moves(MOVE_TRICK, MOVE_SCRATCH); }
@@ -579,6 +631,42 @@ AI_DOUBLE_BATTLE_TEST("AI will choose Earthquake if it kills one opposing mon an
         TURN { MOVE(playerLeft, MOVE_SCRATCH); }
         TURN { MOVE(playerRight, MOVE_SCRATCH); }
         TURN { EXPECT_MOVE(opponentLeft, MOVE_EARTHQUAKE); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI only sacrifices a partner with spread damage for desperation board pressure")
+{
+    bool32 desperate;
+    u64 aiFlags;
+    enum Move playerRightMove;
+    enum Move playerRightSecondMove;
+
+    PARAMETRIZE { desperate = FALSE; aiFlags = AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT; playerRightMove = MOVE_CELEBRATE;    playerRightSecondMove = MOVE_CELEBRATE; }
+    PARAMETRIZE { desperate = TRUE;  aiFlags = AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_DOUBLE_BATTLE | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE; playerRightMove = MOVE_SWORDS_DANCE; playerRightSecondMove = MOVE_STRENGTH; }
+
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_EARTHQUAKE) == TARGET_FOES_AND_ALLY);
+        ASSUME(GetMoveType(MOVE_EARTHQUAKE) == TYPE_GROUND);
+        ASSUME_STAT_CHANGE(MOVE_SWORDS_DANCE, attack: +2);
+        AI_FLAGS(aiFlags);
+        PLAYER(SPECIES_WOBBUFFET) { HP(1); Speed(1); Moves(MOVE_STRENGTH); }
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(400); HP(400); Speed(1); Moves(playerRightMove, playerRightSecondMove); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(1); Speed(100); Moves(MOVE_EARTHQUAKE, MOVE_SCRATCH); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(1); Speed(50); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(1); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_STRENGTH, target: opponentLeft);
+            if (desperate)
+                MOVE(playerRight, playerRightMove);
+            if (desperate)
+            {
+                SCORE_GT(opponentLeft, MOVE_EARTHQUAKE, MOVE_SCRATCH, target: playerLeft);
+                EXPECT_MOVE(opponentLeft, MOVE_EARTHQUAKE);
+            }
+            else
+                EXPECT_MOVE(opponentLeft, MOVE_SCRATCH, target: playerLeft);
+        }
     }
 }
 
@@ -944,6 +1032,46 @@ AI_DOUBLE_BATTLE_TEST("AI uses Trick Room intelligently")
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI scores ally Speed drop under Trick Room to reverse move order")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        ASSUME_STAT_CHANGE(MOVE_SCARY_FACE, speed: -2);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_TRY_TO_FAINT | AI_FLAG_CHECK_VIABILITY | AI_FLAG_DOUBLE_BATTLE);
+        PLAYER(SPECIES_SNORLAX) { Level(50); MaxHP(1); HP(1); Defense(10); Speed(120); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); Speed(200); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); Speed(90); Moves(MOVE_CELEBRATE, MOVE_SCARY_FACE); }
+        OPPONENT(SPECIES_MACHAMP) { Level(50); MaxHP(80); HP(80); Attack(300); SpDefense(10); Speed(100); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_CELEBRATE);
+            FORCED_MOVE(opponentLeft);
+            FORCED_MOVE(opponentRight);
+        }
+    } THEN {
+        enum BattlerId playerLeftBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId aiLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId aiRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+
+        SetBattleMonMoveSlot(&gBattleMons[aiRightBattler], MOVE_CLOSE_COMBAT, 0);
+        BattleAI_SetupAIData(0xF, aiLeftBattler);
+        gAiLogicData->speedStats[playerLeftBattler] = GetBattlerTotalSpeedStat(playerLeftBattler, gAiLogicData->abilities[playerLeftBattler], gAiLogicData->holdEffects[playerLeftBattler]);
+        gAiLogicData->speedStats[aiLeftBattler] = GetBattlerTotalSpeedStat(aiLeftBattler, gAiLogicData->abilities[aiLeftBattler], gAiLogicData->holdEffects[aiLeftBattler]);
+        gAiLogicData->speedStats[aiRightBattler] = GetBattlerTotalSpeedStat(aiRightBattler, gAiLogicData->abilities[aiRightBattler], gAiLogicData->holdEffects[aiRightBattler]);
+
+        EXPECT(gAiLogicData->speedStats[aiRightBattler] > gAiLogicData->speedStats[playerLeftBattler]);
+        EXPECT(gAiLogicData->speedStats[aiRightBattler] / 2 < gAiLogicData->speedStats[playerLeftBattler]);
+
+        gFieldStatuses &= ~STATUS_FIELD_TRICK_ROOM;
+        EXPECT(GetAllyStatChangeScore(aiLeftBattler, aiRightBattler, MOVE_SCARY_FACE) <= NO_INCREASE);
+
+        gFieldStatuses |= STATUS_FIELD_TRICK_ROOM;
+        gFieldTimers.trickRoomTimer = 5;
+        EXPECT(GetAllyStatChangeScore(aiLeftBattler, aiRightBattler, MOVE_SCARY_FACE) > NO_INCREASE);
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI uses Trick Room with both battlers on the turn it expires in line with the double Trick Room config")
 {
     PASSES_RANDOMLY(DOUBLE_TRICK_ROOM_ON_LAST_TURN_CHANCE, 100, RNG_AI_REFRESH_TRICK_ROOM_ON_LAST_TURN);
@@ -1191,5 +1319,186 @@ AI_DOUBLE_BATTLE_TEST("AI uses Magnetic Flux")
         OPPONENT(SPECIES_KLINK) { Ability(ABILITY_PLUS); Moves(MOVE_MAGNETIC_FLUX, MOVE_POUND); }
     } WHEN {
         TURN { EXPECT_MOVE(opponentLeft, MOVE_MAGNETIC_FLUX); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI prefers Kyogre's rain-boosted spread water pressure over Thunder into water-weak foes")
+{
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveType(MOVE_WATER_SPOUT) == TYPE_WATER);
+    ASSUME(GetMoveType(MOVE_THUNDER) == TYPE_ELECTRIC);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_KNOW_OPPONENT_PARTY | AI_FLAG_POWERFUL_STATUS);
+        PLAYER(SPECIES_INCINEROAR) { Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_LANDORUS_THERIAN) { Ability(ABILITY_INTIMIDATE); Moves(MOVE_EARTHQUAKE, MOVE_ROCK_SLIDE, MOVE_FLY, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_CALYREX_SHADOW) { Moves(MOVE_ASTRAL_BARRAGE, MOVE_PSYSHOCK, MOVE_GIGA_DRAIN, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentLeft);
+            MOVE(playerRight, MOVE_ROCK_SLIDE);
+            EXPECT_MOVE(opponentLeft, MOVE_WATER_SPOUT);
+            SCORE_GT(opponentLeft, MOVE_WATER_SPOUT, MOVE_THUNDER, target: playerLeft);
+            SCORE_GT(opponentLeft, MOVE_WATER_SPOUT, MOVE_THUNDER, target: playerRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI does not tunnel Kyogre's Thunder into Tornadus when Water Spout pressures both foes")
+{
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveType(MOVE_WATER_SPOUT) == TYPE_WATER);
+    ASSUME(GetMoveType(MOVE_THUNDER) == TYPE_ELECTRIC);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_KNOW_OPPONENT_PARTY | AI_FLAG_POWERFUL_STATUS);
+        PLAYER(SPECIES_TORNADUS) { Ability(ABILITY_PRANKSTER); Item(ITEM_FOCUS_SASH); Moves(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT); }
+        PLAYER(SPECIES_INCINEROAR) { Ability(ABILITY_INTIMIDATE); Item(ITEM_SITRUS_BERRY); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        OPPONENT(SPECIES_CALYREX_SHADOW) { Item(ITEM_LIFE_ORB); Moves(MOVE_ASTRAL_BARRAGE, MOVE_PSYSHOCK, MOVE_GIGA_DRAIN, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TAILWIND);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_MOVE(opponentRight, MOVE_WATER_SPOUT);
+            SCORE_GT(opponentRight, MOVE_WATER_SPOUT, MOVE_THUNDER, target: playerLeft);
+            SCORE_GT(opponentRight, MOVE_WATER_SPOUT, MOVE_THUNDER, target: playerRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI does not Prankster Taunt a Dark-type Incineroar")
+{
+    ASSUME(GetMoveEffect(MOVE_TAUNT) == EFFECT_TAUNT);
+    ASSUME(IsSpeciesOfType(SPECIES_INCINEROAR, TYPE_DARK));
+
+    GIVEN {
+        WITH_CONFIG(B_PRANKSTER_DARK_TYPES, GEN_7);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Level(50); MaxHP(202); HP(202); Defense(120); SpDefense(146); Speed(80); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_MEWTWO) { Level(50); Speed(200); Moves(MOVE_PSYSTRIKE, MOVE_ICE_BEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_TORNADUS) { Level(50); Ability(ABILITY_PRANKSTER); SpAttack(177); Speed(179); Moves(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); MaxHP(205); HP(205); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentRight);
+            MOVE(playerRight, MOVE_PSYSTRIKE, target: opponentRight);
+            SCORE_LT_VAL(opponentLeft, MOVE_TAUNT, AI_SCORE_DEFAULT, target: playerLeft);
+            SCORE_GT(opponentLeft, MOVE_BLEAKWIND_STORM, MOVE_TAUNT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI values Kyogre as the Incineroar damage source when its partner lacks a good hit")
+{
+    u64 aiKnowledgeFlags = AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE;
+
+    PARAMETRIZE { aiKnowledgeFlags = AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE; }
+    PARAMETRIZE { aiKnowledgeFlags = AI_FLAG_PREDICTION | AI_FLAG_KNOW_OPPONENT_PARTY; }
+
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveType(MOVE_WATER_SPOUT) == TYPE_WATER);
+    ASSUME(IsSpeciesOfType(SPECIES_INCINEROAR, TYPE_DARK));
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | aiKnowledgeFlags);
+        PLAYER(SPECIES_INCINEROAR) { Level(50); MaxHP(202); HP(202); Defense(120); SpDefense(146); Speed(80); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_MEWTWO) { Level(50); MaxHP(181); HP(181); Defense(110); SpDefense(110); Speed(200); Moves(MOVE_PSYSTRIKE, MOVE_ICE_BEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_TORNADUS) { Level(50); Ability(ABILITY_PRANKSTER); SpAttack(90); Speed(179); Moves(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_MYSTIC_WATER); MaxHP(205); HP(205); Defense(120); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentRight);
+            MOVE(playerRight, MOVE_PSYSTRIKE, target: opponentLeft);
+            EXPECT_MOVES(opponentRight, MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE);
+            SCORE_GT(opponentRight, MOVE_WATER_SPOUT, MOVE_ICE_BEAM, target: playerLeft);
+            SCORE_GT(opponentRight, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI discounts Water Spout when a known faster hit will lower Kyogre's HP")
+{
+    ASSUME(GetMoveEffect(MOVE_WATER_SPOUT) == EFFECT_POWER_BASED_ON_USER_HP);
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_DRAGON_ASCENT) == TARGET_SELECTED);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_RAYQUAZA) { Level(50); Attack(180); Speed(200); Moves(MOVE_DRAGON_ASCENT, MOVE_PROTECT); }
+        PLAYER(SPECIES_INCINEROAR) { Level(50); Speed(80); Moves(MOVE_PROTECT, MOVE_KNOCK_OFF); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); MaxHP(205); HP(205); Defense(120); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_AMOONGUSS) { Level(50); Ability(ABILITY_REGENERATOR); MaxHP(221); HP(221); Speed(31); Moves(MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_SPORE, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_DRAGON_ASCENT, target: opponentLeft);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_ORIGIN_PULSE);
+            NOT_EXPECT_MOVE(opponentLeft, MOVE_WATER_SPOUT);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI values future spread pressure over a switch read beside boosted Xerneas")
+{
+    enum Item kyogreItem = ITEM_NONE;
+
+    PARAMETRIZE { kyogreItem = ITEM_CHOICE_SPECS; }
+    PARAMETRIZE { kyogreItem = ITEM_MYSTIC_WATER; }
+
+    ASSUME(GetMoveEffect(MOVE_WATER_SPOUT) == EFFECT_POWER_BASED_ON_USER_HP);
+    ASSUME(GetMoveTarget(MOVE_WATER_SPOUT) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ORIGIN_PULSE) == TARGET_BOTH);
+    ASSUME(GetMoveTarget(MOVE_ICE_BEAM) == TARGET_SELECTED);
+    ASSUME(GetMoveEffect(MOVE_GEOMANCY) == EFFECT_GEOMANCY);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Level(50); MaxHP(202); HP(202); Defense(120); SpDefense(146); Speed(80); Moves(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF); }
+        PLAYER(SPECIES_XERNEAS) { Level(50); Item(ITEM_POWER_HERB); MaxHP(241); HP(241); Defense(135); SpAttack(183); SpDefense(150); Speed(119); Moves(MOVE_GEOMANCY, MOVE_DAZZLING_GLEAM, MOVE_PROTECT); }
+        PLAYER(SPECIES_AMOONGUSS) { Level(50); MaxHP(221); HP(221); Defense(120); SpDefense(145); Speed(31); Moves(MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_SPORE, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(kyogreItem); MaxHP(205); HP(205); Defense(120); SpAttack(220); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_WOBBUFFET) { Level(50); MaxHP(300); HP(300); Speed(1); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        playerRight->statStages[STAT_SPATK] = DEFAULT_STAT_STAGE + 2;
+        playerRight->statStages[STAT_SPDEF] = DEFAULT_STAT_STAGE + 2;
+        playerRight->statStages[STAT_SPEED] = DEFAULT_STAT_STAGE + 2;
+
+        TURN {
+            SWITCH(playerLeft, 2);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVES(opponentLeft, MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE);
+            NOT_EXPECT_MOVE(opponentLeft, MOVE_ICE_BEAM);
+            SCORE_GT(opponentLeft, MOVE_WATER_SPOUT, MOVE_ICE_BEAM, target: playerLeft);
+            SCORE_GT(opponentLeft, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM, target: playerLeft);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI discounts Wring Out when known spread damage will lower the target's HP")
+{
+    ASSUME(GetMoveEffect(MOVE_WRING_OUT) == EFFECT_POWER_BASED_ON_TARGET_HP);
+    ASSUME(GetMoveTarget(MOVE_WRING_OUT) == TARGET_SELECTED);
+    ASSUME(GetMoveTarget(MOVE_SURF) == TARGET_FOES_AND_ALLY);
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Level(50); MaxHP(300); HP(300); SpDefense(50); Speed(10); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_GENGAR) { Level(50); SpAttack(300); Speed(200); Moves(MOVE_SURF, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KANGASKHAN) { Level(50); MaxHP(300); HP(300); SpAttack(200); SpDefense(300); Speed(50); Moves(MOVE_WRING_OUT, MOVE_TRI_ATTACK, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_AMOONGUSS) { Level(50); MaxHP(221); HP(221); SpDefense(300); Speed(31); Moves(MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_SPORE, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_SURF);
+            EXPECT_MOVE(opponentLeft, MOVE_TRI_ATTACK, target: playerLeft);
+            NOT_EXPECT_MOVE(opponentLeft, MOVE_WRING_OUT);
+        }
     }
 }

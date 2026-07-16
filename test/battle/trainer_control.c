@@ -4,6 +4,7 @@
 #include "battle_main.h"
 #include "data.h"
 #include "malloc.h"
+#include "pokemon.h"
 #include "random.h"
 #include "string_util.h"
 #include "trainer_pools.h"
@@ -12,6 +13,7 @@
 #include "constants/trainers.h"
 #include "constants/battle.h"
 #include "constants/battle_ai.h"
+#include "config/battle.h"
 
 TEST("CreateNPCTrainerPartyForTrainer generates customized Pokémon")
 {
@@ -225,6 +227,7 @@ TEST("Trainer Party Pool generates a party from the trainer pool")
 {
     struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
     u32 currTrainer = 6;
+    SeedRng(0);
     CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
     EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_EEVEE);
     Free(testParty);
@@ -234,10 +237,14 @@ TEST("Trainer Party Pool picks a random lead and a random ace if tags exist in t
 {
     struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
     u32 currTrainer = 7;
+    SeedRng(0);
     CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
-    EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_ARON);    //  Lead
-    EXPECT(GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_WYNAUT);  //  Not Lead or Ace
-    EXPECT(GetMonData(&testParty[2], MON_DATA_SPECIES) == SPECIES_EEVEE);   //  Ace
+    EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_WOBBUFFET
+        || GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_ARON);    //  Lead
+    EXPECT(GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_WYNAUT
+        || GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_MEW);     //  Not Lead or Ace
+    EXPECT(GetMonData(&testParty[2], MON_DATA_SPECIES) == SPECIES_EEVEE
+        || GetMonData(&testParty[2], MON_DATA_SPECIES) == SPECIES_ODDISH);  //  Ace
     Free(testParty);
 }
 
@@ -245,10 +252,94 @@ TEST("Trainer Party Pool picks according to custom rules")
 {
     struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
     u32 currTrainer = 8;
+    SeedRng(0);
     CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER | BATTLE_TYPE_DOUBLE);
     EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_TORKOAL);    //  Lead + Weather Setter
     EXPECT(GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_BULBASAUR);  //  Lead + Weather Abuser
     EXPECT(GetMonData(&testParty[2], MON_DATA_SPECIES) == SPECIES_EEVEE);      //  Anything else
+    Free(testParty);
+}
+
+TEST("Trainer Party Pool varies across runtime RNG seeds")
+{
+    ASSUME(B_POOL_SETTING_CONSISTENT_RNG == FALSE);
+    ASSUME(B_POOL_SETTING_USE_FIXED_SEED == FALSE);
+
+    struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
+    u32 currTrainer = 8;
+    u32 firstSpecies[3];
+    bool32 sawDifferent = FALSE;
+
+    SeedRng(1);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER | BATTLE_TYPE_DOUBLE);
+    for (u32 i = 0; i < ARRAY_COUNT(firstSpecies); i++)
+        firstSpecies[i] = GetMonData(&testParty[i], MON_DATA_SPECIES);
+
+    for (u32 seed = 2; seed < 32 && !sawDifferent; seed++)
+    {
+        SeedRng(seed);
+        CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER | BATTLE_TYPE_DOUBLE);
+        for (u32 i = 0; i < ARRAY_COUNT(firstSpecies); i++)
+        {
+            if (GetMonData(&testParty[i], MON_DATA_SPECIES) != firstSpecies[i])
+            {
+                sawDifferent = TRUE;
+                break;
+            }
+        }
+    }
+
+    EXPECT(sawDifferent);
+    Free(testParty);
+}
+
+TEST("Trainer Party Pool weights bias eligible tagged candidates")
+{
+    ASSUME(B_POOL_SETTING_CONSISTENT_RNG == FALSE);
+    ASSUME(B_POOL_SETTING_USE_FIXED_SEED == FALSE);
+
+    struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
+    u32 currTrainer = 15;
+    u32 lowWeightPicks = 0;
+    u32 highWeightPicks = 0;
+
+    for (u32 seed = 1; seed <= 64; seed++)
+    {
+        SeedRng(seed);
+        CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
+        switch (GetMonData(&testParty[0], MON_DATA_SPECIES))
+        {
+        case SPECIES_WYNAUT:
+            lowWeightPicks++;
+            break;
+        case SPECIES_EEVEE:
+            highWeightPicks++;
+            break;
+        default:
+            EXPECT(FALSE);
+            break;
+        }
+    }
+
+    EXPECT(highWeightPicks > lowWeightPicks);
+    Free(testParty);
+}
+
+TEST("Trainer Party Pool weights do not override slot tags")
+{
+    ASSUME(B_POOL_SETTING_CONSISTENT_RNG == FALSE);
+    ASSUME(B_POOL_SETTING_USE_FIXED_SEED == FALSE);
+
+    struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
+    u32 currTrainer = 16;
+
+    for (u32 seed = 1; seed <= 16; seed++)
+    {
+        SeedRng(seed);
+        CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
+        EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_WYNAUT);
+    }
+
     Free(testParty);
 }
 
@@ -266,6 +357,7 @@ TEST("Trainer Party Pool can be pruned before picking")
 {
     struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
     u32 currTrainer = 10;
+    SeedRng(0);
     CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
     EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_EEVEE);
     EXPECT(GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_WYNAUT);
@@ -279,6 +371,74 @@ TEST("Trainer Party Pool can choose which functions to use for picking mons")
     CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), TRUE, BATTLE_TYPE_TRAINER);
     EXPECT(GetMonData(&testParty[0], MON_DATA_SPECIES) == SPECIES_WYNAUT);
     EXPECT(GetMonData(&testParty[1], MON_DATA_SPECIES) == SPECIES_WOBBUFFET);
+    Free(testParty);
+}
+
+TEST("Trainer Party Pool can adapt pruning to the opponent party")
+{
+    struct Pokemon *testParty = Alloc(6 * sizeof(struct Pokemon));
+    u32 currTrainer = 17;
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_JOLTEON, 100, 0, OTID_STRUCT_PRESET(0), 31);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_AERODACTYL, 100, 0, OTID_STRUCT_PRESET(1), 31);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_BULBASAUR);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_CHARMANDER);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_SQUIRTLE);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_KYOGRE, 100, 0, OTID_STRUCT_PRESET(0), 31);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_GROUDON, 100, 0, OTID_STRUCT_PRESET(1), 31);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_TORKOAL);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_CHERRIM);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_MEW);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_DRAGONITE, 100, 0, OTID_STRUCT_PRESET(0), 31);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_FARIGIRAF, 100, 0, OTID_STRUCT_PRESET(1), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_DRAGON_DANCE, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_TRICK_ROOM, 0);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_WYNAUT);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_WOBBUFFET);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_EEVEE);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][0], SPECIES_METAGROSS, 50, 0, OTID_STRUCT_PRESET(0), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_IRON_HEAD, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_ZEN_HEADBUTT, 1);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_BULLET_PUNCH, 2);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][0], MOVE_EARTHQUAKE, 3);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][1], SPECIES_MILOTIC, 50, 0, OTID_STRUCT_PRESET(1), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_SCALD, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_ICE_BEAM, 1);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_RECOVER, 2);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][1], MOVE_PROTECT, 3);
+    CreateMonWithIVs(&gParties[B_TRAINER_PLAYER][2], SPECIES_BRELOOM, 50, 0, OTID_STRUCT_PRESET(2), 31);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_SPORE, 0);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_MACH_PUNCH, 1);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_BULLET_SEED, 2);
+    SetMonMoveSlot(&gParties[B_TRAINER_PLAYER][2], MOVE_PROTECT, 3);
+    gPartiesCount[B_TRAINER_PLAYER] = 3;
+
+    SeedRng(0);
+    CreateNPCTrainerPartyFromTrainer(testParty, GetTrainerStructFromId(currTrainer), FALSE, BATTLE_TYPE_TRAINER);
+    EXPECT_EQ(GetMonData(&testParty[0], MON_DATA_SPECIES), SPECIES_WYNAUT);
+    EXPECT_EQ(GetMonData(&testParty[1], MON_DATA_SPECIES), SPECIES_WOBBUFFET);
+    EXPECT_EQ(GetMonData(&testParty[2], MON_DATA_SPECIES), SPECIES_EEVEE);
+
+    ZeroPartyMons(gParties[B_TRAINER_PLAYER]);
     Free(testParty);
 }
 

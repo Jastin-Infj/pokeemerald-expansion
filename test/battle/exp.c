@@ -1,5 +1,6 @@
 #include "global.h"
 #include "test/battle.h"
+#include "debug.h"
 
 WILD_BATTLE_TEST("Pokemon gain experience after catching a Pokemon (Gen6+)")
 {
@@ -45,6 +46,25 @@ WILD_BATTLE_TEST("Higher leveled Pokemon give more exp", s32 exp)
         EXPERIENCE_BAR(player, captureGainedExp: &results[i].exp);
     } FINALLY {
         EXPECT_GT(results[1].exp, results[0].exp);
+    }
+}
+
+SINGLE_BATTLE_TEST("Debug battles do not give exp or EVs")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Level(20); }
+        OPPONENT(SPECIES_CATERPIE) { Level(10); HP(1); }
+    } WHEN {
+        gIsDebugBattle = TRUE;
+        TURN { MOVE(player, MOVE_SCRATCH); }
+    } SCENE {
+        MESSAGE("Wobbuffet used Scratch!");
+        MESSAGE("The opposing Caterpie fainted!");
+        NOT EXPERIENCE_BAR(player);
+    } THEN {
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_EXP), gExperienceTables[gSpeciesInfo[SPECIES_WOBBUFFET].growthRate][20]);
+        EXPECT_EQ(GetMonData(&gParties[B_TRAINER_PLAYER][0], MON_DATA_SPEED_EV), 0);
+        gIsDebugBattle = FALSE;
     }
 }
 

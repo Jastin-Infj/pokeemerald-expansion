@@ -2,14 +2,20 @@
 #include "data.h"
 #include "item.h"
 #include "malloc.h"
+#include "move.h"
 #include "pokemon.h"
 #include "random.h"
 #include "trainer_pools.h"
 #include "constants/battle.h"
 #include "constants/battle_ai.h"
+#include "constants/moves.h"
 #include "constants/items.h"
+#include "constants/species.h"
 
 #include "data/battle_pool_rules.h"
+
+#define TRAINER_POOL_DEFAULT_WEIGHT 1
+#define TRAINER_POOL_MAX_WEIGHT 15
 
 static void HasRequiredTag(const struct Trainer *trainer, u8* poolIndexArray, struct PoolRules *rules, u32 *arrayIndex, bool32 *foundRequiredTag, u32 currIndex)
 {
@@ -253,6 +259,66 @@ static u32 GetPoolSeed(const struct Trainer *trainer)
     return seed;
 }
 
+static u32 GetPoolWeight(const struct Trainer *trainer, u32 monIndex)
+{
+    u32 weight = trainer->party[monIndex].poolWeight;
+    if (weight == 0)
+        return TRAINER_POOL_DEFAULT_WEIGHT;
+    if (weight > TRAINER_POOL_MAX_WEIGHT)
+        return TRAINER_POOL_MAX_WEIGHT;
+    return weight;
+}
+
+static bool32 PoolUsesWeights(const struct Trainer *trainer)
+{
+    for (u32 i = 0; i < trainer->poolSize; i++)
+    {
+        u32 weight = GetPoolWeight(trainer, i);
+        if (weight != TRAINER_POOL_DEFAULT_WEIGHT)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static u32 NextPoolRandom(bool32 useConsistentRng, rng_value_t *localRngState)
+{
+    if (useConsistentRng)
+        return LocalRandom32(localRngState);
+    return Random32();
+}
+
+static void RandomizeWeightedPoolIndices(const struct Trainer *trainer, u8 *poolIndexArray)
+{
+    rng_value_t localRngState;
+    bool32 useConsistentRng = B_POOL_SETTING_CONSISTENT_RNG;
+    if (useConsistentRng)
+        localRngState = LocalRandomSeed(GetPoolSeed(trainer));
+
+    for (u32 i = 0; i < trainer->poolSize - 1; i++)
+    {
+        u32 weightSum = 0;
+        for (u32 j = i; j < trainer->poolSize; j++)
+            weightSum += GetPoolWeight(trainer, poolIndexArray[j]);
+
+        u32 selectedWeight = NextPoolRandom(useConsistentRng, &localRngState) % weightSum;
+        u32 selectedIndex = i;
+        for (u32 j = i; j < trainer->poolSize; j++)
+        {
+            u32 weight = GetPoolWeight(trainer, poolIndexArray[j]);
+            if (selectedWeight < weight)
+            {
+                selectedIndex = j;
+                break;
+            }
+            selectedWeight -= weight;
+        }
+
+        u32 tempValue = poolIndexArray[i];
+        poolIndexArray[i] = poolIndexArray[selectedIndex];
+        poolIndexArray[selectedIndex] = tempValue;
+    }
+}
+
 static void RandomizePoolIndices(const struct Trainer *trainer, u8 *poolIndexArray)
 {
     //  Basically the modern (Durstenfield's) Fisher-Yates shuffle
@@ -260,6 +326,16 @@ static void RandomizePoolIndices(const struct Trainer *trainer, u8 *poolIndexArr
     u32 poolSize = trainer->poolSize;
     for (u32 i = 0; i < poolSize; i++)
         poolIndexArray[i] = i;
+
+    if (poolSize <= 1)
+        return;
+
+    if (PoolUsesWeights(trainer))
+    {
+        RandomizeWeightedPoolIndices(trainer, poolIndexArray);
+        return;
+    }
+
     u32 rnd;
     rng_value_t localRngState;
     if (B_POOL_SETTING_CONSISTENT_RNG)
@@ -349,7 +425,179 @@ static void RandomTagPrune(const struct Trainer *trainer, u8 *poolIndexArray, co
             poolIndexArray[i] = POOL_SLOT_DISABLED;
 }
 
-static void PrunePool(const struct Trainer *trainer, u8 *poolIndexArray, const struct PoolRules *rules)
+static bool32 TryPrunePoolToTag(const struct Trainer *trainer, u8 *poolIndexArray, const struct PoolRules *rules, u32 tagMask, u8 monsCount, u32 battleTypeFlags)
+{
+    u32 members = 0;
+    u8 *testPoolIndexArray;
+    bool32 canPickParty = TRUE;
+
+    for (u32 i = 0; i < trainer->poolSize; i++)
+        if (poolIndexArray[i] != POOL_SLOT_DISABLED && (trainer->party[poolIndexArray[i]].tags & tagMask))
+            members++;
+
+    if (members < monsCount)
+        return FALSE;
+
+    testPoolIndexArray = Alloc(trainer->poolSize);
+    if (testPoolIndexArray == NULL)
+        return FALSE;
+
+    for (u32 i = 0; i < trainer->poolSize; i++)
+    {
+        if (poolIndexArray[i] != POOL_SLOT_DISABLED && (trainer->party[poolIndexArray[i]].tags & tagMask))
+            testPoolIndexArray[i] = poolIndexArray[i];
+        else
+            testPoolIndexArray[i] = POOL_SLOT_DISABLED;
+    }
+
+    struct PoolRules testRules = *rules;
+    struct PickFunctions pickFunctions = GetPickFunctions(trainer);
+    for (u32 i = 0; i < monsCount; i++)
+    {
+        if (PickMonFromPool(trainer, testPoolIndexArray, i, monsCount, battleTypeFlags, &testRules, pickFunctions) == POOL_SLOT_DISABLED)
+        {
+            canPickParty = FALSE;
+            break;
+        }
+    }
+    Free(testPoolIndexArray);
+
+    if (!canPickParty)
+        return FALSE;
+
+    for (u32 i = 0; i < trainer->poolSize; i++)
+        if (poolIndexArray[i] != POOL_SLOT_DISABLED && !(trainer->party[poolIndexArray[i]].tags & tagMask))
+            poolIndexArray[i] = POOL_SLOT_DISABLED;
+
+    return TRUE;
+}
+
+static bool32 PlayerPartyHasMove(u32 partyIndex, enum Move move)
+{
+    for (u32 i = 0; i < MAX_MON_MOVES; i++)
+        if (GetMonData(&gParties[B_TRAINER_PLAYER][partyIndex], MON_DATA_MOVE1 + i) == move)
+            return TRUE;
+
+    return FALSE;
+}
+
+static bool32 PlayerPartyHasMoveEffect(u32 partyIndex, enum BattleMoveEffects effect)
+{
+    for (u32 i = 0; i < MAX_MON_MOVES; i++)
+    {
+        enum Move move = GetMonData(&gParties[B_TRAINER_PLAYER][partyIndex], MON_DATA_MOVE1 + i);
+
+        if (move != MOVE_NONE && GetMoveEffect(move) == effect)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 SpeciesAppliesHighLegendaryPressure(enum Species species)
+{
+    switch (species)
+    {
+    case SPECIES_MIRAIDON:
+    case SPECIES_KORAIDON:
+    case SPECIES_KYOGRE:
+    case SPECIES_GROUDON:
+    case SPECIES_RAYQUAZA:
+    case SPECIES_ZACIAN:
+    case SPECIES_ZACIAN_CROWNED:
+    case SPECIES_ZAMAZENTA:
+    case SPECIES_ZAMAZENTA_CROWNED:
+    case SPECIES_ETERNATUS:
+    case SPECIES_CALYREX:
+    case SPECIES_CALYREX_ICE:
+    case SPECIES_CALYREX_SHADOW:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static enum PoolTags GetOpponentAdaptivePruneTag(void)
+{
+    u32 fastPressure = 0;
+    u32 weatherOrLegendPressure = 0;
+    u32 setupOrSupportPressure = 0;
+    u32 partyCount = min(gPartiesCount[B_TRAINER_PLAYER], PARTY_SIZE);
+
+    for (u32 i = 0; i < partyCount; i++)
+    {
+        enum Species species = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIES_OR_EGG);
+
+        if (species == SPECIES_NONE || species == SPECIES_EGG)
+            continue;
+
+        if (GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPEED) >= 170
+         || PlayerPartyHasMove(i, MOVE_TAILWIND)
+         || PlayerPartyHasMove(i, MOVE_ICY_WIND)
+         || PlayerPartyHasMove(i, MOVE_ELECTROWEB))
+            fastPressure++;
+
+        if (SpeciesAppliesHighLegendaryPressure(species)
+         || PlayerPartyHasMove(i, MOVE_RAIN_DANCE)
+         || PlayerPartyHasMove(i, MOVE_SUNNY_DAY)
+         || PlayerPartyHasMove(i, MOVE_SANDSTORM)
+         || PlayerPartyHasMove(i, MOVE_SNOWSCAPE))
+            weatherOrLegendPressure++;
+
+        if (PlayerPartyHasMove(i, MOVE_TRICK_ROOM)
+         || PlayerPartyHasMove(i, MOVE_DRAGON_DANCE)
+         || PlayerPartyHasMove(i, MOVE_SWORDS_DANCE)
+         || PlayerPartyHasMove(i, MOVE_NASTY_PLOT)
+         || PlayerPartyHasMove(i, MOVE_FOLLOW_ME)
+         || PlayerPartyHasMove(i, MOVE_RAGE_POWDER)
+         || PlayerPartyHasMove(i, MOVE_WIDE_GUARD)
+         || PlayerPartyHasMoveEffect(i, EFFECT_NON_VOLATILE_STATUS)
+         || PlayerPartyHasMoveEffect(i, EFFECT_YAWN)
+         || PlayerPartyHasMoveEffect(i, EFFECT_DARK_VOID)
+         || PlayerPartyHasMoveEffect(i, EFFECT_RESTORE_HP)
+         || PlayerPartyHasMoveEffect(i, EFFECT_MORNING_SUN)
+         || PlayerPartyHasMoveEffect(i, EFFECT_SYNTHESIS)
+         || PlayerPartyHasMoveEffect(i, EFFECT_ROOST)
+         || PlayerPartyHasMoveEffect(i, EFFECT_STRENGTH_SAP))
+            setupOrSupportPressure++;
+    }
+
+    if (weatherOrLegendPressure >= 2)
+        return POOL_TAG_TAG7;
+    if (fastPressure >= 2)
+        return POOL_TAG_TAG6;
+    if (setupOrSupportPressure >= 2)
+        return POOL_TAG_TAG8;
+    if (weatherOrLegendPressure >= 1)
+        return POOL_TAG_TAG7;
+    if (fastPressure >= 1)
+        return POOL_TAG_TAG6;
+    if (setupOrSupportPressure >= 1)
+        return POOL_TAG_TAG8;
+
+    return POOL_TAG_TAG6 + (Random() % 3);
+}
+
+static void OpponentAdaptivePrune(const struct Trainer *trainer, u8 *poolIndexArray, const struct PoolRules *rules, u8 monsCount, u32 battleTypeFlags)
+{
+    enum PoolTags preferredTag = GetOpponentAdaptivePruneTag();
+
+    if (TryPrunePoolToTag(trainer, poolIndexArray, rules, 1u << preferredTag, monsCount, battleTypeFlags))
+        return;
+
+    for (u32 i = 0; i < trainer->poolSize; i++)
+    {
+        if (poolIndexArray[i] == POOL_SLOT_DISABLED)
+            continue;
+
+        for (enum PoolTags tag = POOL_TAG_TAG6; tag <= POOL_TAG_TAG8; tag++)
+            if (trainer->party[poolIndexArray[i]].tags & (1u << tag)
+             && TryPrunePoolToTag(trainer, poolIndexArray, rules, 1u << tag, monsCount, battleTypeFlags))
+                return;
+    }
+}
+
+static void PrunePool(const struct Trainer *trainer, u8 *poolIndexArray, const struct PoolRules *rules, u8 monsCount, u32 battleTypeFlags)
 {
     //  Use defined pruning functions go here
     switch (trainer->poolPruneIndex)
@@ -361,6 +609,9 @@ static void PrunePool(const struct Trainer *trainer, u8 *poolIndexArray, const s
         break;
     case POOL_PRUNE_RANDOM_TAG:
         RandomTagPrune(trainer, poolIndexArray, rules);
+        break;
+    case POOL_PRUNE_OPPONENT_ADAPTIVE:
+        OpponentAdaptivePrune(trainer, poolIndexArray, rules, monsCount, battleTypeFlags);
         break;
     default:
         break;
@@ -388,7 +639,7 @@ void DoTrainerPartyPool(const struct Trainer *trainer, u32 *monIndices, u8 monsC
 
             struct PickFunctions pickFunctions = GetPickFunctions(trainer);
 
-            PrunePool(trainer, poolIndexArray, &rules);
+            PrunePool(trainer, poolIndexArray, &rules, monsCount, battleTypeFlags);
 
             for (u32 i = 0; i < monsCount; i++)
             {

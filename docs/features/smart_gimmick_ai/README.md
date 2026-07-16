@@ -7,27 +7,27 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 | Field | Value |
 | --- | --- |
 | Runtime branch | `feature/smart-gimmick-ai-16-20260604` |
-| Code status | Runtime implementation active on feature branch |
+| Code status | Accepted interim-complete runtime snapshot; further planner work moves to a new branch |
+| Completion code snapshot | `46ed9d403f` plus master handoff ancestry merge `dd55f9a45d` |
+| Feature PR | Draft PR #72 against `master` |
 | Primary docs | `docs/tutorials/ai_flags.md`, this folder |
 | Main flags | `AI_FLAG_SMART_GIMMICK`, `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`, `AI_FLAG_AGGRESSIVE_GIMMICK`, `AI_FLAG_READ_PLAYER_MOVE` |
 
 ## Master Handoff Scope
 
-The `master` handoff for this feature is documentation-only. It links the
-Smart Gimmick AI documentation into `docs/SUMMARY.md` and keeps the runtime
-implementation, tests, generated data, and helper tools on
-`feature/smart-gimmick-ai-16-20260604`.
+The `master` handoff for this feature remains documentation-only. Runtime
+implementation, tests, generated data, and non-Lua helper tools stay on the
+feature or a later integration branch. A feature PR targeting `master` is a
+review shelf and is not permission to merge runtime files into `master`.
 
-Dependency audit for the docs-only PR:
+Before any master handoff or merge, verify that the branch contains only
+Markdown documentation, `AGENTS.md` when workflow rules change, and explicitly
+approved Lua automation. Source, include, data, test, graphics, generated, and
+non-Lua tool changes are not eligible for the docs-only master path.
 
-- Include only Markdown files.
-- Do not merge `src/`, `include/`, `data/`, `test/`, generated files, ROMs, or
-  non-Lua tool changes into `master`.
-- Treat references to `tools/runtime_knowledge` and `tools/mgba_live` as
-  feature-branch implementation artifacts until the corresponding runtime PR is
-  merged.
-- Use `implementation.md` and `test_plan.md` as evidence shelves for the
-  feature branch, not as proof that `master` contains the runtime behavior.
+The next runtime line starts from this completed Smart AI snapshot on a new
+integration branch. It must take Box NPC Party Pool before Battle Team Boxes so
+the registered teams retain their required party-copy and debug-battle base.
 
 ## Runtime Intent
 

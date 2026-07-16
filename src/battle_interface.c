@@ -199,6 +199,7 @@ static u8 CalcBarFilledPixels(s32, s32, s32, s32 *, u8 *, u8);
 
 static void SpriteCb_AbilityPopUp(struct Sprite *);
 static void Task_FreeAbilityPopUpGfx(u8);
+static void TryFreeSharedBattleInterfacePalette(void);
 
 static void SpriteCB_LastUsedBall(struct Sprite *);
 static void SpriteCB_LastUsedBallWin(struct Sprite *);
@@ -2525,6 +2526,7 @@ static void PrintBattlerOnAbilityPopUp(enum BattlerId battler, u8 spriteId1, u8 
         GetMonData(illusionMon, MON_DATA_NICKNAME, gStringVar1);
     else
         GetMonData(GetBattlerMon(battler), MON_DATA_NICKNAME, gStringVar1);
+    StringGet_Nickname(gStringVar1);
 
     while (gStringVar1[totalChar] != EOS)
         totalChar++;
@@ -2570,6 +2572,39 @@ static inline bool32 IsAnyAbilityPopUpActive(void)
     return activeAbilityPopUps;
 }
 
+static bool32 IsAbilityPopUpSpriteActive(u8 spriteId, enum BattlerId battler)
+{
+    return spriteId < MAX_SPRITES
+        && gSprites[spriteId].inUse
+        && gSprites[spriteId].callback == SpriteCb_AbilityPopUp
+        && gSprites[spriteId].sBattlerId == battler;
+}
+
+static void RefreshAbilityPopUpSprite(u8 spriteId)
+{
+    gSprites[spriteId].sAutoDestroy = FALSE;
+    if (gSprites[spriteId].sState == APU_STATE_IDLE)
+        gSprites[spriteId].sTimer = ABILITY_POP_UP_WAIT_FRAMES;
+    else if (gSprites[spriteId].sState != APU_STATE_SLIDE_IN)
+        gSprites[spriteId].sState = APU_STATE_SLIDE_IN;
+}
+
+static bool32 RefreshActiveAbilityPopUp(enum BattlerId battler, enum Ability ability)
+{
+    u8 *spriteIds = gBattleStruct->abilityPopUpSpriteIds[battler];
+
+    if (!gBattleStruct->battlerState[battler].activeAbilityPopUps
+     || !IsAbilityPopUpSpriteActive(spriteIds[0], battler)
+     || !IsAbilityPopUpSpriteActive(spriteIds[1], battler))
+        return FALSE;
+
+    RefreshAbilityPopUpSprite(spriteIds[0]);
+    RefreshAbilityPopUpSprite(spriteIds[1]);
+    PrintBattlerOnAbilityPopUp(battler, spriteIds[0], spriteIds[1]);
+    PrintAbilityOnAbilityPopUp(ability, spriteIds[0], spriteIds[1]);
+    return TRUE;
+}
+
 void CreateAbilityPopUp(enum BattlerId battler, enum Ability ability, bool32 isDoubleBattle)
 {
     u8 *spriteIds;
@@ -2587,6 +2622,9 @@ void CreateAbilityPopUp(enum BattlerId battler, enum Ability ability, bool32 isD
         if (gTestRunnerHeadless)
             return;
     }
+
+    if (RefreshActiveAbilityPopUp(battler, ability))
+        return;
 
     if (!IsAnyAbilityPopUpActive())
         LoadSpritePalette(&sSpritePalette_AbilityPopUp);
@@ -2726,7 +2764,7 @@ static void Task_FreeAbilityPopUpGfx(u8 taskId)
             if (IndexOfSpriteTileTag(TAG_ABILITY_POP_UP_PLAYER1 + battler) != 0xFF)
                 FreeSpriteTilesByTag(TAG_ABILITY_POP_UP_PLAYER1 + battler);
         }
-        FreeSpritePaletteByTag(TAG_ABILITY_POP_UP);
+        TryFreeSharedBattleInterfacePalette();
         DestroyTask(taskId);
     }
 }
@@ -2817,6 +2855,25 @@ static const struct SpriteSheet sSpriteSheet_MoveInfoWindow =
     sMoveInfoWindowGfx, sizeof(sMoveInfoWindowGfx), MOVE_INFO_WINDOW_TAG
 };
 
+static bool32 IsAnyAbilityPopUpSheetLoaded(void)
+{
+    for (enum BattlerId battler = 0; battler < MAX_BATTLERS_COUNT; battler++)
+    {
+        if (IndexOfSpriteTileTag(TAG_ABILITY_POP_UP_PLAYER1 + battler) != 0xFF)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void TryFreeSharedBattleInterfacePalette(void)
+{
+    if (!IsAnyAbilityPopUpSheetLoaded()
+     && GetSpriteTileStartByTag(TAG_LAST_BALL_WINDOW) == 0xFFFF
+     && GetSpriteTileStartByTag(MOVE_INFO_WINDOW_TAG) == 0xFFFF)
+        FreeSpritePaletteByTag(TAG_ABILITY_POP_UP);
+}
+
 #define LAST_USED_BALL_X_F    14
 #define LAST_USED_BALL_X_0    -14
 #define LAST_USED_BALL_Y      ((IsDoubleBattle()) ? 78 : 68)
@@ -2901,8 +2958,7 @@ void TryAddLastUsedBallItemSprites(void)
 static void DestroyLastUsedBallWinGfx(struct Sprite *sprite)
 {
     FreeSpriteTilesByTag(TAG_LAST_BALL_WINDOW);
-    if (GetSpriteTileStartByTag(MOVE_INFO_WINDOW_TAG) == 0xFFFF)
-        FreeSpritePaletteByTag(TAG_ABILITY_POP_UP);
+    TryFreeSharedBattleInterfacePalette();
     DestroySprite(sprite);
     gBattleStruct->ballSpriteIds[1] = MAX_SPRITES;
 }
@@ -2942,8 +2998,7 @@ void TryToHideMoveInfoWindow(void)
 static void DestroyMoveInfoWinGfx(struct Sprite *sprite)
 {
     FreeSpriteTilesByTag(MOVE_INFO_WINDOW_TAG);
-    if (GetSpriteTileStartByTag(TAG_LAST_BALL_WINDOW) == 0xFFFF)
-        FreeSpritePaletteByTag(TAG_ABILITY_POP_UP);
+    TryFreeSharedBattleInterfacePalette();
     DestroySprite(sprite);
     gBattleStruct->moveInfoSpriteId = MAX_SPRITES;
 }

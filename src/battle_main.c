@@ -93,6 +93,9 @@ static void CB2_HandleStartBattle(void);
 static void TryCorrectShedinjaLanguage(struct Pokemon *mon);
 static enum BattleTrainer GetBattlerTrainerFromParty(struct Pokemon *party);
 static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum);
+static void ApplyPendingOpponentGimmickBits(void);
+static void ClearPendingOpponentGimmickBits(void);
+static void RecordOpponentGimmickBits(u32 partyIndex, bool32 canTera, bool32 canDynamax, bool32 canZMove);
 static void BattleMainCB1(void);
 static void CB2_EndLinkBattle(void);
 static void EndLinkBattleInSteps(void);
@@ -201,6 +204,7 @@ EWRAM_DATA u16 gPauseCounterBattle = 0;
 EWRAM_DATA u16 gPaydayMoney = 0;
 EWRAM_DATA u8 gBattleCommunication[BATTLE_COMMUNICATION_ENTRIES_COUNT] = {0};
 EWRAM_DATA u8 gBattleOutcome = 0;
+EWRAM_DATA struct BattleActionLog gBattleActionLog = {0};
 EWRAM_DATA struct ProtectStruct gProtectStructs[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA struct SpecialStatus gSpecialStatuses[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA u16 gBattleWeather = 0;
@@ -209,6 +213,9 @@ EWRAM_DATA u8 gSentPokesToOpponent[2] = {0};
 EWRAM_DATA struct BattleEnigmaBerry gEnigmaBerries[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA struct BattleScripting gBattleScripting = {0};
 EWRAM_DATA struct BattleStruct *gBattleStruct = NULL;
+EWRAM_DATA static u16 sPendingOpponentMonCanTera = 0;
+EWRAM_DATA static u16 sPendingOpponentMonCanDynamax = 0;
+EWRAM_DATA static u16 sPendingOpponentMonCanZMove = 0;
 EWRAM_DATA struct StartingStatuses gStartingStatuses = {0};
 EWRAM_DATA struct AiThinkingStruct *gAiThinkingStruct = NULL;
 EWRAM_DATA struct AiLogicData *gAiLogicData = NULL;
@@ -251,6 +258,133 @@ COMMON_DATA u8 gLeveledUpInBattle = 0;
 COMMON_DATA u8 gHealthboxSpriteIds[MAX_BATTLERS_COUNT] = {0};
 COMMON_DATA u8 gMultiUsePlayerCursor = 0;
 COMMON_DATA u8 gNumberOfMovesToChoose = 0;
+
+void BattleActionLog_Clear(void)
+{
+    memset(&gBattleActionLog, 0, sizeof(gBattleActionLog));
+    gBattleActionLog.lastRecordedTurn = 0xFFFF;
+}
+
+static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battler, u32 action)
+{
+    struct BattleActionLogEntry *entry = &gBattleActionLog.entries[gBattleActionLog.cursor];
+
+    memset(entry, 0, sizeof(*entry));
+    entry->sequence = ++gBattleActionLog.sequence;
+    entry->turn = gBattleResults.battleTurnCounter;
+    entry->battler = battler;
+    entry->action = action;
+    entry->target = MAX_BATTLERS_COUNT;
+    entry->moveSlot = MAX_MON_MOVES;
+    entry->partyIndex = PARTY_SIZE;
+    entry->gimmick = GIMMICK_NONE;
+    entry->aiReason = AI_DECISION_REASON_NONE;
+    entry->flags = BATTLE_ACTION_LOG_FLAG_VALID;
+    entry->aiThreatFlags = 0;
+    entry->aiRiskKind = BATTLE_ACTION_LOG_AI_RISK_NONE;
+    entry->aiLineFlags = 0;
+    entry->aiStableLineFamily = 0;
+    entry->aiFallbackLineFamily = 0;
+    entry->aiLossClock = 0;
+
+    gBattleActionLog.cursor++;
+    if (gBattleActionLog.cursor >= BATTLE_ACTION_LOG_ENTRIES)
+        gBattleActionLog.cursor = 0;
+    if (gBattleActionLog.count < BATTLE_ACTION_LOG_ENTRIES)
+        gBattleActionLog.count++;
+
+    return entry;
+}
+
+static void BattleActionLog_CopyAiDecisionTrace(struct BattleActionLogEntry *entry, enum BattlerId battler)
+{
+    if (entry == NULL || !BattlerHasAi(battler) || gAiBattleData == NULL)
+        return;
+
+    entry->aiReason = gAiBattleData->decisionReason[battler];
+    entry->aiThreatFlags = gAiBattleData->decisionThreatFlags[battler];
+    entry->aiRiskKind = gAiBattleData->decisionRiskKind[battler];
+    entry->aiLineFlags = gAiBattleData->decisionLineFlags[battler];
+    entry->aiStableLineFamily = gAiBattleData->decisionStableLineFamily[battler];
+    entry->aiFallbackLineFamily = gAiBattleData->decisionFallbackLineFamily[battler];
+    entry->aiLossClock = gAiBattleData->decisionLossClock[battler];
+}
+
+void BattleActionLog_RecordConfirmedCommands(void)
+{
+    if (gBattleStruct == NULL || gBattleActionLog.lastRecordedTurn == gBattleResults.battleTurnCounter)
+        return;
+
+    gBattleActionLog.lastRecordedTurn = gBattleResults.battleTurnCounter;
+    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    {
+        struct BattleActionLogEntry *entry;
+
+        if (gAbsentBattlerFlags & (1u << battler))
+            continue;
+
+        entry = BattleActionLog_Append(battler, gChosenActionByBattler[battler]);
+        BattleActionLog_CopyAiDecisionTrace(entry, battler);
+        switch (gChosenActionByBattler[battler])
+        {
+        case B_ACTION_USE_MOVE:
+            entry->move = gChosenMoveByBattler[battler];
+            entry->moveSlot = gBattleStruct->chosenMovePositions[battler];
+            entry->target = gBattleStruct->moveTarget[battler];
+            if (gBattleStruct->gimmick.toActivate & (1u << battler))
+            {
+                entry->gimmick = gBattleStruct->gimmick.usableGimmick[battler];
+                entry->flags |= BATTLE_ACTION_LOG_FLAG_GIMMICK;
+            }
+            break;
+        case B_ACTION_SWITCH:
+            entry->partyIndex = gBattleStruct->monToSwitchIntoId[battler];
+            break;
+        case B_ACTION_USE_ITEM:
+            entry->item = gBattleStruct->chosenItem[battler];
+            break;
+        }
+    }
+}
+
+void BattleActionLog_RecordSwitchIn(enum BattlerId battler, u32 partyIndex, bool32 corrected)
+{
+    struct BattleActionLogEntry *entry = BattleActionLog_Append(battler, B_ACTION_SWITCH);
+
+    entry->partyIndex = partyIndex;
+    BattleActionLog_CopyAiDecisionTrace(entry, battler);
+    entry->flags |= BATTLE_ACTION_LOG_FLAG_RESOLVED;
+    if (corrected)
+        entry->flags |= BATTLE_ACTION_LOG_FLAG_CORRECTED;
+}
+
+const struct BattleActionLogEntry *BattleActionLog_GetLastEntry(enum BattlerId battler, u32 actionMask)
+{
+    for (u32 i = 0; i < gBattleActionLog.count; i++)
+    {
+        u32 index = (gBattleActionLog.cursor + BATTLE_ACTION_LOG_ENTRIES - 1 - i) % BATTLE_ACTION_LOG_ENTRIES;
+        const struct BattleActionLogEntry *entry = &gBattleActionLog.entries[index];
+
+        if (!(entry->flags & BATTLE_ACTION_LOG_FLAG_VALID))
+            continue;
+        if (entry->battler != battler)
+            continue;
+        if (entry->action >= 32 || !(actionMask & (1u << entry->action)))
+            continue;
+        return entry;
+    }
+
+    return NULL;
+}
+
+enum Move BattleActionLog_GetLastSelectedMove(enum BattlerId battler)
+{
+    const struct BattleActionLogEntry *entry = BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+
+    if (entry == NULL || entry->move == MOVE_NONE || entry->move == MOVE_UNAVAILABLE)
+        return MOVE_NONE;
+    return entry->move;
+}
 
 static const struct ScanlineEffectParams sIntroScanlineParams16Bit =
 {
@@ -479,6 +613,7 @@ void CB2_InitBattle(void)
     if (!gTestRunnerEnabled)
         MoveSaveBlocks_ResetHeap();
     AllocateBattleResources();
+    ApplyPendingOpponentGimmickBits();
     AllocateBattleSpritesData();
     AllocateMonSpritesGfx();
     RecordedBattle_ClearFrontierPassFlag();
@@ -513,6 +648,8 @@ void CB2_InitBattle(void)
 static void CB2_InitBattleInternal(void)
 {
     s32 i;
+
+    BattleActionLog_Clear();
 
     SetHBlankCallback(NULL);
     SetVBlankCallback(NULL);
@@ -1814,6 +1951,51 @@ static u32 GeneratePartyHash(const struct Trainer *trainer, u32 i)
     return Crc32B(buffer, n);
 }
 
+static void ApplyPendingOpponentGimmickBits(void)
+{
+    if (gBattleStruct == NULL)
+        return;
+
+    if (gIsDebugBattle)
+    {
+        gBattleStruct->opponentMonCanTera |= sPendingOpponentMonCanTera;
+        gBattleStruct->opponentMonCanDynamax |= sPendingOpponentMonCanDynamax;
+        gBattleStruct->opponentMonCanZMove |= sPendingOpponentMonCanZMove;
+    }
+    ClearPendingOpponentGimmickBits();
+}
+
+static void ClearPendingOpponentGimmickBits(void)
+{
+    sPendingOpponentMonCanTera = 0;
+    sPendingOpponentMonCanDynamax = 0;
+    sPendingOpponentMonCanZMove = 0;
+}
+
+static void RecordOpponentGimmickBits(u32 partyIndex, bool32 canTera, bool32 canDynamax, bool32 canZMove)
+{
+    u16 partyBit = 1u << partyIndex;
+
+    if (gBattleStruct != NULL)
+    {
+        if (canTera)
+            gBattleStruct->opponentMonCanTera |= partyBit;
+        if (canDynamax)
+            gBattleStruct->opponentMonCanDynamax |= partyBit;
+        if (canZMove)
+            gBattleStruct->opponentMonCanZMove |= partyBit;
+    }
+    else
+    {
+        if (canTera)
+            sPendingOpponentMonCanTera |= partyBit;
+        if (canDynamax)
+            sPendingOpponentMonCanDynamax |= partyBit;
+        if (canZMove)
+            sPendingOpponentMonCanZMove |= partyBit;
+    }
+}
+
 void ModifyPersonalityForNature(u32 *personality, u32 newNature)
 {
     u32 nature = GetNatureFromPersonality(*personality);
@@ -1887,6 +2069,10 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
 
         u32 monIndices[monsCount];
         DoTrainerPartyPool(trainer, monIndices, monsCount, battleTypeFlags);
+        bool32 recordOpponentGimmickBits = (party == gParties[B_TRAINER_OPPONENT_A]
+                                         || party == gParties[B_TRAINER_OPPONENT_B]);
+        if (recordOpponentGimmickBits && gBattleStruct == NULL && party == gParties[B_TRAINER_OPPONENT_A])
+            ClearPendingOpponentGimmickBits();
 
         for (s32 i = 0; i < monsCount; i++)
         {
@@ -1970,8 +2156,6 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             if (partyData[monIndex].dynamaxLevel > 0)
             {
                 u32 data = partyData[monIndex].dynamaxLevel;
-                if (partyData[monIndex].shouldUseDynamax)
-                    gBattleStruct->opponentMonCanDynamax |= 1 << i;
                 SetMonData(&party[i], MON_DATA_DYNAMAX_LEVEL, &data);
             }
             if (partyData[monIndex].gigantamaxFactor)
@@ -1981,9 +2165,16 @@ u8 CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer 
             }
             if (partyData[monIndex].teraType > 0)
             {
-                gBattleStruct->opponentMonCanTera |= 1 << i;
                 enum Type data = partyData[monIndex].teraType;
                 SetMonData(&party[i], MON_DATA_TERA_TYPE, &data);
+            }
+            if (recordOpponentGimmickBits)
+            {
+                RecordOpponentGimmickBits(
+                    i,
+                    partyData[monIndex].teraType > 0,
+                    partyData[monIndex].dynamaxLevel > 0 && partyData[monIndex].shouldUseDynamax,
+                    partyData[monIndex].shouldUseZMove);
             }
             CalculateMonStats(&party[i]);
 
@@ -4583,6 +4774,7 @@ static void HandleTurnActionSelectionState(void)
     if (gBattleCommunication[ACTIONS_CONFIRMED_COUNT] == gBattlersCount)
     {
         RecordedBattle_CheckMovesetChanges(B_RECORD_MODE_RECORDING);
+        BattleActionLog_RecordConfirmedCommands();
 
         if (WILD_DOUBLE_BATTLE
             && gBattleStruct->throwingPokeBall

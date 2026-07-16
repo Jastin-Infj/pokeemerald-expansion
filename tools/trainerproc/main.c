@@ -93,6 +93,9 @@ struct Pokemon
     struct String tera_type;
     int tera_type_line;
 
+    bool z_move;
+    int z_move_line;
+
     struct String moves[MAX_MON_MOVES];
     int moves_n;
     int move1_line;
@@ -100,6 +103,9 @@ struct Pokemon
     struct String tags[MAX_MON_TAGS];
     int tags_n;
     int tags_line;
+
+    int pool_weight;
+    int pool_weight_line;
 };
 
 struct Trainer
@@ -1511,6 +1517,14 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
                 pokemon->tera_type_line = value.location.line;
                 pokemon->tera_type = token_string(&value);
             }
+            else if (is_literal_token(&key, "Z Move"))
+            {
+                if (pokemon->z_move_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'Z Move'");
+                pokemon->z_move_line = value.location.line;
+                if (!token_bool(p, &value, &pokemon->z_move))
+                    any_error = !show_parse_error(p);
+            }
             else if (is_literal_token(&key, "Tags"))
             {
                 if (pokemon->tags_line)
@@ -1519,9 +1533,23 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
                 if (!token_human_identifiers(p, &value, pokemon->tags, &pokemon->tags_n, MAX_MON_TAGS))
                     any_error = !show_parse_error(p);
             }
+            else if (is_literal_token(&key, "Pool Weight"))
+            {
+                if (pokemon->pool_weight_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'Pool Weight'");
+                pokemon->pool_weight_line = value.location.line;
+                if (!token_int(p, &value, &pokemon->pool_weight))
+                {
+                    any_error = !show_parse_error(p);
+                }
+                else if (pokemon->pool_weight < 1 || pokemon->pool_weight > 15)
+                {
+                    any_error = !set_show_parse_error(p, value.location, "'Pool Weight' must be between 1 and 15");
+                }
+            }
             else
             {
-                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', or 'Tera Type'");
+                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', 'Tera Type', 'Z Move', 'Tags', or 'Pool Weight'");
             }
         }
 
@@ -2134,6 +2162,14 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
                 fprintf(f, ",\n");
             }
 
+            if (pokemon->z_move_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->z_move_line);
+                fprintf(f, "            .shouldUseZMove = ");
+                fprint_bool(f, pokemon->z_move);
+                fprintf(f, ",\n");
+            }
+
             if (pokemon->tags_line)
             {
                 fprintf(f, "#line %d\n", pokemon->tags_line);
@@ -2145,6 +2181,12 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
                     fprint_constant(f, "MON_POOL_TAG", pokemon->tags[i]);
                 }
                 fprintf(f, ",\n");
+            }
+
+            if (pokemon->pool_weight_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->pool_weight_line);
+                fprintf(f, "            .poolWeight = %d,\n", pokemon->pool_weight);
             }
 
             if (pokemon->moves_n > 0)

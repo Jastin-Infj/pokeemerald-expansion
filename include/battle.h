@@ -60,6 +60,62 @@
 
 #define BATTLE_BUFFER_LINK_SIZE 0x1000
 
+#define BATTLE_ACTION_LOG_ENTRIES       128
+#define BATTLE_ACTION_LOG_FLAG_VALID    (1 << 0)
+#define BATTLE_ACTION_LOG_FLAG_RESOLVED (1 << 1)
+#define BATTLE_ACTION_LOG_FLAG_CORRECTED (1 << 2)
+#define BATTLE_ACTION_LOG_FLAG_GIMMICK  (1 << 3)
+#define BATTLE_ACTION_LOG_AI_RISK_NONE  0
+#define BATTLE_ACTION_LOG_AI_RISK(kind) ((kind) + 1)
+
+enum AiDecisionReason
+{
+    AI_DECISION_REASON_NONE,
+    AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED,
+    AI_DECISION_REASON_KNOWN_COMMAND_ANSWER,
+    AI_DECISION_REASON_GIMMICK_STABILIZED,
+    AI_DECISION_REASON_SWITCH_PRESERVE,
+    AI_DECISION_REASON_BOARD_CONTROL,
+    AI_DECISION_REASON_SETUP_DENIAL,
+    AI_DECISION_REASON_PERISH_ESCAPE,
+    AI_DECISION_REASON_DESPERATION_COMEBACK,
+    AI_DECISION_REASON_HAX_OUT,
+    AI_DECISION_REASON_ALLY_SACRIFICE_BOARD_RESET,
+    AI_DECISION_REASON_COMMANDER_SLOT_CORRECTION,
+};
+
+struct BattleActionLogEntry
+{
+    u16 sequence;
+    u16 turn;
+    enum Move move;
+    enum Item item;
+    u8 battler;
+    u8 action;
+    u8 target;
+    u8 moveSlot;
+    u8 partyIndex;
+    enum Gimmick gimmick;
+    u8 aiReason;
+    u8 flags;
+    u8 aiThreatFlags;
+    u8 aiRiskKind;
+    u8 aiLineFlags;
+    u8 aiStableLineFamily;
+    u8 aiFallbackLineFamily;
+    u8 aiLossClock;
+};
+STATIC_ASSERT(sizeof(struct BattleActionLogEntry) == 28, BattleActionLogEntrySizeChanged)
+
+struct BattleActionLog
+{
+    struct BattleActionLogEntry entries[BATTLE_ACTION_LOG_ENTRIES];
+    u16 sequence;
+    u16 lastRecordedTurn;
+    u8 cursor;
+    u8 count;
+};
+
 // Fully Cleared each turn after end turn effects are done. A few things are cleared before end turn effects
 struct ProtectStruct
 {
@@ -691,6 +747,7 @@ struct BattleStruct
     u16 opponentMonCanTera:6;
     u16 opponentMonCanDynamax:6;
     u16 additionalEffectsCounter:4; // A counter for the additionalEffects applied by the current move in Cmd_setadditionaleffects
+    u16 opponentMonCanZMove:6;
     u8 pursuitStoredSwitch; // Stored id for the Pursuit target's switch
     s32 battlerExpReward;
     enum Species prevTurnSpecies[MAX_BATTLERS_COUNT]; // Stores species the AI has in play at start of turn
@@ -738,6 +795,13 @@ struct AiBattleData
     u8 playerStallMons[PARTY_SIZE];
     u8 chosenMoveIndex[MAX_BATTLERS_COUNT];
     u8 chosenTarget[MAX_BATTLERS_COUNT];
+    u8 decisionReason[MAX_BATTLERS_COUNT];
+    u8 decisionThreatFlags[MAX_BATTLERS_COUNT];
+    u8 decisionRiskKind[MAX_BATTLERS_COUNT];
+    u8 decisionLineFlags[MAX_BATTLERS_COUNT];
+    u8 decisionStableLineFamily[MAX_BATTLERS_COUNT];
+    u8 decisionFallbackLineFamily[MAX_BATTLERS_COUNT];
+    u8 decisionLossClock[MAX_BATTLERS_COUNT];
     u16 aiUsingGimmick:6;
     u8 actionFlee:1;
     u8 choiceWatch:1;
@@ -969,6 +1033,7 @@ extern u8 gBattleTextBuff2[TEXT_BUFF_ARRAY_COUNT];
 extern u8 gBattleTextBuff3[TEXT_BUFF_ARRAY_COUNT + 13]; //to handle stupidly large z move names
 extern u32 gBattleTypeFlags;
 extern u8 gBattleEnvironment;
+extern struct BattleActionLog gBattleActionLog;
 extern u8 *gBattleAnimBgTileBuffer;
 extern u8 *gBattleAnimBgTilemapBuffer;
 extern u32 gBattleControllerExecFlags;
@@ -1028,6 +1093,12 @@ extern u8 gSentPokesToOpponent[2];
 extern struct BattleEnigmaBerry gEnigmaBerries[MAX_BATTLERS_COUNT];
 extern struct BattleScripting gBattleScripting;
 extern struct BattleStruct *gBattleStruct;
+
+void BattleActionLog_Clear(void);
+void BattleActionLog_RecordConfirmedCommands(void);
+void BattleActionLog_RecordSwitchIn(enum BattlerId battler, u32 partyIndex, bool32 corrected);
+const struct BattleActionLogEntry *BattleActionLog_GetLastEntry(enum BattlerId battler, u32 actionMask);
+enum Move BattleActionLog_GetLastSelectedMove(enum BattlerId battler);
 extern struct StartingStatuses gStartingStatuses;
 extern struct AiBattleData *gAiBattleData;
 extern struct AiThinkingStruct *gAiThinkingStruct;
