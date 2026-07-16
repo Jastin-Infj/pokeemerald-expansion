@@ -1,6 +1,7 @@
 #include "global.h"
 #include "box_npc_party_pool.h"
 #include "battle.h"
+#include "battle_team.h"
 #include "gba/isagbprint.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
@@ -16,18 +17,24 @@ static void InitResult(struct BoxNpcPartyPoolResult *result, const struct BoxNpc
 {
     u32 i;
 
-    result->boxId = BOX_NPC_POOL_BOX_ID;
     result->candidateCount = 0;
     result->battleCount = 0;
+    result->battleTeamId = config->battleTeamId;
     result->poolMode = config->poolMode;
     result->battleFormat = config->battleFormat;
     result->memberMode = config->memberMode;
     result->gimmickPolicy = config->gimmickPolicy;
 
-    for (i = 0; i < ARRAY_COUNT(result->candidateSlots); i++)
-        result->candidateSlots[i] = BOX_NPC_SLOT_NONE;
-    for (i = 0; i < ARRAY_COUNT(result->finalSlots); i++)
-        result->finalSlots[i] = BOX_NPC_SLOT_NONE;
+    for (i = 0; i < ARRAY_COUNT(result->candidateSources); i++)
+    {
+        result->candidateSources[i].boxId = BOX_NPC_SLOT_NONE;
+        result->candidateSources[i].boxPosition = BOX_NPC_SLOT_NONE;
+    }
+    for (i = 0; i < ARRAY_COUNT(result->finalSources); i++)
+    {
+        result->finalSources[i].boxId = BOX_NPC_SLOT_NONE;
+        result->finalSources[i].boxPosition = BOX_NPC_SLOT_NONE;
+    }
 }
 
 static u8 GetBattleCount(enum BoxNpcBattleFormat battleFormat)
@@ -48,7 +55,8 @@ static bool32 TryFillFixedCandidateRoster(struct BoxNpcPartyPoolResult *result)
             sLastError = BOX_NPC_PARTY_POOL_ERROR_FIXED_SLOT_INVALID;
             return FALSE;
         }
-        result->candidateSlots[i] = i;
+        result->candidateSources[i].boxId = BOX_NPC_POOL_BOX_ID;
+        result->candidateSources[i].boxPosition = i;
     }
 
     result->candidateCount = BOX_NPC_CANDIDATE_ROSTER_SIZE;
@@ -76,7 +84,11 @@ static bool32 TryFillFirstValidCandidateRoster(struct BoxNpcPartyPoolResult *res
     for (boxPosition = 0; boxPosition < IN_BOX_COUNT && result->candidateCount < BOX_NPC_CANDIDATE_ROSTER_SIZE; boxPosition++)
     {
         if (CheckBoxMonSanityAt(BOX_NPC_POOL_BOX_ID, boxPosition))
-            result->candidateSlots[result->candidateCount++] = boxPosition;
+        {
+            result->candidateSources[result->candidateCount].boxId = BOX_NPC_POOL_BOX_ID;
+            result->candidateSources[result->candidateCount].boxPosition = boxPosition;
+            result->candidateCount++;
+        }
     }
 
     if (result->candidateCount < BOX_NPC_CANDIDATE_ROSTER_SIZE)
@@ -107,7 +119,8 @@ static bool32 TryFillRandomCandidateRoster(struct BoxNpcPartyPoolResult *result)
 
         validSlots[selected] = validSlots[i];
         validSlots[i] = slot;
-        result->candidateSlots[i] = slot;
+        result->candidateSources[i].boxId = BOX_NPC_POOL_BOX_ID;
+        result->candidateSources[i].boxPosition = slot;
     }
 
     result->candidateCount = BOX_NPC_CANDIDATE_ROSTER_SIZE;
@@ -124,6 +137,19 @@ static bool32 TryFillCandidateRoster(struct BoxNpcPartyPoolResult *result)
         return TryFillFirstValidCandidateRoster(result);
     case BOX_NPC_POOL_BOX1_RANDOM_VALID_6:
         return TryFillRandomCandidateRoster(result);
+    case BOX_NPC_POOL_REGISTERED_BATTLE_TEAM:
+        if (result->battleTeamId >= BATTLE_TEAM_COUNT)
+        {
+            sLastError = BOX_NPC_PARTY_POOL_ERROR_INVALID_BATTLE_TEAM;
+            return FALSE;
+        }
+        if (!BattleTeam_TryGetFullRoster(result->battleTeamId, result->candidateSources))
+        {
+            sLastError = BOX_NPC_PARTY_POOL_ERROR_BATTLE_TEAM_INCOMPLETE;
+            return FALSE;
+        }
+        result->candidateCount = BOX_NPC_CANDIDATE_ROSTER_SIZE;
+        return TRUE;
     }
 
     sLastError = BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_VALID_MONS;
@@ -160,10 +186,10 @@ static void CopySelectedMonsToOpponentParty(struct BoxNpcPartyPoolResult *result
 
     for (i = 0; i < result->battleCount; i++)
     {
-        u8 boxSlot = result->candidateSlots[memberIndices[i]];
+        struct BattleTeamSlot source = result->candidateSources[memberIndices[i]];
 
-        result->finalSlots[i] = boxSlot;
-        BoxMonAtToMon(BOX_NPC_POOL_BOX_ID, boxSlot, &gParties[B_TRAINER_OPPONENT_A][i]);
+        result->finalSources[i] = source;
+        BoxMonAtToMon(source.boxId, source.boxPosition, &gParties[B_TRAINER_OPPONENT_A][i]);
         HealPokemon(&gParties[B_TRAINER_OPPONENT_A][i]);
     }
 }
@@ -178,22 +204,27 @@ static void SetPendingBattleInitPolicy(const struct BoxNpcPartyPoolResult *resul
 static void LogSelection(const struct BoxNpcPartyPoolConfig *config, const struct BoxNpcPartyPoolResult *result)
 {
     DebugPrintf(
-        "BoxNPC fmt=%d pool=%d members=%d gimmick=%d aiLo=0x%08x candidates=%d,%d,%d,%d,%d,%d final=%d,%d,%d,%d",
+        "BoxNPC fmt=%d pool=%d team=%d members=%d gimmick=%d aiLo=0x%08x",
         config->battleFormat,
         config->poolMode,
+        config->battleTeamId,
         config->memberMode,
         config->gimmickPolicy,
-        (u32)config->aiFlags,
-        result->candidateSlots[0],
-        result->candidateSlots[1],
-        result->candidateSlots[2],
-        result->candidateSlots[3],
-        result->candidateSlots[4],
-        result->candidateSlots[5],
-        result->finalSlots[0],
-        result->finalSlots[1],
-        result->finalSlots[2],
-        result->finalSlots[3]);
+        (u32)config->aiFlags);
+    DebugPrintf(
+        "BoxNPC candidates=%d:%d,%d:%d,%d:%d,%d:%d,%d:%d,%d:%d",
+        result->candidateSources[0].boxId, result->candidateSources[0].boxPosition,
+        result->candidateSources[1].boxId, result->candidateSources[1].boxPosition,
+        result->candidateSources[2].boxId, result->candidateSources[2].boxPosition,
+        result->candidateSources[3].boxId, result->candidateSources[3].boxPosition,
+        result->candidateSources[4].boxId, result->candidateSources[4].boxPosition,
+        result->candidateSources[5].boxId, result->candidateSources[5].boxPosition);
+    DebugPrintf(
+        "BoxNPC final=%d:%d,%d:%d,%d:%d,%d:%d",
+        result->finalSources[0].boxId, result->finalSources[0].boxPosition,
+        result->finalSources[1].boxId, result->finalSources[1].boxPosition,
+        result->finalSources[2].boxId, result->finalSources[2].boxPosition,
+        result->finalSources[3].boxId, result->finalSources[3].boxPosition);
 }
 
 bool32 BoxNpcPartyPool_TryBuildOpponentParty(
@@ -270,6 +301,10 @@ const u8 *BoxNpcPartyPool_GetLastErrorText(void)
         return COMPOUND_STRING("Box 1 slots 1-6 need valid Pokemon.");
     case BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_VALID_MONS:
         return COMPOUND_STRING("Box 1 needs six valid Pokemon.");
+    case BOX_NPC_PARTY_POOL_ERROR_INVALID_BATTLE_TEAM:
+        return COMPOUND_STRING("That Battle Team does not exist.");
+    case BOX_NPC_PARTY_POOL_ERROR_BATTLE_TEAM_INCOMPLETE:
+        return COMPOUND_STRING("Battle Team needs six valid Pokemon.");
     case BOX_NPC_PARTY_POOL_ERROR_NONE:
     default:
         return COMPOUND_STRING("Box NPC party pool is ready.");

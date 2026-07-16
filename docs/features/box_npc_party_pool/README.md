@@ -15,9 +15,14 @@ against user-authored sets.
 |---|---|
 | Standalone source shelf | `feature/box-npc-party-pool-20260705` at `71e9d602f0`; draft PR #74 |
 | Fresh integration target | `integration/runtime-lab-20260716`, created from `master` `1f77705e45` |
-| Reapply candidate | `integration/runtime-lab-box-npc-pr-20260716` |
-| Scope | Box NPC only; Battle Team Boxes and Smart Gimmick AI use later PRs |
+| Box reapply | PR #76 merged into the integration target at `17b67dfe98` |
+| Dependent candidate | `integration/runtime-lab-battle-team-pr-20260716` |
+| Scope | Box NPC plus Battle Team Boxes; Smart Gimmick AI uses a later PR |
 | Master policy | Runtime files are not eligible for the docs / Lua-only master path |
+
+The dependent [Battle Team Boxes](../battle_team_boxes/README.md) reapply adds
+three persistent six-member rosters that may reference Pokemon from any Box and
+uses those rosters as additional Box NPC candidate pools.
 
 - [Goal](goal.md)
 - [Implementation](implementation.md)

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_team.h"
 #include "malloc.h"
 #include "bg.h"
 #include "data.h"
@@ -71,9 +72,11 @@ enum {
     OPTION_WITHDRAW,
 #endif
     OPTION_MOVE_ITEMS,
+    OPTION_BATTLE_TEAMS,
     OPTION_EXIT,
     OPTIONS_COUNT,
-    OPTION_SELECT_MON
+    OPTION_SELECT_MON,
+    OPTION_SELECT_BATTLE_TEAM_MON,
 };
 
 // IDs for messages to print with PrintMessage
@@ -109,6 +112,7 @@ enum {
     MSG_ITEM_IS_HELD,
     MSG_CHANGED_TO_ITEM,
     MSG_CANT_STORE_MAIL,
+    MSG_BATTLE_TEAM_BOX_ONLY,
 };
 
 // IDs for how to resolve variables in the above messages
@@ -557,6 +561,13 @@ EWRAM_DATA static u8 sMovingMonOrigBoxPos = 0;
 EWRAM_DATA static bool8 sAutoActionOn = 0;
 EWRAM_DATA static bool8 sJustOpenedBag = 0;
 EWRAM_DATA static bool8 sRefreshDisplayMonGfx = FALSE;
+EWRAM_DATA static u8 sBattleTeamPendingTeam = 0;
+EWRAM_DATA static u8 sBattleTeamPendingSlot = 0;
+EWRAM_DATA static u8 sBattleTeamReturnCursor = 0;
+EWRAM_DATA static bool8 sBattleTeamOpenedDirectly = FALSE;
+EWRAM_DATA static u8 sBattleTeamSlotTexts[8][32] = {0};
+EWRAM_DATA static struct MenuAction sBattleTeamSlotMenuActions[8] = {0};
+EWRAM_DATA static struct StorageMenu sBattleTeamActionMenuItems[3] = {0};
 
 // Main tasks
 static void Task_InitPokeStorage(u8);
@@ -590,6 +601,8 @@ static void Task_HandleWallpapers(u8);
 static void Task_NameBox(u8);
 static void Task_PrintCantStoreMail(u8);
 static void Task_HandleMovingMonFromParty(u8);
+static void Task_BattleTeamMenu(u8);
+static void CB2_ReturnFromBattleTeamMonSelection(void);
 
 // Input handlers
 static u8 InBoxInput_Normal(void);
@@ -671,6 +684,7 @@ static bool8 MultiMove_Init(void);
 static bool8 MultiMove_RunFunction(void);
 static bool8 MultiMove_TryMoveGroup(u8);
 static bool8 MultiMove_CanPlaceSelection(void);
+static bool8 MultiMove_SelectionContainsRegisteredMon(void);
 static void MultiMove_SetFunction(u8);
 static u8 MultiMove_GetOrigin(void);
 static bool8 MultiMove_Start(void);
@@ -803,6 +817,7 @@ static struct BoxPokemon *GetCursorBoxMon(void);
 // Misc
 static void CreateMainMenu(u8, s16 *);
 static void EnterPokeStorage(u8 boxOption);
+static bool32 IsMonSelectionOption(u8 boxOption);
 static u8 GetCurrentBoxOption(void);
 static void ScrollBackground(void);
 static void UpdateCloseBoxButtonFlash(void);
@@ -870,6 +885,7 @@ struct {
     [OPTION_DEPOSIT]    = {COMPOUND_STRING("DEPOSIT POKéMON"),  COMPOUND_STRING("Store POKéMON in your party in BOXES.")},
     [OPTION_MOVE_MONS]  = {COMPOUND_STRING("MOVE POKéMON"),     COMPOUND_STRING("Organize the POKéMON in BOXES and\nin your party.")},
     [OPTION_MOVE_ITEMS] = {COMPOUND_STRING("MOVE ITEMS"),       COMPOUND_STRING("Move items held by any POKéMON\nin a BOX or your party.")},
+    [OPTION_BATTLE_TEAMS] = {COMPOUND_STRING("BATTLE TEAMS"),   COMPOUND_STRING("Register BOX POKéMON to one of\nthree six-member teams.")},
     [OPTION_EXIT]       = {COMPOUND_STRING("SEE YA!"),          COMPOUND_STRING("Return to the previous menu.")}
 };
 
@@ -879,10 +895,62 @@ static const struct WindowTemplate sWindowTemplate_MainMenu =
     .tilemapLeft = 1,
     .tilemapTop = 1,
     .width = 17,
+    .height = 12,
+    .paletteNum = 15,
+    .baseBlock = 0x1,
+};
+
+static const struct WindowTemplate sWindowTemplate_BattleTeamSlots =
+{
+    .bg = 0,
+    .tilemapLeft = 1,
+    .tilemapTop = 1,
+    .width = 28,
     .height = 10,
     .paletteNum = 15,
     .baseBlock = 0x1,
 };
+
+static const struct WindowTemplate sWindowTemplate_BattleTeamActions =
+{
+    .bg = 0,
+    .tilemapLeft = 19,
+    .tilemapTop = 7,
+    .width = 10,
+    .height = 6,
+    .paletteNum = 15,
+    .baseBlock = 0x120,
+};
+
+static const struct WindowTemplate sWindowTemplate_BattleTeamYesNo =
+{
+    .bg = 0,
+    .tilemapLeft = 24,
+    .tilemapTop = 11,
+    .width = 5,
+    .height = 4,
+    .paletteNum = 15,
+    .baseBlock = 0x160,
+};
+
+static const struct StorageMenu sBattleTeamListMenuItems[] =
+{
+    {COMPOUND_STRING("TEAM 1"), 0},
+    {COMPOUND_STRING("TEAM 2"), 0},
+    {COMPOUND_STRING("TEAM 3"), 0},
+    {COMPOUND_STRING("BACK"), 0},
+};
+
+static const u8 sText_BattleTeamRegister[] = _("REGISTER");
+static const u8 sText_BattleTeamRemove[] = _("REMOVE");
+static const u8 sText_BattleTeamCancel[] = _("CANCEL");
+static const u8 sText_BattleTeamBack[] = _("BACK");
+static const u8 sText_BattleTeamClear[] = _("CLEAR TEAM");
+static const u8 sText_BattleTeamEmpty[] = _("EMPTY");
+static const u8 sText_BattleTeamManageDesc[] = _("Choose a six-member BATTLE TEAM.\nRegistered POKéMON stay in their BOX.");
+static const u8 sText_BattleTeamSlotDesc[] = _("{STR_VAR_1}\nBOX {STR_VAR_2}, SLOT {STR_VAR_3}");
+static const u8 sText_BattleTeamEmptyDesc[] = _("This team slot is empty.");
+static const u8 sText_BattleTeamClearPrompt[] = _("Clear every slot in this team?");
 
 static const union AnimCmd sAnim_ChooseBoxMenu_TopLeft[] =
 {
@@ -1078,6 +1146,7 @@ static const struct StorageMessage sMessages[] =
     [MSG_ITEM_IS_HELD]         = {COMPOUND_STRING("{DYNAMIC 0} is now held."),   MSG_VAR_ITEM_NAME},
     [MSG_CHANGED_TO_ITEM]      = {COMPOUND_STRING("Changed to {DYNAMIC 0}."),    MSG_VAR_ITEM_NAME},
     [MSG_CANT_STORE_MAIL]      = {COMPOUND_STRING("MAIL can't be stored!"),      MSG_VAR_NONE},
+    [MSG_BATTLE_TEAM_BOX_ONLY] = {COMPOUND_STRING("Register a POKéMON from a BOX."), MSG_VAR_NONE},
 };
 
 static const struct WindowTemplate sYesNoWindowTemplate =
@@ -1567,6 +1636,16 @@ static void Task_PCMainMenu(u8 taskId)
                 AddTextPrinterParameterized2(0, FONT_NORMAL, gText_JustOnePkmn, 0, NULL, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY);
                 task->tState = STATE_ERROR_MSG;
             }
+            else if (task->tInput == OPTION_BATTLE_TEAMS)
+            {
+                ClearStdWindowAndFrame(task->tWindowId, TRUE);
+                RemoveWindow(task->tWindowId);
+                sBattleTeamOpenedDirectly = FALSE;
+                task->func = Task_BattleTeamMenu;
+                memset(task->data, 0, sizeof(task->data));
+                task->data[1] = BattleTeam_GetLastViewedTeam();
+                task->data[2] = 0;
+            }
             else
             {
                 // Enter PC
@@ -1646,6 +1725,330 @@ static void FieldTask_ReturnToPcMenu(void)
 #undef tNextOption
 #undef tWindowId
 
+enum {
+    BATTLE_TEAM_STATE_LOAD_TEAM_LIST,
+    BATTLE_TEAM_STATE_HANDLE_TEAM_LIST,
+    BATTLE_TEAM_STATE_LOAD_SLOT_GRID,
+    BATTLE_TEAM_STATE_HANDLE_SLOT_GRID,
+    BATTLE_TEAM_STATE_LOAD_ACTION_MENU,
+    BATTLE_TEAM_STATE_HANDLE_ACTION_MENU,
+    BATTLE_TEAM_STATE_SHOW_CLEAR_PROMPT,
+    BATTLE_TEAM_STATE_HANDLE_CLEAR_PROMPT,
+    BATTLE_TEAM_STATE_FADE_TO_SELECTOR,
+};
+
+#define tBattleTeamState          data[0]
+#define tBattleTeamId             data[1]
+#define tBattleTeamSlot           data[2]
+#define tBattleTeamActionCount    data[3]
+#define tBattleTeamSlotOccupied   data[4]
+#define tBattleTeamWindowId       data[14]
+#define tBattleTeamActionWindowId data[15]
+
+static void PrintBattleTeamDialogue(const u8 *text)
+{
+    LoadMessageBoxAndBorderGfx();
+    DrawDialogueFrame(0, FALSE);
+    FillWindowPixelBuffer(0, PIXEL_FILL(1));
+    AddTextPrinterParameterized2(0, FONT_NORMAL, text, 0, NULL, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY);
+    CopyWindowToVram(0, COPYWIN_FULL);
+}
+
+static void LoadBattleTeamList(struct Task *task)
+{
+    struct WindowTemplate template = sWindowTemplate_MainMenu;
+
+    template.height = ARRAY_COUNT(sBattleTeamListMenuItems) * 2;
+    task->tBattleTeamWindowId = AddWindow(&template);
+    DrawStdWindowFrame(task->tBattleTeamWindowId, FALSE);
+    PrintMenuTable(task->tBattleTeamWindowId, ARRAY_COUNT(sBattleTeamListMenuItems), (const struct MenuAction *)sBattleTeamListMenuItems);
+    InitMenuInUpperLeftCornerNormal(task->tBattleTeamWindowId, ARRAY_COUNT(sBattleTeamListMenuItems), task->tBattleTeamId);
+    CopyWindowToVram(task->tBattleTeamWindowId, COPYWIN_FULL);
+    PrintBattleTeamDialogue(sText_BattleTeamManageDesc);
+}
+
+static void PrintBattleTeamSlotDialogue(u8 teamId, u8 teamPosition)
+{
+    struct BattleTeamSlot slot;
+
+    if (teamPosition < BATTLE_TEAM_MEMBER_COUNT && BattleTeam_TryGetMember(teamId, teamPosition, &slot))
+    {
+        StringCopy(gStringVar1, GetSpeciesName(GetBoxMonDataAt(slot.boxId, slot.boxPosition, MON_DATA_SPECIES)));
+        ConvertIntToDecimalStringN(gStringVar2, slot.boxId + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+        ConvertIntToDecimalStringN(gStringVar3, slot.boxPosition + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+        StringExpandPlaceholders(gStringVar4, sText_BattleTeamSlotDesc);
+        PrintBattleTeamDialogue(gStringVar4);
+    }
+    else if (teamPosition == BATTLE_TEAM_MEMBER_COUNT)
+    {
+        PrintBattleTeamDialogue(sText_BattleTeamClearPrompt);
+    }
+    else if (teamPosition > BATTLE_TEAM_MEMBER_COUNT)
+    {
+        PrintBattleTeamDialogue(sText_BattleTeamManageDesc);
+    }
+    else
+    {
+        PrintBattleTeamDialogue(sText_BattleTeamEmptyDesc);
+    }
+}
+
+static void LoadBattleTeamSlotGrid(struct Task *task)
+{
+    u32 i;
+
+    for (i = 0; i < BATTLE_TEAM_MEMBER_COUNT; i++)
+    {
+        struct BattleTeamSlot slot;
+        const u8 *name = sText_BattleTeamEmpty;
+
+        ConvertIntToDecimalStringN(sBattleTeamSlotTexts[i], i + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+        StringAppend(sBattleTeamSlotTexts[i], gText_Space);
+        if (BattleTeam_TryGetMember(task->tBattleTeamId, i, &slot))
+            name = GetSpeciesName(GetBoxMonDataAt(slot.boxId, slot.boxPosition, MON_DATA_SPECIES));
+        StringAppend(sBattleTeamSlotTexts[i], name);
+        sBattleTeamSlotMenuActions[i].text = sBattleTeamSlotTexts[i];
+    }
+
+    StringCopy(sBattleTeamSlotTexts[BATTLE_TEAM_MEMBER_COUNT], sText_BattleTeamClear);
+    sBattleTeamSlotMenuActions[BATTLE_TEAM_MEMBER_COUNT].text = sBattleTeamSlotTexts[BATTLE_TEAM_MEMBER_COUNT];
+    StringCopy(sBattleTeamSlotTexts[BATTLE_TEAM_MEMBER_COUNT + 1], sText_BattleTeamBack);
+    sBattleTeamSlotMenuActions[BATTLE_TEAM_MEMBER_COUNT + 1].text = sBattleTeamSlotTexts[BATTLE_TEAM_MEMBER_COUNT + 1];
+
+    task->tBattleTeamWindowId = AddWindow(&sWindowTemplate_BattleTeamSlots);
+    DrawStdWindowFrame(task->tBattleTeamWindowId, FALSE);
+    PrintMenuGridTable(task->tBattleTeamWindowId, 14 * 8, 2, 4, sBattleTeamSlotMenuActions);
+    InitMenuActionGrid(task->tBattleTeamWindowId, 14 * 8, 2, 4, task->tBattleTeamSlot);
+    CopyWindowToVram(task->tBattleTeamWindowId, COPYWIN_FULL);
+    PrintBattleTeamSlotDialogue(task->tBattleTeamId, task->tBattleTeamSlot);
+}
+
+static void RemoveBattleTeamWindow(struct Task *task)
+{
+    ClearStdWindowAndFrame(task->tBattleTeamWindowId, TRUE);
+    RemoveWindow(task->tBattleTeamWindowId);
+}
+
+static void ReturnFromBattleTeamList(u8 taskId)
+{
+    struct Task *task = &gTasks[taskId];
+
+    RemoveBattleTeamWindow(task);
+    if (sBattleTeamOpenedDirectly)
+    {
+        ClearDialogWindowAndFrame(0, TRUE);
+        UnlockPlayerFieldControls();
+        ScriptContext_Enable();
+        DestroyTask(taskId);
+    }
+    else
+    {
+        task->func = Task_PCMainMenu;
+        memset(task->data, 0, sizeof(task->data));
+        task->data[1] = OPTION_BATTLE_TEAMS;
+    }
+}
+
+static void LoadBattleTeamActionMenu(struct Task *task)
+{
+    u8 count = 0;
+
+    task->tBattleTeamSlotOccupied = BattleTeam_TryGetMember(task->tBattleTeamId, task->tBattleTeamSlot, NULL);
+    sBattleTeamActionMenuItems[count++] = (struct StorageMenu){sText_BattleTeamRegister, 0};
+    if (task->tBattleTeamSlotOccupied)
+        sBattleTeamActionMenuItems[count++] = (struct StorageMenu){sText_BattleTeamRemove, 0};
+    sBattleTeamActionMenuItems[count++] = (struct StorageMenu){sText_BattleTeamCancel, 0};
+
+    task->tBattleTeamActionCount = count;
+    task->tBattleTeamActionWindowId = AddWindow(&sWindowTemplate_BattleTeamActions);
+    DrawStdWindowFrame(task->tBattleTeamActionWindowId, FALSE);
+    PrintMenuTable(task->tBattleTeamActionWindowId, count, (const struct MenuAction *)sBattleTeamActionMenuItems);
+    InitMenuInUpperLeftCornerNormal(task->tBattleTeamActionWindowId, count, 0);
+    CopyWindowToVram(task->tBattleTeamActionWindowId, COPYWIN_FULL);
+}
+
+static void CloseBattleTeamActionMenu(struct Task *task)
+{
+    ClearStdWindowAndFrame(task->tBattleTeamActionWindowId, TRUE);
+    RemoveWindow(task->tBattleTeamActionWindowId);
+    InitMenuActionGrid(task->tBattleTeamWindowId, 14 * 8, 2, 4, task->tBattleTeamSlot);
+}
+
+static void Task_BattleTeamMenu(u8 taskId)
+{
+    struct Task *task = &gTasks[taskId];
+    s8 input;
+    u32 i;
+
+    switch (task->tBattleTeamState)
+    {
+    case BATTLE_TEAM_STATE_LOAD_TEAM_LIST:
+        LoadBattleTeamList(task);
+        task->tBattleTeamState = BATTLE_TEAM_STATE_HANDLE_TEAM_LIST;
+        break;
+    case BATTLE_TEAM_STATE_HANDLE_TEAM_LIST:
+        input = Menu_ProcessInput();
+        if (input == MENU_B_PRESSED || input == BATTLE_TEAM_COUNT)
+        {
+            PlaySE(SE_SELECT);
+            ReturnFromBattleTeamList(taskId);
+        }
+        else if (input >= 0 && input < BATTLE_TEAM_COUNT)
+        {
+            PlaySE(SE_SELECT);
+            task->tBattleTeamId = input;
+            task->tBattleTeamSlot = 0;
+            BattleTeam_SetLastViewedTeam(input);
+            RemoveBattleTeamWindow(task);
+            task->tBattleTeamState = BATTLE_TEAM_STATE_LOAD_SLOT_GRID;
+        }
+        break;
+    case BATTLE_TEAM_STATE_LOAD_SLOT_GRID:
+        LoadBattleTeamSlotGrid(task);
+        task->tBattleTeamState = BATTLE_TEAM_STATE_HANDLE_SLOT_GRID;
+        break;
+    case BATTLE_TEAM_STATE_HANDLE_SLOT_GRID:
+        input = Menu_ProcessGridInput();
+        if (input == MENU_NOTHING_CHOSEN)
+        {
+            if (task->tBattleTeamSlot != Menu_GetCursorPos())
+            {
+                task->tBattleTeamSlot = Menu_GetCursorPos();
+                PrintBattleTeamSlotDialogue(task->tBattleTeamId, task->tBattleTeamSlot);
+            }
+        }
+        else if (input == MENU_B_PRESSED || input == BATTLE_TEAM_MEMBER_COUNT + 1)
+        {
+            PlaySE(SE_SELECT);
+            RemoveBattleTeamWindow(task);
+            task->tBattleTeamState = BATTLE_TEAM_STATE_LOAD_TEAM_LIST;
+        }
+        else if (input == BATTLE_TEAM_MEMBER_COUNT)
+        {
+            PlaySE(SE_SELECT);
+            task->tBattleTeamSlot = input;
+            if (BattleTeam_GetRegisteredCount(task->tBattleTeamId) != 0)
+                task->tBattleTeamState = BATTLE_TEAM_STATE_SHOW_CLEAR_PROMPT;
+        }
+        else if (input >= 0 && input < BATTLE_TEAM_MEMBER_COUNT)
+        {
+            PlaySE(SE_SELECT);
+            task->tBattleTeamSlot = input;
+            task->tBattleTeamState = BATTLE_TEAM_STATE_LOAD_ACTION_MENU;
+        }
+        break;
+    case BATTLE_TEAM_STATE_LOAD_ACTION_MENU:
+        LoadBattleTeamActionMenu(task);
+        task->tBattleTeamState = BATTLE_TEAM_STATE_HANDLE_ACTION_MENU;
+        break;
+    case BATTLE_TEAM_STATE_HANDLE_ACTION_MENU:
+        input = Menu_ProcessInput();
+        if (input == MENU_B_PRESSED || input == task->tBattleTeamActionCount - 1)
+        {
+            PlaySE(SE_SELECT);
+            CloseBattleTeamActionMenu(task);
+            task->tBattleTeamState = BATTLE_TEAM_STATE_HANDLE_SLOT_GRID;
+        }
+        else if (input == 0)
+        {
+            PlaySE(SE_SELECT);
+            sBattleTeamPendingTeam = task->tBattleTeamId;
+            sBattleTeamPendingSlot = task->tBattleTeamSlot;
+            sBattleTeamReturnCursor = task->tBattleTeamSlot;
+            CloseBattleTeamActionMenu(task);
+            RemoveBattleTeamWindow(task);
+            FadeScreen(FADE_TO_BLACK, 0);
+            task->tBattleTeamState = BATTLE_TEAM_STATE_FADE_TO_SELECTOR;
+        }
+        else if (task->tBattleTeamSlotOccupied && input == 1)
+        {
+            PlaySE(SE_SELECT);
+            BattleTeam_ClearSlot(task->tBattleTeamId, task->tBattleTeamSlot);
+            CloseBattleTeamActionMenu(task);
+            RemoveBattleTeamWindow(task);
+            task->tBattleTeamState = BATTLE_TEAM_STATE_LOAD_SLOT_GRID;
+        }
+        break;
+    case BATTLE_TEAM_STATE_SHOW_CLEAR_PROMPT:
+        PrintBattleTeamDialogue(sText_BattleTeamClearPrompt);
+        CreateYesNoMenu(&sWindowTemplate_BattleTeamYesNo, 11, 14, 1);
+        task->tBattleTeamState = BATTLE_TEAM_STATE_HANDLE_CLEAR_PROMPT;
+        break;
+    case BATTLE_TEAM_STATE_HANDLE_CLEAR_PROMPT:
+        input = Menu_ProcessInputNoWrapClearOnChoose();
+        if (input == 0)
+        {
+            for (i = 0; i < BATTLE_TEAM_MEMBER_COUNT; i++)
+                BattleTeam_ClearSlot(task->tBattleTeamId, i);
+            RemoveBattleTeamWindow(task);
+            task->tBattleTeamSlot = 0;
+            task->tBattleTeamState = BATTLE_TEAM_STATE_LOAD_SLOT_GRID;
+        }
+        else if (input == 1 || input == MENU_B_PRESSED)
+        {
+            InitMenuActionGrid(task->tBattleTeamWindowId, 14 * 8, 2, 4, task->tBattleTeamSlot);
+            PrintBattleTeamSlotDialogue(task->tBattleTeamId, task->tBattleTeamSlot);
+            task->tBattleTeamState = BATTLE_TEAM_STATE_HANDLE_SLOT_GRID;
+        }
+        break;
+    case BATTLE_TEAM_STATE_FADE_TO_SELECTOR:
+        if (!gPaletteFade.active)
+        {
+            gSpecialVar_0x8004 = PARTY_NOTHING_CHOSEN;
+            gSpecialVar_Result = FALSE;
+            CleanupOverworldWindowsAndTilemaps();
+            EnterPokeStorage(OPTION_SELECT_BATTLE_TEAM_MON);
+            DestroyTask(taskId);
+        }
+        break;
+    }
+}
+
+static void FieldTask_ReturnToBattleTeamMenu(void)
+{
+    u8 taskId;
+    MainCallback vblankCb = gMain.vblankCallback;
+
+    SetVBlankCallback(NULL);
+    taskId = CreateTask(Task_BattleTeamMenu, 80);
+    gTasks[taskId].tBattleTeamState = BATTLE_TEAM_STATE_LOAD_SLOT_GRID;
+    gTasks[taskId].tBattleTeamId = sBattleTeamPendingTeam;
+    gTasks[taskId].tBattleTeamSlot = sBattleTeamReturnCursor;
+    Task_BattleTeamMenu(taskId);
+    SetVBlankCallback(vblankCb);
+    FadeInFromBlack();
+}
+
+static void CB2_ReturnFromBattleTeamMonSelection(void)
+{
+    if (gSpecialVar_Result && gSpecialVar_0x8004 == PC_MON_CHOSEN)
+    {
+        BattleTeam_TryRegister(sBattleTeamPendingTeam, sBattleTeamPendingSlot,
+                               gSpecialVar_MonBoxId, gSpecialVar_MonBoxPos);
+    }
+
+    gFieldCallback = FieldTask_ReturnToBattleTeamMenu;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
+void ShowPokemonStorageBattleTeamManager(void)
+{
+    u8 taskId = CreateTask(Task_BattleTeamMenu, 80);
+
+    sBattleTeamOpenedDirectly = TRUE;
+    gTasks[taskId].tBattleTeamState = BATTLE_TEAM_STATE_LOAD_TEAM_LIST;
+    gTasks[taskId].tBattleTeamId = BattleTeam_GetLastViewedTeam();
+    LockPlayerFieldControls();
+}
+
+#undef tBattleTeamState
+#undef tBattleTeamId
+#undef tBattleTeamSlot
+#undef tBattleTeamActionCount
+#undef tBattleTeamSlotOccupied
+#undef tBattleTeamWindowId
+#undef tBattleTeamActionWindowId
+
 static void CreateMainMenu(u8 whichMenu, s16 *windowIdPtr)
 {
     s16 windowId;
@@ -1702,6 +2105,7 @@ void ResetPokemonStorageSystem(void)
     u16 boxId, boxPosition;
 
     SetCurrentBox(0);
+    BattleTeam_Reset();
     for (boxId = 0; boxId < TOTAL_BOXES_COUNT; boxId++)
     {
         for (boxPosition = 0; boxPosition < IN_BOX_COUNT; boxPosition++)
@@ -1968,6 +2372,11 @@ static void CB2_PokeStorage(void)
     BuildOamBuffer();
 }
 
+static bool32 IsMonSelectionOption(u8 boxOption)
+{
+    return boxOption == OPTION_SELECT_MON || boxOption == OPTION_SELECT_BATTLE_TEAM_MON;
+}
+
 static void EnterPokeStorage(u8 boxOption)
 {
     ResetTasks();
@@ -1975,7 +2384,9 @@ static void EnterPokeStorage(u8 boxOption)
     sStorage = Alloc(sizeof(*sStorage));
     if (sStorage == NULL)
     {
-        if (boxOption == OPTION_SELECT_MON)
+        if (boxOption == OPTION_SELECT_BATTLE_TEAM_MON)
+            SetMainCallback2(CB2_ReturnFromBattleTeamMonSelection);
+        else if (boxOption == OPTION_SELECT_MON)
             SetMainCallback2(CB2_ReturnToFieldContinueScript);
         else
             SetMainCallback2(CB2_ExitPokeStorage);
@@ -1998,7 +2409,9 @@ static void CB2_ReturnToPokeStorage(void)
     sStorage = Alloc(sizeof(*sStorage));
     if (sStorage == NULL)
     {
-        if (sStorage->boxOption == OPTION_SELECT_MON)
+        if (sCurrentBoxOption == OPTION_SELECT_BATTLE_TEAM_MON)
+            SetMainCallback2(CB2_ReturnFromBattleTeamMonSelection);
+        else if (sCurrentBoxOption == OPTION_SELECT_MON)
             SetMainCallback2(CB2_ReturnToFieldContinueScript);
         else
             SetMainCallback2(CB2_ExitPokeStorage);
@@ -2257,7 +2670,12 @@ static void Task_PokeStorageMain(u8 taskId)
             sStorage->state = MSTATE_MOVE_CURSOR;
             break;
         case INPUT_SHOW_PARTY:
-            if (sStorage->boxOption != OPTION_MOVE_MONS && sStorage->boxOption != OPTION_MOVE_ITEMS && sStorage->boxOption != OPTION_SELECT_MON)
+            if (sStorage->boxOption == OPTION_SELECT_BATTLE_TEAM_MON)
+            {
+                PrintMessage(MSG_BATTLE_TEAM_BOX_ONLY);
+                sStorage->state = MSTATE_WAIT_MSG;
+            }
+            else if (sStorage->boxOption != OPTION_MOVE_MONS && sStorage->boxOption != OPTION_MOVE_ITEMS && sStorage->boxOption != OPTION_SELECT_MON)
             {
                 PrintMessage(MSG_WHICH_ONE_WILL_TAKE);
                 sStorage->state = MSTATE_WAIT_MSG;
@@ -2698,7 +3116,9 @@ static void Task_OnSelectedMon(u8 taskId)
                 gSpecialVar_MonBoxPos = sCursorPosition;
                 gSpecialVar_MonBoxId = StorageGetCurrentBox();
             }
-            if (IsBoxMonExcluded(boxmon))
+            if (sStorage->boxOption == OPTION_SELECT_BATTLE_TEAM_MON)
+                gSpecialVar_Result = BattleTeam_CanRegisterBoxSlot(gSpecialVar_MonBoxId, gSpecialVar_MonBoxPos);
+            else if (IsBoxMonExcluded(boxmon))
                 gSpecialVar_Result = FALSE;
             else
                 gSpecialVar_Result = TRUE;
@@ -3660,7 +4080,7 @@ static void Task_OnCloseBoxPressed(u8 taskId)
         {
             UpdateBoxToSendMons();
             gPartiesCount[B_TRAINER_PLAYER] = CalculatePlayerPartyCount();
-            if (sStorage->boxOption == OPTION_SELECT_MON)
+            if (IsMonSelectionOption(sStorage->boxOption))
             {
                 gSpecialVar_0x8004 = PARTY_NOTHING_CHOSEN;
                 gSpecialVar_Result = FALSE;
@@ -3738,7 +4158,7 @@ static void Task_OnBPressed(u8 taskId)
         {
             UpdateBoxToSendMons();
             gPartiesCount[B_TRAINER_PLAYER] = CalculatePlayerPartyCount();
-            if (sStorage->boxOption == OPTION_SELECT_MON)
+            if (IsMonSelectionOption(sStorage->boxOption))
             {
                 gSpecialVar_0x8004  = PARTY_NOTHING_CHOSEN;
                 gSpecialVar_Result  = FALSE;
@@ -3765,7 +4185,9 @@ static void Task_ChangeScreen(u8 taskId)
     {
     case SCREEN_CHANGE_EXIT_BOX:
     default:
-        if (sStorage->boxOption == OPTION_SELECT_MON)
+        if (sStorage->boxOption == OPTION_SELECT_BATTLE_TEAM_MON)
+            SetMainCallback2(CB2_ReturnFromBattleTeamMonSelection);
+        else if (sStorage->boxOption == OPTION_SELECT_MON)
             SetMainCallback2(CB2_ReturnToFieldContinueScript);
         else
             SetMainCallback2(CB2_ExitPokeStorage);
@@ -4465,7 +4887,12 @@ static bool32 ShouldBoxmonSpriteBeTransparent(u32 boxId, u32 boxPosition)
      && GetBoxMonDataAt(boxId, boxPosition, MON_DATA_HELD_ITEM) == ITEM_NONE)
         return TRUE;
     if (sStorage->boxOption == OPTION_SELECT_MON
-     && IsBoxMonExcluded(GetBoxedMonPtr(boxId, boxPosition)))
+     && (IsBoxMonExcluded(GetBoxedMonPtr(boxId, boxPosition))
+      || (DoesCurrentBoxMonSelectionRemoveFromStorage()
+       && BattleTeam_IsBoxSlotRegistered(boxId, boxPosition))))
+        return TRUE;
+    if (sStorage->boxOption == OPTION_SELECT_BATTLE_TEAM_MON
+     && !BattleTeam_CanRegisterBoxSlot(boxId, boxPosition))
         return TRUE;
     return FALSE;
 }
@@ -6858,7 +7285,9 @@ static bool8 CanPlaceMon(void)
     {
         if (sCursorArea == CURSOR_AREA_IN_PARTY && GetMonData(&gParties[B_TRAINER_PLAYER][sCursorPosition], MON_DATA_SPECIES) == SPECIES_NONE)
             return TRUE;
-        else if (sCursorArea == CURSOR_AREA_IN_BOX && GetBoxMonDataAt(StorageGetCurrentBox(), sCursorPosition, MON_DATA_SPECIES_OR_EGG) == SPECIES_NONE)
+        else if (sCursorArea == CURSOR_AREA_IN_BOX
+              && !BattleTeam_IsBoxSlotRegistered(StorageGetCurrentBox(), sCursorPosition)
+              && GetBoxMonDataAt(StorageGetCurrentBox(), sCursorPosition, MON_DATA_SPECIES_OR_EGG) == SPECIES_NONE)
             return TRUE;
         else
             return FALSE;
@@ -6870,6 +7299,9 @@ static bool8 CanShiftMon(void)
 {
     if (sIsMonBeingMoved)
     {
+        if (sCursorArea == CURSOR_AREA_IN_BOX
+         && BattleTeam_IsBoxSlotRegistered(StorageGetCurrentBox(), sCursorPosition))
+            return FALSE;
         if (sCursorArea == CURSOR_AREA_IN_PARTY && CountPartyAliveNonEggMonsExcept(sCursorPosition) == 0)
         {
             if (sStorage->displayMonIsEgg || GetMonData(&sStorage->movingMon, MON_DATA_HP) == 0)
@@ -7193,7 +7625,12 @@ static u8 InBoxInput_Normal(void)
 
         if ((JOY_NEW(A_BUTTON)) && SetSelectionMenuTexts())
         {
-            if (!sAutoActionOn)
+            if (!sAutoActionOn
+             || (sStorage->boxOption == OPTION_MOVE_MONS
+              && BattleTeam_IsBoxSlotRegistered(StorageGetCurrentBox(), sCursorPosition))
+             || (sStorage->boxOption == OPTION_SELECT_MON
+              && DoesCurrentBoxMonSelectionRemoveFromStorage()
+              && BattleTeam_IsBoxSlotRegistered(StorageGetCurrentBox(), sCursorPosition)))
                 return INPUT_IN_MENU;
 
             if (sStorage->boxOption != OPTION_MOVE_MONS || sIsMonBeingMoved == TRUE)
@@ -7322,6 +7759,9 @@ static u8 InBoxInput_SelectingMultiple(void)
         }
         else
         {
+            if (MultiMove_SelectionContainsRegisteredMon())
+                return INPUT_MULTIMOVE_UNABLE;
+
             sIsMonBeingMoved = (sStorage->displayMonSpecies != SPECIES_NONE);
             sStorage->inBoxMovingMode = MOVE_MODE_MULTIPLE_MOVING;
             sMovingMonOrigBoxId = StorageGetCurrentBox();
@@ -7727,6 +8167,8 @@ static u8 SetSelectionMenuTexts(void)
 static bool8 SetMenuTexts_Mon(void)
 {
     enum Species species = GetSpeciesAtCursorPosition();
+    bool32 registeredBoxMon = sCursorArea == CURSOR_AREA_IN_BOX
+                           && BattleTeam_IsBoxSlotRegistered(StorageGetCurrentBox(), sCursorPosition);
 
     switch (sStorage->boxOption)
     {
@@ -7738,7 +8180,10 @@ static bool8 SetMenuTexts_Mon(void)
         break;
     case OPTION_WITHDRAW:
         if (species != SPECIES_NONE)
-            SetMenuText(MENU_WITHDRAW);
+        {
+            if (!registeredBoxMon)
+                SetMenuText(MENU_WITHDRAW);
+        }
         else
             return FALSE;
         break;
@@ -7746,20 +8191,33 @@ static bool8 SetMenuTexts_Mon(void)
         if (sIsMonBeingMoved)
         {
             if (species != SPECIES_NONE)
-                SetMenuText(MENU_SHIFT);
+            {
+                if (!registeredBoxMon)
+                    SetMenuText(MENU_SHIFT);
+            }
             else
                 SetMenuText(MENU_PLACE);
         }
         else
         {
             if (species != SPECIES_NONE)
-                SetMenuText(MENU_MOVE);
+            {
+                if (!registeredBoxMon)
+                    SetMenuText(MENU_MOVE);
+            }
             else
                 return FALSE;
         }
         break;
     case OPTION_SELECT_MON:
-        if (species != SPECIES_NONE && CanBoxMonBeSelected(GetCursorBoxMon()))
+        if (species == SPECIES_NONE || !CanBoxMonBeSelected(GetCursorBoxMon()))
+            return FALSE;
+        if (!registeredBoxMon || !DoesCurrentBoxMonSelectionRemoveFromStorage())
+            SetMenuText(MENU_SELECT);
+        break;
+    case OPTION_SELECT_BATTLE_TEAM_MON:
+        if (sCursorArea == CURSOR_AREA_IN_BOX
+         && BattleTeam_CanRegisterBoxSlot(StorageGetCurrentBox(), sCursorPosition))
             SetMenuText(MENU_SELECT);
         else
             return FALSE;
@@ -7773,13 +8231,16 @@ static bool8 SetMenuTexts_Mon(void)
     if (sStorage->boxOption == OPTION_MOVE_MONS)
     {
         if (sCursorArea == CURSOR_AREA_IN_BOX)
-            SetMenuText(MENU_WITHDRAW);
+        {
+            if (!registeredBoxMon)
+                SetMenuText(MENU_WITHDRAW);
+        }
         else
             SetMenuText(MENU_STORE);
     }
 
     SetMenuText(MENU_MARK);
-    if (sStorage->boxOption != OPTION_SELECT_MON)
+    if (!IsMonSelectionOption(sStorage->boxOption) && !registeredBoxMon)
         SetMenuText(MENU_RELEASE);
     SetMenuText(MENU_CANCEL);
     return TRUE;
@@ -8712,6 +9173,29 @@ static void MultiMove_ResetBg(void)
 static u8 MultiMove_GetOrigin(void)
 {
     return (IN_BOX_COLUMNS * sMultiMove->fromRow) + sMultiMove->fromColumn;
+}
+
+static bool8 MultiMove_SelectionContainsRegisteredMon(void)
+{
+    s32 row;
+    s32 column;
+    u8 minColumn = min(sMultiMove->fromColumn, sMultiMove->toColumn);
+    u8 maxColumn = max(sMultiMove->fromColumn, sMultiMove->toColumn);
+    u8 minRow = min(sMultiMove->fromRow, sMultiMove->toRow);
+    u8 maxRow = max(sMultiMove->fromRow, sMultiMove->toRow);
+    u8 boxId = StorageGetCurrentBox();
+
+    for (row = minRow; row <= maxRow; row++)
+    {
+        for (column = minColumn; column <= maxColumn; column++)
+        {
+            u8 boxPosition = (IN_BOX_COLUMNS * row) + column;
+
+            if (BattleTeam_IsBoxSlotRegistered(boxId, boxPosition))
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 static bool8 MultiMove_CanPlaceSelection(void)
