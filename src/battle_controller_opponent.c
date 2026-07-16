@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_switch.h"
 #include "battle_ai_util.h"
 #include "constants/battle.h"
@@ -33,6 +34,7 @@
 #include "util.h"
 #include "window.h"
 #include "constants/battle_anim.h"
+#include "constants/battle_move_effects.h"
 #include "constants/items.h"
 #include "constants/moves.h"
 #include "constants/party_menu.h"
@@ -53,6 +55,7 @@ static void OpponentHandleIntroTrainerBallThrow(enum BattlerId battler);
 static void OpponentHandleDrawPartyStatusSummary(enum BattlerId battler);
 static void OpponentHandleEndLinkBattle(enum BattlerId battler);
 static void OpponentBufferRunCommand(enum BattlerId battler);
+static enum BattlerId GetValidOpponentChosenTarget(enum BattlerId battler, enum Move move, enum BattlerId chosenTarget);
 
 static void (*const sOpponentBufferCommands[CONTROLLER_CMDS_COUNT])(enum BattlerId battler) =
 {
@@ -424,10 +427,141 @@ static void OpponentHandleTrainerSlideBack(enum BattlerId battler)
     BtlController_HandleTrainerSlideBack(battler, 35, FALSE);
 }
 
+static bool32 CanReadPlayerCommands(enum BattlerId battler)
+{
+    return (gAiThinkingStruct->aiFlags[battler] & AI_FLAG_READ_PLAYER_MOVE) != 0;
+}
+
+static bool32 IsKnownPlayerMoveCommandReady(enum BattlerId battler)
+{
+    if (gBattleMons[battler].volatiles.multipleTurns || gBattleMons[battler].volatiles.rechargeTimer > 0)
+        return TRUE;
+
+    return gChosenMoveByBattler[battler] != MOVE_NONE
+        && gChosenMoveByBattler[battler] != MOVE_UNAVAILABLE;
+}
+
+static bool32 IsKnownPlayerCommandReady(enum BattlerId battler)
+{
+    if (!IsOnPlayerSide(battler))
+        return TRUE;
+    if ((gAbsentBattlerFlags & (1u << battler)) || !IsBattlerAlive(battler))
+        return TRUE;
+    if (gBattleStruct->battlerState[battler].commandingDondozo)
+        return TRUE;
+
+    switch (gChosenActionByBattler[battler])
+    {
+    case B_ACTION_USE_MOVE:
+        return IsKnownPlayerMoveCommandReady(battler);
+    case B_ACTION_SWITCH:
+        return gBattleStruct->monToSwitchIntoId[battler] < PARTY_SIZE;
+    case B_ACTION_USE_ITEM:
+    case B_ACTION_RUN:
+    case B_ACTION_SAFARI_WATCH_CAREFULLY:
+    case B_ACTION_SAFARI_BALL:
+    case B_ACTION_SAFARI_POKEBLOCK:
+    case B_ACTION_SAFARI_GO_NEAR:
+    case B_ACTION_SAFARI_RUN:
+    case B_ACTION_WALLY_THROW:
+    case B_ACTION_THROW_BALL:
+    case B_ACTION_DEBUG:
+    case B_ACTION_EXEC_SCRIPT:
+    case B_ACTION_TRY_FINISH:
+    case B_ACTION_FINISHED:
+    case B_ACTION_NOTHING_FAINTED:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static bool32 ShouldWaitForKnownPlayerCommands(enum BattlerId battler)
+{
+    if (!CanReadPlayerCommands(battler))
+        return FALSE;
+
+    for (enum BattlerId otherBattler = 0; otherBattler < gBattlersCount; otherBattler++)
+    {
+        if (!IsKnownPlayerCommandReady(otherBattler))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void RefreshOpponentAIWithKnownPlayerCommands(enum BattlerId battler)
+{
+    if (!CanReadPlayerCommands(battler))
+        return;
+
+    SetAiLogicDataForTurn(gAiLogicData);
+    ComputeAiBattlerDecisions(battler);
+}
+
 static void OpponentHandleChooseAction(enum BattlerId battler)
 {
+    if (ShouldWaitForKnownPlayerCommands(battler))
+        return;
+
+    RefreshOpponentAIWithKnownPlayerCommands(battler);
     AI_TrySwitchOrUseItem(battler);
     BtlController_Complete(battler);
+}
+
+static enum BattlerId GetValidOpponentChosenTarget(enum BattlerId battler, enum Move move, enum BattlerId chosenTarget)
+{
+    enum BattlerId target;
+    enum MoveTarget moveTarget = GetBattlerMoveTargetType(battler, move);
+    enum BattleMoveEffects effect = GetMoveEffect(move);
+
+    if (chosenTarget < gBattlersCount
+     && IsBattlerAlive(chosenTarget)
+     && CanTargetBattler(battler, chosenTarget, move))
+        return chosenTarget;
+
+    switch (moveTarget)
+    {
+    case TARGET_USER:
+    case TARGET_USER_AND_ALLY:
+    case TARGET_FIELD:
+    case TARGET_ALL_BATTLERS:
+        return battler;
+    case TARGET_ALLY:
+    case TARGET_USER_OR_ALLY:
+        target = BATTLE_PARTNER(battler);
+        if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+        return battler;
+    default:
+        break;
+    }
+
+    if (IsDoubleBattle() && (effect == EFFECT_HEAL_PULSE || effect == EFFECT_HIT_ENEMY_HEAL_ALLY))
+    {
+        target = BATTLE_PARTNER(battler);
+        if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+    }
+
+    target = GetOpposingSideBattler(battler);
+    if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+        return target;
+
+    if (IsDoubleBattle())
+    {
+        target ^= BIT_FLANK;
+        if (target < gBattlersCount && IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+    }
+
+    for (target = 0; target < gBattlersCount; target++)
+    {
+        if (IsBattlerAlive(target) && CanTargetBattler(battler, target, move))
+            return target;
+    }
+
+    return battler;
 }
 
 static void OpponentHandleChooseMove(enum BattlerId battler)
@@ -454,6 +588,11 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
         }
         else
         {
+            if (ShouldWaitForKnownPlayerCommands(battler))
+                return;
+
+            RefreshOpponentAIWithKnownPlayerCommands(battler);
+
             chosenMoveIndex = gAiBattleData->chosenMoveIndex[battler];
             gBattlerTarget = gAiBattleData->chosenTarget[battler];
 
@@ -472,6 +611,10 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
                 if (gAbsentBattlerFlags & (1u << gBattlerTarget))
                     gBattlerTarget = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
             }
+            if (gBattlerTarget >= gBattlersCount
+             || !IsBattlerAlive(gBattlerTarget)
+             || !CanTargetBattler(battler, gBattlerTarget, chosenMove))
+                gBattlerTarget = GetValidOpponentChosenTarget(battler, chosenMove, gBattlerTarget);
             // If opponent can and should use a gimmick (considering trainer data), do it
             enum Gimmick usableGimmick = gBattleStruct->gimmick.usableGimmick[battler];
             if (usableGimmick != GIMMICK_NONE && IsAIUsingGimmick(battler) && !HasTrainerUsedGimmick(battler, usableGimmick))
@@ -545,6 +688,46 @@ static void OpponentHandleChooseItem(enum BattlerId battler)
     BtlController_Complete(battler);
 }
 
+static void GetOpponentActiveBattlers(enum BattlerId *battler1, enum BattlerId *battler2)
+{
+    if (!IsDoubleBattle())
+    {
+        *battler2 = *battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+    }
+    else
+    {
+        *battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        *battler2 = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+    }
+}
+
+static bool32 IsOpponentSwitchInCandidateValid(enum BattlerId battler, s32 chosenMonId, s32 lastId, enum BattlerId battler1, enum BattlerId battler2)
+{
+    struct Pokemon *party = gParties[GetBattlerTrainer(battler)];
+
+    if (chosenMonId < 0 || chosenMonId >= lastId || chosenMonId >= PARTY_SIZE)
+        return FALSE;
+    if (!IsValidForBattle(&party[chosenMonId]))
+        return FALSE;
+    if (chosenMonId == gBattlerPartyIndexes[battler1] && BattlersShareParty(battler, battler1))
+        return FALSE;
+    if (chosenMonId == gBattlerPartyIndexes[battler2] && BattlersShareParty(battler, battler2))
+        return FALSE;
+
+    return TRUE;
+}
+
+static s32 GetFirstValidOpponentSwitchIn(enum BattlerId battler, s32 lastId, enum BattlerId battler1, enum BattlerId battler2)
+{
+    for (s32 chosenMonId = 0; chosenMonId < lastId; chosenMonId++)
+    {
+        if (IsOpponentSwitchInCandidateValid(battler, chosenMonId, lastId, battler1, battler2))
+            return chosenMonId;
+    }
+
+    return PARTY_SIZE;
+}
+
 static void OpponentHandleChoosePokemon(enum BattlerId battler)
 {
     s32 chosenMonId;
@@ -561,6 +744,9 @@ static void OpponentHandleChoosePokemon(enum BattlerId battler)
     // Switching out
     else if (gBattleStruct->AI_monToSwitchIntoId[battler] == PARTY_SIZE)
     {
+        enum BattlerId battler1, battler2;
+        s32 lastId = GetAILastPartyIndex(battler); // + 1
+
         if (IsSwitchOutEffect(GetMoveEffect(gCurrentMove)) || gAiLogicData->ejectButtonSwitch || gAiLogicData->ejectPackSwitch)
             switchType = SWITCH_MID_BATTLE_FORCED;
 
@@ -572,33 +758,28 @@ static void OpponentHandleChoosePokemon(enum BattlerId battler)
         chosenMonId = GetMostSuitableMonToSwitchInto(battler, switchType);
         if (chosenMonId == PARTY_SIZE) // Advanced logic failed so we pick the next available battler
         {
-            enum BattlerId battler1, battler2;
-            s32 lastId = GetAILastPartyIndex(battler); // + 1
-
-            if (!IsDoubleBattle())
-            {
-                battler2 = battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
-            }
-            else
-            {
-                battler1 = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
-                battler2 = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
-            }
-
-            for (chosenMonId = 0; chosenMonId < lastId; chosenMonId++)
-            {
-                if (IsValidForBattle(&gParties[GetBattlerTrainer(battler)][chosenMonId])
-                 && !((chosenMonId == gBattlerPartyIndexes[battler1]) && BattlersShareParty(battler, battler1))
-                 && !((chosenMonId == gBattlerPartyIndexes[battler2]) && BattlersShareParty(battler, battler2)))
-                    break;
-            }
+            GetOpponentActiveBattlers(&battler1, &battler2);
+            chosenMonId = GetFirstValidOpponentSwitchIn(battler, lastId, battler1, battler2);
         }
+        else
+        {
+            GetOpponentActiveBattlers(&battler1, &battler2);
+            if (!IsOpponentSwitchInCandidateValid(battler, chosenMonId, lastId, battler1, battler2))
+                chosenMonId = GetFirstValidOpponentSwitchIn(battler, lastId, battler1, battler2);
+        }
+
         gBattleStruct->monToSwitchIntoId[battler] = chosenMonId;
     }
     else
     {
+        enum BattlerId battler1, battler2;
+        s32 lastId = GetAILastPartyIndex(battler); // + 1
+
         chosenMonId = gBattleStruct->AI_monToSwitchIntoId[battler];
         gBattleStruct->AI_monToSwitchIntoId[battler] = PARTY_SIZE;
+        GetOpponentActiveBattlers(&battler1, &battler2);
+        if (!IsOpponentSwitchInCandidateValid(battler, chosenMonId, lastId, battler1, battler2))
+            chosenMonId = GetFirstValidOpponentSwitchIn(battler, lastId, battler1, battler2);
         gBattleStruct->monToSwitchIntoId[battler] = chosenMonId;
     }
     #if TESTING

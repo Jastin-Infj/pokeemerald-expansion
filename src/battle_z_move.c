@@ -4,6 +4,7 @@
 #include "pokemon.h"
 #include "battle_ai_record.h"
 #include "battle_controllers.h"
+#include "battle_gimmick.h"
 #include "battle_interface.h"
 #include "battle_message.h"
 #include "battle_z_move.h"
@@ -118,7 +119,7 @@ bool32 CanUseZMove(enum BattlerId battler)
     // Check if Player has Z-Power Ring.
     if (!TESTING && (position == B_POSITION_PLAYER_LEFT
         || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && position == B_POSITION_PLAYER_RIGHT))
-        && !CheckBagHasItem(ITEM_Z_POWER_RING, 1))
+        && !HasGimmickAccess(battler, GIMMICK_Z_MOVE))
         return FALSE;
 
     // Add '| BATTLE_TYPE_FRONTIER' to below if issues occur
@@ -155,7 +156,6 @@ enum Move GetUsableZMove(enum BattlerId battler, enum Move move)
         if (move != MOVE_NONE && zMove != MOVE_Z_STATUS && GetMoveType(move) == GetItemSecondaryId(item))
             return GetTypeBasedZMove(move);
     }
-
     return MOVE_NONE;
 }
 
@@ -184,7 +184,7 @@ bool32 IsViableZMove(enum BattlerId battler, enum Move move)
     enum BattlerPosition position = GetBattlerPosition(battler);
     // Check if Player has Z-Power Ring.
     if ((position == B_POSITION_PLAYER_LEFT || (!(gBattleTypeFlags & BATTLE_TYPE_MULTI) && position == B_POSITION_PLAYER_RIGHT))
-        && !CheckBagHasItem(ITEM_Z_POWER_RING, 1))
+        && !HasGimmickAccess(battler, GIMMICK_Z_MOVE))
     {
         return FALSE;
     }
@@ -199,7 +199,6 @@ bool32 IsViableZMove(enum BattlerId battler, enum Move move)
         if (move != MOVE_NONE && GetMoveType(move) == GetItemSecondaryId(item))
             return TRUE;
     }
-
     return FALSE;
 }
 

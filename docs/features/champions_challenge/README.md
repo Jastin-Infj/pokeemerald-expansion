@@ -155,11 +155,11 @@ MVP は debug route まで実装済み。次の優先は **実施設 script へ�
 
 randomizer 方針は、完全 shuffle ではなく実戦寄りの curated generator とする。基本形は **global set library + trainer blueprint + materialized local Trainer Party Pool**。300 体前後の構築済み set を tool 側に持ち、trainer ごとの blueprint で concept / slot / anchor / ban / power budget を指定し、最終的に local pool を `trainers.party` DSL へ出す。通常 trainer は party size 3-4、pool 6-12 程度を基本にし、明示した party size 6 trainer だけ 20 候補程度から 6 体抽出する形を許可する。
 
-global set id は ROM の管理 ID にしない。tool 側では trace 用の stable slug を持ってよいが、ROM runtime は materialized 後の `Pokemon` block、`Party Size`、`Tags` だけを見る。
+global set id は ROM の管理 ID にしない。tool 側では trace 用の stable slug を持ってよいが、ROM runtime は materialized 後の `Pokemon` block、`Party Size`、`Tags`、`Pool Weight` だけを見る。
 
 speed control、weather / terrain、screens、pivot、setup、defensive glue、Tera type などの構築軸は `roles` / `archetypes` / `constraints` として扱う。これらを直接すべて Trainer Party Pool の `Tags:` に流すと tag 空間が破綻しやすいので、engine に出す `Tags:` は Lead / Ace / Support など少数へ map する。
 
-入力側は、既存 `.party` block の丸ごと copy-paste を primary にしない。`src/data/trainers.party` は既存 trainer id、header、baseline、source order、diff 対象として読む。人間が直接触る主入力は、旅順 catalog、ruleset、個別 override、curated weight、species role note、参考 URL memo とする。UI が無い間は CLI の `explain` / `render-one` / `validate` / `diff` で入力変更が `.party` にどう反映されるか確認する。
+入力側は、既存 `.party` block の丸ごと copy-paste を primary にしない。`src/data/trainers.party` は既存 trainer id、header、baseline、source order、diff 対象として読む。人間が直接触る主入力は、旅順 catalog、ruleset、個別 override、curated weight、species role note、参考 URL memo とする。UI が無い間は CLI の `explain` / `render-one` / `validate` / `diff` で入力変更が `.party` にどう反映されるか確認する。curated weight は runtime へ出す時に `Pool Weight: 1-15` へ丸め、タグ / ルールで候補を絞った後の出現頻度だけを調整する。
 
 個別 override が増えすぎないよう、NPC / Gym / Rival / Elite / High Class / Super Class のような group profile を先に置く。rank band や availability は hard filter と soft weight を分け、絞りすぎによる候補ゼロ / combo 不足は strict lint の error にする。
 

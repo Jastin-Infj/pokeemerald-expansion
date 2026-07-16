@@ -111,6 +111,9 @@
 // AI Terastalization chances
 #define AI_CONSERVE_TERA_CHANCE_PER_MON                         10 // Chance for AI with smart tera flag to decide not to tera before considering defensive benefit is this*(X-1), where X is the number of alive Pokémon that could tera
 #define AI_TERA_PREDICT_CHANCE                                  40 // Chance for AI with smart tera flag to tera in the situation where tera would save it from a KO, but could be punished by a KO from a different move.
+#define AI_AGGRESSIVE_GIMMICK_USE_CHANCE                        85 // Chance for AI_FLAG_AGGRESSIVE_GIMMICK to spend a legal gimmick on a reasonable pressure turn.
+#define AI_AGGRESSIVE_GIMMICK_MIN_DAMAGE_PERCENT                25 // Gimmick pressure must deal at least this percent of current target HP unless a stronger tactical reason already exists.
+#define AI_AGGRESSIVE_TERA_MIN_DAMAGE_BOOST_PERCENT             15 // Offensive Tera pressure must improve damage by at least this percent before the aggressive use roll applies.
 
 // AI_FLAG_PP_STALL_PREVENTION settings
 #define PP_STALL_DISREGARD_MOVE_PERCENTAGE                      50 // Detection chance per roll

@@ -41,12 +41,28 @@
 #define AI_FLAG_KNOW_OPPONENT_PARTY         AI_FLAG(31)  // AI knows all the species in the player's party, but not moves/items/abilities unless they've been seen.
 #define AI_FLAG_RANDOMIZE_SWITCHIN          AI_FLAG(32)  // AI will randomly choose between eligible switchin candidates of a given category instead of picking the last one in the party.
 #define AI_FLAG_RANDOMIZE_PARTY_INDICES     AI_FLAG(33)  // AI will randomize the order of the mons in its party, including the lead. Not an AI flag really, just a way to trigger TPP functionality
+#define AI_FLAG_SMART_GIMMICK_TIMING        AI_FLAG(34)  // AI treats trainer gimmick data as permission, then decides whether to spend the gimmick this turn.
+#define AI_FLAG_SMART_DYNAMAX               AI_FLAG(35)  // AI conserves Dynamax unless it helps secure tempo, survival, or a late-game push.
+#define AI_FLAG_SMART_MEGA                  AI_FLAG(36)  // AI may delay Mega Evolution / Ultra Burst when the selected turn is better spent setting up.
+#define AI_FLAG_SMART_Z_MOVE                AI_FLAG(37)  // AI keeps Z-Move usage under smart gimmick timing instead of treating the crystal as automatic pressure.
+#define AI_FLAG_ENV_INVERSE_BATTLE          AI_FLAG(38)  // Marker for inverse-battle AI presets. Type matchup calcs still come from B_FLAG_INVERSE_BATTLE.
+#define AI_FLAG_AGGRESSIVE_GIMMICK          AI_FLAG(39)  // AI is more willing to spend a legal gimmick in competitive/debug gauntlet battles.
+#define AI_FLAG_READ_PLAYER_MOVE            AI_FLAG(40)  // AI may read confirmed player commands before choosing its action.
 
 // The following options are enough to have a basic/smart trainer. Any other addtion could make the trainer worse/better depending on the flag
 #define AI_FLAG_BASIC_TRAINER         (AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_TRY_TO_FAINT | AI_FLAG_CHECK_VIABILITY)
 #define AI_FLAG_SMART_TRAINER         (AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_PP_STALL_PREVENTION | AI_FLAG_SMART_TERA | AI_FLAG_RANDOMIZE_SWITCHIN)
 #define AI_FLAG_PREDICTION            (AI_FLAG_PREDICT_SWITCH | AI_FLAG_PREDICT_INCOMING_MON | AI_FLAG_PREDICT_MOVE)
 #define AI_FLAG_ASSUMPTIONS           (AI_FLAG_ASSUME_STAB | AI_FLAG_ASSUME_STATUS_MOVES | AI_FLAG_WEIGH_ABILITY_PREDICTION)
+#define AI_FLAG_SMART_GIMMICK         (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_TERA | AI_FLAG_SMART_DYNAMAX | AI_FLAG_SMART_MEGA | AI_FLAG_SMART_Z_MOVE)
+
+// Gimmick environment presets. These do not enable or disable mechanics by themselves; trainer data, held items,
+// battle flags, and configs still decide which gimmicks are actually available.
+#define AI_FLAG_GIMMICK_ENV_TERA_ONLY       (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_TERA)
+#define AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY    (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_DYNAMAX)
+#define AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA    (AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_DYNAMAX | AI_FLAG_SMART_TERA)
+#define AI_FLAG_GIMMICK_ENV_ALL             AI_FLAG_SMART_GIMMICK
+#define AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE  (AI_FLAG_ENV_INVERSE_BATTLE | AI_FLAG_GIMMICK_ENV_ALL)
 
 // 'other' ai logic flags
 #define AI_FLAG_DYNAMIC_FUNC          AI_FLAG(60)  // Create custom AI functions for specific battles via "setdynamicaifunc" cmd

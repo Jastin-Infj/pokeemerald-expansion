@@ -244,10 +244,10 @@ AI_MULTI_BATTLE_TEST("Pollen Puff: AI correctly scores moves with EFFECT_HIT_ENE
         OPPONENT_B(SPECIES_WOBBUFFET) { Speed(1); HP(50); Moves(MOVE_POLLEN_PUFF);                 }
     } WHEN {
         TURN {
-            // Targeting ally
-            SCORE_EQ_VAL(opponentLeft,  MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + WEAK_EFFECT, target:opponentRight);
-            SCORE_EQ_VAL(playerRight,   MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + WEAK_EFFECT, target:playerLeft);
-            SCORE_EQ_VAL(opponentRight, MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + WEAK_EFFECT, target:opponentLeft);
+            // Targeting a damaged ally is scored as recovery, not as damage.
+            SCORE_EQ_VAL(opponentLeft,  MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + BEST_EFFECT + WEAK_EFFECT, target:opponentRight);
+            SCORE_EQ_VAL(playerRight,   MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + BEST_EFFECT + WEAK_EFFECT, target:playerLeft);
+            SCORE_EQ_VAL(opponentRight, MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + BEST_EFFECT + WEAK_EFFECT, target:opponentLeft);
 
             // Targeting opponent
             SCORE_EQ_VAL(opponentLeft,  MOVE_POLLEN_PUFF, AI_SCORE_DEFAULT + BEST_DAMAGE_MOVE + FAST_KILL, target:playerLeft);
@@ -311,4 +311,3 @@ AI_TWO_VS_ONE_BATTLE_TEST("Battler 2 has AI flags set correctly (2v1)")
             TURN { EXPECT_MOVE(playerRight, MOVE_EXPLOSION, target: opponentLeft); }
     }
 }
-

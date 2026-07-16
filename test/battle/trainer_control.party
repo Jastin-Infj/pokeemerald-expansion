@@ -153,6 +153,41 @@ Tags: Ace
 Aron
 Tags: Lead
 
+=== 15 ===
+Name: Test12
+Class: Pkmn Trainer 1
+Pic: Red
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 1
+Pool Rules: Basic
+
+Wynaut
+Tags: Lead
+Pool Weight: 1
+
+Eevee
+Tags: Lead
+Pool Weight: 15
+
+=== 16 ===
+Name: Test13
+Class: Pkmn Trainer 1
+Pic: Red
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 1
+Pool Rules: Basic
+
+Wynaut
+Tags: Lead
+Pool Weight: 1
+
+Mew
+Pool Weight: 15
+
 === 8 ===
 Name: Test5
 Class: Pkmn Trainer 1
@@ -293,3 +328,41 @@ Mew
 Oddish
 
 Aron
+
+=== 17 ===
+Name: Test14
+Class: Pkmn Trainer 1
+Pic: Red
+Gender: Male
+Music: Male
+Battle Type: Singles
+Party Size: 3
+Pool Rules: Basic
+Pool Prune: Opponent Adaptive
+
+Bulbasaur
+Tags: Lead / Tag6
+
+Charmander
+Tags: Tag6
+
+Squirtle
+Tags: Ace / Tag6
+
+Torkoal
+Tags: Lead / Tag7
+
+Cherrim
+Tags: Tag7
+
+Mew
+Tags: Ace / Tag7
+
+Wynaut
+Tags: Lead / Tag8
+
+Wobbuffet
+Tags: Tag8
+
+Eevee
+Tags: Ace / Tag8

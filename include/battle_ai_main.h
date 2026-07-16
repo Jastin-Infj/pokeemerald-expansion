@@ -115,4 +115,9 @@ void CalcBattlerAiMovesData(struct AiLogicData *aiData, enum BattlerId battlerAt
 void AIDebugTimerStart(void);
 void AIDebugTimerEnd(void);
 
+#if TESTING
+u64 Test_ApplyNpcTrainerReadPlayerMove(u64 flags);
+s32 Test_GetCommanderDondozoFaintBonus(enum BattlerId battlerDef);
+#endif
+
 #endif // GUARD_BATTLE_AI_MAIN_H

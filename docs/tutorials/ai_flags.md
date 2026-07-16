@@ -35,6 +35,44 @@ Expansion has a few "composite" AI flags. This means that these flags have no un
 
 `AI_FLAG_SMART_TRAINER` is expansion's version of a "smart AI". It includes everything in `AI_FLAG_BASIC_TRAINER` along with `AI_FLAG_SMART_SWITCHING` (make smart decisions about when to switch), `AI_FLAG_SMART_MON_CHOICES` (make smart decisions about what mon to send in after a switch / KO), `AI_FLAG_OMNISCIENT` (awareness of what moves, items, and abilities the player's mons have to better inform decisions), and `AI_FLAG_SMART_TERA` (make smart decisions about when to terastalize). Expansion will keep this updated to represent the most objectively intelligent behaviour our flags are capable of producing.
 
+`AI_FLAG_SMART_GIMMICK` adds smart timing for battle gimmicks. It treats trainer party gimmick data as permission to use a gimmick, not as a command to spend it immediately. This currently covers smart Tera, Dynamax conservation plus Max Move payoff checks, Mega Evolution / Ultra Burst timing for setup, ability, Speed, damage, and defensive payoff, and Z-Move usage under both the existing Z-Move viability checks and smart timing conservation.
+
+The gimmick environment presets are convenience groups for common rulesets: `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, and `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`. These presets do not enable or disable the mechanics themselves; availability still comes from trainer data, held items, battle flags, and config. Player-side access to Mega Ring, Z-Power Ring, Dynamax Band, or Tera Orb effects can be granted with the `B_FLAG_GIMMICK_ACCESS_*` flags documented in `docs/tutorials/how_to_config_flags_vars.md`.
+
+`AI_FLAG_AGGRESSIVE_GIMMICK` is an optional pressure-test layer for smart gimmick timing. It keeps the normal smart-gimmick gates, but lets Dynamax, Tera, and damaging Z-Moves spend more often on real pressure turns through `AI_AGGRESSIVE_GIMMICK_USE_CHANCE`, currently 85%. It still rejects status moves, no-damage turns, partner attacks, and very weak pressure. The weighted gauntlet debug trainers use this flag so the AI does not over-conserve gimmicks during competitive-style tests.
+
+`AI_FLAG_READ_PLAYER_MOVE` is a debug / testing flag, not the same thing as `AI_FLAG_OMNISCIENT`. `Omniscient` means the AI knows player moves, abilities, and held items; it still predicts the current command heuristically. `Read Player Move` waits until all live player-side commands are confirmed, then lets the AI use those commands before returning its own action / move. Confirmed moves become incoming-move reads, confirmed switches become predicted switch-ins, and selected player defensive gimmicks are included in damage simulation. Use it for full-information gauntlet audits and player-style logging experiments, not ordinary NPC balance.
+
+Smart gimmick behavior also has fixed trainer-ID fixtures for debug validation. Use the debug menu's trainer battle flow, set Trainer 1 to the listed ID, then start `Try Battle`. The debug player party is still the active player party, so use a passive or non-lethal player lead when validating "conserve" or "delay" behavior. These fixtures use the remaining Emerald trainer-flag slots, IDs 855-863, so add more standard trainer fixtures only after moving trainer flags or increasing `MAX_TRAINERS_COUNT_EMERALD` intentionally.
+
+Smart Tera conservation counts only explicit trainer-party `Tera Type` entries as future AI Tera candidates. Default generated Tera types are not treated as trainer intent. A Pokemon holding a Mega Stone or Z-Crystal cannot be the visible Tera validation slot, so all-gimmick fixtures keep Mega, Tera, Dynamax, and Z-Move candidates on separate Pokemon.
+
+Z-Move environments still require the normal Z-Move pieces. The player needs Z-Power access from the Bag or `B_FLAG_GIMMICK_ACCESS_Z_POWER_RING`, and the Pokemon still needs a matching Z-Crystal. In `.party` data, `Z Move: Yes` can mark an explicit trainer Z-Move candidate for fixtures and future ruleset filtering, but it does not replace the Z-Crystal requirement.
+
+Current smart timing is still calculation-local. Tera considers explicit offensive and defensive payoff against the selected target, including doubles, and avoids pure defensive Tera lines that introduce a different known move as a new large-hit weakness, but does not fully model every partner threat. Dynamax spends for last-Pokemon pressure, one-reserve late-commit pressure when the active Pokemon is low on HP or under KO threat, Max-damage KO conversion, selected Max Move strategic payoff, or known / predicted Fake Out-style flinch or Roar / Whirlwind-style phazing that would stop the selected damaging move from resolving. Max Move speed, weather, terrain, stat-control, G-Max unique, and residual G-Max families are also exposed as AI move knowledge tags for later scoring. Mega Evolution spends for target-form ability, Speed, damage, defensive payoff, and the same one-reserve low-HP late-commit pressure, while still allowing setup-turn delay and pre-Mega `Air Lock` / `Cloud Nine` preservation when no pressure exists. Z-Moves can be conserved, but can also be spent when last-Pokemon, one-reserve low-HP, trap-pressure, or immediate-threat conditions make the damage race better. Status Z-Move secondary effects are tagged as stat reset, stat boost, critical boost, redirection, HP recovery, and replacement healing for later scoring and resource comparison.
+
+Smart Switching treats a predicted `Taunt` as a possible free-positioning turn, not as a simple "status move blocked, therefore switch" trigger. If the active Pokemon is utility-heavy, cannot punish the Taunt user in place, and lacks `Aroma Veil`, Gen 6+ `Oblivious`, or an enabled Gen 5+ `Mental Herb`, the AI can pivot to an attacker that wins the immediate 1v1. If the active Pokemon can already punish with damage or ignores Taunt, it should stay in.
+
+Detailed design notes, VGC source timestamps, and validation records live in [Smart Gimmick AI](../features/smart_gimmick_ai/README.md).
+
+| Trainer ID | Constant | Expected first-turn validation |
+| --- | --- | --- |
+| 855 | `TRAINER_SMART_GIMMICK_DMAX_CONSERVE` | Uses `Scratch` without Dynamax because another Dynamax user remains and the turn has no immediate payoff. |
+| 856 | `TRAINER_SMART_GIMMICK_DMAX_LAST` | Uses `Scratch` with Dynamax because it is the trainer's last available Pokemon. |
+| 857 | `TRAINER_SMART_GIMMICK_MEGA_SETUP` | Uses `Growth` without Mega Evolution when it is not under immediate KO pressure. |
+| 858 | `TRAINER_SMART_GIMMICK_Z_MOVE` | Uses `Quick Attack` as a Normalium Z move when the Z-Move viability check accepts it. |
+| 859 | `TRAINER_SMART_GIMMICK_TERA_ONLY` | Uses `Aqua Tail` with Water Tera for an offensive Tera payoff. |
+| 860 | `TRAINER_SMART_GIMMICK_DMAX_TERA` | Uses Water Tera on the lead `Aqua Tail` user, then keeps a separate Dynamax `Scratch` user in reserve. |
+| 861 | `TRAINER_SMART_GIMMICK_ALL_SINGLE` | Validates the all-gimmick single-battle preset with separate Mega, Tera, Dynamax, and Z-Move candidates in one party. |
+| 862 | `TRAINER_SMART_GIMMICK_ALL_DOUBLE` | Validates the all-gimmick double-battle preset with an active Mega candidate and an active Water Tera candidate. |
+| 863 | `TRAINER_SMART_SWITCH_DEBUG` | Double-battle Smart Switching fixture for predicted Taunt punishment, predicted status-benefit pivots, and status / secondary-effect board-control support. |
+
+For `TRAINER_SMART_SWITCH_DEBUG`, use a debug player lead that can target the AI's left `Zigzagoon`:
+
+- `Taunt`: expected behavior is a predicted-Taunt pivot from the utility `Zigzagoon` into `Gengar` when the AI finds a clean attacking punish.
+- `Will-O-Wisp`: expected behavior is a possible pivot into `Guts` `Ursaring` when the predicted burn improves the reserve plan.
+- Strong Fighting or unfavorable pressure into the AI left slot: expected behavior is a possible pivot toward `Slowbro`, which carries `Scald` / `Psybeam` status and secondary-effect pressure.
+
 `AI_FLAG_PREDICTION` will enable all of the prediction flags at once, so the AI can perform as well as possible. It is best paired with the flags in `AI_FLAG_SMART_TRAINER` for optimal behaviour. This currently includes `AI_FLAG_PREDICT_SWITCH` and `AI_FLAG_PREDICT_INCOMING_MON`, but will likely be expanded in the future.
 
 Expansion has LOADS of flags, which will be covered in the rest of this guide. If you don't want to engage with detailed trainer AI tuning though, you can just use these two composite flags, and trust that expansion will keep their contents updated to always represent the most standard and the smartest behaviour we can.
@@ -134,6 +172,8 @@ Affects when the AI chooses to switch. AI will make smarter decisions about when
 * It can take advantage of Natural Cure or Regenerator
 * Its Encore’d into something bad
 * Its primary attacking stats are sufficiently lowered
+* It has a reserve Pokemon that can change board control. Singles stay conservative and still require bad odds, bad matchup, poor current pressure, an unfavorable field, or an immediate status-benefit switch-in to replace. Doubles can pivot more proactively into weather setters, terrain setters, `Tailwind`, `Trick Room`, terrain seed, status support, direct or secondary status / confusion pressure, or Skill Swap-style ability bridge users when those effects can flip the field, speed state, or status economy.
+* In double battles, one or both active Pokemon are in a bad position: the active Pokemon has no meaningful pressure into either opposing slot, is threatened by either opposing slot, has enough HP to preserve, and its partner cannot cover the threat. This check is deterministic once the strict position conditions are met, and it avoids overriding the existing Intimidate-blocker contract.
 * Its "odds are bad", which is a generic "try to make smart, player-like decisions generally speaking" check. Switches can be triggered if the player has a good switchin candidate (`AI_FLAG_SMART_MON_CHOICES`), and:
 * The current mon has a bad type matchup and doesn’t have a super effective move and has at least ½ HP, or ¼ HP and Regenerator, or
 * The current mon loses the 1v1 quickly and has at least ½ HP, or ¼ and Regenerator
@@ -145,7 +185,7 @@ Marks the last Pokemon in the party as the Ace Pokemon. It will not be used unle
 Marks the last two Pokémon in the party as Ace Pokémon, with the same behaviour as `AI_FLAG_ACE_POKEMON`. Intented for double battles where you battle one trainer id that represents two trainers, ie Twins, Couples. If you apply this flag to trainers outside of double battles or in cases where two trainers can challenge you at the same time, it has the same behaviour. For example vs two trainers with `AI_FLAG_DOUBLE_ACE_POKEMON` there will be a total of 4 Ace Pokémon.
 
 ## `AI_FLAG_OMNISCIENT`
-AI has full knowledge of player moves, abilities, and hold items, and can use this knowledge when making decisions.
+AI has full knowledge of player moves, abilities, and hold items, and can use this knowledge when making decisions. It does not see the current turn's selected player command by itself. Pair `AI_FLAG_READ_PLAYER_MOVE` only for debug / test battles where input-reading is intentionally being validated.
 
 ## `AI_FLAG_KNOW_OPPONENT_PARTY`
 AI has full knowledge of the species in the player's party, as well as their fainted status; no other omniscient knowledge is included. Functions similarly to a team preview.
@@ -198,6 +238,21 @@ This flag requires `AI_FLAG_PREDICT_SWITCH` to function. If the AI predicts that
 
 ## `AI_FLAG_SMART_TERA`
 AI will make smarter decisions about when to terastalize (over the default behaviour to always tera when available). This considers factors such as whether tera allows the AI to KO the opponent, whether it can save itself from a KO or a big hit, and how many remaining pokemon could terastalize. This behavior is not currently supported in double battles.
+
+## `AI_FLAG_SMART_GIMMICK_TIMING`
+AI treats available gimmicks as strategic resources. Without this flag, trainer-owned gimmicks keep the older eager behavior where an available gimmick is generally selected immediately unless a gimmick-specific check cancels it. With this flag, each gimmick must also have its own smart flag enabled before the AI will spend it.
+
+## `AI_FLAG_SMART_DYNAMAX`
+AI may conserve Dynamax instead of using it immediately. It spends Dynamax when it is on the last available Pokemon, when the current target can otherwise KO it, when Dynamax turns the chosen move into a KO that the regular move would miss, when the selected Max Move has a strong board payoff such as Max Airstream / Max Strike Speed control, weather control, terrain control, or side-wide stat boosts / drops, or when known / predicted Fake Out-style flinch or Roar / Whirlwind-style phazing would stop the selected damaging move from resolving.
+
+## `AI_FLAG_SMART_MEGA`
+AI may delay Mega Evolution or Ultra Burst on setup turns, but can still spend it immediately for target-form ability payoff, Speed flips, meaningful defensive improvement under KO pressure, or meaningful attacking-stat improvement for the selected damaging move. It can also preserve pre-Mega `Air Lock` / `Cloud Nine` during active weather if the target form has no stronger immediate payoff.
+
+## `AI_FLAG_SMART_Z_MOVE`
+AI keeps Z-Move spending under smart gimmick timing. It still uses the existing Z-Move viability checks, including avoiding Z-Moves that are unnecessary for a KO or invalid for the selected move. Under `AI_FLAG_SMART_GIMMICK_TIMING`, damaging Z-Moves are conserved unless the AI is on its last available Pokemon, the Z-Move converts the selected move into a KO, the Z-Move improves a damage race under immediate KO or trap pressure, or the Z-Move secures a low-accuracy KO line. Status Z-Moves keep their existing tactical checks, and their secondary effects are exposed through AI move knowledge tags for future status-specific scoring.
+
+## `AI_FLAG_ENV_INVERSE_BATTLE`
+Marks an AI preset as intended for inverse-battle environments. The actual inverse type matchup still comes from `B_FLAG_INVERSE_BATTLE`; this flag is mainly useful when composing trainer AI flags for an inverse ruleset.
 
 ## `AI_FLAG_PREDICT_MOVE`
 AI will predict what move the player is going to use based on what move it would use in the same situation. Generally works best if also using `AI_FLAG_OMNISCIENT`.

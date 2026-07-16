@@ -155,8 +155,9 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
 - Team slots use Box coordinates, not immutable Pokemon identities. This matches
   the chosen save-efficient contract and UI lock policy.
 - The manager uses species names, not nicknames, in its compact grid.
-- Smart Gimmick AI and battle item restore are not integrated on this branch.
-  Battle item restore remains available as a separate previously implemented
+- Smart Gimmick AI and battle item restore are not part of this standalone
+  shelf. Smart is composed by the dedicated runtime-lab candidate at
+  `611933abf0`; battle item restore remains a separate previously implemented
   feature shelf rather than being reimplemented here.
 
 ## Merge Handoff
@@ -169,3 +170,9 @@ PR automatically.
 All seven required GitHub checks on the implementation snapshot passed:
 Emerald, FireRed, LeafGreen, release, test, docs validation, and the aggregate
 build check. Label and all-contributors jobs were skipped by workflow policy.
+
+Battle Team reapply PR #77 subsequently merged into
+`integration/runtime-lab-20260716` at `b0ac9061ce`. Smart Gimmick AI is layered
+after it through a separate candidate and PR. See
+[Runtime Lab Integration](../runtime_lab_integration/implementation.md) for the
+combined dependency graph, conflict resolution, and validation evidence.

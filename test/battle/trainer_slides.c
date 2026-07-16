@@ -682,19 +682,18 @@ AI_MULTI_BATTLE_TEST("Trainer Slide: Multi: Last Switchin")
     GIVEN {
         FLAG_SET(TESTING_FLAG_TRAINER_SLIDES);
         VAR_SET(TESTING_VAR_TRAINER_SLIDES, TRAINER_SLIDE_LAST_SWITCHIN);
-        TIE_BREAK_TARGET(TARGET_TIE_HI, 0);
         PLAYER(SPECIES_WOBBUFFET) { Speed(1); }
         PARTNER(SPECIES_RATICATE) { Speed(3); }
         PARTNER(SPECIES_RATTATA) { Speed(3); }
-        OPPONENT_A(SPECIES_WOBBUFFET) { Speed(4); }
+        OPPONENT_A(SPECIES_WOBBUFFET) { Speed(4); Moves(MOVE_HEALING_WISH); }
         OPPONENT_A(SPECIES_WYNAUT) { Speed(4); Moves(MOVE_CELEBRATE); }
-        OPPONENT_B(SPECIES_WYNAUT) { Speed(2); }
+        OPPONENT_B(SPECIES_WYNAUT) { Speed(2); Moves(MOVE_HEALING_WISH); }
         OPPONENT_B(SPECIES_WOBBUFFET) { Speed(2); Moves(MOVE_CELEBRATE); }
     } WHEN {
         TURN { 
-            EXPECT_MOVE(opponentLeft, MOVE_MEMENTO, target: playerRight); EXPECT_SEND_OUT(opponentLeft,1); 
+            EXPECT_MOVE(opponentLeft, MOVE_HEALING_WISH); EXPECT_SEND_OUT(opponentLeft,1);
             MOVE(playerRight, MOVE_MEMENTO, target: opponentRight); SEND_OUT(playerRight,1); 
-            EXPECT_MOVE(opponentRight, MOVE_MEMENTO, target: playerRight); EXPECT_SEND_OUT(opponentRight,1); 
+            EXPECT_MOVE(opponentRight, MOVE_HEALING_WISH); EXPECT_SEND_OUT(opponentRight,1);
         }
     } SCENE {
         MESSAGE("The opposing Wobbuffet fainted!");

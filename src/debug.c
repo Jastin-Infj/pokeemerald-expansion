@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_gimmick.h"
 #include "battle_setup.h"
 #include "box_npc_party_pool.h"
 #include "berry.h"
@@ -51,6 +52,7 @@
 #include "string_util.h"
 #include "task.h"
 #include "tv.h"
+#include "trainer_pools.h"
 #include "pokemon_summary_screen.h"
 #include "wild_encounter.h"
 #include "constants/abilities.h"
@@ -247,6 +249,8 @@ static EWRAM_DATA struct DebugMonData *sDebugMonData = NULL;
 static EWRAM_DATA struct DebugMenuListData *sDebugMenuListData = NULL;
 EWRAM_DATA bool8 gIsDebugBattle = FALSE;
 EWRAM_DATA u64 gDebugAIFlags = 0;
+EWRAM_DATA u8 gDebugGimmickAccessFlags = 0;
+static EWRAM_DATA u8 sCurrentDebugAiTrainerId = 0;
 
 // *******************************
 // Define functions
@@ -304,6 +308,30 @@ static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
 static void DebugAction_Party_BattleTeamManager(u8 taskId);
 static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params);
+static void DebugAction_Party_BattleSingles3v3(u8 taskId);
+static void DebugAction_Party_BattleDoubles4v4(u8 taskId);
+static void DebugAction_Party_BattleDmaxZSingles(u8 taskId);
+static void DebugAction_Party_BattleDmaxZDoubles(u8 taskId);
+static void DebugAction_Party_BattleGimmickSingles(u8 taskId);
+static void DebugAction_Party_BattleGimmickDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletMegaSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletMegaDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletMegaZSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletMegaZDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletDynamaxSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletDynamaxDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletTeraSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletTeraDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletMixSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletMixDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletReadSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletReadDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletPartnerDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletPartnerTechDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletChampionsSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletChampionsDoubles(u8 taskId);
+static void DebugAction_Party_BattleGauntletEliteSingles(u8 taskId);
+static void DebugAction_Party_BattleGauntletEliteDoubles(u8 taskId);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, void *selection);
@@ -781,6 +809,29 @@ static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
     { NULL }
 };
 
+static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
+{
+    { COMPOUND_STRING("Mega Single"),   DebugAction_Party_BattleGauntletMegaSingles },
+    { COMPOUND_STRING("Mega Double"),   DebugAction_Party_BattleGauntletMegaDoubles },
+    { COMPOUND_STRING("MegaZ Single"), DebugAction_Party_BattleGauntletMegaZSingles },
+    { COMPOUND_STRING("MegaZ Double"), DebugAction_Party_BattleGauntletMegaZDoubles },
+    { COMPOUND_STRING("Dmax Single"),   DebugAction_Party_BattleGauntletDynamaxSingles },
+    { COMPOUND_STRING("Dmax Double"),   DebugAction_Party_BattleGauntletDynamaxDoubles },
+    { COMPOUND_STRING("Tera Single"),   DebugAction_Party_BattleGauntletTeraSingles },
+    { COMPOUND_STRING("Tera Double"),   DebugAction_Party_BattleGauntletTeraDoubles },
+    { COMPOUND_STRING("Mix Single"),    DebugAction_Party_BattleGauntletMixSingles },
+    { COMPOUND_STRING("Mix Double"),    DebugAction_Party_BattleGauntletMixDoubles },
+    { COMPOUND_STRING("Read Single"),   DebugAction_Party_BattleGauntletReadSingles },
+    { COMPOUND_STRING("Read Double"),   DebugAction_Party_BattleGauntletReadDoubles },
+    { COMPOUND_STRING("Partner Double"), DebugAction_Party_BattleGauntletPartnerDoubles },
+    { COMPOUND_STRING("Partner Tech"),  DebugAction_Party_BattleGauntletPartnerTechDoubles },
+    { COMPOUND_STRING("Champs Single"), DebugAction_Party_BattleGauntletChampionsSingles },
+    { COMPOUND_STRING("Champs Double"), DebugAction_Party_BattleGauntletChampionsDoubles },
+    { COMPOUND_STRING("Elite Single"),  DebugAction_Party_BattleGauntletEliteSingles },
+    { COMPOUND_STRING("Elite Double"),  DebugAction_Party_BattleGauntletEliteDoubles },
+    { NULL }
+};
+
 static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 {
     { COMPOUND_STRING("Move Relearner"),     DebugAction_ExecuteScript, Common_EventScript_MoveRelearner },
@@ -795,6 +846,13 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
     { COMPOUND_STRING("Box NPC Battle…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattle },
+    { COMPOUND_STRING("Battle 3v3 Single"),  DebugAction_Party_BattleSingles3v3 },
+    { COMPOUND_STRING("Battle 4v4 Double"),  DebugAction_Party_BattleDoubles4v4 },
+    { COMPOUND_STRING("Battle Dmax/Z Single"), DebugAction_Party_BattleDmaxZSingles },
+    { COMPOUND_STRING("Battle Dmax/Z Double"), DebugAction_Party_BattleDmaxZDoubles },
+    { COMPOUND_STRING("Battle Gimmick Single"), DebugAction_Party_BattleGimmickSingles },
+    { COMPOUND_STRING("Battle Gimmick Double"), DebugAction_Party_BattleGimmickDoubles },
+    { COMPOUND_STRING("Gauntlet Battles"), DebugAction_OpenSubMenu, sDebugMenu_Actions_Gauntlet },
     { NULL }
 };
 
@@ -5072,6 +5130,54 @@ enum DebugTrainerIds
 {
     DEBUG_TRAINER_PLAYER,
     DEBUG_TRAINER_AI,
+    DEBUG_TRAINER_PLAYER_SINGLES_3V3,
+    DEBUG_TRAINER_AI_SINGLES_3V3,
+    DEBUG_TRAINER_PLAYER_DOUBLES_4V4,
+    DEBUG_TRAINER_AI_DOUBLES_4V4,
+    DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES,
+    DEBUG_TRAINER_AI_DMAX_Z_SINGLES,
+    DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES,
+    DEBUG_TRAINER_AI_DMAX_Z_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_SINGLES,
+    DEBUG_TRAINER_AI_GIMMICK_AUDIT_SINGLES,
+    DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES,
+    DEBUG_TRAINER_AI_GIMMICK_AUDIT_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_MEGA_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_MEGA_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_Z_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_MEGA_Z_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_Z_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_MEGA_Z_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_DYNAMAX_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_DYNAMAX_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_DYNAMAX_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_DYNAMAX_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_TERA_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_TERA_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_TERA_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_TERA_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_MIX_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_MIX_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_MIX_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_MIX_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_READ_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_READ_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_READ_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_READ_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_PARTNER_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_TECH_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_PARTNER_TECH_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_DOUBLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_SINGLES,
+    DEBUG_TRAINER_AI_GAUNTLET_ELITE_SINGLES,
+    DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_DOUBLES,
+    DEBUG_TRAINER_AI_GAUNTLET_ELITE_DOUBLES,
     DEBUG_TRAINERS_COUNT
 };
 
@@ -5082,7 +5188,10 @@ const struct Trainer sDebugTrainers[DIFFICULTY_COUNT][DEBUG_TRAINERS_COUNT] =
 
 const struct Trainer* GetDebugAiTrainer(void)
 {
-    return &sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI];
+    u8 trainerId = sCurrentDebugAiTrainerId;
+    if (trainerId == DEBUG_TRAINER_PLAYER || trainerId >= DEBUG_TRAINERS_COUNT)
+        trainerId = DEBUG_TRAINER_AI;
+    return &sDebugTrainers[DIFFICULTY_NORMAL][trainerId];
 }
 
 static void DebugAction_Party_SetParty(u8 taskId)
@@ -5093,17 +5202,24 @@ static void DebugAction_Party_SetParty(u8 taskId)
     Debug_DestroyMenu_Full(taskId);
 }
 
-static void DebugAction_Party_BattleSingle(u8 taskId)
+static void DebugAction_Party_StartDebugBattle(u8 taskId, enum DebugTrainerIds playerTrainerId, enum DebugTrainerIds aiTrainerId, bool32 halfPlayerTeam, u8 gimmickAccessFlags)
 {
+    const struct Trainer *playerTrainer = &sDebugTrainers[DIFFICULTY_NORMAL][playerTrainerId];
+    const struct Trainer *aiTrainer = &sDebugTrainers[DIFFICULTY_NORMAL][aiTrainerId];
+    u32 battleTypeFlags = BATTLE_TYPE_TRAINER;
+
+    if (playerTrainer->battleType == TRAINER_BATTLE_TYPE_DOUBLES || aiTrainer->battleType == TRAINER_BATTLE_TYPE_DOUBLES)
+        battleTypeFlags |= BATTLE_TYPE_DOUBLE;
+
+    sCurrentDebugAiTrainerId = aiTrainerId;
     ZeroPlayerPartyMons();
     ZeroEnemyPartyMons();
-    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_PLAYER], &sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_PLAYER], TRUE, BATTLE_TYPE_TRAINER);
-    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_OPPONENT_A], GetDebugAiTrainer(), FALSE, BATTLE_TYPE_TRAINER);
+    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_PLAYER], playerTrainer, halfPlayerTeam, battleTypeFlags);
+    CreateNPCTrainerPartyFromTrainer(gParties[B_TRAINER_OPPONENT_A], aiTrainer, FALSE, battleTypeFlags);
 
-    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
-    if (sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI].battleType == TRAINER_BATTLE_TYPE_DOUBLES)
-        gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
-    gDebugAIFlags = sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI].aiFlags;
+    gBattleTypeFlags = battleTypeFlags;
+    gDebugAIFlags = aiTrainer->aiFlags;
+    gDebugGimmickAccessFlags = gimmickAccessFlags;
     gIsDebugBattle = TRUE;
     gBattleEnvironment = BattleSetup_GetEnvironmentId();
     CalculateEnemyPartyCount();
@@ -5160,6 +5276,131 @@ static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
     Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_BattleSingle(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER, DEBUG_TRAINER_AI, TRUE, 0);
+}
+
+static void DebugAction_Party_BattleSingles3v3(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_SINGLES_3V3, DEBUG_TRAINER_AI_SINGLES_3V3, FALSE, 0);
+}
+
+static void DebugAction_Party_BattleDoubles4v4(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DOUBLES_4V4, DEBUG_TRAINER_AI_DOUBLES_4V4, FALSE, 0);
+}
+
+static void DebugAction_Party_BattleDmaxZSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES, DEBUG_TRAINER_AI_DMAX_Z_SINGLES, FALSE, GIMMICK_ACCESS_Z_POWER_RING | GIMMICK_ACCESS_DYNAMAX_BAND);
+}
+
+static void DebugAction_Party_BattleDmaxZDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES, DEBUG_TRAINER_AI_DMAX_Z_DOUBLES, FALSE, GIMMICK_ACCESS_Z_POWER_RING | GIMMICK_ACCESS_DYNAMAX_BAND);
+}
+
+static void DebugAction_Party_BattleGimmickSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_SINGLES, DEBUG_TRAINER_AI_GIMMICK_AUDIT_SINGLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGimmickDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GIMMICK_AUDIT_DOUBLES, DEBUG_TRAINER_AI_GIMMICK_AUDIT_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletMegaSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_MEGA_SINGLES, FALSE, GIMMICK_ACCESS_MEGA_RING);
+}
+
+static void DebugAction_Party_BattleGauntletMegaDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_MEGA_DOUBLES, FALSE, GIMMICK_ACCESS_MEGA_RING);
+}
+
+static void DebugAction_Party_BattleGauntletMegaZSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_Z_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_MEGA_Z_SINGLES, FALSE, GIMMICK_ACCESS_MEGA_RING | GIMMICK_ACCESS_Z_POWER_RING);
+}
+
+static void DebugAction_Party_BattleGauntletMegaZDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MEGA_Z_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_MEGA_Z_DOUBLES, FALSE, GIMMICK_ACCESS_MEGA_RING | GIMMICK_ACCESS_Z_POWER_RING);
+}
+
+static void DebugAction_Party_BattleGauntletDynamaxSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_DYNAMAX_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_DYNAMAX_SINGLES, FALSE, GIMMICK_ACCESS_DYNAMAX_BAND);
+}
+
+static void DebugAction_Party_BattleGauntletDynamaxDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_DYNAMAX_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_DYNAMAX_DOUBLES, FALSE, GIMMICK_ACCESS_DYNAMAX_BAND);
+}
+
+static void DebugAction_Party_BattleGauntletTeraSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_TERA_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_TERA_SINGLES, FALSE, GIMMICK_ACCESS_TERA_ORB);
+}
+
+static void DebugAction_Party_BattleGauntletTeraDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_TERA_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_TERA_DOUBLES, FALSE, GIMMICK_ACCESS_TERA_ORB);
+}
+
+static void DebugAction_Party_BattleGauntletMixSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MIX_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_MIX_SINGLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletMixDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_MIX_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_MIX_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletReadSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_READ_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_READ_SINGLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletReadDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_READ_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_READ_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletPartnerDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_PARTNER_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletPartnerTechDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_PARTNER_TECH_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_PARTNER_TECH_DOUBLES, FALSE, GIMMICK_ACCESS_ALL);
+}
+
+static void DebugAction_Party_BattleGauntletChampionsSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_SINGLES, FALSE, GIMMICK_ACCESS_MEGA_RING);
+}
+
+static void DebugAction_Party_BattleGauntletChampionsDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_CHAMPIONS_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_CHAMPIONS_DOUBLES, FALSE, GIMMICK_ACCESS_MEGA_RING);
+}
+
+static void DebugAction_Party_BattleGauntletEliteSingles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_SINGLES, DEBUG_TRAINER_AI_GAUNTLET_ELITE_SINGLES, FALSE, 0);
+}
+
+static void DebugAction_Party_BattleGauntletEliteDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_GAUNTLET_ELITE_DOUBLES, DEBUG_TRAINER_AI_GAUNTLET_ELITE_DOUBLES, FALSE, 0);
 }
 
 void CheckEWRAMCounters(struct ScriptContext *ctx)

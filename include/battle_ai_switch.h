@@ -51,9 +51,11 @@ struct SwitchAiContext
 {
     enum BattlerId battler:3;
     enum BattlerId opposingBattler:3;
+    enum BattlerId incomingBattler:3;
     enum Move incomingMove:16;
     u32 lastId:6;
-    u32 padding1:4;
+    u32 padding1:2;
+    u8 incomingMoveIndex;
 
     enum BattlerId battlerIn1;
     enum BattlerId battlerIn2;
@@ -83,5 +85,10 @@ void ModifySwitchAfterMoveScoring(enum BattlerId battler);
 u32 AI_SelectRevivalBlessingMon(enum BattlerId battler);
 bool32 IsSwitchinValid(enum BattlerId battler);
 bool32 IsAceMon(enum BattlerId battler, u32 monPartyId);
+u32 Test_GetSwitchinSingleUseItemHealing(enum BattlerId battler, enum BattlerId opposingBattler, s32 currentHP);
+#if TESTING
+struct SimulatedDamage;
+void Test_GetCombinedDamageRollSummary(const struct SimulatedDamage *damages, u32 damageCount, u32 *minimum, u32 *median, u32 *roll14Of16, u32 *roll15Of16, u32 *maximum);
+#endif
 
 #endif // GUARD_BATTLE_AI_SWITCH_H

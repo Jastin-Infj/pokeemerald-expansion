@@ -90,12 +90,22 @@ The registry, Pokemon Storage UI, source locks, SaveBlock3 migration, and
 extension validation are documented under
 [Battle Team Boxes](../battle_team_boxes/implementation.md).
 
+## Smart AI Runtime-Lab Extension
+
+After Battle Team PR #77 merged into the runtime-lab target, Smart Gimmick AI
+was reapplied on `integration/runtime-lab-smart-ai-pr-20260716` at
+`611933abf0`. The candidate preserves both Box RNG tags, both pending gimmick
+initialization paths, and both Party debug-menu families. Combined lineage and
+validation are owned by
+[Runtime Lab Integration](../runtime_lab_integration/implementation.md).
+
 ## Not In This Slice
 
 - Player party truncation to strict 3v3 / 4v4 is not implemented. The route uses
   the current player party.
-- Smart Gimmick AI read-mode flags and battle action log export are not included
-  because they are not on `master`.
+- The standalone Box slice does not include Smart Gimmick AI read-mode flags or
+  battle action log export. The dedicated runtime-lab candidate composes them
+  without changing the standalone shelf.
 - Player-side held item restore is not reimplemented here because the
   berry-inclusive fix already exists on the Battle Item Restore Policy shelves
   (`feature/battle-item-restore-current-master-20260519` /
@@ -107,10 +117,9 @@ extension validation are documented under
 
 ## Handoff Notes
 
-This branch is suitable as the standalone Box NPC Party Pool MVP. After merge,
-the next integration step is to combine it with the Smart Gimmick AI branch and
-map the debug route to read-mode / smart-gimmick AI presets plus battle action
-logging.
+This branch remains the standalone Box NPC Party Pool MVP. The combined
+runtime-lab candidate now supplies Smart AI and action-log tooling while keeping
+this shelf independently reviewable.
 
 ## Validation
 

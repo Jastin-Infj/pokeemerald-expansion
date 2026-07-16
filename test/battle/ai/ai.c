@@ -1,6 +1,172 @@
 #include "global.h"
 #include "test/battle.h"
+#include "battle_ai_main.h"
 #include "battle_ai_util.h"
+#include "battle_setup.h"
+#include "constants/battle.h"
+#include "constants/battle_ai.h"
+
+SINGLE_BATTLE_TEST("AI runtime knowledge maps move categories from move data")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TACKLE); MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_TACKLE, AI_MOVE_KNOWLEDGE_CONTACT));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_BOOMBURST, AI_MOVE_KNOWLEDGE_SOUND));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_BULLET_SEED, AI_MOVE_KNOWLEDGE_BALLISTIC));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SPORE, AI_MOVE_KNOWLEDGE_POWDER));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_AQUA_CUTTER, AI_MOVE_KNOWLEDGE_SLICING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DRAIN_PUNCH, AI_MOVE_KNOWLEDGE_PUNCHING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_BITE, AI_MOVE_KNOWLEDGE_BITING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_HEAL_PULSE, AI_MOVE_KNOWLEDGE_PULSE));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DRAGON_DANCE, AI_MOVE_KNOWLEDGE_DANCE));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_AIR_CUTTER, AI_MOVE_KNOWLEDGE_WIND));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_RECOVER, AI_MOVE_KNOWLEDGE_HEALING));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_TAUNT, AI_MOVE_KNOWLEDGE_MAGIC_COAT));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SWORDS_DANCE, AI_MOVE_KNOWLEDGE_SNATCH));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_SKILL_SWAP, AI_MOVE_KNOWLEDGE_ABILITY_CONTROL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_IMPRISON, AI_MOVE_KNOWLEDGE_MOVE_DENIAL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DEFENSE_CURL, AI_MOVE_KNOWLEDGE_COMBO_STATE));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_MAX_AIRSTREAM, AI_MOVE_KNOWLEDGE_MAX_SPEED_CONTROL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_MAX_FLARE, AI_MOVE_KNOWLEDGE_MAX_WEATHER));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_MAX_LIGHTNING, AI_MOVE_KNOWLEDGE_MAX_TERRAIN));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_MAX_KNUCKLE, AI_MOVE_KNOWLEDGE_MAX_STAT_CONTROL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_G_MAX_WILDFIRE, AI_MOVE_KNOWLEDGE_GMAX_UNIQUE));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_G_MAX_WILDFIRE, AI_MOVE_KNOWLEDGE_GMAX_RESIDUAL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_G_MAX_BEFUDDLE, AI_MOVE_KNOWLEDGE_GMAX_UNIQUE));
+        EXPECT(!AI_MoveHasKnowledgeFlag(MOVE_G_MAX_BEFUDDLE, AI_MOVE_KNOWLEDGE_GMAX_RESIDUAL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_G_MAX_STONESURGE, AI_MOVE_KNOWLEDGE_GMAX_HAZARD));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_G_MAX_STEELSURGE, AI_MOVE_KNOWLEDGE_GMAX_HAZARD));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_LEECH_SEED, AI_MOVE_KNOWLEDGE_Z_STATUS));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_LEECH_SEED, AI_MOVE_KNOWLEDGE_Z_STAT_RESET));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_HAPPY_HOUR, AI_MOVE_KNOWLEDGE_Z_STAT_BOOST));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DETECT, AI_MOVE_KNOWLEDGE_Z_STAT_BOOST));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_TAILWIND, AI_MOVE_KNOWLEDGE_Z_CRIT_BOOST));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_DESTINY_BOND, AI_MOVE_KNOWLEDGE_Z_REDIRECTION));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_HAZE, AI_MOVE_KNOWLEDGE_Z_RECOVERY));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_PARTING_SHOT, AI_MOVE_KNOWLEDGE_Z_REPLACEMENT_HEAL));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_CURSE, AI_MOVE_KNOWLEDGE_Z_STAT_BOOST));
+        EXPECT(AI_MoveHasKnowledgeFlag(MOVE_CURSE, AI_MOVE_KNOWLEDGE_Z_RECOVERY));
+    }
+}
+
+SINGLE_BATTLE_TEST("NPC trainer AI automatically reads confirmed player commands outside link battles")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TACKLE); MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        u32 savedBattleTypeFlags = gBattleTypeFlags;
+        u32 savedOpponentA = TRAINER_BATTLE_PARAM.opponentA;
+        u64 flags;
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+        TRAINER_BATTLE_PARAM.opponentA = TRAINER_NONE;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(flags & AI_FLAG_BASIC_TRAINER);
+        EXPECT(flags & AI_FLAG_READ_PLAYER_MOVE);
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_FRONTIER;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT);
+        EXPECT(flags & AI_FLAG_CHECK_BAD_MOVE);
+        EXPECT(flags & AI_FLAG_READ_PLAYER_MOVE);
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_LINK;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_RECORDED;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER | BATTLE_TYPE_RECORDED_LINK;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = 0;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(AI_FLAG_BASIC_TRAINER);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+        flags = Test_ApplyNpcTrainerReadPlayerMove(0);
+        EXPECT(!(flags & AI_FLAG_READ_PLAYER_MOVE));
+
+        gBattleTypeFlags = savedBattleTypeFlags;
+        TRAINER_BATTLE_PARAM.opponentA = savedOpponentA;
+    }
+}
+
+SINGLE_BATTLE_TEST("AI runtime knowledge maps ability categories")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TACKLE); MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_SOUNDPROOF, AI_ABILITY_KNOWLEDGE_MOVE_IMMUNITY));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_SHARPNESS, AI_ABILITY_KNOWLEDGE_MOVE_POWER));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_MULTISCALE, AI_ABILITY_KNOWLEDGE_DAMAGE_RACE));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_GUTS, AI_ABILITY_KNOWLEDGE_STATUS));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_DRIZZLE, AI_ABILITY_KNOWLEDGE_FIELD_CONTROL));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_SHADOW_TAG, AI_ABILITY_KNOWLEDGE_POSITIONING));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_NEUTRALIZING_GAS, AI_ABILITY_KNOWLEDGE_ABILITY_CONTROL));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_INTIMIDATE, AI_ABILITY_KNOWLEDGE_STAT_CONTROL));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_UNBURDEN, AI_ABILITY_KNOWLEDGE_ITEM_CONTROL));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_PRANKSTER, AI_ABILITY_KNOWLEDGE_PRIORITY));
+        EXPECT(AI_AbilityHasKnowledgeFlag(ABILITY_STANCE_CHANGE, AI_ABILITY_KNOWLEDGE_FORM_STATE));
+        EXPECT(!AI_AbilityHasKnowledgeFlag(ABILITY_RUN_AWAY, AI_ABILITY_KNOWLEDGE_MOVE_POWER));
+    }
+}
+
+SINGLE_BATTLE_TEST("AI runtime knowledge maps item and hold effect categories")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_TACKLE); MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_CHOICE_BAND, AI_HOLD_EFFECT_KNOWLEDGE_DAMAGE_RACE));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_CHOICE_BAND, AI_HOLD_EFFECT_KNOWLEDGE_CHOICE_LOCK));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_FOCUS_SASH, AI_HOLD_EFFECT_KNOWLEDGE_DEFENSIVE_RACE));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_LEFTOVERS, AI_HOLD_EFFECT_KNOWLEDGE_RECOVERY));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_LUM_BERRY, AI_HOLD_EFFECT_KNOWLEDGE_STATUS_CURE));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_FLAME_ORB, AI_HOLD_EFFECT_KNOWLEDGE_SELF_STATUS));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_LIGHT_CLAY, AI_HOLD_EFFECT_KNOWLEDGE_FIELD_DURATION));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_ROCKY_HELMET, AI_HOLD_EFFECT_KNOWLEDGE_CONTACT_PUNISH));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_SAFETY_GOGGLES, AI_HOLD_EFFECT_KNOWLEDGE_MOVE_SHAPE));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_ABILITY_SHIELD, AI_HOLD_EFFECT_KNOWLEDGE_ABILITY_PROTECTION));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_CHOICE_SCARF, AI_HOLD_EFFECT_KNOWLEDGE_SPEED_CONTROL));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_EJECT_BUTTON, AI_HOLD_EFFECT_KNOWLEDGE_POSITIONING));
+        EXPECT(AI_ItemHasKnowledgeFlag(ITEM_VENUSAURITE, AI_HOLD_EFFECT_KNOWLEDGE_GIMMICK));
+        EXPECT(AI_HoldEffectHasKnowledgeFlag(HOLD_EFFECT_TERRAIN_SEED, AI_HOLD_EFFECT_KNOWLEDGE_STAT_CONTROL));
+        EXPECT(!AI_ItemHasKnowledgeFlag(ITEM_POTION, AI_HOLD_EFFECT_KNOWLEDGE_DAMAGE_RACE));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI runtime knowledge detects predicted move immunity layers")
+{
+    enum BattlerId aiBattler = (enum BattlerId)B_POSITION_OPPONENT_LEFT;
+    enum BattlerId playerBattler = (enum BattlerId)B_POSITION_PLAYER_LEFT;
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT);
+        PLAYER(SPECIES_ABRA) { Speed(20); Moves(MOVE_SCRATCH); }
+        OPPONENT(SPECIES_ZIGZAGOON) { Ability(ABILITY_MAGIC_BOUNCE); Item(ITEM_SAFETY_GOGGLES); Speed(10); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_SCRATCH); EXPECT_MOVE(opponent, MOVE_CELEBRATE); }
+    } THEN {
+        EXPECT(AI_CanBattlerIgnorePredictedMove(aiBattler, playerBattler, MOVE_TAUNT));
+        EXPECT(AI_CanBattlerIgnorePredictedMove(aiBattler, playerBattler, MOVE_SPORE));
+        EXPECT(!AI_CanBattlerIgnorePredictedMove(aiBattler, playerBattler, MOVE_SCRATCH));
+    }
+}
 
 AI_SINGLE_BATTLE_TEST("AI prefers Bubble over Water Gun if it's slower")
 {
@@ -335,6 +501,26 @@ AI_SINGLE_BATTLE_TEST("AI won't use Solar Beam if there is no Sun up or the user
         }
     } SCENE {
         MESSAGE("Wobbuffet fainted!");
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI accepts delayed Solar Beam when near-term loss has no clean hit")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_SOLAR_BEAM) == EFFECT_SOLAR_BEAM);
+        ASSUME(GetMoveCategory(MOVE_SOLAR_BEAM) == DAMAGE_CATEGORY_SPECIAL);
+        ASSUME(GetMoveCategory(MOVE_GRASS_PLEDGE) == DAMAGE_CATEGORY_SPECIAL);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_BLASTOISE) {
+            Level(50); MaxHP(150); HP(150); SpAttack(80); SpDefense(100); Speed(80);
+            Moves(MOVE_WATER_PULSE);
+        }
+        OPPONENT(SPECIES_TYPHLOSION) {
+            Level(50); MaxHP(120); HP(120); SpAttack(200); SpDefense(100); Speed(100);
+            Moves(MOVE_SOLAR_BEAM, MOVE_GRASS_PLEDGE);
+        }
+    } WHEN {
+        TURN { EXPECT_MOVE(opponent, MOVE_SOLAR_BEAM); }
     }
 }
 
@@ -800,6 +986,140 @@ AI_SINGLE_BATTLE_TEST("AI won't use status moves against opponents that would be
         OPPONENT(SPECIES_WOBBUFFET) { Moves(MOVE_TACKLE, aiMove); }
     } WHEN {
         TURN { MOVE(player, MOVE_TACKLE); EXPECT_MOVE(opponent, MOVE_TACKLE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI accepts a low-accuracy sleep swing when it is about to be KOed")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_HYPNOSIS) == EFFECT_NON_VOLATILE_STATUS);
+        ASSUME(GetMoveNonVolatileStatus(MOVE_HYPNOSIS) == MOVE_EFFECT_SLEEP);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { Speed(1); Moves(MOVE_STRENGTH); }
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(100); HP(1); Speed(100); Moves(MOVE_HYPNOSIS, MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_STRENGTH);
+            EXPECT_MOVE(opponent, MOVE_HYPNOSIS);
+            SCORE_GT_VAL(opponent, MOVE_HYPNOSIS, AI_SCORE_DEFAULT + DECENT_EFFECT);
+        }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_USE_MOVE);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_DESPERATION_COMEBACK);
+        EXPECT((opponentLog->aiThreatFlags & AI_THREAT_DAMAGE_RACE) != 0);
+        EXPECT((opponentLog->aiThreatFlags & AI_THREAT_DESPERATION) != 0);
+        EXPECT_EQ(opponentLog->aiRiskKind, BATTLE_ACTION_LOG_AI_RISK(AI_RISK_LOW_ACCURACY_STATUS));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI fishes for flinch against a read Perish Song only without a clean damage line")
+{
+    enum Move playerMove;
+    u16 playerHp;
+
+    PARAMETRIZE { playerMove = MOVE_CELEBRATE;    playerHp = 300; }
+    PARAMETRIZE { playerMove = MOVE_PERISH_SONG; playerHp = 300; }
+    PARAMETRIZE { playerMove = MOVE_PERISH_SONG; playerHp = 55; }
+
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(MoveHasAdditionalEffect(MOVE_STOMP, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_STOMP) == GetMoveType(MOVE_STRENGTH));
+        ASSUME(GetMoveCategory(MOVE_STOMP) == GetMoveCategory(MOVE_STRENGTH));
+        ASSUME(GetMovePower(MOVE_STRENGTH) > GetMovePower(MOVE_STOMP));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(300); HP(playerHp); Speed(1); Moves(playerMove); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(100); Moves(MOVE_STOMP, MOVE_STRENGTH); }
+    } WHEN {
+        TURN {
+            MOVE(player, playerMove);
+            if (playerMove == MOVE_PERISH_SONG && playerHp > 1)
+            {
+                EXPECT_MOVE(opponent, MOVE_STOMP);
+            }
+            else
+                EXPECT_MOVE(opponent, MOVE_STRENGTH);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI short horizon suppresses hax when clean damage answers read Perish Song")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(MoveHasAdditionalEffect(MOVE_STOMP, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMovePower(MOVE_BOOMBURST) > GetMovePower(MOVE_STOMP));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(300); HP(55); Speed(1); Moves(MOVE_PERISH_SONG); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(100); Moves(MOVE_STOMP, MOVE_BOOMBURST); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PERISH_SONG);
+            EXPECT_MOVE(opponent, MOVE_BOOMBURST);
+        }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_USE_MOVE);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_CLEAN_DAMAGE_PREFERRED);
+        EXPECT((opponentLog->aiThreatFlags & AI_THREAT_PERISH_TRAP_CLOCK) != 0);
+        EXPECT_EQ(opponentLog->aiRiskKind, BATTLE_ACTION_LOG_AI_RISK_NONE);
+        EXPECT((opponentLog->aiLineFlags & AI_SHORT_LINE_CLEAN_DAMAGE) != 0);
+        EXPECT((opponentLog->aiLineFlags & AI_SHORT_LINE_HIGH_VARIANCE) != 0);
+        EXPECT_EQ(opponentLog->aiStableLineFamily, AI_CANDIDATE_LINE_CLEAN_DAMAGE);
+        EXPECT_EQ(opponentLog->aiFallbackLineFamily, AI_CANDIDATE_LINE_HIGH_VARIANCE);
+        EXPECT_EQ(opponentLog->aiLossClock, 2);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI logs hax out reason for desperate read Perish Song flinch")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(MoveHasAdditionalEffect(MOVE_STOMP, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_STOMP) == GetMoveType(MOVE_STRENGTH));
+        ASSUME(GetMoveCategory(MOVE_STOMP) == GetMoveCategory(MOVE_STRENGTH));
+        ASSUME(GetMovePower(MOVE_STRENGTH) > GetMovePower(MOVE_STOMP));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(300); HP(300); Speed(1); Moves(MOVE_PERISH_SONG); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(100); Moves(MOVE_STOMP, MOVE_STRENGTH); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PERISH_SONG);
+            EXPECT_MOVE(opponent, MOVE_STOMP);
+        }
+    } THEN {
+        const struct BattleActionLogEntry *opponentLog = BattleActionLog_GetLastEntry(GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT), 1u << B_ACTION_USE_MOVE);
+
+        EXPECT(opponentLog != NULL);
+        EXPECT_EQ(opponentLog->aiReason, AI_DECISION_REASON_HAX_OUT);
+        EXPECT((opponentLog->aiThreatFlags & AI_THREAT_PERISH_TRAP_CLOCK) != 0);
+        EXPECT((opponentLog->aiThreatFlags & AI_THREAT_DESPERATION) != 0);
+        EXPECT_EQ(opponentLog->aiRiskKind, BATTLE_ACTION_LOG_AI_RISK(AI_RISK_SECONDARY_HAX));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI does not fish for flinch against read Perish Song when it can switch out")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PERISH_SONG) == EFFECT_PERISH_SONG);
+        ASSUME(MoveHasAdditionalEffect(MOVE_STOMP, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_STOMP) == GetMoveType(MOVE_STRENGTH));
+        ASSUME(GetMoveCategory(MOVE_STOMP) == GetMoveCategory(MOVE_STRENGTH));
+        ASSUME(GetMovePower(MOVE_STRENGTH) > GetMovePower(MOVE_STOMP));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(300); HP(300); Speed(1); Moves(MOVE_PERISH_SONG); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(100); Moves(MOVE_STOMP, MOVE_STRENGTH); }
+        OPPONENT(SPECIES_WYNAUT) { Speed(1); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PERISH_SONG);
+            {
+                EXPECT_MOVE(opponent, MOVE_STRENGTH);
+            }
+        }
     }
 }
 

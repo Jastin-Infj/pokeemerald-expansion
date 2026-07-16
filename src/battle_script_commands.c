@@ -51,6 +51,7 @@
 #include "pokenav.h"
 #include "menu_specialized.h"
 #include "data.h"
+#include "debug.h"
 #include "config_changes.h"
 #include "move.h"
 #include "constants/abilities.h"
@@ -3853,6 +3854,8 @@ static bool32 BattleTypeAllowsExp(void)
 {
     if (RECORDED_WILD_BATTLE)
         return TRUE;
+    else if (gIsDebugBattle)
+        return FALSE;
     else if (gBattleTypeFlags &
               ( BATTLE_TYPE_LINK
               | BATTLE_TYPE_RECORDED_LINK
@@ -5025,12 +5028,15 @@ static void Cmd_getswitchedmondata(void)
         return;
 
     enum BattleTrainer trainer = GetBattlerTrainer(battler);
-    assertf(IsValidSwitchIn(trainer, gBattleStruct->monToSwitchIntoId[battler]))
+    bool32 corrected = FALSE;
+    if (!IsValidSwitchIn(trainer, gBattleStruct->monToSwitchIntoId[battler]))
     {
         gBattleStruct->monToSwitchIntoId[battler] = GetArbitraryValidSwitchIn(trainer);
+        corrected = TRUE;
     }
 
     gBattlerPartyIndexes[battler] = gBattleStruct->monToSwitchIntoId[battler];
+    BattleActionLog_RecordSwitchIn(battler, gBattlerPartyIndexes[battler], corrected);
 
     BtlController_EmitGetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_ALL_BATTLE, 1u << gBattlerPartyIndexes[battler]);
     MarkBattlerForControllerExec(battler);
@@ -11680,7 +11686,9 @@ void BS_TryHealPulse(void)
         s32 healAmount = 0;
         if (GetBattlerAbility(gBattlerAttacker) == ABILITY_MEGA_LAUNCHER && IsPulseMove(gCurrentMove))
             healAmount = GetNonDynamaxMaxHP(gBattlerTarget) * 75 / 100;
-        else if (gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN && GetMoveEffectArg_MoveProperty(gCurrentMove) == MOVE_EFFECT_FLORAL_HEALING)
+        else if (GetMoveEffect(gCurrentMove) == EFFECT_HEAL_PULSE
+              && (gFieldStatuses & STATUS_FIELD_GRASSY_TERRAIN)
+              && GetMoveEffectArg_MoveProperty(gCurrentMove) == MOVE_EFFECT_FLORAL_HEALING)
             healAmount = GetNonDynamaxMaxHP(gBattlerTarget) * 2 / 3;
         else
             healAmount = GetNonDynamaxMaxHP(gBattlerTarget) / 2;
@@ -13979,4 +13987,3 @@ void BS_RestoreStatChangeQueue(void)
     ClearOtherStatChangeValues(gBattlerAttacker);
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
-

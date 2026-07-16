@@ -1,0 +1,1228 @@
+#include "global.h"
+#include "battle.h"
+#include "test/battle.h"
+#include "battle_ai_util.h"
+
+#define TEST_IVS_PHYSICAL() HPIV(31); AttackIV(31); DefenseIV(31); SpAttackIV(31); SpDefenseIV(31); SpeedIV(31)
+#define TEST_IVS_SPECIAL() HPIV(31); AttackIV(0); DefenseIV(31); SpAttackIV(31); SpDefenseIV(31); SpeedIV(31)
+#define TEST_IVS_TRICK_ROOM() HPIV(31); AttackIV(0); DefenseIV(31); SpAttackIV(31); SpDefenseIV(31); SpeedIV(0)
+
+#define PLAYER_INCINEROAR(...) \
+    PLAYER(SPECIES_INCINEROAR) { \
+        Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_CAREFUL); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(202); HP(202); Attack(135); Defense(120); SpDefense(146); Speed(80); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_RILLABOOM(...) \
+    PLAYER(SPECIES_RILLABOOM) { \
+        Level(50); Item(ITEM_ASSAULT_VEST); Ability(ABILITY_GRASSY_SURGE); Nature(NATURE_ADAMANT); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(207); HP(207); Attack(187); Defense(110); SpDefense(98); Speed(105); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_TORNADUS(...) \
+    PLAYER(SPECIES_TORNADUS) { \
+        Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(155); HP(155); Defense(90); SpAttack(177); SpDefense(100); Speed(179); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_TORNADUS_LOW_HP(...) \
+    PLAYER(SPECIES_TORNADUS) { \
+        Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(155); HP(1); Defense(90); SpAttack(177); SpDefense(100); Speed(179); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_TAPU_KOKO_Z(...) \
+    PLAYER(SPECIES_TAPU_KOKO) { \
+        Level(50); Item(ITEM_ELECTRIUM_Z); Ability(ABILITY_ELECTRIC_SURGE); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(146); HP(146); Defense(105); SpAttack(147); SpDefense(95); Speed(200); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_LANDORUS(...) \
+    PLAYER(SPECIES_LANDORUS_THERIAN) { \
+        Level(50); Item(ITEM_GROUNDIUM_Z); Ability(ABILITY_INTIMIDATE); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(165); HP(165); Attack(197); Defense(110); SpDefense(100); Speed(157); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_FARIGIRAF(...) \
+    PLAYER(SPECIES_FARIGIRAF) { \
+        Level(50); Item(ITEM_MENTAL_HERB); Ability(ABILITY_ARMOR_TAIL); Nature(NATURE_SASSY); \
+        TEST_IVS_TRICK_ROOM(); \
+        MaxHP(227); HP(227); Defense(105); SpAttack(130); SpDefense(110); Speed(58); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_MIRAIDON_ICE_TERA(...) \
+    PLAYER(SPECIES_MIRAIDON) { \
+        Level(50); Item(ITEM_CHOICE_SPECS); Nature(NATURE_TIMID); TeraType(TYPE_ICE); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(176); HP(176); Defense(120); SpAttack(205); SpDefense(135); Speed(205); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_GYARADOS(...) \
+    PLAYER(SPECIES_GYARADOS) { \
+        Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_ADAMANT); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(202); HP(202); Attack(194); Defense(99); SpDefense(120); Speed(133); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_DUGTRIO(...) \
+    PLAYER(SPECIES_DUGTRIO) { \
+        Level(50); Item(ITEM_FOCUS_SASH); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(111); HP(111); Attack(167); Defense(70); SpDefense(90); Speed(189); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_ARCANINE(...) \
+    PLAYER(SPECIES_ARCANINE) { \
+        Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_CAREFUL); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(197); HP(197); Attack(130); Defense(100); SpDefense(145); Speed(115); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_TORNADUS(...) \
+    OPPONENT(SPECIES_TORNADUS) { \
+        Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(155); HP(155); Defense(90); SpAttack(177); SpDefense(100); Speed(179); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_WHIMSICOTT(...) \
+    OPPONENT(SPECIES_WHIMSICOTT) { \
+        Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(135); HP(135); Defense(105); SpAttack(129); SpDefense(95); Speed(184); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_FARIGIRAF(...) \
+    OPPONENT(SPECIES_FARIGIRAF) { \
+        Level(50); Item(ITEM_MENTAL_HERB); Ability(ABILITY_ARMOR_TAIL); Nature(NATURE_SASSY); \
+        TEST_IVS_TRICK_ROOM(); \
+        MaxHP(227); HP(227); Defense(105); SpAttack(130); SpDefense(110); Speed(58); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_KORAIDON(...) \
+    OPPONENT(SPECIES_KORAIDON) { \
+        Level(50); Item(ITEM_CLEAR_AMULET); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(176); HP(176); Attack(205); Defense(135); SpDefense(120); Speed(205); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_KORAIDON_DMAX(...) \
+    OPPONENT(SPECIES_KORAIDON) { \
+        Level(50); Item(ITEM_CLEAR_AMULET); Nature(NATURE_JOLLY); DynamaxLevel(10); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(176); HP(176); Attack(205); Defense(135); SpDefense(120); Speed(205); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_KORAIDON_DMAX_LOW_HP(...) \
+    OPPONENT(SPECIES_KORAIDON) { \
+        Level(50); Item(ITEM_CLEAR_AMULET); Nature(NATURE_JOLLY); DynamaxLevel(10); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(176); HP(44); Attack(205); Defense(135); SpDefense(120); Speed(205); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_KORAIDON_TERA(...) \
+    OPPONENT(SPECIES_KORAIDON) { \
+        Level(50); Item(ITEM_CLEAR_AMULET); Nature(NATURE_JOLLY); TeraType(TYPE_FIRE); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(176); HP(176); Attack(205); Defense(135); SpDefense(120); Speed(205); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_MIRAIDON(...) \
+    OPPONENT(SPECIES_MIRAIDON) { \
+        Level(50); Item(ITEM_CHOICE_SPECS); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(176); HP(176); Defense(120); SpAttack(205); SpDefense(135); Speed(205); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_TAPU_KOKO_Z(...) \
+    OPPONENT(SPECIES_TAPU_KOKO) { \
+        Level(50); Item(ITEM_ELECTRIUM_Z); Ability(ABILITY_ELECTRIC_SURGE); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(146); HP(146); Defense(105); SpAttack(147); SpDefense(95); Speed(200); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_TAPU_KOKO_Z_LOW_HP(...) \
+    OPPONENT(SPECIES_TAPU_KOKO) { \
+        Level(50); Item(ITEM_ELECTRIUM_Z); Ability(ABILITY_ELECTRIC_SURGE); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(146); HP(36); Defense(105); SpAttack(147); SpDefense(95); Speed(200); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_KYOGRE(...) \
+    OPPONENT(SPECIES_KYOGRE) { \
+        Level(50); Item(ITEM_CHOICE_SPECS); Nature(NATURE_MODEST); DynamaxLevel(10); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(176); HP(176); Defense(110); SpAttack(222); SpDefense(160); Speed(140); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_KYOGRE_MYSTIC_WATER(...) \
+    OPPONENT(SPECIES_KYOGRE) { \
+        Level(50); Item(ITEM_MYSTIC_WATER); Nature(NATURE_MODEST); DynamaxLevel(10); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(176); HP(176); Defense(110); SpAttack(222); SpDefense(160); Speed(140); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_CHARIZARD_DMAX(...) \
+    OPPONENT(SPECIES_CHARIZARD) { \
+        Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); Nature(NATURE_TIMID); DynamaxLevel(10); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(153); HP(153); Defense(99); SpAttack(177); SpDefense(105); Speed(167); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_CHARIZARD_GMAX(...) \
+    OPPONENT(SPECIES_CHARIZARD) { \
+        Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); Nature(NATURE_TIMID); DynamaxLevel(10); GigantamaxFactor(TRUE); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(153); HP(153); Defense(99); SpAttack(177); SpDefense(105); Speed(167); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_DREDNAW_GMAX(...) \
+    OPPONENT(SPECIES_DREDNAW) { \
+        Level(50); Item(ITEM_MYSTIC_WATER); Nature(NATURE_ADAMANT); DynamaxLevel(10); GigantamaxFactor(TRUE); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(165); HP(165); Attack(167); Defense(110); SpDefense(90); Speed(94); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_LANDORUS(...) \
+    OPPONENT(SPECIES_LANDORUS_THERIAN) { \
+        Level(50); Item(ITEM_CLEAR_AMULET); Ability(ABILITY_INTIMIDATE); Nature(NATURE_JOLLY); DynamaxLevel(10); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(165); HP(165); Attack(197); Defense(110); SpDefense(100); Speed(157); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_GENGAR(...) \
+    OPPONENT(SPECIES_GENGAR) { \
+        Level(50); Item(ITEM_GENGARITE); Ability(ABILITY_CURSED_BODY); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(136); HP(136); Defense(80); SpAttack(182); SpDefense(95); Speed(178); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_GENGAR_MEGA_ACTIVE(currentHp, ...) \
+    OPPONENT(SPECIES_GENGAR_MEGA) { \
+        Level(50); Item(ITEM_GENGARITE); Ability(ABILITY_SHADOW_TAG); Nature(NATURE_TIMID); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(136); HP(currentHp); Defense(100); SpAttack(222); SpDefense(115); Speed(200); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_INCINEROAR(...) \
+    OPPONENT(SPECIES_INCINEROAR) { \
+        Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_CAREFUL); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(202); HP(202); Attack(135); Defense(120); SpDefense(146); Speed(80); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_RILLABOOM(...) \
+    OPPONENT(SPECIES_RILLABOOM) { \
+        Level(50); Item(ITEM_ASSAULT_VEST); Ability(ABILITY_GRASSY_SURGE); Nature(NATURE_ADAMANT); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(207); HP(207); Attack(187); Defense(110); SpDefense(98); Speed(105); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_VENUSAUR(currentHp, ...) \
+    OPPONENT(SPECIES_VENUSAUR) { \
+        Level(50); Item(ITEM_VENUSAURITE); Ability(ABILITY_CHLOROPHYLL); Nature(NATURE_MODEST); \
+        TEST_IVS_SPECIAL(); \
+        MaxHP(187); HP(currentHp); Defense(103); SpAttack(152); SpDefense(120); Speed(100); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define OPPONENT_DRAGONITE(...) \
+    OPPONENT(SPECIES_DRAGONITE) { \
+        Level(50); Item(ITEM_CHOICE_BAND); Ability(ABILITY_MULTISCALE); Nature(NATURE_ADAMANT); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(167); HP(167); Attack(204); Defense(115); SpDefense(120); Speed(132); \
+        Moves(__VA_ARGS__); \
+    }
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI conserves Dynamax when it has no immediate payoff")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_FARIGIRAF(MOVE_TRICK_ROOM, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+        OPPONENT_KORAIDON_DMAX(MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_PROTECT); EXPECT_MOVE(opponent, MOVE_DRAGON_CLAW, gimmick: GIMMICK_NONE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax on its last Pokemon")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_FARIGIRAF(MOVE_TRICK_ROOM, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+        OPPONENT_KORAIDON_DMAX(MOVE_DRAGON_CLAW, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_PROTECT); EXPECT_MOVE(opponent, MOVE_DRAGON_CLAW, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax with one reserve when low on HP")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_FARIGIRAF(MOVE_TRICK_ROOM, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+        OPPONENT_KORAIDON_DMAX_LOW_HP(MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_PROTECT); EXPECT_MOVE(opponent, MOVE_DRAGON_CLAW, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to set rain with Max Geyser")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_KYOGRE(MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_ORIGIN_PULSE, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to block Fake Out disruption")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_CHARIZARD_DMAX(MOVE_AIR_SLASH, MOVE_PROTECT);
+        OPPONENT_KYOGRE(MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM);
+    } WHEN {
+        TURN { MOVE(player, MOVE_FAKE_OUT); EXPECT_MOVE(opponent, MOVE_AIR_SLASH, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not spend Dynamax on Protect")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_INCINEROAR(MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF, MOVE_FAKE_OUT, MOVE_PROTECT);
+        PLAYER_RILLABOOM(MOVE_PROTECT, MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_FAKE_OUT);
+        OPPONENT(SPECIES_AMOONGUSS) {
+            Level(50); Item(ITEM_ROCKY_HELMET); Ability(ABILITY_REGENERATOR); Nature(NATURE_SASSY); DynamaxLevel(10);
+            TEST_IVS_SPECIAL();
+            MaxHP(221); HP(40); Defense(120); SpAttack(105); SpDefense(145); Speed(31);
+            Moves(MOVE_PROTECT);
+        }
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FLARE_BLITZ, target: opponentLeft);
+            MOVE(playerRight, MOVE_WOOD_HAMMER, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_PROTECT, gimmick: GIMMICK_NONE);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not spend Dynamax on Tailwind")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_KNOCK_OFF, MOVE_FLARE_BLITZ, MOVE_PROTECT);
+        OPPONENT(SPECIES_TORNADUS) {
+            Level(50); Item(ITEM_COVERT_CLOAK); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); DynamaxLevel(10);
+            TEST_IVS_SPECIAL();
+            MaxHP(155); HP(1); Defense(90); SpAttack(177); SpDefense(100); Speed(179);
+            Moves(MOVE_TAILWIND);
+        }
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_KNOCK_OFF, MOVE_FLARE_BLITZ, MOVE_PARTING_SHOT);
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_WOOD_HAMMER, MOVE_GRASSY_GLIDE, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_BLEAKWIND_STORM, target: opponentLeft);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_TAILWIND, gimmick: GIMMICK_NONE);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI can spend Dynamax against an already chosen Fake Out")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_CHARIZARD_DMAX(MOVE_AIR_SLASH, MOVE_PROTECT);
+        OPPONENT_KYOGRE(MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM);
+    } WHEN {
+        TURN { MOVE(player, MOVE_FAKE_OUT); EXPECT_MOVE(opponent, MOVE_AIR_SLASH, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not mirror a selected Trick Room")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_TRICK_ROOM) == EFFECT_TRICK_ROOM);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_POWERFUL_STATUS | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_FARIGIRAF(MOVE_TRICK_ROOM, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_FARIGIRAF(MOVE_TRICK_ROOM, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TRICK_ROOM);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentRight);
+            EXPECT_MOVES(opponentLeft, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+            EXPECT_MOVES(opponentRight, MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI scores against selected player Tera type")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_DRAGON_CLAW) == TYPE_DRAGON);
+        ASSUME(GetMoveType(MOVE_COLLISION_COURSE) == TYPE_FIGHTING);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_MIRAIDON_ICE_TERA(MOVE_DRACO_METEOR, MOVE_THUNDERBOLT, MOVE_ELECTRO_DRIFT, MOVE_VOLT_SWITCH);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_KORAIDON(MOVE_COLLISION_COURSE, MOVE_DRAGON_CLAW, MOVE_FLARE_BLITZ, MOVE_PROTECT);
+        OPPONENT_MIRAIDON(MOVE_ELECTRO_DRIFT, MOVE_THUNDERBOLT, MOVE_DRACO_METEOR, MOVE_VOLT_SWITCH);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_DRACO_METEOR, target: opponentRight, gimmick: GIMMICK_TERA);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVE(opponentLeft, MOVE_COLLISION_COURSE, target: playerLeft);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI scores against the actual selected switch-in")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_THUNDERBOLT) == TYPE_ELECTRIC);
+        ASSUME(GetMoveType(MOVE_GRASS_KNOT) == TYPE_GRASS);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_GYARADOS(MOVE_WATERFALL, MOVE_CRUNCH, MOVE_DRAGON_DANCE, MOVE_PROTECT);
+        PLAYER_DUGTRIO(MOVE_HIGH_HORSEPOWER, MOVE_ROCK_SLIDE, MOVE_SUCKER_PUNCH, MOVE_PROTECT);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_GRASS_KNOT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH);
+    } WHEN {
+        TURN {
+            SWITCH(player, 1);
+            EXPECT_MOVE(opponent, MOVE_GRASS_KNOT);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: command log records all double battle choices")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_KORAIDON(MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        OPPONENT_MIRAIDON(MOVE_THUNDERBOLT, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TAILWIND);
+            MOVE(playerRight, MOVE_PARTING_SHOT, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_DRAGON_CLAW, target: playerLeft);
+            EXPECT_MOVE(opponentRight, MOVE_THUNDERBOLT, target: playerRight);
+        }
+    } THEN {
+        enum BattlerId opponentLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId opponentRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftLog = BattleActionLog_GetLastEntry(opponentLeftBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightLog = BattleActionLog_GetLastEntry(opponentRightBattler, 1u << B_ACTION_USE_MOVE);
+
+        EXPECT_EQ(gBattleActionLog.count, 4);
+        EXPECT(leftLog != NULL);
+        EXPECT(rightLog != NULL);
+        EXPECT_EQ(leftLog->move, MOVE_DRAGON_CLAW);
+        EXPECT_EQ(leftLog->target, GetBattlerAtPosition(B_POSITION_PLAYER_LEFT));
+        EXPECT_EQ(rightLog->move, MOVE_THUNDERBOLT);
+        EXPECT_EQ(rightLog->target, GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI retargets single-target damage away from selected Protect")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS_LOW_HP(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_KORAIDON(MOVE_DRAGON_CLAW, MOVE_COLLISION_COURSE, MOVE_FLARE_BLITZ);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GRASSY_GLIDE, target: opponentRight);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVES(opponentLeft, MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+            EXPECT_MOVE(opponentRight, MOVE_FLARE_BLITZ, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not attack Protect or passively Protect into setup")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_DRAGONITE) { Level(50); Item(ITEM_DRAGONINITE); Ability(ABILITY_MULTISCALE); MaxHP(198); HP(198); Attack(186); Defense(115); SpDefense(120); Speed(100); Moves(MOVE_DRAGON_DANCE, MOVE_EXTREME_SPEED, MOVE_DRAGON_CLAW, MOVE_PROTECT); }
+        PLAYER(SPECIES_GARDEVOIR) { Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_TRACE); MaxHP(143); HP(143); Defense(85); SpDefense(135); Speed(145); Moves(MOVE_DAZZLING_GLEAM, MOVE_MOONBLAST, MOVE_PSYCHIC, MOVE_PROTECT); }
+        OPPONENT(SPECIES_LUCARIO) { Level(50); Item(ITEM_LUCARIONITE); Ability(ABILITY_INNER_FOCUS); SpAttack(167); Speed(156); Moves(MOVE_AURA_SPHERE, MOVE_FLASH_CANNON, MOVE_VACUUM_WAVE, MOVE_PROTECT); }
+        OPPONENT(SPECIES_CHARIZARD) { Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); SpAttack(161); Speed(167); Moves(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_DRAGON_DANCE);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_FLASH_CANNON, target: playerLeft);
+            EXPECT_MOVES(opponentRight, MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI pressures a selected offensive setup threat")
+{
+    GIVEN {
+        ASSUME(IsOffensiveStatRaisingMove(MOVE_DRAGON_DANCE));
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_DRAGONITE) { Level(50); Item(ITEM_DRAGONINITE); Ability(ABILITY_MULTISCALE); MaxHP(198); HP(198); Attack(186); Defense(115); SpDefense(120); Speed(100); Moves(MOVE_DRAGON_DANCE, MOVE_EXTREME_SPEED, MOVE_DRAGON_CLAW, MOVE_PROTECT); }
+        PLAYER(SPECIES_GARDEVOIR) { Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_TRACE); MaxHP(143); HP(143); Defense(85); SpDefense(135); Speed(145); Moves(MOVE_DAZZLING_GLEAM, MOVE_MOONBLAST, MOVE_PSYCHIC, MOVE_PROTECT); }
+        OPPONENT(SPECIES_LUCARIO) { Level(50); Item(ITEM_LUCARIONITE); Ability(ABILITY_INNER_FOCUS); SpAttack(167); Speed(156); Moves(MOVE_AURA_SPHERE, MOVE_FLASH_CANNON, MOVE_VACUUM_WAVE, MOVE_PROTECT); }
+        OPPONENT(SPECIES_CHARIZARD) { Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); SpAttack(161); Speed(167); Moves(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_DRAGON_DANCE);
+            MOVE(playerRight, MOVE_MOONBLAST, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_FLASH_CANNON, target: playerLeft);
+            EXPECT_MOVE(opponentRight, MOVE_AIR_SLASH, target: playerLeft);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Mega Lucario attacks selected Dragon Dance instead of setting up")
+{
+    GIVEN {
+        ASSUME(IsOffensiveStatRaisingMove(MOVE_DRAGON_DANCE));
+        ASSUME_STAT_CHANGE(MOVE_NASTY_PLOT, spAtk: +2);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_DRAGONITE) {
+            Level(50); Item(ITEM_DRAGONINITE); Ability(ABILITY_MULTISCALE); Nature(NATURE_ADAMANT);
+            TEST_IVS_PHYSICAL();
+            MaxHP(198); HP(198); Attack(186); Defense(115); SpDefense(120); Speed(100);
+            Moves(MOVE_DRAGON_DANCE, MOVE_EXTREME_SPEED, MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_LUCARIO) {
+            Level(50); Item(ITEM_LUCARIONITE); Ability(ABILITY_INNER_FOCUS); Nature(NATURE_TIMID);
+            TEST_IVS_SPECIAL();
+            MaxHP(146); HP(146); Defense(90); SpAttack(167); SpDefense(90); Speed(156);
+            Moves(MOVE_AURA_SPHERE, MOVE_FLASH_CANNON, MOVE_VACUUM_WAVE, MOVE_NASTY_PLOT);
+        }
+        OPPONENT(SPECIES_CHARIZARD) { Level(50); Item(ITEM_LIFE_ORB); Ability(ABILITY_SOLAR_POWER); SpAttack(161); Speed(167); Moves(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_SAMUROTT_HISUI) { Level(50); Item(ITEM_CLEAR_AMULET); Ability(ABILITY_SHARPNESS); Attack(160); Speed(150); Moves(MOVE_CEASELESS_EDGE, MOVE_AQUA_CUTTER, MOVE_SUCKER_PUNCH, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_DRAGON_DANCE);
+            EXPECT_MOVE(opponent, MOVE_FLASH_CANNON);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not hide behind King's Shield while a setup threat is selected")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_KINGS_SHIELD) == EFFECT_PROTECT);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_DRAGONITE) { Level(50); Item(ITEM_DRAGONINITE); Ability(ABILITY_MULTISCALE); MaxHP(198); HP(198); Attack(186); Defense(115); SpDefense(120); Speed(100); Moves(MOVE_DRAGON_DANCE, MOVE_EXTREME_SPEED, MOVE_DRAGON_CLAW, MOVE_PROTECT); }
+        PLAYER(SPECIES_GARDEVOIR) { Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_TRACE); MaxHP(143); HP(143); Defense(85); SpDefense(135); Speed(145); Moves(MOVE_DAZZLING_GLEAM, MOVE_MOONBLAST, MOVE_PSYCHIC, MOVE_PROTECT); }
+        OPPONENT(SPECIES_LUCARIO) { Level(50); Item(ITEM_LUCARIONITE); Ability(ABILITY_INNER_FOCUS); SpAttack(167); Speed(156); Moves(MOVE_AURA_SPHERE, MOVE_FLASH_CANNON, MOVE_VACUUM_WAVE, MOVE_PROTECT); }
+        OPPONENT(SPECIES_AEGISLASH_BLADE) { Level(50); Ability(ABILITY_STANCE_CHANGE); MaxHP(150); HP(150); Defense(70); SpAttack(222); Speed(80); Moves(MOVE_KINGS_SHIELD, MOVE_FLASH_CANNON, MOVE_SHADOW_BALL, MOVE_SACRED_SWORD); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_DRAGON_DANCE);
+            MOVE(playerRight, MOVE_MOONBLAST, target: opponentRight);
+            NOT_EXPECT_MOVE(opponentRight, MOVE_KINGS_SHIELD);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI disrupts selected Geomancy instead of fearing unselected Encore")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_GEOMANCY) == EFFECT_GEOMANCY);
+        ASSUME(GetMoveNonVolatileStatus(MOVE_SPORE) == MOVE_EFFECT_SLEEP);
+        ASSUME(GetMoveEffect(MOVE_ENCORE) == EFFECT_ENCORE);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WHIMSICOTT) { Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); MaxHP(135); HP(135); Defense(90); SpAttack(129); SpDefense(95); Speed(184); Moves(MOVE_TAILWIND, MOVE_ENCORE, MOVE_MOONBLAST, MOVE_PROTECT); }
+        PLAYER(SPECIES_XERNEAS) { Level(50); Item(ITEM_POWER_HERB); MaxHP(241); HP(241); Defense(135); SpAttack(183); SpDefense(150); Speed(119); Moves(MOVE_GEOMANCY, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); MaxHP(205); HP(205); Defense(120); SpAttack(220); SpDefense(160); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+        OPPONENT(SPECIES_AMOONGUSS) { Level(50); Item(ITEM_ROCKY_HELMET); Ability(ABILITY_REGENERATOR); MaxHP(221); HP(221); Defense(120); SpAttack(105); SpDefense(145); Speed(31); Moves(MOVE_SPORE, MOVE_RAGE_POWDER, MOVE_POLLEN_PUFF, MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentRight, MOVE_SPORE, target: playerRight);
+            SCORE_GT(opponentRight, MOVE_SPORE, MOVE_POLLEN_PUFF, target: playerRight);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not aim redirectable single-target pressure into selected Rage Powder")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_RAGE_POWDER) == EFFECT_FOLLOW_ME);
+        ASSUME(GetMoveTarget(MOVE_PSYSTRIKE) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_VOLCARONA) { Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_FLAME_BODY); MaxHP(191); HP(191); Defense(220); SpAttack(170); SpDefense(135); Speed(120); Moves(MOVE_RAGE_POWDER, MOVE_HEAT_WAVE, MOVE_STRUGGLE_BUG, MOVE_PROTECT); }
+        PLAYER(SPECIES_XERNEAS) { Level(50); Item(ITEM_POWER_HERB); MaxHP(241); HP(241); Defense(90); SpAttack(183); SpDefense(150); Speed(119); Moves(MOVE_GEOMANCY, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM, MOVE_PROTECT); }
+        OPPONENT(SPECIES_MEWTWO) { Level(50); Item(ITEM_MEWTWONITE_Y); MaxHP(181); HP(181); Defense(110); SpAttack(206); SpDefense(110); Speed(200); Moves(MOVE_PSYSTRIKE, MOVE_ICE_BEAM, MOVE_AURA_SPHERE, MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_KYOGRE) { Level(50); Ability(ABILITY_DRIZZLE); Item(ITEM_CHOICE_SPECS); MaxHP(205); HP(205); Defense(120); SpAttack(220); SpDefense(160); Speed(90); Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_RAGE_POWDER);
+            MOVE(playerRight, MOVE_DAZZLING_GLEAM);
+            EXPECT_MOVE(opponentLeft, MOVE_PSYSTRIKE, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI switches Mega Gengar to Incineroar against a known cross-slot Grassy Glide KO")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_GRASSY_GLIDE) == EFFECT_GRASSY_GLIDE);
+        ASSUME(GetMoveTarget(MOVE_GRASSY_GLIDE) == TARGET_SELECTED);
+        ASSUME(GetMoveCategory(MOVE_GRASSY_GLIDE) == DAMAGE_CATEGORY_PHYSICAL);
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_GENGAR_MEGA_ACTIVE(35, MOVE_SHADOW_BALL, MOVE_SLUDGE_BOMB, MOVE_FOCUS_BLAST, MOVE_PROTECT);
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GRASSY_GLIDE, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI sacrifices Whimsicott to preserve Choice Kyogre from selected Z plus Fake Out focus")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_KYOGRE(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_ENCORE, MOVE_MOONBLAST, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE, target: opponentRight);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI prefers a nonfatal cushion over a doomed support sacrifice")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_CHOICE_SPECS); Ability(ABILITY_DRIZZLE); Nature(NATURE_MODEST);
+            TEST_IVS_SPECIAL();
+            MaxHP(176); HP(35); Defense(110); SpAttack(222); SpDefense(160); Speed(140);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_ENCORE, MOVE_MOONBLAST, MOVE_PROTECT);
+        OPPONENT(SPECIES_HARIYAMA) {
+            Level(50); MaxHP(500); HP(500); Defense(80); SpDefense(80); Speed(40);
+            Moves(MOVE_CELEBRATE);
+        }
+        OPPONENT(SPECIES_MAGIKARP) { Level(50); Speed(1); Moves(MOVE_SPLASH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE, target: opponentRight);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_SWITCH(opponentRight, 3);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI values a pivot-capable sacrifice in focused collapse")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveEffect(MOVE_U_TURN) == EFFECT_HIT_ESCAPE);
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_CHOICE_SPECS); Ability(ABILITY_DRIZZLE); Nature(NATURE_MODEST);
+            TEST_IVS_SPECIAL();
+            MaxHP(176); HP(35); Defense(110); SpAttack(222); SpDefense(160); Speed(140);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+        OPPONENT(SPECIES_CROBAT) { Level(50); Item(ITEM_FOCUS_SASH); Speed(40); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_CROBAT) { Level(50); Item(ITEM_FOCUS_SASH); Speed(40); Moves(MOVE_U_TURN); }
+        OPPONENT(SPECIES_MAGIKARP) { Level(50); Speed(1); Moves(MOVE_SPLASH); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE, target: opponentRight);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_SWITCH(opponentRight, 3);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not trust Protect when selected Feint breaks the pinned Kyogre line")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        ASSUME(MoveIgnoresProtect(MOVE_FEINT));
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        ASSUME(GetMoveTarget(MOVE_FEINT) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER(SPECIES_MIENSHAO) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_INNER_FOCUS); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL();
+            MaxHP(140); HP(140); Attack(177); Defense(80); SpDefense(80); Speed(172);
+            Moves(MOVE_FAKE_OUT, MOVE_FEINT, MOVE_CLOSE_COMBAT, MOVE_WIDE_GUARD);
+        }
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_KYOGRE_MYSTIC_WATER(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM, MOVE_PROTECT);
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_ENCORE, MOVE_MOONBLAST, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE, target: opponentRight);
+            MOVE(playerRight, MOVE_FEINT, target: opponentRight);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not trust Protect when selected Z chip KOs through it")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_MYSTIC_WATER); Nature(NATURE_MODEST); DynamaxLevel(10);
+            TEST_IVS_SPECIAL();
+            MaxHP(176); HP(35); Defense(110); SpAttack(222); SpDefense(160); Speed(140);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM, MOVE_PROTECT);
+        }
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_ENCORE, MOVE_MOONBLAST, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE, target: opponentRight);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI accepts a 15-of-16 survival switch when focus pressure leaves no clean pivot")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_CHOICE_SPECS); Ability(ABILITY_DRIZZLE); Nature(NATURE_MODEST);
+            TEST_IVS_SPECIAL();
+            MaxHP(176); HP(35); Defense(110); SpAttack(222); SpDefense(160); Speed(140);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+        OPPONENT(SPECIES_KORAIDON) {
+            Level(50); Item(ITEM_CHOICE_BAND); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL();
+            MaxHP(176); HP(38); Attack(205); Defense(135); SpDefense(120); Speed(205);
+            Moves(MOVE_COLLISION_COURSE, MOVE_DRAGON_CLAW, MOVE_FLARE_BLITZ, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentRight);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI rejects a doomed sacrifice when it does not improve next board")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_THUNDERBOLT) == TARGET_SELECTED);
+        ASSUME(GetMoveTarget(MOVE_BLEAKWIND_STORM) == TARGET_BOTH);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT(SPECIES_KYOGRE) {
+            Level(50); Item(ITEM_CHOICE_SPECS); Ability(ABILITY_DRIZZLE); Nature(NATURE_MODEST);
+            TEST_IVS_SPECIAL();
+            MaxHP(176); HP(35); Defense(110); SpAttack(222); SpDefense(160); Speed(140);
+            Moves(MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+        OPPONENT(SPECIES_MAGIKARP) {
+            Level(50); Item(ITEM_NONE); Nature(NATURE_TIMID);
+            MaxHP(40); HP(40); Defense(20); SpDefense(20); Speed(80);
+            Moves(MOVE_SPLASH);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentRight);
+            MOVE(playerRight, MOVE_BLEAKWIND_STORM);
+            EXPECT_MOVES(opponentRight, MOVE_WATER_SPOUT, MOVE_ORIGIN_PULSE, MOVE_THUNDER, MOVE_ICE_BEAM);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not switch Mega Gengar to Incineroar against a punishing known cross-slot hit")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        ASSUME(GetMoveTarget(MOVE_HIGH_HORSEPOWER) == TARGET_SELECTED);
+        ASSUME(GetMoveCategory(MOVE_HIGH_HORSEPOWER) == DAMAGE_CATEGORY_PHYSICAL);
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_RILLABOOM) {
+            Level(50); Item(ITEM_CHOICE_BAND); Ability(ABILITY_GRASSY_SURGE); Nature(NATURE_ADAMANT);
+            TEST_IVS_PHYSICAL();
+            MaxHP(207); HP(207); Attack(187); Defense(110); SpDefense(98); Speed(105);
+            Moves(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_HIGH_HORSEPOWER);
+        }
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_GENGAR_MEGA_ACTIVE(35, MOVE_SHADOW_BALL, MOVE_SLUDGE_BOMB, MOVE_FOCUS_BLAST, MOVE_PROTECT);
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_HIGH_HORSEPOWER, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVES(opponentRight, MOVE_SHADOW_BALL, MOVE_SLUDGE_BOMB, MOVE_FOCUS_BLAST, MOVE_PROTECT);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Fake Out discounts slower ordinary actions")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_KORAIDON(MOVE_DRAGON_CLAW, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVES(opponentLeft, MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+            SCORE_LT_VAL(opponentRight, MOVE_DRAGON_CLAW, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Fake Out still discounts lower-priority Extreme Speed")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMovePriority(MOVE_FAKE_OUT) > GetMovePriority(MOVE_EXTREME_SPEED));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_DRAGONITE(MOVE_EXTREME_SPEED, MOVE_DRAGON_CLAW, MOVE_EARTHQUAKE, MOVE_ROOST);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVES(opponentLeft, MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+            SCORE_LT_VAL(opponentRight, MOVE_EXTREME_SPEED, AI_SCORE_DEFAULT, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: blocked selected Fake Out does not discount ordinary actions")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_FARIGIRAF(MOVE_PSYCHIC, MOVE_TRICK_ROOM, MOVE_HELPING_HAND, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVES(opponentLeft, MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+            SCORE_GT_VAL(opponentRight, MOVE_PSYCHIC, AI_SCORE_DEFAULT, target: playerRight);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax to block phazing disruption")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_ROAR) == EFFECT_ROAR);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_ARCANINE(MOVE_ROAR, MOVE_FLARE_BLITZ, MOVE_SNARL, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_AIR_SLASH, MOVE_PROTECT);
+        OPPONENT_KYOGRE(MOVE_ORIGIN_PULSE, MOVE_ICE_BEAM);
+    } WHEN {
+        TURN { MOVE(player, MOVE_ROAR); EXPECT_MOVE(opponent, MOVE_AIR_SLASH, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax on a low-HP pressure attacker with a reserve")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        OPPONENT_KORAIDON_DMAX_LOW_HP(MOVE_FLARE_BLITZ, MOVE_COLLISION_COURSE, MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_FLARE_BLITZ, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI can spend Dynamax for Max Airstream speed control")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        OPPONENT_LANDORUS(MOVE_FLY, MOVE_EARTHQUAKE, MOVE_ROCK_SLIDE, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentLeft);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_FLY, gimmick: GIMMICK_DYNAMAX);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: G-Max Charizard values Wildfire over redundant Airstream under Tailwind")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        SetStartingStatus(STARTING_STATUS_TAILWIND_OPPONENT_TEMPORARY);
+        PLAYER_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        PLAYER_LANDORUS(MOVE_EARTHQUAKE, MOVE_ROCK_SLIDE, MOVE_FLY, MOVE_PROTECT);
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_SUNNY_DAY, MOVE_MOONBLAST, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_GMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_THUNDERBOLT, target: opponentRight);
+            MOVE(playerRight, MOVE_ROCK_SLIDE, target: opponentLeft);
+            EXPECT_MOVE(opponentRight, MOVE_HEAT_WAVE, gimmick: GIMMICK_DYNAMAX);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: G-Max Stonesurge is a hazard payoff")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_G_MAX_STONESURGE, MOVE_EFFECT_STEALTH_ROCK));
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(500); HP(500); Defense(200); Speed(30); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WYNAUT) { MaxHP(200); HP(200); Speed(30); Moves(MOVE_CELEBRATE); }
+        OPPONENT_DREDNAW_GMAX(MOVE_LIQUIDATION, MOVE_PROTECT);
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(500); HP(500); Speed(30); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); EXPECT_MOVE(opponent, MOVE_LIQUIDATION, gimmick: GIMMICK_DYNAMAX); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: G-Max Stonesurge is conserved when rocks are already set")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_G_MAX_STONESURGE, MOVE_EFFECT_STEALTH_ROCK));
+        SetStartingStatus(STARTING_STATUS_STEALTH_ROCK_PLAYER);
+        PLAYER(SPECIES_WOBBUFFET) { MaxHP(500); HP(500); Defense(200); Speed(30); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WYNAUT) { MaxHP(200); HP(200); Speed(30); Moves(MOVE_CELEBRATE); }
+        OPPONENT_DREDNAW_GMAX(MOVE_LIQUIDATION, MOVE_PROTECT);
+        OPPONENT(SPECIES_WOBBUFFET) { MaxHP(500); HP(500); Speed(30); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); EXPECT_MOVE(opponent, MOVE_LIQUIDATION, gimmick: GIMMICK_NONE); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: smart Dynamax answers selected off-slot KO pressure")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_DRACO_METEOR) == TYPE_DRAGON);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        PLAYER_MIRAIDON_ICE_TERA(MOVE_DRACO_METEOR, MOVE_THUNDERBOLT, MOVE_ELECTRO_DRIFT, MOVE_VOLT_SWITCH);
+        OPPONENT_KORAIDON_DMAX(MOVE_COLLISION_COURSE, MOVE_FLARE_BLITZ, MOVE_CLOSE_COMBAT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentRight);
+            MOVE(playerRight, MOVE_DRACO_METEOR, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_COLLISION_COURSE, gimmick: GIMMICK_DYNAMAX);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: smart Dynamax answers selected single KO pressure")
+{
+    GIVEN {
+        ASSUME(GetMoveType(MOVE_DRACO_METEOR) == TYPE_DRAGON);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE | AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY);
+        PLAYER_MIRAIDON_ICE_TERA(MOVE_DRACO_METEOR, MOVE_THUNDERBOLT, MOVE_ELECTRO_DRIFT, MOVE_VOLT_SWITCH);
+        OPPONENT_KORAIDON_DMAX(MOVE_COLLISION_COURSE, MOVE_FLARE_BLITZ, MOVE_CLOSE_COMBAT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_DRACO_METEOR);
+            EXPECT_MOVE(opponent, MOVE_COLLISION_COURSE, gimmick: GIMMICK_DYNAMAX);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_TERA_ONLY: AI can use Tera for an offensive boost")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_TERA_ONLY);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        OPPONENT_KORAIDON_TERA(MOVE_FLARE_BLITZ, MOVE_COLLISION_COURSE, MOVE_DRAGON_CLAW, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_FLARE_BLITZ, gimmick: GIMMICK_TERA); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI conserves a damaging Z-Move when it has no immediate payoff")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_Z_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_THUNDERBOLT, gimmick: GIMMICK_NONE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI can spend a damaging Z-Move on its last Pokemon")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_Z_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI can spend a damaging Z-Move with one reserve when low on HP")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_Z_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z_LOW_HP(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI can spend a damaging Z-Move from a low-HP pressure attacker with a reserve")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_Z_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z_LOW_HP(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_ALL: AI can spend a Z-Move from a held Z-Crystal")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_ALL);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_THUNDERBOLT, gimmick: GIMMICK_Z_MOVE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_ALL: AI can Mega Evolve with one reserve when low on HP")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_ALL);
+        PLAYER_FARIGIRAF(MOVE_TRICK_ROOM, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
+        OPPONENT_VENUSAUR(47, MOVE_SLUDGE_BOMB, MOVE_GIGA_DRAIN, MOVE_EARTH_POWER, MOVE_PROTECT);
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN { MOVE(player, MOVE_PROTECT); EXPECT_MOVE(opponent, MOVE_SLUDGE_BOMB, gimmick: GIMMICK_MEGA); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_MEGA_EVOLUTION, opponent);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_Z_MOVE: AI conserves a damaging Z-Move against a trapping target without a damage-race payoff")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_Z_MOVE);
+        PLAYER(SPECIES_GOTHITELLE) {
+            Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_SHADOW_TAG); Nature(NATURE_BOLD);
+            TEST_IVS_SPECIAL();
+            MaxHP(177); HP(177); Defense(150); SpAttack(115); SpDefense(130); Speed(85);
+            Moves(MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_TRICK_ROOM, MOVE_PROTECT);
+        }
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN { MOVE(player, MOVE_PROTECT); EXPECT_MOVE(opponent, MOVE_THUNDERBOLT, gimmick: GIMMICK_NONE); }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA: AI can use Tera before a Dynamax backup")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        OPPONENT_KORAIDON_TERA(MOVE_FLARE_BLITZ, MOVE_COLLISION_COURSE, MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_HEAT_WAVE, MOVE_AIR_SLASH, MOVE_SOLAR_BEAM, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_FLARE_BLITZ, gimmick: GIMMICK_TERA); }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_ALL: AI can use Tera in doubles")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_ALL);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_KORAIDON_TERA(MOVE_FLARE_BLITZ, MOVE_COLLISION_COURSE, MOVE_DRAGON_CLAW, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentLeft);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVE(opponentLeft, MOVE_FLARE_BLITZ, gimmick: GIMMICK_TERA);
+        }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_MEGA: AI can Mega Evolve for Shadow Tag board control")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_MEGA);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_GENGAR(MOVE_SLUDGE_BOMB, MOVE_SHADOW_BALL, MOVE_FOCUS_BLAST, MOVE_PROTECT);
+    } WHEN {
+        TURN { MOVE(player, MOVE_KNOCK_OFF); EXPECT_MOVE(opponent, MOVE_SLUDGE_BOMB, gimmick: GIMMICK_MEGA); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_MEGA_EVOLUTION, opponent);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_SMART_MEGA: AI preserves weather suppression during active weather")
+{
+    enum Ability ability;
+
+    PARAMETRIZE { ability = ABILITY_AIR_LOCK; }
+    PARAMETRIZE { ability = ABILITY_CLOUD_NINE; }
+
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_GIMMICK_TIMING | AI_FLAG_SMART_MEGA);
+        PLAYER(SPECIES_KYOGRE) { Item(ITEM_BLUE_ORB); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_VENUSAUR) { Ability(ability); Item(ITEM_VENUSAURITE); Moves(MOVE_GIGA_DRAIN); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); EXPECT_MOVE(opponent, MOVE_GIGA_DRAIN, gimmick: GIMMICK_NONE); }
+    } SCENE {
+        NOT ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_MEGA_EVOLUTION, opponent);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_ALL: AI can delay Mega Evolution for a setup turn")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_FORCE_SETUP_FIRST_TURN | AI_FLAG_OMNISCIENT | AI_FLAG_GIMMICK_ENV_ALL);
+        PLAYER_RILLABOOM(MOVE_FAKE_OUT, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        OPPONENT_VENUSAUR(187, MOVE_GROWTH, MOVE_SLUDGE_BOMB, MOVE_GIGA_DRAIN, MOVE_PROTECT);
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN { MOVE(player, MOVE_GRASSY_GLIDE); EXPECT_MOVE(opponent, MOVE_GROWTH, gimmick: GIMMICK_NONE); }
+    } SCENE {
+        NOT ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_MEGA_EVOLUTION, opponent);
+    }
+}
