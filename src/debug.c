@@ -1,6 +1,7 @@
 #include "global.h"
 #include "battle.h"
 #include "battle_setup.h"
+#include "box_npc_party_pool.h"
 #include "berry.h"
 #include "clock.h"
 #include "coins.h"
@@ -301,6 +302,7 @@ static void DebugAction_Party_ClearPokerus(u8 taskId);
 static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
+static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params);
 
 static void DebugAction_Trainers_ChooseFromMap(u8 taskId);
 static void DebugAction_Trainers_ChooseTrainer(u8 taskId, void *selection);
@@ -626,6 +628,73 @@ static const struct DebugMenuOption sDebugMenu_Actions_EditPokemon[] =
     { NULL }
 };
 
+#define BOX_NPC_DEBUG_AI_FLAGS (AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_ASSUMPTIONS | AI_FLAG_RISKY)
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleSlotsFirst =
+{
+    .poolMode = BOX_NPC_POOL_BOX1_SLOTS_1_TO_6,
+    .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
+    .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
+    .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+    .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
+};
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleFirstValid =
+{
+    .poolMode = BOX_NPC_POOL_BOX1_FIRST_VALID_6,
+    .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
+    .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
+    .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+    .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
+};
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_SingleRandom =
+{
+    .poolMode = BOX_NPC_POOL_BOX1_RANDOM_VALID_6,
+    .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
+    .memberMode = BOX_NPC_BATTLE_MEMBERS_RANDOM_N,
+    .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+    .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
+};
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleSlotsFirst =
+{
+    .poolMode = BOX_NPC_POOL_BOX1_SLOTS_1_TO_6,
+    .battleFormat = BOX_NPC_BATTLE_DOUBLE_4,
+    .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
+    .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+    .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
+};
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleFirstValid =
+{
+    .poolMode = BOX_NPC_POOL_BOX1_FIRST_VALID_6,
+    .battleFormat = BOX_NPC_BATTLE_DOUBLE_4,
+    .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
+    .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+    .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
+};
+
+static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleRandom =
+{
+    .poolMode = BOX_NPC_POOL_BOX1_RANDOM_VALID_6,
+    .battleFormat = BOX_NPC_BATTLE_DOUBLE_4,
+    .memberMode = BOX_NPC_BATTLE_MEMBERS_RANDOM_N,
+    .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,
+    .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
+};
+
+static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
+{
+    { COMPOUND_STRING("Single slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleSlotsFirst },
+    { COMPOUND_STRING("Single first valid"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleFirstValid },
+    { COMPOUND_STRING("Single random"),     DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleRandom },
+    { COMPOUND_STRING("Double slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleSlotsFirst },
+    { COMPOUND_STRING("Double first valid"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleFirstValid },
+    { COMPOUND_STRING("Double random"),     DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleRandom },
+    { NULL }
+};
+
 static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 {
     { COMPOUND_STRING("Move Relearner"),     DebugAction_ExecuteScript, Common_EventScript_MoveRelearner },
@@ -639,6 +708,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
+    { COMPOUND_STRING("Box NPC Battle…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattle },
     { NULL }
 };
 
@@ -4950,6 +5020,51 @@ static void DebugAction_Party_BattleSingle(u8 taskId)
     gDebugAIFlags = sDebugTrainers[DIFFICULTY_NORMAL][DEBUG_TRAINER_AI].aiFlags;
     gIsDebugBattle = TRUE;
     gBattleEnvironment = BattleSetup_GetEnvironmentId();
+    CalculateEnemyPartyCount();
+    BattleSetup_StartTrainerBattle_Debug();
+    Debug_DestroyMenu_Full(taskId);
+}
+
+static void DebugAction_Party_BoxNpcBattleShowMessage(u8 taskId, const u8 *message)
+{
+    StringCopy(gStringVar4, message);
+    Debug_DestroyMenu_Full_Script(taskId, Debug_ShowFieldMessageStringVar4);
+}
+
+static bool32 DebugAction_Party_BoxNpcBattleHasPlayerMons(const struct BoxNpcPartyPoolConfig *config)
+{
+    u8 requiredMons = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4 ? 2 : 1;
+
+    return CountPartyAliveNonEggMonsExcept(PARTY_SIZE) >= requiredMons;
+}
+
+static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
+{
+    const struct BoxNpcPartyPoolConfig *config = params;
+
+    if (!DebugAction_Party_BoxNpcBattleHasPlayerMons(config))
+    {
+        BoxNpcPartyPool_ClearPendingBattleInitPolicy();
+        if (config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4)
+            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("Current party needs two usable Pokemon."));
+        else
+            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("Current party needs one usable Pokemon."));
+        return;
+    }
+
+    if (!BoxNpcPartyPool_TryBuildOpponentParty(config, NULL))
+    {
+        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
+        return;
+    }
+
+    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+    if (config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4)
+        gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
+    gDebugAIFlags = config->aiFlags;
+    gIsDebugBattle = TRUE;
+    gBattleEnvironment = BattleSetup_GetEnvironmentId();
+    CalculatePlayerPartyCount();
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
     Debug_DestroyMenu_Full(taskId);

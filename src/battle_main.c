@@ -16,6 +16,7 @@
 #include "battle_tower.h"
 #include "battle_z_move.h"
 #include "battle_gimmick.h"
+#include "box_npc_party_pool.h"
 #include "berry.h"
 #include "bg.h"
 #include "data.h"
@@ -581,6 +582,7 @@ static void CB2_InitBattleInternal(void)
     gReservedSpritePaletteCount = MAX_BATTLERS_COUNT;
     SetVBlankCallback(VBlankCB_Battle);
     SetUpBattleVarsAndBirchZigzagoon();
+    BoxNpcPartyPool_ApplyPendingBattleInitPolicy();
 
     if (gBattleTypeFlags & BATTLE_TYPE_MULTI
      && (TESTING || gBattleTypeFlags & (BATTLE_TYPE_BATTLE_TOWER | BATTLE_TYPE_INGAME_PARTNER)))
