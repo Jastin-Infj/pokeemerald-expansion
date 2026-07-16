@@ -41,10 +41,13 @@ Completion validation:
   replacement, returned to the overworld, and stopped cleanly. Final managed
   session status was `[]`.
 
-Integration order after this handoff is Smart Gimmick AI, Box NPC Party Pool,
-then Battle Team Boxes on a new `integration/*` branch. The integration branch
-owns its own conflict resolution, validation evidence, and PR. It does not
-change the docs/Lua-only policy for `master`.
+The implemented integration order is Box NPC Party Pool, Battle Team Boxes,
+then Smart Gimmick AI on `integration/runtime-lab-20260716`. Box and Battle Team
+entered through PRs #76 and #77. Smart is squash-reapplied on
+`integration/runtime-lab-smart-ai-pr-20260716` at `611933abf0` for its own PR
+and combined validation. See
+[Runtime Lab Integration](../runtime_lab_integration/implementation.md). This
+does not change the docs/Lua-only policy for `master`.
 
 Runtime files:
 
