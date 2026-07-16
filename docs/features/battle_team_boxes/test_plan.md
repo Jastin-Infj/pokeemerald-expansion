@@ -81,6 +81,11 @@ the full six-member battle and save/restart flows remain useful manual evidence.
 
 ## GitHub Actions
 
-Do not block handoff waiting 20-30 minutes for Actions. Record the initial check
-snapshot after push. Local make and mGBA Live evidence are the primary handoff
-gate for this branch.
+Draft PR #75 initial snapshot after push on July 16, 2026:
+
+- `build-emerald`, `build-firered`, `build-leafgreen`, `release`, `test`, and
+  `docs_validate` started and were still in progress at handoff.
+- Label and all-contributors jobs reported skipped.
+
+The long checks were not re-waited because they can take 20-30 minutes. Local
+make and mGBA Live evidence are the primary handoff gate for this branch.
