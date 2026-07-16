@@ -94,6 +94,20 @@ mGBA Live confirmed:
 - Direct manager exit clears its dialogue window after the runtime-found fix.
 - After adding the destructive PC-selection guard, the rebuilt ROM again
   reached the title screen, Continue menu, and overworld from the existing save.
+- Team 1 was filled through the manager with six live Box references:
+  Delcatty (`Box 1:1`), Spearow (`Box 1:2`), Vaporeon (`Box 1:4`),
+  Zubat (`Box 1:3`), and two Pikachu (`Box 1:5-6`). The saved coordinates were
+  `0,1,3,2,4,5`, preserving manager order independently of Box order.
+- `Single first 3` started with Delcatty and exposed Spearow and Vaporeon as the
+  remaining registered opponents. `Double first 4` started with Delcatty and
+  Spearow as the opposing leads. The battles were ended with a controlled
+  `gBattleOutcome = WIN` write only after the route and party evidence had been
+  observed, avoiding an unrelated full battle playthrough.
+- The first six Box records (480 bytes) and the full Battle Team registry
+  (84 bytes) were byte-identical before and after the registered-team battles.
+- An in-game save, clean emulator stop, new emulator process, and Continue
+  restored the complete Team 1 grid and the exact 84-byte registry. The other
+  twelve team slots remained empty as expected.
 - Final mGBA Live status returned an empty session list after clean stop.
 
 The first two mGBA attempts failed before feature input because a direct binary
@@ -112,6 +126,8 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
   the chosen save-efficient contract and UI lock policy.
 - The manager uses species names, not nicknames, in its compact grid.
 - Smart Gimmick AI and battle item restore are not integrated on this branch.
+  Battle item restore remains available as a separate previously implemented
+  feature shelf rather than being reimplemented here.
 
 ## Merge Handoff
 
@@ -119,3 +135,7 @@ This implementation is staged as draft PR #75 and is not eligible for a
 docs-only `master` merge. While Box NPC PR #74 remains open, review it as a
 stacked PR with base `feature/box-npc-party-pool-20260705`. Do not merge either
 PR automatically.
+
+All seven required GitHub checks on the implementation snapshot passed:
+Emerald, FireRed, LeafGreen, release, test, docs validation, and the aggregate
+build check. Label and all-contributors jobs were skipped by workflow policy.
