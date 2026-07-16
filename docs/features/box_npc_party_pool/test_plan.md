@@ -1,5 +1,29 @@
 # Box NPC Party Pool Test Plan
 
+## Fresh Reapply Gate - July 16, 2026
+
+| Check | Result |
+|---|---|
+| Base | `integration/runtime-lab-20260716` at current `master` `1f77705e45` |
+| Source shelf | `feature/box-npc-party-pool-20260705` at `71e9d602f0`; PR #74 |
+| Pre-handoff tree comparison | Exact match between the reapplied candidate and standalone Box branch |
+| Diff scope | 10 files; Box module, two RNG tags, one battle-init hook, debug route, and owning docs only |
+| `rtk make -j16 -O all` | Passed; existing linker RWX and source PNG warnings only |
+| `rtk make -j16 -O debug` | Passed; existing linker RWX warning only |
+| `rtk make -j16 -O check` | Passed; existing test-runner format and linker RWX warnings only |
+| mGBA Live | Passed `box-npc-reapply-20260716`; final status `[]` |
+
+The mGBA reapply run used copied ROM/save files under `/tmp`; it did not mutate
+the repository save. It reached `Party -> Box NPC Battle...`, displayed all six
+single/double routes, reproduced the fixed-slot invalid-Box rejection, then used
+`PC/Bag -> Fill -> Fill PC Boxes Fast` on the copied save and started
+`Single slots 1-6`. The live battle showed three opponent party markers and the
+`gPartiesCount` bytes at `0x02031c20` were `[1, 3, 0, 0]`.
+
+This is a runtime reapply PR into the dedicated integration target. It is not a
+docs / Lua-only master PR. Battle Team Boxes and Smart Gimmick AI are excluded
+and require their own later PRs.
+
 ## Local Build Checks
 
 - Passed: `rtk git diff --check`

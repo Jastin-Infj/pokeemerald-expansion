@@ -6,6 +6,12 @@ Implemented as the standalone MVP on
 `feature/box-npc-party-pool-20260705`. This document remains the dependency
 survey and design record for the runtime implementation.
 
+On July 16, 2026, the validated standalone slice was reapplied onto the fresh
+`master`-based target `integration/runtime-lab-20260716` through candidate
+`integration/runtime-lab-box-npc-pr-20260716`. This is the first sequential
+runtime-lab PR. Battle Team Boxes follows it as the dependent second PR, and
+Smart Gimmick AI remains a separate third reapply PR.
+
 ## Purpose
 
 Create a debug-friendly opponent party source where Pokemon stored in Pokemon
@@ -67,12 +73,11 @@ Decision:
   not merge Pokemon State Editor, Unified Move Relearner, held item catalog, or
   Smart Gimmick AI into the first branch.
 - Smart Gimmick AI is strongly desired for the actual manual testing target, but
-  it remains a separate feature dependency. If the runtime Smart Gimmick AI
-  source is still not on `master`, create a temporary integration branch from
-  `feature/smart-gimmick-ai-16-20260604`, for example
-  `integration/smart-ai-box-npc-party-pool-*`. That branch is for manual AI
-  testing and should not be merged to `master` until its Smart Gimmick AI base is
-  also ready.
+  it remains a separate feature dependency. Create the playable integration
+  target from current `master`, reapply Box NPC and Battle Team in dependency
+  order through separate PRs, then reapply Smart AI through its own PR.
+- Do not directly merge an old implementation shelf into `master` or mutate a
+  standalone feature branch to turn it into the integration branch.
 
 Reason:
 
@@ -80,6 +85,8 @@ Reason:
 - Smart Gimmick AI is an AI decision feature.
 - They are useful together, but they have different ownership, validation, and
   merge risk.
+- A fresh `master`-based integration target keeps those boundaries visible while
+  still producing one playable runtime-lab branch after the sequential PRs.
 
 Longer-term integration direction:
 

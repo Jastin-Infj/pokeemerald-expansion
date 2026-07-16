@@ -37,6 +37,42 @@ Implemented runtime shape:
 - Debug builds emit an mGBA / AGBPrint `DebugPrintf` line containing mode,
   candidate slots, final slots, gimmick policy, and AI flag low bits.
 
+## July 16, 2026 Reapply Handoff
+
+The standalone source shelf remains
+`feature/box-npc-party-pool-20260705` at `71e9d602f0`, with draft PR #74 kept as
+review and validation evidence. The playable integration line starts fresh from
+current `master` `1f77705e45`:
+
+- Target: `integration/runtime-lab-20260716`.
+- Box-only candidate: `integration/runtime-lab-box-npc-pr-20260716`.
+- Reapplied source commits: `f9c2afde2c`, `535d07582c`, `c10009df04`,
+  `9522cd2978`, and `71e9d602f0`.
+- The pre-handoff reapply tree matched the standalone Box branch exactly.
+- Scope is ten files: five Markdown files, one new header, one new source
+  module, and narrow changes to `include/random.h`, `src/battle_main.c`, and
+  `src/debug.c`.
+- No save layout, Box mutation, normal trainer-party generation, Battle Team,
+  or Smart AI change is part of this PR.
+
+The GitHub repository currently reports no `master` branch protection and no
+matching ruleset. Repository policy is therefore enforced by branch lineage,
+PR base/head inspection, complete file-list review, and the docs / Lua-only
+master gate. This runtime candidate targets only the dedicated integration
+branch and must not be retargeted or merged into `master`.
+
+Fresh reapply validation passed:
+
+- `rtk make -j16 -O all`.
+- `rtk make -j16 -O debug`.
+- `rtk make -j16 -O check`.
+- mGBA Live session `box-npc-reapply-20260716` booted a copied ROM/save, opened
+  all six Box NPC routes, confirmed invalid fixed-slot rejection, filled the
+  copied save's boxes, and started `Single slots 1-6`.
+- Live `gPartiesCount` bytes were `[1, 3, 0, 0]`, confirming one player party
+  member and three opponent members for the tested singles route.
+- The session stopped cleanly and final managed status was `[]`.
+
 ## Not In This Slice
 
 - Player party truncation to strict 3v3 / 4v4 is not implemented. The route uses
