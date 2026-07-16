@@ -49,6 +49,22 @@ Passed with the debug ROM:
 - Exit the direct manager without leaving dialogue graphics on the field.
 - Reboot the final rebuilt ROM after the PC-selection guard, continue the
   existing save, and reach the overworld.
+- Register all six Team 1 slots through the manager in the order Delcatty,
+  Spearow, Vaporeon, Zubat, Pikachu, Pikachu, backed by Box positions
+  `0,1,3,2,4,5`.
+- Start `Single first 3` and observe Delcatty, Spearow, and Vaporeon in the
+  opponent party.
+- Start `Double first 4` and observe Delcatty and Spearow as the opposing leads.
+- End each battle with a controlled `gBattleOutcome = WIN` write after roster
+  evidence was visible; this shortens battle play only and does not bypass team
+  construction.
+- Compare the first six Box records before and after battle: all 480 bytes were
+  unchanged.
+- Compare the full saved registry before and after battle: all 84 bytes were
+  unchanged.
+- Save in game, stop mGBA, start a new process, Continue, and confirm the full
+  six-member Team 1 grid and exact 84-byte registry were restored. The other 12
+  slots remained empty.
 - Stop every managed session; final status is `[]`.
 
 Setup failures retained as evidence:
@@ -62,12 +78,12 @@ Setup failures retained as evidence:
 
 ## Manual Follow-Up
 
-- Fill all six slots and run one registered-team single battle.
-- Fill all six slots and run one registered-team double battle.
 - Confirm first-N lead order and random-N uniqueness in repeated visible runs.
 - Consume an opponent Berry and confirm the Box source item is unchanged after
   battle.
-- Save, restart, and confirm all 18 references persist.
+- Optionally fill Teams 2 and 3 to exercise all 18 slots as non-empty references
+  through a save/restart cycle. Runtime persistence of Team 1 and the complete
+  18-slot registry has already been confirmed.
 - Attempt shift, multi-move, withdraw, and release against sources referenced by
   one team and by multiple teams.
 - Confirm registered sources cannot be selected through the daycare or trade
@@ -76,16 +92,17 @@ Setup failures retained as evidence:
   size check through the new non-destructive selection type.
 - Remove the final reference and confirm movement actions become available.
 
-The automated copy test covers battle-copy healing and source preservation, but
-the full six-member battle and save/restart flows remain useful manual evidence.
+The core six-member registration, deterministic single/double construction,
+source preservation, and save/restart path now have both automated or memory
+evidence and visible mGBA evidence. The remaining checks broaden destructive UI
+route coverage and random/item behavior rather than gate the core feature.
 
 ## GitHub Actions
 
-Draft PR #75 initial snapshot after push on July 16, 2026:
+Draft PR #75 snapshot on July 16, 2026:
 
-- `build-emerald`, `build-firered`, `build-leafgreen`, `release`, `test`, and
-  `docs_validate` started and were still in progress at handoff.
-- Label and all-contributors jobs reported skipped.
-
-The long checks were not re-waited because they can take 20-30 minutes. Local
-make and mGBA Live evidence are the primary handoff gate for this branch.
+- Seven required checks passed: `build-emerald`, `build-firered`,
+  `build-leafgreen`, `release`, `test`, `docs_validate`, and aggregate `build`.
+- Label and all-contributors jobs reported skipped by workflow policy.
+- The PR is open, draft, mergeable, and remains stacked on
+  `feature/box-npc-party-pool-20260705`.
