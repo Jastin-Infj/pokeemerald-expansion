@@ -1,5 +1,16 @@
 # Smart Gimmick AI Goal
 
+## Milestone Status
+
+The current Smart Gimmick AI milestone is accepted as an interim-complete
+feature snapshot on `feature/smart-gimmick-ai-16-20260604`. The remaining design
+weaknesses below are retained as explicit next-generation planner backlog; they
+do not block the July 16, 2026 handoff or the new Battle Team integration line.
+
+The completion code snapshot is `46ed9d403f`, followed by the ancestry-only
+merge of the existing master documentation handoff at `dd55f9a45d`. Runtime
+implementation remains outside `master`.
+
 ## Goal
 
 The target is not an unbeatable AI. The target is an AI that usually loses only because the player brought a better construction, found a real matchup edge, or created a line that is outside the AI's available information. It should not lose because it missed a direct KO, ignored a selected player command, wasted a limited gimmick, targeted an invalid slot, let a known setup turn through for free, or refused a realistic last-chance out when stable play was already gone.
