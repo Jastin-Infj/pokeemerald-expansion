@@ -6,10 +6,10 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 
 | Field | Value |
 | --- | --- |
-| Runtime branch | `feature/smart-gimmick-ai-16-20260604` |
+| Runtime shelf | `shelf/runtime-1.16.1/smart-gimmick-ai` at `e71c48c886` |
 | Code status | Accepted interim-complete runtime snapshot; further planner work moves to a new branch |
 | Completion code snapshot | `46ed9d403f` plus master handoff ancestry merge `dd55f9a45d` |
-| Feature PR | Draft PR #72 against `master` |
+| Feature PR | Closed PR #72; retained as evidence and never merged into `master` |
 | Primary docs | `docs/tutorials/ai_flags.md`, this folder |
 | Main flags | `AI_FLAG_SMART_GIMMICK`, `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`, `AI_FLAG_AGGRESSIVE_GIMMICK`, `AI_FLAG_READ_PLAYER_MOVE` |
 
@@ -25,7 +25,7 @@ Markdown documentation, `AGENTS.md` when workflow rules change, and explicitly
 approved Lua automation. Source, include, data, test, graphics, generated, and
 non-Lua tool changes are not eligible for the docs-only master path.
 
-The next runtime line starts from this completed Smart AI snapshot on a new
+The next runtime line re-applies this completed Smart AI shelf onto a new
 integration branch. It must take Box NPC Party Pool before Battle Team Boxes so
 the registered teams retain their required party-copy and debug-battle base.
 

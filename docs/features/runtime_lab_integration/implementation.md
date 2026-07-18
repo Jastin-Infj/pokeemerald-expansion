@@ -3,23 +3,25 @@
 ## Lineage
 
 - `master`: `1f77705e45ec2e7f45fc4079e6ed2847105ac613`.
-- Box NPC source shelf: `feature/box-npc-party-pool-20260705` at
-  `71e9d602f0`, draft PR #74.
+- Box NPC source shelf: `shelf/runtime-1.16.1/box-npc-party-pool` at
+  `71e9d602f0`, closed PR #74.
 - Box NPC integration: PR #76, merge commit `17b67dfe98`.
-- Battle Team source shelf: `feature/battle-team-boxes-20260716` at
-  `ba98fed382`, draft PR #75.
+- Battle Team source shelf: `shelf/runtime-1.16.1/battle-team-boxes` at
+  `ba98fed382`, closed PR #75.
 - Battle Team integration: PR #77, merge commit
   `b0ac9061ce9030a2b1447ff6ad00a2d1f4ecc337`.
-- Smart source shelf: `feature/smart-gimmick-ai-16-20260604` at
-  `e71c48c886`, draft PR #72.
-- Smart integration candidate:
-  `integration/runtime-lab-smart-ai-pr-20260716`, reapply commit
+- Smart source shelf: `shelf/runtime-1.16.1/smart-gimmick-ai` at
+  `e71c48c886`, closed PR #72.
+- Archived Smart integration staging branch:
+  `archive/staging/runtime-1.16.1/smart-ai-20260716`, reapply commit
   `611933abf0`.
 - Smart integration: PR #78, final candidate head `703509f9d1`, merge commit
   `4e960aecea0185912e21a28f40e00fab1b388874`.
 
 The standalone PRs remain evidence shelves. The integration target is the
-playable composition and is never a runtime PR to `master`.
+playable composition, now retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716`, and is never a runtime PR to
+`master`.
 
 ## Smart Reapply
 
@@ -89,7 +91,8 @@ not part of the integration branch or this Markdown-only handoff.
 
 ## Runtime Merge Handoff
 
-Smart PR #78 merged into `integration/runtime-lab-20260716` after its base/head
+Smart PR #78 merged into the branch now retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716` after its base/head
 SHAs, complete 83-file list, local validation, and mGBA Live evidence for both
 feature families were reviewed; GitHub `docs_validate` passed. The runtime PR
 was not retargeted or merged into `master`.
@@ -102,7 +105,8 @@ Exact evidence and remaining user-acceptance scope are recorded in
 
 ## Master Handoff
 
-`docs/runtime-lab-handoff-20260716` was created fresh from `master`
+The branch now retained as `archive/docs/20260716/runtime-lab-handoff` was
+created fresh from `master`
 `1f77705e45`. It reapplies only 30 Markdown files and the two approved mGBA
 validation Lua scripts. Source, headers, data, tests, shell/batch wrappers,
 Rust tooling, graphics, ROMs, saves, and generated output are absent. This

@@ -8,14 +8,15 @@
 | Repository | `Jastin-Infj/pokeemerald-expansion` |
 | Branch snapshot | 92 GitHub branches at `2026-07-18T09:03:45Z` |
 | Related audit | [Branch Inventory 2026-07-18](branch_inventory_2026_07_18.md) |
-| Status | Proposed and mechanically validated; no rename executed yet |
+| Status | Executed; see [Branch Transition Result](branch_transition_result_2026_07_18.md) |
 
-This manifest is the source-of-truth old-to-new branch map. It separates a
+This manifest is the source-of-truth old-to-new branch map. Its action column
+records the preflight state before execution. It separates a
 historical branch's content from its current workflow state. A branch can hold
 valuable work while still requiring an `archive/`, `shelf/`, or `snapshot/`
 name so it is not mistaken for active development.
 
-## Validation Result
+## Preflight Validation Result
 
 | Check | Result |
 |---|---:|
@@ -34,6 +35,21 @@ name so it is not mistaken for active development.
 | `defer-open-pr` | 6 |
 | `defer-worktree` | 5 |
 
+## Execution Result
+
+The recommended decisions D1-D7 were approved and the transition completed on
+2026-07-18. PR #82 merged first as `6acbe887a3`; its final head was recaptured
+at `aa7bf7a3e4`. All 91 non-`master` rows were then renamed to their recorded
+targets. The five deferred runtime PRs were finalized and closed without merge,
+and stale worktree metadata was pruned only after each directory was proven
+absent.
+
+The final GitHub audit returned 92 branches, zero old source names, zero missing
+targets, zero unexpected names, and zero SHA mismatches. Current repository
+state, PR dispositions, worktrees, preserved local-only tips, and `master`
+protection are recorded in the
+[Branch Transition Result](branch_transition_result_2026_07_18.md).
+
 ## Action Meanings
 
 | Action | Meaning |
@@ -45,11 +61,11 @@ name so it is not mistaken for active development.
 
 The source SHA column is the immutable preflight snapshot for eligible
 `rename` rows. Any mismatch at execution time stops that row and the batch.
-The `docs/branch-inventory-20260718` SHA necessarily advances when this
-snapshot is committed; that row is already `defer-open-pr` and its final SHA
-must be recaptured after PR #82 is finalized.
+The `docs/branch-inventory-20260718` SHA advanced when the snapshot was
+committed. Its final PR head was recaptured as `aa7bf7a3e47a` before the branch
+was renamed.
 
-## Approval Gate
+## Approval And Execution
 
 The inventory request requires the naming and `master` policy to be reviewed
 before remote mutation. The recommended decision set is:
@@ -64,13 +80,12 @@ before remote mutation. The recommended decision set is:
 | D6 | `master` protection | Require a PR, block force-push and deletion, require no unavailable outside approval, and do not lock the branch. |
 | D7 | Rename execution | Merge Docs PR #82 first, then execute only eligible rows in the recorded batches. |
 
-Until D1-D7 are explicitly accepted, this document remains a dry-run plan and
-no remote rename is authorized. Accepting the complete recommended set is
-sufficient; the decisions do not need separate replies.
+D1-D7 were accepted as a complete set before remote mutation. This table is
+retained as the approval record; it is no longer a pending gate.
 
-## Repository Setting Proposal
+## Repository Setting Result
 
-Use a repository ruleset or branch protection rule targeting only `master`:
+The resulting branch protection rule targets only `master` and:
 
 - require all changes to arrive through a pull request;
 - require `docs_validate` initially;
@@ -118,12 +133,12 @@ After each successful rename batch:
 
 ## Complete Manifest
 
-| Current | Source SHA | Action | Target | Note |
+| Former name | Source SHA | Preflight action | Current name | Note |
 |---|---|---|---|---|
 | `dev` | `e90d51c31a06a51b43a2407a1f11bbb79da10348` | `rename` | `snapshot/runtime-1.12.0/mixed-dev-20251026` | Old mixed integration |
 | `docs/16-runtime-lineage-handoff` | `139ef1285f61c52412de96cf9a739142fd2e8e03` | `rename` | `archive/docs/20260602/16-runtime-lineage-handoff` | Merged #70 |
 | `docs/all-ability-slots-handoff-20260524` | `8327745d06a3e4c8d5410309d07ef3e8d72252c4` | `rename` | `archive/docs/20260524/all-ability-slots-handoff` | Merged #61 |
-| `docs/branch-inventory-20260718` | `940c7dee244c55a72ed7021845293bfec22e567e` | `defer-open-pr` | `archive/docs/20260718/branch-inventory` | PR #82 |
+| `docs/branch-inventory-20260718` | `aa7bf7a3e47af7791f55ce73fd12ab2b145ac322` | `defer-open-pr` | `archive/docs/20260718/branch-inventory` | PR #82 merged before rename |
 | `docs/champions-run-session-handoff-20260525` | `e7ea27161b7c2c66b89609e07c3f0bab15ea7337` | `rename` | `archive/docs/20260525/champions-run-session-handoff` | Merged #63 |
 | `docs/comprehensive-feature-inventory-20260518` | `cac95037c6985cf8929100dd2c08e02e733be45a` | `rename` | `archive/docs/20260518/comprehensive-feature-inventory` | Merged #46 |
 | `docs/feature-branch-audit-20260518` | `fda9bb74283dc47881c895ab3215bf8b508f5f07` | `rename` | `archive/docs/20260518/feature-branch-audit` | Merged #44 |

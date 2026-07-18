@@ -39,13 +39,13 @@ Implemented runtime shape:
 
 ## July 16, 2026 Reapply Handoff
 
-The standalone source shelf remains
-`feature/box-npc-party-pool-20260705` at `71e9d602f0`, with draft PR #74 kept as
-review and validation evidence. The playable integration line starts fresh from
+The standalone source shelf is retained as
+`shelf/runtime-1.16.1/box-npc-party-pool` at `71e9d602f0`, with closed PR #74
+kept as review and validation evidence. The playable integration line started fresh from
 current `master` `1f77705e45`:
 
-- Target: `integration/runtime-lab-20260716`.
-- Box-only candidate: `integration/runtime-lab-box-npc-pr-20260716`.
+- Frozen target: `snapshot/runtime-1.16.1/battle-lab-20260716`.
+- Archived Box-only staging branch: `archive/staging/runtime-1.16.1/box-npc-20260716`.
 - Reapplied source commits: `f9c2afde2c`, `535d07582c`, `c10009df04`,
   `9522cd2978`, and `71e9d602f0`.
 - The pre-handoff reapply tree matched the standalone Box branch exactly.
@@ -76,7 +76,7 @@ Fresh reapply validation passed:
 ## Battle Team Boxes Integration Extension
 
 After Box reapply PR #76 merged at `17b67dfe98`, the dependent candidate
-`integration/runtime-lab-battle-team-pr-20260716` extends this module without
+now archived as `archive/staging/runtime-1.16.1/battle-team-20260716` extends this module without
 changing the legacy route contract:
 
 - Candidate and final result metadata retain both Box ID and Box position.
@@ -93,7 +93,8 @@ extension validation are documented under
 ## Smart AI Runtime-Lab Extension
 
 After Battle Team PR #77 merged into the runtime-lab target, Smart Gimmick AI
-was reapplied on `integration/runtime-lab-smart-ai-pr-20260716` at
+was reapplied on the staging branch now archived as
+`archive/staging/runtime-1.16.1/smart-ai-20260716` at
 `611933abf0` and merged through PR #78 at `4e960aecea`. The completed target
 preserves both Box RNG tags, both pending gimmick initialization paths, and both
 Party debug-menu families. Combined lineage and validation are owned by

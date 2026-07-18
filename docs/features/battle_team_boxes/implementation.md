@@ -10,8 +10,8 @@ battle routes for each team.
 
 - Integration target before this slice: `17b67dfe98`, produced by merged Box
   NPC reapply PR #76.
-- Candidate: `integration/runtime-lab-battle-team-pr-20260716`.
-- Source shelf: `feature/battle-team-boxes-20260716` at `ba98fed382`, draft
+- Archived staging branch: `archive/staging/runtime-1.16.1/battle-team-20260716`.
+- Source shelf: `shelf/runtime-1.16.1/battle-team-boxes` at `ba98fed382`, closed
   PR #75.
 - Reapplied commits: `993549034c`, `71518fec1d`, and `ba98fed382`.
 - Runtime/source files match the standalone Battle Team shelf; the only
@@ -162,17 +162,19 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
 
 ## Merge Handoff
 
-This implementation is staged as draft PR #75 and is not eligible for a
-docs-only `master` merge. While Box NPC PR #74 remains open, review it as a
-stacked PR with base `feature/box-npc-party-pool-20260705`. Do not merge either
-PR automatically.
+This implementation is retained as
+`shelf/runtime-1.16.1/battle-team-boxes` with closed PR #75 and is not eligible
+for a docs-only `master` merge. The historical PR was stacked on the Box NPC
+head so its feature delta remained reviewable. Neither runtime PR was merged
+into `master`.
 
 All seven required GitHub checks on the implementation snapshot passed:
 Emerald, FireRed, LeafGreen, release, test, docs validation, and the aggregate
 build check. Label and all-contributors jobs were skipped by workflow policy.
 
-Battle Team reapply PR #77 subsequently merged into
-`integration/runtime-lab-20260716` at `b0ac9061ce`. Smart Gimmick AI is layered
+Battle Team reapply PR #77 subsequently merged into the runtime-lab branch at
+`b0ac9061ce`. That completed branch is now retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716`. Smart Gimmick AI is layered
 after it through separate PR #78, producing integration commit `4e960aecea`. See
 [Runtime Lab Integration](../runtime_lab_integration/implementation.md) for the
 combined dependency graph, conflict resolution, and validation evidence.

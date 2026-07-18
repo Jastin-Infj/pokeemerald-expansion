@@ -123,8 +123,9 @@ docs へ残せる場合だけ追加する。
 
 ### Historical 16.0 Runtime Lineage
 
-`integration/runtime-dev-16-20260531` / PR #69 は、1.15.3 runtime integration
-を upstream 16.0 baseline へ replay した completed snapshot として扱う。これは
+`snapshot/runtime-1.16.0/full-stack-20260531`（旧名
+`integration/runtime-dev-16-20260531`）/ closed PR #69 は、1.15.3 runtime
+integration を upstream 16.0 baseline へ replay した completed snapshot として扱う。これは
 「15.3 で完成扱いにした実装が、16.0 の API / config / generated-data 方針へ
 変換された状態」を保存する branch であり、今後の新規 runtime 実装を直接積み続ける
 dev branch ではない。

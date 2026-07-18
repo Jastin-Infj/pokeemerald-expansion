@@ -96,7 +96,8 @@ PR の open / closed だけでは採用状態を判断しない。docs、PR body
 | #74 Box NPC Party Pool | implementation complete / integrated in runtime-lab via #76 | reusable shelf。 |
 | #75 Battle Team Boxes | implementation complete / integrated in runtime-lab via #77 | reusable shelf。 |
 
-`integration/runtime-lab-20260716` は Box NPC / Battle Team / Smart の combined evidence
+`snapshot/runtime-1.16.1/battle-lab-20260716`（旧名
+`integration/runtime-lab-20260716`）は Box NPC / Battle Team / Smart の combined evidence
 snapshot であり、upstream 1.16.2 active runtime を意味しない。1.16.2 向け playable base
 は upstream intake 後に fresh branch として作る。
 

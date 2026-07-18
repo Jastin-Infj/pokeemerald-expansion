@@ -17,7 +17,7 @@
 | `15_3/complete_tree` | 1.15.3 期間にこの branch へ統合した runtime / tooling の完了棚。 | 実装済み feature、検証済み debug route、config 一覧、#68 に supersede された旧 PR 情報。 |
 | `15.6` | 15.x 系の中間 upstream intake 想定。正式な local tree ではなく、master が 15.x 内で動いた時の比較対象。 | upstream README / docs / config / generated data の差分確認。15.3 完了棚をそのまま戻さない。 |
 | `16_0/open_tree` | 16.0 移行時に再調査・再実装・CI 整備する棚。 | CI cleanup、upstream resync、未実装 candidate、別 lane。 |
-| `integration/runtime-dev-16-20260531` | 1.15.3 runtime integration を 16.0 baseline へ replay した completed snapshot。 | 15.3 から移植済みの runtime 集合、16.0 API / config 変換の証跡、PR #69 validation evidence。新規 runtime 実装を積み続ける branch ではない。 |
+| `snapshot/runtime-1.16.0/full-stack-20260531`（旧 `integration/runtime-dev-16-20260531`） | 1.15.3 runtime integration を 16.0 baseline へ replay した completed snapshot。 | 15.3 から移植済みの runtime 集合、16.0 API / config 変換の証跡、closed PR #69 validation evidence。新規 runtime 実装を積み続ける branch ではない。 |
 
 ## Why This Split Exists
 
@@ -29,7 +29,8 @@
 
 ## Completed Snapshot Policy
 
-`integration/runtime-dev-16-20260531` / PR #69 は、15.3 で完成扱いにした runtime
+`snapshot/runtime-1.16.0/full-stack-20260531`（旧名
+`integration/runtime-dev-16-20260531`）/ closed PR #69 は、15.3 で完成扱いにした runtime
 実装を 16.0 の source / config / generated-data 方針へ移植した completed snapshot
 として凍結する。この branch は「16.0 に移植できた完成形」を示す比較基準であり、
 今後の新規 feature を直接積み続ける開発 branch ではない。
@@ -77,7 +78,9 @@ completed snapshot、future dev branch の差分を分けてレビューでき�
 
 ## Current Replay Result
 
-The first 16.0 replay was performed on `integration/runtime-dev-16-20260531`
+The first 16.0 replay was performed on the branch then named
+`integration/runtime-dev-16-20260531`, now retained as
+`snapshot/runtime-1.16.0/full-stack-20260531`,
 from upstream `master` `4faec7cb08`
 (`expansion/1.16.0-104-g4faec7cb08`). The closeout status is
 [16.0 Runtime Port Status](runtime_port_status.md).

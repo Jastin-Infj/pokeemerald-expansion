@@ -35,6 +35,7 @@
     - [GitHub Workflow](manuals/github_workflow.md)
     - [Branch Inventory 2026-07-18](manuals/branch_inventory_2026_07_18.md)
     - [Branch Rename Manifest 2026-07-18](manuals/branch_rename_manifest_2026_07_18.md)
+    - [Branch Transition Result 2026-07-18](manuals/branch_transition_result_2026_07_18.md)
     - [Docs Markdown Policy](manuals/docs_markdown_policy.md)
     - [External Reference And Credit Workflow](manuals/external_reference_credit_workflow.md)
     - [Docs Audit 2026-05-09](manuals/docs_audit_2026_05_09.md)

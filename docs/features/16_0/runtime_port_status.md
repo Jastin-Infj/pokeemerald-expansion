@@ -6,8 +6,8 @@
 |---|---|
 | Last reviewed | 2026-06-02 |
 | Upstream baseline | `master` `4faec7cb08` / `expansion/1.16.0-104-g4faec7cb08` |
-| Runtime branch | `integration/runtime-dev-16-20260531` |
-| Runtime PR | PR #69 / `[codex] Port runtime integration to 16.0 baseline` |
+| Runtime branch | `snapshot/runtime-1.16.0/full-stack-20260531` (formerly `integration/runtime-dev-16-20260531`) |
+| Runtime PR | Closed PR #69 / `[codex] Port runtime integration to 16.0 baseline`; not merged into `master` |
 | Previous runtime shelf | PR #68 / `integration/runtime-dev-20260529` |
 | Policy | This branch is the completed 15.3-to-16.0 runtime port snapshot. Upstream 16.0 source wins unless a local runtime feature must be replayed intentionally. |
 
@@ -23,7 +23,7 @@ The port keeps the normal branch rule:
 
 ## Branch Status
 
-`integration/runtime-dev-16-20260531` is complete as the 15.3-to-16.0 runtime
+`snapshot/runtime-1.16.0/full-stack-20260531` is complete as the 15.3-to-16.0 runtime
 port snapshot. It should remain available as the comparison point for the
 finished replay from PR #68 to PR #69.
 

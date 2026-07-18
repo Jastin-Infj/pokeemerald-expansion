@@ -4,8 +4,8 @@
 
 | Check | Result |
 |---|---|
-| Base | `integration/runtime-lab-20260716` at current `master` `1f77705e45` |
-| Source shelf | `feature/box-npc-party-pool-20260705` at `71e9d602f0`; PR #74 |
+| Base | Runtime-lab branch created from current `master` `1f77705e45`; now `snapshot/runtime-1.16.1/battle-lab-20260716` |
+| Source shelf | `shelf/runtime-1.16.1/box-npc-party-pool` at `71e9d602f0`; closed PR #74 |
 | Pre-handoff tree comparison | Exact match between the reapplied candidate and standalone Box branch |
 | Diff scope | 10 files; Box module, two RNG tags, one battle-init hook, debug route, and owning docs only |
 | `rtk make -j16 -O all` | Passed; existing linker RWX and source PNG warnings only |
