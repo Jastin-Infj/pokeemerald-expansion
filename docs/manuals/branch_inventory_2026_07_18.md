@@ -295,9 +295,11 @@ there. This is the recommended compromise for this repository because:
 GitHub has no suitable per-repository switch that means "hide only the Sync
 Fork button but keep all other master writes." The practical control is a
 branch protection/ruleset requiring PRs and blocking force-push/deletion. A
-locked branch is too restrictive for normal Docs and intake PRs. Because this
-is a personal fork, do not require an outside approval that the owner cannot
-supply; require the PR path and selected status checks instead.
+locked branch can disable fork syncing when `Allow fork syncing` remains off,
+but it also makes `master` read-only and prevents normal Docs and intake PR
+merges. It is therefore too restrictive here. Because this is a personal fork,
+do not require an outside approval that the owner cannot supply; require the PR
+path and selected status checks instead.
 
 After a controlled 1.16.2 intake, create
 `integration/active-runtime-1.16.2` fresh from the updated `master`. Reapply the
@@ -347,3 +349,4 @@ sequence.
 - [Syncing a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork)
 - [Renaming a branch](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/renaming-a-branch)
 - [About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+- [Available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)

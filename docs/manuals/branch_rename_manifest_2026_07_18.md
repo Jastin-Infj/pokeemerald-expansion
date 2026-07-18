@@ -42,6 +42,73 @@ name so it is not mistaken for active development.
 | `defer-open-pr` | Renaming now would close an open PR. Finalize the PR first. |
 | `defer-worktree` | Repair or remove the registered worktree metadata before renaming. |
 
+## Approval Gate
+
+The inventory request requires the naming and `master` policy to be reviewed
+before remote mutation. The recommended decision set is:
+
+| ID | Decision | Recommended approval |
+|---|---|---|
+| D1 | `master` role | Latest accepted stable RHH release plus minimal Markdown, `AGENTS.md`, and approved Lua overlay. |
+| D2 | Upstream source | Intake the pinned stable release through `upgrade/<version>-intake-<date>`; never sync the moving RHH `master` blindly. |
+| D3 | Playable development base | Maintain exactly one `integration/active-runtime-<version>` and accept feature/tuning PRs into it. |
+| D4 | Retention | Preserve unique implementation and recovery refs under `shelf/`, `snapshot/`, or `archive/`; do not mass-delete them. |
+| D5 | Exact upstream baselines | Keep them as `snapshot/upstream-<version>` branches during this transition. Annotated tags may be added later without deleting the branches. |
+| D6 | `master` protection | Require a PR, block force-push and deletion, require no unavailable outside approval, and do not lock the branch. |
+| D7 | Rename execution | Merge Docs PR #82 first, then execute only eligible rows in the recorded batches. |
+
+Until D1-D7 are explicitly accepted, this document remains a dry-run plan and
+no remote rename is authorized. Accepting the complete recommended set is
+sufficient; the decisions do not need separate replies.
+
+## Repository Setting Proposal
+
+Use a repository ruleset or branch protection rule targeting only `master`:
+
+- require all changes to arrive through a pull request;
+- require `docs_validate` initially;
+- block force pushes and branch deletion;
+- apply the rule to administrators as well, so an accidental direct push is
+  rejected;
+- require zero external approvals while this remains a sole-owner fork;
+- do not enable `Lock branch`;
+- leave `Allow fork syncing` disabled. GitHub exposes that option for a locked
+  branch, but locking would also block the Docs and upstream-intake merges this
+  repository needs.
+
+As a follow-up, add one stable aggregate `master-gate` check that passes via a
+short Docs path for Docs/Lua-only PRs and requires runtime build/test evidence
+for upstream-intake PRs. Require that aggregate check only after it exists, so
+the ruleset cannot reference an unavailable job.
+
+## AGENTS, Docs, Clone, And Worktree Impact
+
+After each successful rename batch:
+
+1. Update current workflow references in `AGENTS.md`, `docs/manuals/`, feature
+   registries, scripts, and Actions refs. Preserve historical names in evidence
+   records when they identify the branch used at the time, and add the new name
+   beside them instead of rewriting history.
+2. Existing clones do not need to be replaced. Repair a locally checked-out
+   renamed branch from its owning worktree:
+
+   ```sh
+   rtk git branch -m OLD-BRANCH NEW-BRANCH
+   rtk git fetch origin
+   rtk git branch -u origin/NEW-BRANCH NEW-BRANCH
+   rtk git remote set-head origin -a
+   ```
+
+3. Do not run `remote prune` during a rename batch. After all target refs and
+   local upstreams are verified, optionally run `rtk git remote prune origin`.
+4. For a `prunable` worktree, prove its directory is absent with
+   `rtk git worktree list`, inspect `rtk git worktree prune --dry-run`, and only
+   then prune stale metadata. Do not remove a live or dirty worktree.
+5. A fresh clone checks out only `master` by default. Create an explicit
+   worktree for `integration/active-runtime-<version>` when playable feature
+   development is needed; do not change the repository default branch away
+   from `master`.
+
 ## Complete Manifest
 
 | Current | Action | Target | Note |
