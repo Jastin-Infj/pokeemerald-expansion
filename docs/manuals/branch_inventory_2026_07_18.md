@@ -29,15 +29,15 @@ upstream baseline are provenance, not local feature work.
 
 | Observation | Result |
 |---|---|
-| GitHub branches | 91 |
-| Local `origin/*` tracking refs | 93 |
+| GitHub branches | 92 current: 91 audited branches plus this report branch |
+| Local `origin/*` tracking refs | 94 branch refs plus symbolic `origin/HEAD` |
 | Stale local-only tracking refs | `docs/runtime-lab-practical-20260718`, `docs/smart-gimmick-ai-master-handoff-20260705` |
-| Pull requests | 81 total |
-| Open pull requests | 5, all draft: #69, #71, #72, #74, #75 |
-| PR author | All 81 PRs were opened by `Jastin-Infj` |
+| Pull requests | 82 total, including this report PR #82 |
+| Open pull requests | 6, all draft: runtime #69, #71, #72, #74, #75 plus Docs #82 |
+| PR author | All 82 PRs were opened by `Jastin-Infj` |
 | Branches never used as a PR head | 38 |
 | Branches with no commits ahead of current `master` | 26, including `master` and preserved upstream snapshots |
-| Branches with commits ahead of current `master` | 65 |
+| Branches with commits ahead of current `master` | 66, including this report branch |
 | Branch tips not authored by Jastin | 3 upstream snapshots: `upgrade/1.15.2`, `vanilla/v12_0_0`, `vanilla/v13_3_3` |
 | Unrelated early history | 6 branches rooted at `vanilla/v11_1_1` |
 | Branch protection / rulesets | None; every branch, including `master`, reports unprotected |
@@ -59,8 +59,9 @@ dedicated PR and validation.
 
 ## Version Coverage
 
-The nearest reachable expansion release tag gives this complete 91-branch
-coverage check.
+The nearest reachable expansion release tag gives this complete 92-branch
+coverage check. The audit query initially returned 91 branches; publishing this
+report added `docs/branch-inventory-20260718` as the 92nd branch.
 
 | Lineage | Branches |
 |---|---:|
@@ -69,9 +70,9 @@ coverage check.
 | 1.14.1 | 9 |
 | 1.15.1 | 1 |
 | 1.15.2 | 52 |
-| 1.16.0/post-1.16.0 | 13 |
+| 1.16.0/post-1.16.0 | 14 |
 | Early unrelated/untagged history | 6 |
-| Total | 91 |
+| Total | 92 |
 
 ## Current Runtime Lines
 
@@ -91,12 +92,13 @@ not one superseding implementation.
 
 ## Complete Branch Inventory
 
-### 1.16.0 And Later Lineage - 13
+### 1.16.0 And Later Lineage - 14
 
 | Branch | Content / status |
 |---|---|
 | `master` | Upstream intake plus Docs/workflow overlay; currently untagged 1.16.1 source |
 | `docs/16-runtime-lineage-handoff` | Merged lineage handoff evidence |
+| `docs/branch-inventory-20260718` | Current Docs-only audit branch and draft PR #82 |
 | `docs/runtime-lab-handoff-20260716` | Merged runtime-lab handoff evidence |
 | `docs/upstream-generation-policy-20260718` | Merged upstream-generation policy; retained branch |
 | `feature/champions-partygen-16-20260603` | Champions PartyGen source/tool/test shelf; open draft #71 |
@@ -223,6 +225,7 @@ deliberately finalized, commented, and closed or superseded:
 - #72 `feature/smart-gimmick-ai-16-20260604`
 - #74 `feature/box-npc-party-pool-20260705`
 - #75 `feature/battle-team-boxes-20260716`
+- #82 `docs/branch-inventory-20260718`
 
 Branch URLs redirect after a GitHub rename, but raw URLs, local pull commands,
 GitHub Actions references, and checked-out local worktrees do not update
@@ -252,8 +255,8 @@ name.
 | `archive/docs/<date>/<topic>` | Retained merged/closed Docs PR branch | Frozen |
 | `external/<source>/<name>` | Expert/community branch preserved without claiming local ownership | Frozen until provenance review |
 
-The first proposed high-value renames, after the five open PRs are finalized,
-are:
+The first proposed high-value renames, after the five open runtime PRs are
+finalized, are:
 
 | Current | Proposed |
 |---|---|
@@ -310,7 +313,8 @@ branch.
 4. Create and validate `upgrade/1.16.2-intake-20260718` from `master`.
 5. Freeze the pre-intake runtime lines using the approved snapshot names.
 6. Create `integration/active-runtime-1.16.2` from updated `master`.
-7. Finalize the five open draft PRs before renaming their head branches.
+7. Finalize the five open runtime draft PRs before renaming their head
+   branches. Finalize Docs PR #82 before renaming its branch.
 8. Reapply accepted shelves into the active integration through separate PRs.
 9. Rename closed/merged staging, prototype, Docs, and snapshot branches in
    batches, verifying refs and worktrees after every batch.
