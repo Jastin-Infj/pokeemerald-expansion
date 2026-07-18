@@ -67,6 +67,26 @@ Battle item restoration remains a separate shelf. This integration does not
 claim that consumed player items are restored after every debug battle unless
 the existing base runtime already provides that policy.
 
+## July 18 Practical Audit
+
+A focused playtest of the completed integration head confirmed that Battle Team
+3v3/4v4 selection, Read Single/Double action logging, Dynamax/Z selection,
+Commander target correction, poisoned Tatsugiri continuation, and the narrow
+Perish Song desperation-flinch route work in the combined ROM.
+
+The same pass exposed one implementation gap. On a deterministic doubles board,
+both player commands targeted opponent-right Kyogre: Incineroar `Fake Out` and
+Tapu Koko Z `Thunderbolt`. Kyogre's decision was recorded after both commands,
+but it retained `Water Spout` as stable clean damage instead of switching to its
+limited reserve. The log had no switch-survival risk classification. This means
+the focused survival-switch unit coverage does not yet guarantee the equivalent
+runtime command-order path.
+
+Any fix belongs on a fresh implementation branch from current `master`, with a
+new deterministic runtime fixture and PR. The July 18 fixture edits were
+local-only validation scaffolding; they were restored without a commit and are
+not part of the integration branch or this Markdown-only handoff.
+
 ## Runtime Merge Handoff
 
 Smart PR #78 merged into `integration/runtime-lab-20260716` after its base/head
