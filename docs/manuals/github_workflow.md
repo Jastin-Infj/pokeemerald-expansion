@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Last reviewed | 2026-06-02 |
-| Baseline | `master` `5591163a09`; GitHub PR queue checked 2026-05-09 |
+| Last reviewed | 2026-07-18 |
+| Baseline | fork `master` `b65afd70d7`; upstream release `expansion/1.16.2` at `ad0fd4d17f` |
 | Code status | Docs-only workflow manual |
 | Provenance | Local project overlay |
 
@@ -53,7 +53,9 @@ source conflict と再適用判断が増えるため、通常の開発 branch �
 | `master` | upstream / RHH 由来の source baseline + local docs / Lua script overlay | Markdown docs, workflow-only `AGENTS.md`, approved Lua script files; source-like tree と画像 assets は原則触らない |
 | `docs/*` | `master` へ入れる調査・運用・handoff docs / Lua scripts | Markdown docs, 必要な `AGENTS.md`, approved Lua script files |
 | `feature/*` | 1 feature の実装と検証 | source / include / data / graphics / tools を含んでよい。`master` へは直接 merge しない |
-| `integration/*` | 複数 feature を重ねた playable / review 用 branch | current `master` から作り直し、必要な slice だけ再適用する |
+| `shelf/runtime-<version>/*` | 完成済みで再利用する単体実装 | immutable evidence / re-apply source。削除せず凍結する |
+| `integration/active-runtime-<version>` | その世代で唯一の現行 playable 開発基準 | 新機能を直接実装せず、feature PR だけを順番に統合する |
+| `snapshot/runtime-<version>/*` | 完成時点の複合 runtime 保存 | immutable comparison / recovery point。削除せず凍結する |
 | upstream remote | 新バージョン取り込み元 | fetch / compare only。push しない |
 
 GitHub の fork sync や upstream merge は便利だが、local implementation を含む
@@ -61,7 +63,46 @@ GitHub の fork sync や upstream merge は便利だが、local implementation �
 docs / Lua-only baseline であることを確認する。local 実装を遊べる状態で残したい場合は
 `integration/*` に積み、upstream 更新後に current `master` から作り直す。
 
-### 16.0 Runtime Lineage
+## Upstream Release Intake
+
+2026-07-18 時点で、fork `master` は source version `1.16.1`、RHH の最新確認済み
+release は `expansion/1.16.2` (`ad0fd4d17f`) である。この値は固定ルールではなく、
+次回 1.17 以降でも intake 開始時に再取得する観測値として扱う。
+
+新しい upstream release が出たときは、次の順番を守る。
+
+1. `RHH` remote と release tag / commit を取得し、移行元 fork `master`、既存 active
+   integration、採用予定 shelf の commit を記録する。
+2. 既存 playable line を `snapshot/runtime-<old-version>/*` として凍結する。削除や
+   force-push は行わない。
+3. current `master` から `upgrade/<new-version>-intake-*` を作り、release tag の
+   upstream-authored source / data / tools / generated 差分だけを取り込む。
+4. intake PR では upstream の変数名、API、struct、save/data layout、生成形式、
+   ownership、config default を正とする。local feature の意図を新しい contract 上へ
+   移植し、古い upstream 定義を復元しない。
+5. conflict は file 単位の blanket `ours` / `theirs` で終わらせない。producer、
+   consumer、serialization、generated-data tool、test を確認し、採用判断を記録する。
+6. generated data は新 release の tool/schema で再生成する。古い branch の生成物を
+   そのまま持ち込まない。
+7. upstream intake を `master` へ PR で反映した後、fresh
+   `integration/active-runtime-<new-version>` を作る。
+8. 採用 feature を manifest 順に separate PR で re-apply し、各段階と最終合成で
+   normal/debug build、focused/full checks、mGBA evidence を残す。
+
+`master` に source-like files を入れられる通常の例外は、この upstream intake だけで
+ある。local implementation は intake PR に混ぜず、active integration 向けの別 PR に
+する。GitHub の Sync fork button を使う場合も、release tag / commit と diff scope が
+確認できない状態では実行しない。
+
+### Upstream Wins During Porting
+
+upstream の新設計を local feature より優先する。たとえば upstream で field 名や型、
+構造体の ownership、保存形式、ID 幅、config、generated table が変わった場合、local
+branch の古いファイルを戻すのではなく、新 API / 新 data structure を使って同じ機能意図を
+再実装する。compatibility shim は、現行 feature contract に必要で、期限と削除条件を docs
+へ残せる場合だけ追加する。
+
+### Historical 16.0 Runtime Lineage
 
 `integration/runtime-dev-16-20260531` / PR #69 は、1.15.3 runtime integration
 を upstream 16.0 baseline へ replay した completed snapshot として扱う。これは
@@ -98,7 +139,8 @@ tools / generated output を `master` へ merge しない。
 |---|---|---|
 | docs / Lua-only | Markdown docs、必要な workflow-only `AGENTS.md`、approved Lua script files だけを更新する。Lua scripts are allowed for shortcuts, debug commands, and validation automation. | `master` へ取り込み候補にしてよい。 |
 | new implementation | current `master` には存在しない source / include / data / graphics / tools / generated 差分を新しく作る。 | `feature/*` / `integration/*` に置き、`master` へ直接 merge しない。 |
-| re-apply / port | 過去の validated branch にある実装 slice を current `master` から切り直した branch へ載せる。 | runtime PR として扱う。新規実装とは呼ばず、移植元 commit と再検証結果を書く。 |
+| upstream intake | 新しい RHH release の source / data / tool / generated contract を fork baseline に取り込む。 | `upgrade/*` PR で `master` に入れてよい唯一の通常 source 例外。local implementation を混ぜない。 |
+| re-apply / port | 過去の validated branch にある実装 slice を current generation の selected base から切り直した branch へ載せる。 | runtime PR として扱う。新規実装とは呼ばず、移植元 commit、upstream差分、再検証結果を書く。 |
 | docs handoff | runtime 実装は持ち込まず、branch evidence、採否判断、残リスクだけを docs に残す。 | docs / Lua-only branch で `master` へ取り込み候補にしてよい。 |
 
 `re-apply / port` は「同じものをもう一度実装した」作業ではない。PR title、
@@ -109,6 +151,11 @@ docs / Lua-only として扱わない。
 ## Master Docs-Only Merge Policy
 
 `master` は upstream / RHH 由来の source code を基準にする。feature branch や別 project branch の source、include、data、graphics、tools non-Lua、generated files を `master` に混ぜない。
+
+この節の excluded-path gate は local docs / Lua / feature handoff に適用する。前述の
+`Upstream Release Intake` は別 work type であり、pinned RHH release 由来であることを
+監査した source / data / tools / generated 差分を dedicated upgrade PR から `master` へ
+入れられる。upstream intake に local feature implementation を混ぜてはならない。
 
 許容するもの:
 
@@ -184,8 +231,9 @@ merge button や `gh pr merge` は使わない。
 - draft / prototype が stale で、CI failure や conflict を持ったまま queue を
   汚している。
 
-remote branch は慎重に扱う。fully superseded / merged / unique work なしなら
-削除してよい。unique work が残る draft は、PR だけ close して branch は残す。
+remote branch は evidence / recovery point として原則保存する。completed reusable
+implementation は `shelf/*`、frozen combined runtime は `snapshot/*` へ rename する。
+削除は unique work と recovery value がないことを確認し、ユーザーが明示した場合だけ行う。
 
 ### Open PR から master へ docs / Lua を入れる手順
 
@@ -204,7 +252,9 @@ remote branch は慎重に扱う。fully superseded / merged / unique work な�
 
 ### 実装を試す / 遊べる状態へ持っていく手順
 
-1. current `master` から `feature/<name>` または `integration/<name>` を切る。
+1. current generation に `integration/active-runtime-<version>` がある場合、playable-line
+   feature はその pinned head から `feature/<name>` を切る。standalone compatibility
+   shelf または upstream intake 中は current `master` を使う。
 2. validated branch から必要な source slice だけを cherry-pick / re-apply する。
 3. 古い docs を持ち込んで current docs を巻き戻さない。
 4. source / data / config 変更に応じて local make、focused check、可能なら

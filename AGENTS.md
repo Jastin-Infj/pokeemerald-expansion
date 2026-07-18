@@ -54,30 +54,68 @@
   `CREDITS.md`, approved Lua script files for shortcuts, debug commands, and
   validation automation, and, when workflow rules change, `AGENTS.md`.
 - A validated feature branch is evidence, not permission to update `master`.
-  Record the branch, commit, diff scope, and validation evidence in docs; keep
-  runtime source changes on a fresh `feature/` or `integration/` branch created
-  from the current `master`.
+  Record the branch, commit, diff scope, and validation evidence in docs. During
+  an upstream release transition or for a standalone compatibility shelf, start
+  runtime source work from current `master`. When a pinned active runtime
+  integration exists for the current upstream generation, start playable-line
+  feature work from that exact integration head and target it with a separate
+  PR; never implement directly on the integration branch.
 - If a branch contains both docs and implementation, never merge the branch into
   `master` for a docs / Lua-only request. Cherry-pick or re-apply only eligible
   Markdown docs / `AGENTS.md` / Lua script changes onto a fresh branch.
-- Before any `master` PR or merge, confirm the file list with
+- Before any docs / Lua-only `master` PR or merge, confirm the file list with
   `rtk git diff --name-only master..HEAD`. Anything outside Markdown docs,
   `AGENTS.md`, and approved Lua script files means the branch is not eligible
-  for a docs / Lua-only master merge.
+  for a docs / Lua-only master merge. An upstream intake PR follows `Upstream
+  Release Transitions` instead and must prove that source-like changes come
+  from the pinned upstream release rather than local feature implementation.
 - Graphics and other image assets, including `.png` icons, are implementation
   artifacts. Keep them on a feature / integration implementation PR with the
   source changes that consume them; record source URLs and credit in docs, but
   do not include the image files themselves in a docs / Lua-only PR.
 
-## 16.0 Runtime Lineage
+## Upstream Release Transitions
+
+- Treat each upstream release generation independently. This policy applies to
+  1.16.1 -> 1.16.2, 1.16.x -> 1.17, and later transitions; do not hard-code the
+  integration workflow to one release number.
+- Before porting local features, fetch the non-pushable upstream remote, verify
+  the exact release tag and commit, record the current fork `master` commit, and
+  preserve the previous playable line under `snapshot/runtime-<old-version>/*`.
+- Intake upstream source through a dedicated `upgrade/*` branch and PR. This is
+  the only normal exception that permits upstream-authored source / data /
+  generated changes to enter `master`; local runtime feature implementation is
+  still excluded from `master`.
+- Upstream is authoritative during conflict resolution. When upstream renames a
+  variable, changes an API, replaces a struct, changes a save/data layout, moves
+  ownership, or updates generated formats, preserve the new upstream contract
+  and port the local feature's intent onto it. Do not restore an old file or
+  field merely because the local branch used it.
+- Never resolve a release conflict with blanket `ours` / `theirs`. Inspect the
+  semantic change, identify all producers and consumers, adapt local call sites
+  and tests, and document any compatibility shim that remains necessary.
+- Regenerate generated data with the new release's tools and schemas. Do not
+  cherry-pick old generated output across release generations unless byte-level
+  compatibility has been demonstrated.
+- Create the new playable development line fresh from the updated `master` as
+  `integration/active-runtime-<version>`. Re-apply selected `shelf/*` features
+  in an explicit documented order through separate PRs, run combined local and
+  mGBA validation, and keep the prior generation immutable for comparison.
+- Use branch lifecycle names consistently: `feature/*` for active isolated
+  work, `shelf/runtime-<version>/*` for completed reusable implementation,
+  `integration/active-runtime-<version>` for the one current playable base,
+  `snapshot/runtime-<version>/*` for frozen combined states, and `docs/*` for
+  master-eligible docs / Lua handoff work. Preserve frozen branches by default;
+  rename them instead of deleting them.
+
+## Historical 16.0 Runtime Lineage
 
 - Treat `integration/runtime-dev-16-20260531` / PR #69 as the completed
   15.3-to-16.0 runtime port snapshot. It is the comparison baseline and
   evidence shelf for that replay, not the branch where future runtime features
   should keep accumulating.
-- New runtime features, 16.0-native reworks, map/content work, generated-data
-  changes, and gameplay edits start from current `master` on a fresh
-  `feature/*` or `integration/*` branch.
+- This section is historical evidence for the 16.0 replay. Current and future
+  feature branch bases follow `Upstream Release Transitions` above.
 - If a playable "16.0 port snapshot plus new work" branch is needed, duplicate
   the completed snapshot into a new `integration/*` branch first, then apply the
   new work there. Keep the original snapshot available so reviewers can compare
@@ -97,12 +135,15 @@
   user choose when to merge, unless the user explicitly asks for a direct
   master update.
 - For implementation PRs that contain source / include / data / tools /
-  graphics / generated changes, prefer a fresh branch from current `master` and
-  cherry-pick or re-apply only the intended slice when the planned order
-  changes. Close the older PR only after recording why it was superseded.
+  graphics / generated changes, use the branch base selected by `Upstream
+  Release Transitions`, then cherry-pick or re-apply only the intended slice
+  when the planned order changes. Close the older PR only after recording why
+  it was superseded.
 - Keep an open implementation PR if it is still a valid candidate but not next
   in the order. Close stale PRs that are already superseded, failed drafts, or
   docs snapshots that would reintroduce old diff.
-- Delete a remote branch only when the PR is merged, fully superseded, or has
-  no unique work. Preserve branches that hold unique draft work even if their
-  PR is closed.
+- Preserve remote implementation and integration evidence by default, including
+  branches behind merged or closed PRs. Rename completed reusable work to
+  `shelf/*` and frozen combined work to `snapshot/*`. Delete a remote branch
+  only when the user explicitly requests deletion after confirming it has no
+  unique evidence or recovery value.
