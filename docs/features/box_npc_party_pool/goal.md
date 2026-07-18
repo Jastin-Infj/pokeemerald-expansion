@@ -2,19 +2,21 @@
 
 ## Status
 
-Implemented as the standalone MVP on
-`feature/box-npc-party-pool-20260705`. This document remains the dependency
+Implemented as the standalone MVP, now retained at
+`shelf/runtime-1.16.1/box-npc-party-pool` at `71e9d602f0` (formerly
+`feature/box-npc-party-pool-20260705`). This document remains the dependency
 survey and design record for the runtime implementation.
 
 On July 16, 2026, the validated standalone slice was reapplied onto the fresh
-`master`-based target `integration/runtime-lab-20260716` through candidate
-`integration/runtime-lab-box-npc-pr-20260716`. This is the first sequential
+`master`-based target now retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716` through the staging branch now
+named `archive/staging/runtime-1.16.1/box-npc-20260716`. This was the first sequential
 runtime-lab PR. Battle Team Boxes follows it as the dependent second PR, and
 Smart Gimmick AI remains a separate third reapply PR.
 
 Box reapply PR #76 is merged into the dedicated integration target at
 `17b67dfe98`. The second candidate
-`integration/runtime-lab-battle-team-pr-20260716` generalizes source metadata
+`archive/staging/runtime-1.16.1/battle-team-20260716` generalizes source metadata
 to `{boxId, boxPosition}` and adds registered six-member teams without removing
 the legacy Box 1 routes. See [Battle Team Boxes goal](../battle_team_boxes/goal.md).
 

@@ -6,10 +6,11 @@
 |---|---|
 | Last reviewed | 2026-07-18 |
 | Fork | `Jastin-Infj/pokeemerald-expansion` |
-| Fork baseline | `master` `9bd7ce7ff1` |
+| Fork baseline at audit | `master` `9bd7ce7ff1` |
 | Latest stable upstream release | `expansion/1.16.2` `ad0fd4d17f` |
 | Current upstream master | `df30c0b1a2`, untagged 1.16.3 development line |
-| Scope | GitHub branch / PR / lineage audit; no branch rename, delete, merge, or source edit |
+| Scope | Pre-transition GitHub branch / PR / lineage audit; no branch rename, delete, merge, or source edit during inventory |
+| Post-transition result | [Branch Transition Result 2026-07-18](branch_transition_result_2026_07_18.md) |
 
 This inventory answers four separate questions:
 
@@ -24,6 +25,11 @@ The branch name alone is not evidence of ownership or completion. Check the
 commits authored or pushed by the fork owner, the branch diff, the PR body, and
 the owning feature docs. Community or expert-authored commits that only form an
 upstream baseline are provenance, not local feature work.
+
+This document intentionally preserves the names and counts observed before the
+transition. Do not treat its branch list as the current namespace. The linked
+result report records the completed 91 renames, closed runtime PRs, retained
+SHAs, current worktrees, and `master` protection.
 
 ## Repository Facts
 

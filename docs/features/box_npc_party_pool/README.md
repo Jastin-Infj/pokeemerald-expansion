@@ -13,10 +13,10 @@ against user-authored sets.
 
 | Field | Value |
 |---|---|
-| Standalone source shelf | `feature/box-npc-party-pool-20260705` at `71e9d602f0`; draft PR #74 |
-| Fresh integration target | `integration/runtime-lab-20260716`, created from `master` `1f77705e45` |
+| Standalone source shelf | `shelf/runtime-1.16.1/box-npc-party-pool` at `71e9d602f0`; closed PR #74 |
+| Frozen integration snapshot | `snapshot/runtime-1.16.1/battle-lab-20260716`, originally created from `master` `1f77705e45` |
 | Box reapply | PR #76 merged into the integration target at `17b67dfe98` |
-| Dependent candidate | `integration/runtime-lab-battle-team-pr-20260716` |
+| Archived dependent staging branch | `archive/staging/runtime-1.16.1/battle-team-20260716` |
 | Scope | Box NPC plus Battle Team Boxes; Smart Gimmick AI uses a later PR |
 | Master policy | Runtime files are not eligible for the docs / Lua-only master path |
 

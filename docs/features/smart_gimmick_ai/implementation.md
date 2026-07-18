@@ -10,11 +10,12 @@ Status on July 16, 2026: accepted as an interim-complete Smart Gimmick AI
 snapshot. No further tactical tuning is planned on this branch before the
 Battle Team integration line is created.
 
-- Runtime branch: `feature/smart-gimmick-ai-16-20260604`.
+- Runtime shelf: `shelf/runtime-1.16.1/smart-gimmick-ai` at `e71c48c886`
+  (formerly `feature/smart-gimmick-ai-16-20260604`).
 - Runtime code completion commit: `46ed9d403f`.
 - Current-master documentation ancestry merge: `dd55f9a45d`.
-- Review shelf: draft PR #72, targeting `master` but not approved for runtime
-  merge under the repository's master policy.
+- Review shelf: closed PR #72, retained as evidence and never merged into
+  `master` under the repository's master policy.
 - The old PR check failure contained four AI thinking-time ceilings and one
   pre-desperation Eiscue move expectation. The completion commit keeps the
   ordinary no-flag ceilings unchanged, gives bounded Smart/read-mode analysis
@@ -42,9 +43,11 @@ Completion validation:
   session status was `[]`.
 
 The implemented integration order is Box NPC Party Pool, Battle Team Boxes,
-then Smart Gimmick AI on `integration/runtime-lab-20260716`. Box and Battle Team
+then Smart Gimmick AI on the branch now retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716`. Box and Battle Team
 entered through PRs #76 and #77. Smart was squash-reapplied on
-`integration/runtime-lab-smart-ai-pr-20260716` at `611933abf0`, then merged
+the staging branch now named `archive/staging/runtime-1.16.1/smart-ai-20260716`
+at `611933abf0`, then merged
 through PR #78 as integration commit `4e960aecea` after combined validation. See
 [Runtime Lab Integration](../runtime_lab_integration/implementation.md). This
 does not change the docs/Lua-only policy for `master`.

@@ -119,7 +119,8 @@
 
 ## Historical 16.0 Runtime Lineage
 
-- Treat `integration/runtime-dev-16-20260531` / PR #69 as the completed
+- Treat `snapshot/runtime-1.16.0/full-stack-20260531` (formerly
+  `integration/runtime-dev-16-20260531`) / closed PR #69 as the completed
   15.3-to-16.0 runtime port snapshot. It is the comparison baseline and
   evidence shelf for that replay, not the branch where future runtime features
   should keep accumulating.

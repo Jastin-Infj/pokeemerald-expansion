@@ -10,10 +10,11 @@ one practical battle-debug ROM:
 - Battle Team Boxes supplies three persistent six-Pokemon source registries and
   routes those registered teams through the Box NPC battle builder.
 
-The playable target is `integration/runtime-lab-20260716`. It was created from
-current `master`, then received Box NPC and Battle Team through PRs #76 and #77.
-Smart Gimmick AI entered through separate PR #78 after combined validation.
-The completed runtime-lab target is at merge commit `4e960aecea`.
+The completed playable target is retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716` at merge commit `4e960aecea`
+(formerly `integration/runtime-lab-20260716`). It was created from current
+`master`, then received Box NPC and Battle Team through PRs #76 and #77. Smart
+Gimmick AI entered through separate PR #78 after combined validation.
 
 Runtime implementation does not merge into `master`. A later `master` handoff
 may contain only eligible Markdown documentation, approved Lua scripts, and

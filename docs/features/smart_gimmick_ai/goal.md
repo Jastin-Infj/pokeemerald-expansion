@@ -3,7 +3,8 @@
 ## Milestone Status
 
 The current Smart Gimmick AI milestone is accepted as an interim-complete
-feature snapshot on `feature/smart-gimmick-ai-16-20260604`. The remaining design
+feature shelf on `shelf/runtime-1.16.1/smart-gimmick-ai` at `e71c48c886`
+(formerly `feature/smart-gimmick-ai-16-20260604`). The remaining design
 weaknesses below are retained as explicit next-generation planner backlog; they
 do not block the July 16, 2026 handoff or the new Battle Team integration line.
 

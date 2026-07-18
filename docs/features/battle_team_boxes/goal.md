@@ -2,12 +2,14 @@
 
 ## Status
 
-Implemented on `feature/battle-team-boxes-20260716` as a stacked extension of
-`feature/box-npc-party-pool-20260705` at `71e9d602f0`.
+Implemented and retained on `shelf/runtime-1.16.1/battle-team-boxes` at
+`ba98fed382` (formerly `feature/battle-team-boxes-20260716`) as a stacked
+extension of the Box NPC shelf now named
+`shelf/runtime-1.16.1/box-npc-party-pool` at `71e9d602f0`.
 
 On July 16, 2026, its three commits were reapplied onto the dedicated
-runtime-lab target after Box NPC PR #76 merged. The fresh candidate is
-`integration/runtime-lab-battle-team-pr-20260716`; Smart Gimmick AI is not in
+runtime-lab target after Box NPC PR #76 merged. The staging branch is now
+`archive/staging/runtime-1.16.1/battle-team-20260716`; Smart Gimmick AI is not in
 this PR.
 
 The implementation branch is intentionally separate from Smart Gimmick AI.
@@ -115,15 +117,15 @@ its nine-sector checksum layout.
 Changing the feature schema later requires a versioned migration. Reordering or
 silently reinterpreting the saved fields is not acceptable.
 
-## Branch And Integration Plan
+## Branch And Integration Result
 
-- Review this branch against `feature/box-npc-party-pool-20260705` while PR #74
-  remains unmerged. That keeps the Battle Team delta reviewable.
-- If PR #74 merges first, retarget or rebase this branch onto current `master`
-  before merge.
-- Do not merge Smart Gimmick AI into this branch.
-- For combined manual AI testing, create a separate integration branch that
-  brings together Smart Gimmick AI, Box NPC Party Pool, and Battle Team Boxes.
+- Closed PR #75 preserves the standalone Battle Team delta against the Box NPC
+  shelf. Neither standalone runtime PR was merged into `master`.
+- Box NPC and Battle Team were reapplied separately through PRs #76 and #77.
+- Smart Gimmick AI remained separate and entered through PR #78.
+- The combined result is frozen at
+  `snapshot/runtime-1.16.1/battle-lab-20260716`; the standalone source remains
+  `shelf/runtime-1.16.1/battle-team-boxes`.
 - Pokemon State Editor, Unified Move Relearner, and battle item restore remain
   independent shelves. They may be combined later in a debug battle lab, but
   they are not prerequisites for this team registry.

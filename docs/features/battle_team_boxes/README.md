@@ -11,9 +11,9 @@ as the six-Pokemon opponent candidate roster for 3v3 singles and 4v4 doubles.
 
 | Field | Value |
 |---|---|
-| Standalone source shelf | `feature/battle-team-boxes-20260716` at `ba98fed382`; draft PR #75 |
+| Standalone source shelf | `shelf/runtime-1.16.1/battle-team-boxes` at `ba98fed382`; closed PR #75 |
 | Required base | Box NPC reapply PR #76 at integration target `17b67dfe98` |
-| Fresh candidate | `integration/runtime-lab-battle-team-pr-20260716` |
+| Archived staging branch | `archive/staging/runtime-1.16.1/battle-team-20260716` |
 | Runtime equality | Source files match the standalone Battle Team shelf |
 | Master policy | This runtime slice is not eligible for the docs / Lua-only master path |
 

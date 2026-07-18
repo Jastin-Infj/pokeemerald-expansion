@@ -5,7 +5,7 @@
 | Check | Result |
 |---|---|
 | Base | Box NPC integration merge `17b67dfe98` from PR #76 |
-| Source shelf | `feature/battle-team-boxes-20260716` at `ba98fed382`; PR #75 |
+| Source shelf | `shelf/runtime-1.16.1/battle-team-boxes` at `ba98fed382`; closed PR #75 |
 | Source comparison | Runtime/source files match the standalone Battle Team shelf |
 | Diff scope | 23 files total: 19-file Battle Team slice plus 4 Box integration handoff docs |
 | `rtk make -j16 -O all` | Passed; existing linker RWX and source PNG warnings only |
@@ -128,5 +128,6 @@ Draft PR #75 snapshot on July 16, 2026:
 - Seven required checks passed: `build-emerald`, `build-firered`,
   `build-leafgreen`, `release`, `test`, `docs_validate`, and aggregate `build`.
 - Label and all-contributors jobs reported skipped by workflow policy.
-- The PR is open, draft, mergeable, and remains stacked on
-  `feature/box-npc-party-pool-20260705`.
+- The PR snapshot was draft and mergeable while stacked on the Box NPC branch.
+  PR #75 was finalized and closed without merge on July 18, 2026; its head is
+  retained as `shelf/runtime-1.16.1/battle-team-boxes`.

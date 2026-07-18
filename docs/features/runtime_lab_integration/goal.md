@@ -17,7 +17,8 @@ slice; it does not redefine the standalone feature's ancestry.
 
 The required sequence is:
 
-1. `master` `1f77705e45` -> `integration/runtime-lab-20260716`.
+1. `master` `1f77705e45` -> the runtime-lab branch now retained as
+   `snapshot/runtime-1.16.1/battle-lab-20260716`.
 2. Box NPC Party Pool reapply -> PR #76 -> integration target.
 3. Battle Team Boxes reapply -> PR #77 -> integration target.
 4. Smart Gimmick AI reapply -> dedicated PR -> integration target.
@@ -27,8 +28,8 @@ The required sequence is:
    documentation. No runtime implementation is copied to that branch.
 
 All runtime stages completed through PR #78 at integration merge commit
-`4e960aecea`. The final handoff stage uses
-`docs/runtime-lab-handoff-20260716`, created independently from `master`.
+`4e960aecea`. The final handoff branch was created independently from `master`
+and is now retained as `archive/docs/20260716/runtime-lab-handoff`.
 
 ## Dependencies
 

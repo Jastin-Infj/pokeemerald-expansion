@@ -9,6 +9,10 @@
 - Final candidate head: `703509f9d1`.
 - Result: merged as `4e960aecea` on July 16, 2026.
 
+Those are the historical PR-time names. The merged base is now retained as
+`snapshot/runtime-1.16.1/battle-lab-20260716`, and the staging head is now
+`archive/staging/runtime-1.16.1/smart-ai-20260716`.
+
 ## Static and Build Validation
 
 Fresh candidate results on July 16, 2026:
@@ -83,7 +87,8 @@ Before merge:
 This pass exercised the completed integration branch rather than another
 reapply candidate.
 
-- Branch: `integration/runtime-lab-20260716`.
+- Branch: `snapshot/runtime-1.16.1/battle-lab-20260716` (formerly
+  `integration/runtime-lab-20260716`).
 - Head: `4e960aecea0185912e21a28f40e00fab1b388874`.
 - Debug ROM SHA-256:
   `42382f2d10514119c7170a961ec6b017f8c0323e9888f00e2918bfdb8d8703e4`.
