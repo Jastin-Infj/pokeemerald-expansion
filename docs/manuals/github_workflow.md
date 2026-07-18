@@ -44,24 +44,35 @@ PNG などの画像 assets は docs / Lua-only PR には含めません。
 
 ## Branch Roles
 
-この repository では、`master` を「upstream 追従の受け皿」として扱う。
+この repository では、`master` を「公式 release tag 追従の受け皿」として扱う。
 local feature implementation を直接 `master` に積むと、upstream upgrade 時に
 source conflict と再適用判断が増えるため、通常の開発 branch と分ける。
 
 | Branch kind | Role | Allowed content |
 |---|---|---|
-| `master` | upstream / RHH 由来の source baseline + local docs / Lua script overlay | Markdown docs, workflow-only `AGENTS.md`, approved Lua script files; source-like tree と画像 assets は原則触らない |
+| `master` | 採用済み公式 `expansion/<version>` source baseline + local docs / Lua script overlay | Markdown docs, workflow-only `AGENTS.md`, approved Lua script files; source-like tree と画像 assets は原則触らない |
 | `docs/*` | `master` へ入れる調査・運用・handoff docs / Lua scripts | Markdown docs, 必要な `AGENTS.md`, approved Lua script files |
 | `feature/*` | 1 feature の実装と検証 | source / include / data / graphics / tools を含んでよい。`master` へは直接 merge しない |
 | `shelf/runtime-<version>/*` | 完成済みで再利用する単体実装 | immutable evidence / re-apply source。削除せず凍結する |
 | `integration/active-runtime-<version>` | その世代で唯一の現行 playable 開発基準 | 新機能を直接実装せず、feature PR だけを順番に統合する |
 | `snapshot/runtime-<version>/*` | 完成時点の複合 runtime 保存 | immutable comparison / recovery point。削除せず凍結する |
-| upstream remote | 新バージョン取り込み元 | fetch / compare only。push しない |
+| `RHH` remote | release 検出と比較専用 | fetch / compare only。push せず、moving `RHH/master` は採用しない |
 
-GitHub の fork sync や upstream merge は便利だが、local implementation を含む
-`master` で実行すると source baseline が壊れやすい。sync 前に `master` が
-docs / Lua-only baseline であることを確認する。local 実装を遊べる状態で残したい場合は
-`integration/*` に積み、upstream 更新後に current `master` から作り直す。
+GitHub の Sync Fork や moving upstream branch の merge は使わない。local 実装を
+遊べる状態で残したい場合は `integration/*` に積み、公式 release tag の intake 後に
+current `master` から作り直す。
+
+## Version Tags And Branches
+
+- 公式 `expansion/<version>` tag を upstream version の正本とする。同じ commit を示す
+  ためだけの新規 branch は作らない。
+- branch は、PR、継続開発、re-apply、比較、復旧に使う work line / evidence とする。
+- local 統合版の重要な検証完了点には、たとえば
+  `local/runtime-1.16.2/validated-20260718` のような annotated tag を付け、upstream
+  base、integration branch、検証 evidence を tag message に残す。
+- 公開済み tag を別 commit へ付け替えない。追加修正は新しい tag として記録する。
+- 既存の exact-release copy branch は直ちに削除しない。canonical tag で代替でき、
+  unique work と recovery value がないことを別途確認してから削除判断する。
 
 ## Upstream Release Intake
 
@@ -69,17 +80,24 @@ docs / Lua-only baseline であることを確認する。local 実装を遊べ�
 release は `expansion/1.16.2` (`ad0fd4d17f`) である。この値は固定ルールではなく、
 次回 1.17 以降でも intake 開始時に再取得する観測値として扱う。
 
+`RHH/master` は release 検出前の開発途中を確認する比較資料にすぎず、intake source
+ではない。commit が採用可能になるのは、pokeemerald-expansion が GitHub 上で公式の
+non-draft / non-prerelease Release を公開し、その `expansion/<version>` tag に commit
+が含まれた後だけである。master 上に先行して存在する修正は、重要に見えても個別採用
+しない。
+
 新しい upstream release が出たときは、次の順番を守る。
 
-1. `RHH` remote と release tag / commit を取得し、移行元 fork `master`、既存 active
+1. GitHub Release metadata と `RHH` remote の公式 release tag / commit を取得し、
+   release が draft / prerelease でないこと、移行元 fork `master`、既存 active
    integration、採用予定 shelf の commit を記録する。
 2. 既存 playable line を `snapshot/runtime-<old-version>/*` として凍結する。削除や
    force-push は行わない。
 3. current `master` から `upgrade/<new-version>-intake-*` を作り、release tag の
    upstream-authored source / data / tools / generated 差分だけを取り込む。
-4. intake PR では upstream の変数名、API、struct、save/data layout、生成形式、
-   ownership、config default を正とする。local feature の意図を新しい contract 上へ
-   移植し、古い upstream 定義を復元しない。
+4. intake PR では pinned official release tag の変数名、API、struct、save/data
+   layout、生成形式、ownership、config default を正とする。local feature の意図を
+   released contract 上へ移植し、古い定義を復元しない。
 5. conflict は file 単位の blanket `ours` / `theirs` で終わらせない。producer、
    consumer、serialization、generated-data tool、test を確認し、採用判断を記録する。
 6. generated data は新 release の tool/schema で再生成する。古い branch の生成物を
@@ -91,16 +109,17 @@ release は `expansion/1.16.2` (`ad0fd4d17f`) である。この値は固定ル�
 
 `master` に source-like files を入れられる通常の例外は、この upstream intake だけで
 ある。local implementation は intake PR に混ぜず、active integration 向けの別 PR に
-する。GitHub の Sync fork button を使う場合も、release tag / commit と diff scope が
-確認できない状態では実行しない。
+する。GitHub の Sync Fork button は moving upstream branch を対象にするため、この
+release intake には使用しない。
 
-### Upstream Wins During Porting
+### Pinned Official Release Wins During Porting
 
-upstream の新設計を local feature より優先する。たとえば upstream で field 名や型、
-構造体の ownership、保存形式、ID 幅、config、generated table が変わった場合、local
-branch の古いファイルを戻すのではなく、新 API / 新 data structure を使って同じ機能意図を
-再実装する。compatibility shim は、現行 feature contract に必要で、期限と削除条件を docs
-へ残せる場合だけ追加する。
+pinned official release tag の新設計を local feature より優先する。たとえば release で
+field 名や型、構造体の ownership、保存形式、ID 幅、config、generated table が変わった
+場合、local branch の古いファイルを戻すのではなく、新 API / 新 data structure を使って
+同じ機能意図を再実装する。moving `RHH/master` にだけ存在する未リリース設計は、この判断
+根拠にしない。compatibility shim は、現行 feature contract に必要で、期限と削除条件を
+docs へ残せる場合だけ追加する。
 
 ### Historical 16.0 Runtime Lineage
 
@@ -139,7 +158,7 @@ tools / generated output を `master` へ merge しない。
 |---|---|---|
 | docs / Lua-only | Markdown docs、必要な workflow-only `AGENTS.md`、approved Lua script files だけを更新する。Lua scripts are allowed for shortcuts, debug commands, and validation automation. | `master` へ取り込み候補にしてよい。 |
 | new implementation | current `master` には存在しない source / include / data / graphics / tools / generated 差分を新しく作る。 | `feature/*` / `integration/*` に置き、`master` へ直接 merge しない。 |
-| upstream intake | 新しい RHH release の source / data / tool / generated contract を fork baseline に取り込む。 | `upgrade/*` PR で `master` に入れてよい唯一の通常 source 例外。local implementation を混ぜない。 |
+| upstream intake | 新しい公式 `expansion/<version>` Release tag の source / data / tool / generated contract を fork baseline に取り込む。 | `upgrade/*` PR で `master` に入れてよい唯一の通常 source 例外。moving `RHH/master` と local implementation を混ぜない。 |
 | re-apply / port | 過去の validated branch にある実装 slice を current generation の selected base から切り直した branch へ載せる。 | runtime PR として扱う。新規実装とは呼ばず、移植元 commit、upstream差分、再検証結果を書く。 |
 | docs handoff | runtime 実装は持ち込まず、branch evidence、採否判断、残リスクだけを docs に残す。 | docs / Lua-only branch で `master` へ取り込み候補にしてよい。 |
 
@@ -150,10 +169,10 @@ docs / Lua-only として扱わない。
 
 ## Master Docs-Only Merge Policy
 
-`master` は upstream / RHH 由来の source code を基準にする。feature branch や別 project branch の source、include、data、graphics、tools non-Lua、generated files を `master` に混ぜない。
+`master` は採用済み公式 `expansion/<version>` Release tag 由来の source code を基準にする。feature branch、moving `RHH/master`、別 project branch の source、include、data、graphics、tools non-Lua、generated files を `master` に混ぜない。
 
 この節の excluded-path gate は local docs / Lua / feature handoff に適用する。前述の
-`Upstream Release Intake` は別 work type であり、pinned RHH release 由来であることを
+`Upstream Release Intake` は別 work type であり、pinned official release tag 由来であることを
 監査した source / data / tools / generated 差分を dedicated upgrade PR から `master` へ
 入れられる。upstream intake に local feature implementation を混ぜてはならない。
 

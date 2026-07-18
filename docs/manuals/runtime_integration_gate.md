@@ -46,7 +46,8 @@ local branch diff を source of truth にする。
 | Docs sync | owning feature docs の `README.md`、`implementation.md`、`test_plan.md`、`risks.md` が branch の実装と一致しているか確認する。 |
 | Base selection | upstream intake / standalone shelf は current `master`、current playable line の feature は pinned `integration/active-runtime-<version>` head を使う。base commit を記録する。 |
 | Fresh branch | selected base から fresh `feature/*` または integration staging branch を切る。古い PR branch をそのまま merge しない。 |
-| Upstream authority | release transition では upstream の variable/API/struct/save-data/generated contract を正とし、local implementation の意図を新 contract 上へ port する。 |
+| Release eligibility | GitHub の公式 non-draft / non-prerelease `expansion/<version>` Release tag だけを intake source とする。moving `RHH/master` は採用しない。 |
+| Release authority | release transition では pinned official tag の variable/API/struct/save-data/generated contract を正とし、local implementation の意図を released contract 上へ port する。 |
 | Reapply strategy | commit 単位で cherry-pick するか、file 単位で再適用するか決める。古い docs や generated output を誤って戻さず、新 release tool で再生成する。 |
 | Conflict handling | conflict 解消後、採用した差分が planned scope を超えていないか `<selected-base>..HEAD` で確認する。`master` PR の場合だけ base を `master` に固定する。 |
 | Local build | runtime source / data / config 変更は `rtk make -j16 -O all`。debug route があるなら `rtk make -j16 -O debug`。 |
@@ -59,10 +60,12 @@ local branch diff を source of truth にする。
 新 upstream release は patch update でも世代移行として監査する。1.16.1 -> 1.16.2
 だけでなく、1.16.x -> 1.17 以降も同じ gate を使う。
 
-- exact release tag / commit と fork `master` commit を固定する。
+- moving `RHH/master` は比較資料に限定し、merge、cherry-pick、Sync Fork しない。
+- GitHub Release が draft / prerelease でないことを確認し、exact
+  `expansion/<version>` tag / commit と fork `master` commit を固定する。
 - previous active integration を `snapshot/runtime-<old-version>/*` に凍結する。
 - upstream intake と local feature re-apply を同じ PR に入れない。
-- upstream で削除・rename・再設計された field / API / struct / data layout を、古い
+- pinned official release で削除・rename・再設計された field / API / struct / data layout を、古い
   branch の file copy で復元しない。
 - conflict ごとに producer / consumer / serialization / generated tool / tests を確認する。
 - save layout、ID width、generated format、config default の変更は focused check だけで
