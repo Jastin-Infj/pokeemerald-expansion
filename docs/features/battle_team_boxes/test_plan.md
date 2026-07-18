@@ -6,7 +6,7 @@
 |---|---|
 | Frozen source | `snapshot/runtime-1.16.1/battle-lab-20260716` at `4e960aecea` |
 | Mutable base | `integration/runtime-lab-current-1.16.1` |
-| Fix branch | `fix/runtime-lab-battle-team-incomplete-20260718` |
+| Fix branch | `fix/runtime-lab-battle-team-incomplete-20260718`; draft PR #84 |
 | `rtk make -j16 -O check TESTS='Battle Team'` | Passed |
 | `rtk make -j16 -O debug` | Passed; existing linker RWX warning only |
 | `rtk make -j16 -O all` | Passed; existing linker RWX warning only |

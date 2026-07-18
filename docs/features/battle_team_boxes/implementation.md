@@ -36,7 +36,7 @@ Branch lineage for this fix:
   `4e960aecea`.
 - Mutable PR base: `integration/runtime-lab-current-1.16.1`, created at the
   same snapshot commit.
-- Fix branch: `fix/runtime-lab-battle-team-incomplete-20260718`.
+- Fix branch: `fix/runtime-lab-battle-team-incomplete-20260718`; draft PR #84.
 - The fix is runtime implementation and must not target `master`.
 
 ## July 16, 2026 Runtime-Lab Reapply
@@ -212,7 +212,7 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
 
 ## Merge Handoff
 
-The July 18 fix must be reviewed from
+Draft PR #84 carries the July 18 fix from
 `fix/runtime-lab-battle-team-incomplete-20260718` into
 `integration/runtime-lab-current-1.16.1`. The frozen July 16 snapshot remains
 unchanged for comparison. Neither implementation branch is eligible for a
