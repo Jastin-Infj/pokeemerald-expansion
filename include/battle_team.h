@@ -25,6 +25,8 @@ bool32 BattleTeam_TryRegister(u8 teamId, u8 teamPosition, u8 boxId, u8 boxPositi
 void BattleTeam_ClearSlot(u8 teamId, u8 teamPosition);
 bool32 BattleTeam_TryGetMember(u8 teamId, u8 teamPosition, struct BattleTeamSlot *slot);
 bool32 BattleTeam_TryGetFullRoster(u8 teamId, struct BattleTeamSlot *slots);
+u8 BattleTeam_FindSourcePosition(u8 teamId, u8 boxId, u8 boxPosition);
+u8 BattleTeam_GetFirstInvalidPosition(u8 teamId);
 u8 BattleTeam_GetRegisteredCount(u8 teamId);
 bool32 BattleTeam_IsBoxSlotRegistered(u8 boxId, u8 boxPosition);
 bool32 BattleTeam_CanRegisterBoxSlot(u8 boxId, u8 boxPosition);

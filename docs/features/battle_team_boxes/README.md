@@ -13,8 +13,10 @@ as the six-Pokemon opponent candidate roster for 3v3 singles and 4v4 doubles.
 |---|---|
 | Standalone source shelf | `feature/battle-team-boxes-20260716` at `ba98fed382`; draft PR #75 |
 | Required base | Box NPC reapply PR #76 at integration target `17b67dfe98` |
-| Fresh candidate | `integration/runtime-lab-battle-team-pr-20260716` |
-| Runtime equality | Source files match the standalone Battle Team shelf |
+| Frozen combined snapshot | `snapshot/runtime-1.16.1/battle-lab-20260716` at `4e960aecea` |
+| Mutable integration base | `integration/runtime-lab-current-1.16.1` |
+| Current fix candidate | `fix/runtime-lab-battle-team-incomplete-20260718` |
+| Current behavior | Six valid references remain required; counts, missing-slot diagnostics, and duplicate-registration rejection are visible in the UI |
 | Master policy | This runtime slice is not eligible for the docs / Lua-only master path |
 
 - [Goal and Dependencies](goal.md)

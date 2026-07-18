@@ -543,6 +543,13 @@ struct PokemonStorageSystemData
 
 static u32 sItemIconGfxBuffer[98];
 
+enum BattleTeamRegisterMessage
+{
+    BATTLE_TEAM_REGISTER_MESSAGE_NONE,
+    BATTLE_TEAM_REGISTER_MESSAGE_DUPLICATE,
+    BATTLE_TEAM_REGISTER_MESSAGE_INVALID,
+};
+
 EWRAM_DATA static u8 sPreviousBoxOption = 0;
 EWRAM_DATA static struct ChooseBoxMenu *sChooseBoxMenu = NULL;
 EWRAM_DATA static struct PokemonStorageSystemData *sStorage = NULL;
@@ -565,6 +572,10 @@ EWRAM_DATA static u8 sBattleTeamPendingTeam = 0;
 EWRAM_DATA static u8 sBattleTeamPendingSlot = 0;
 EWRAM_DATA static u8 sBattleTeamReturnCursor = 0;
 EWRAM_DATA static bool8 sBattleTeamOpenedDirectly = FALSE;
+EWRAM_DATA static u8 sBattleTeamRegisterMessage = BATTLE_TEAM_REGISTER_MESSAGE_NONE;
+EWRAM_DATA static u8 sBattleTeamDuplicatePosition = 0;
+EWRAM_DATA static u8 sBattleTeamListTexts[BATTLE_TEAM_COUNT + 1][20] = {0};
+EWRAM_DATA static struct StorageMenu sBattleTeamListMenuItems[BATTLE_TEAM_COUNT + 1] = {0};
 EWRAM_DATA static u8 sBattleTeamSlotTexts[8][32] = {0};
 EWRAM_DATA static struct MenuAction sBattleTeamSlotMenuActions[8] = {0};
 EWRAM_DATA static struct StorageMenu sBattleTeamActionMenuItems[3] = {0};
@@ -933,24 +944,19 @@ static const struct WindowTemplate sWindowTemplate_BattleTeamYesNo =
     .baseBlock = 0x160,
 };
 
-static const struct StorageMenu sBattleTeamListMenuItems[] =
-{
-    {COMPOUND_STRING("TEAM 1"), 0},
-    {COMPOUND_STRING("TEAM 2"), 0},
-    {COMPOUND_STRING("TEAM 3"), 0},
-    {COMPOUND_STRING("BACK"), 0},
-};
-
 static const u8 sText_BattleTeamRegister[] = _("REGISTER");
 static const u8 sText_BattleTeamRemove[] = _("REMOVE");
 static const u8 sText_BattleTeamCancel[] = _("CANCEL");
 static const u8 sText_BattleTeamBack[] = _("BACK");
+static const u8 sText_BattleTeamListEntry[] = _("TEAM {STR_VAR_1}  {STR_VAR_2}/6");
 static const u8 sText_BattleTeamClear[] = _("CLEAR TEAM");
 static const u8 sText_BattleTeamEmpty[] = _("EMPTY");
 static const u8 sText_BattleTeamManageDesc[] = _("Choose a six-member BATTLE TEAM.\nRegistered POKéMON stay in their BOX.");
 static const u8 sText_BattleTeamSlotDesc[] = _("{STR_VAR_1}\nBOX {STR_VAR_2}, SLOT {STR_VAR_3}");
 static const u8 sText_BattleTeamEmptyDesc[] = _("This team slot is empty.");
 static const u8 sText_BattleTeamClearPrompt[] = _("Clear every slot in this team?");
+static const u8 sText_BattleTeamDuplicate[] = _("Already in team slot {STR_VAR_1}.\nChoose a different BOX POKéMON.");
+static const u8 sText_BattleTeamInvalid[] = _("That BOX POKéMON cannot be registered.");
 
 static const union AnimCmd sAnim_ChooseBoxMenu_TopLeft[] =
 {
@@ -1757,6 +1763,17 @@ static void PrintBattleTeamDialogue(const u8 *text)
 static void LoadBattleTeamList(struct Task *task)
 {
     struct WindowTemplate template = sWindowTemplate_MainMenu;
+    u32 i;
+
+    for (i = 0; i < BATTLE_TEAM_COUNT; i++)
+    {
+        ConvertIntToDecimalStringN(gStringVar1, i + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+        ConvertIntToDecimalStringN(gStringVar2, BattleTeam_GetRegisteredCount(i), STR_CONV_MODE_LEFT_ALIGN, 1);
+        StringExpandPlaceholders(sBattleTeamListTexts[i], sText_BattleTeamListEntry);
+        sBattleTeamListMenuItems[i] = (struct StorageMenu){sBattleTeamListTexts[i], 0};
+    }
+    StringCopy(sBattleTeamListTexts[BATTLE_TEAM_COUNT], sText_BattleTeamBack);
+    sBattleTeamListMenuItems[BATTLE_TEAM_COUNT] = (struct StorageMenu){sBattleTeamListTexts[BATTLE_TEAM_COUNT], 0};
 
     template.height = ARRAY_COUNT(sBattleTeamListMenuItems) * 2;
     task->tBattleTeamWindowId = AddWindow(&template);
@@ -2015,6 +2032,18 @@ static void FieldTask_ReturnToBattleTeamMenu(void)
     gTasks[taskId].tBattleTeamId = sBattleTeamPendingTeam;
     gTasks[taskId].tBattleTeamSlot = sBattleTeamReturnCursor;
     Task_BattleTeamMenu(taskId);
+    if (sBattleTeamRegisterMessage == BATTLE_TEAM_REGISTER_MESSAGE_DUPLICATE)
+    {
+        ConvertIntToDecimalStringN(gStringVar1, sBattleTeamDuplicatePosition + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+        StringExpandPlaceholders(gStringVar4, sText_BattleTeamDuplicate);
+        PrintBattleTeamDialogue(gStringVar4);
+    }
+    else if (sBattleTeamRegisterMessage == BATTLE_TEAM_REGISTER_MESSAGE_INVALID)
+    {
+        PrintBattleTeamDialogue(sText_BattleTeamInvalid);
+    }
+    sBattleTeamRegisterMessage = BATTLE_TEAM_REGISTER_MESSAGE_NONE;
+    sBattleTeamDuplicatePosition = BATTLE_TEAM_SLOT_NONE;
     SetVBlankCallback(vblankCb);
     FadeInFromBlack();
 }
@@ -2023,8 +2052,20 @@ static void CB2_ReturnFromBattleTeamMonSelection(void)
 {
     if (gSpecialVar_Result && gSpecialVar_0x8004 == PC_MON_CHOSEN)
     {
-        BattleTeam_TryRegister(sBattleTeamPendingTeam, sBattleTeamPendingSlot,
-                               gSpecialVar_MonBoxId, gSpecialVar_MonBoxPos);
+        u8 existingPosition = BattleTeam_FindSourcePosition(sBattleTeamPendingTeam,
+                                                            gSpecialVar_MonBoxId,
+                                                            gSpecialVar_MonBoxPos);
+
+        if (existingPosition != BATTLE_TEAM_SLOT_NONE && existingPosition != sBattleTeamPendingSlot)
+        {
+            sBattleTeamRegisterMessage = BATTLE_TEAM_REGISTER_MESSAGE_DUPLICATE;
+            sBattleTeamDuplicatePosition = existingPosition;
+        }
+        else if (!BattleTeam_TryRegister(sBattleTeamPendingTeam, sBattleTeamPendingSlot,
+                                         gSpecialVar_MonBoxId, gSpecialVar_MonBoxPos))
+        {
+            sBattleTeamRegisterMessage = BATTLE_TEAM_REGISTER_MESSAGE_INVALID;
+        }
     }
 
     gFieldCallback = FieldTask_ReturnToBattleTeamMenu;
@@ -2036,6 +2077,8 @@ void ShowPokemonStorageBattleTeamManager(void)
     u8 taskId = CreateTask(Task_BattleTeamMenu, 80);
 
     sBattleTeamOpenedDirectly = TRUE;
+    sBattleTeamRegisterMessage = BATTLE_TEAM_REGISTER_MESSAGE_NONE;
+    sBattleTeamDuplicatePosition = BATTLE_TEAM_SLOT_NONE;
     gTasks[taskId].tBattleTeamState = BATTLE_TEAM_STATE_LOAD_TEAM_LIST;
     gTasks[taskId].tBattleTeamId = BattleTeam_GetLastViewedTeam();
     LockPlayerFieldControls();

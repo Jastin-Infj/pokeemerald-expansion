@@ -1,5 +1,40 @@
 # Battle Team Boxes Test Plan
 
+## Incomplete-Team UX Fix - July 18, 2026
+
+| Check | Result |
+|---|---|
+| Frozen source | `snapshot/runtime-1.16.1/battle-lab-20260716` at `4e960aecea` |
+| Mutable base | `integration/runtime-lab-current-1.16.1` |
+| Fix branch | `fix/runtime-lab-battle-team-incomplete-20260718` |
+| `rtk make -j16 -O check TESTS='Battle Team'` | Passed |
+| `rtk make -j16 -O debug` | Passed; existing linker RWX warning only |
+| `rtk make -j16 -O all` | Passed; existing linker RWX warning only |
+| `rtk make -j16 -O check` | Passed |
+| mGBA Live | Passed `battle-team-fix-20260718`; session stopped cleanly |
+
+Automated coverage now proves that a team-local duplicate is rejected without
+clearing the original slot, cross-team sharing remains allowed, the first
+invalid position is reported, stale references still clear safely, and a full
+six-source team still builds the healed NPC party without mutating Box data.
+
+mGBA Live confirmed:
+
+- The Box NPC battle menu displayed Team 1-3 counts without clipping.
+- The manager list displayed Team 1-3 counts without clipping.
+- Empty Team 1 startup displayed `TEAM 1: 0/6 valid.` and identified slot 1.
+- Registering the Box 1 slot 1 Delcatty into Team 1 slot 2 displayed
+  `Already in team slot 1.` and left slot 1 registered and slot 2 empty.
+- Six distinct Box references produced `6/6` in the Box NPC battle menu.
+- `Single first 3` started normally and used the registered slot 1 Delcatty as
+  the opponent lead.
+- The managed emulator session was stopped; final mGBA Live status was empty.
+
+The required roster remains six valid references for both 3v3 singles and 4v4
+doubles because those modes select three or four battle members from a
+six-member candidate pool. Partial-team battle startup is intentionally not
+enabled. Long GitHub Actions were not re-waited for this local handoff.
+
 ## Fresh Reapply Gate - July 16, 2026
 
 | Check | Result |
@@ -41,7 +76,7 @@ New tests in `test/battle_team.c` cover:
 
 - Box-and-slot reference registration.
 - Same source in multiple teams.
-- Team-local duplicate relocation.
+- Team-local duplicate rejection with original-slot preservation.
 - Empty, Egg, and out-of-range rejection.
 - Stale reference cleanup after source deletion.
 - Six sources distributed across multiple Boxes.

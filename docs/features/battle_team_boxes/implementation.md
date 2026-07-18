@@ -6,6 +6,39 @@ The implementation adds a persistent three-by-six Box reference registry, a
 Pokemon Storage management UI, registered-source protection, and Box NPC debug
 battle routes for each team.
 
+## July 18, 2026 Incomplete-Team UX Fix
+
+The combined runtime-lab snapshot exposed a misleading registration path: when
+the same Box source was selected for another slot in one team, registration
+silently cleared the old slot and moved the reference. A user could therefore
+return to battle selection believing the latest registration had completed the
+team, then receive only the generic `Battle Team needs six valid Pokemon.`
+message. Selecting an empty team or leaving any slot incomplete produced the
+same message.
+
+The fix keeps the intended six-candidate requirement and changes the UI and
+registration contract:
+
+- Team-local duplicate registration is rejected. The original slot remains
+  registered and the manager identifies its one-based slot number.
+- The Battle Team manager list renders each team as `TEAM n  x/6`.
+- `Party -> Box NPC Battle...` renders each battle entry as
+  `Battle Team n  x/6` before entering its format submenu.
+- Incomplete battle startup reports the selected team, valid count, and first
+  empty or invalid slot, for example `TEAM 1: 5/6 valid.` and
+  `SLOT 3 is empty or invalid.`
+- New registry helpers find an existing source within one team and identify the
+  first invalid slot. The save schema and registry version are unchanged.
+
+Branch lineage for this fix:
+
+- Frozen source snapshot: `snapshot/runtime-1.16.1/battle-lab-20260716` at
+  `4e960aecea`.
+- Mutable PR base: `integration/runtime-lab-current-1.16.1`, created at the
+  same snapshot commit.
+- Fix branch: `fix/runtime-lab-battle-team-incomplete-20260718`.
+- The fix is runtime implementation and must not target `master`.
+
 ## July 16, 2026 Runtime-Lab Reapply
 
 - Integration target before this slice: `17b67dfe98`, produced by merged Box
@@ -42,7 +75,7 @@ Fresh validation passed:
 
 - `include/battle_team.h` defines the saved schema and public API.
 - `src/battle_team.c` owns initialization, validation, registration, stale
-  cleanup, team-local uniqueness, and registered-source queries.
+  cleanup, team-local duplicate rejection, and registered-source queries.
 - `struct SaveBlock3` stores `struct BattleTeamRegistry` after existing fields.
 - `ResetPokemonStorageSystem()` clears the registry for a new save.
 - Magic/version validation lazily migrates old saves to three empty teams.
@@ -81,15 +114,32 @@ Fresh validation passed:
 `Party -> Box NPC Battle...` now contains:
 
 - `Manage Battle Teams`
-- `Battle Team 1...`
-- `Battle Team 2...`
-- `Battle Team 3...`
+- `Battle Team 1  x/6`
+- `Battle Team 2  x/6`
+- `Battle Team 3  x/6`
 - `Legacy Box 1 pool...`
 
 Each registered team offers single first 3, single random 3, double first 4,
 and double random 4. The legacy submenu keeps all six previous Box 1 routes.
 
 ## Validation
+
+July 18 fix validation in `/home/jastin/dev/pokeemerald-expansion`:
+
+- `rtk git diff --check`: passed before documentation updates.
+- `rtk make -j16 -O check TESTS='Battle Team'`: passed.
+- `rtk make -j16 -O debug`: passed with the existing linker RWX warning.
+- `rtk make -j16 -O all`: passed with the existing linker RWX warning.
+- Full `rtk make -j16 -O check`: passed; the changed duplicate-rejection,
+  stale-reference, and registered-party construction tests all passed.
+- mGBA Live session `battle-team-fix-20260718` booted the rebuilt root ROM,
+  continued the existing save, rendered `0/6` counts in both menus, displayed
+  `TEAM 1: 0/6 valid.` plus `SLOT 1 is empty or invalid.`, rejected a duplicate
+  Delcatty registration into slot 2 while preserving slot 1, completed Team 1
+  with six distinct Box references, rendered `6/6`, and started
+  `Single first 3` with Delcatty as the opponent lead.
+- The mGBA session stopped cleanly and final managed status was empty.
+- Long GitHub Actions were not waited before the local handoff.
 
 Completed July 16, 2026 in `/tmp/pokeemerald-battle-team-boxes-work`:
 
@@ -161,6 +211,12 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
   feature shelf rather than being reimplemented here.
 
 ## Merge Handoff
+
+The July 18 fix must be reviewed from
+`fix/runtime-lab-battle-team-incomplete-20260718` into
+`integration/runtime-lab-current-1.16.1`. The frozen July 16 snapshot remains
+unchanged for comparison. Neither implementation branch is eligible for a
+docs-only `master` merge.
 
 This implementation is staged as draft PR #75 and is not eligible for a
 docs-only `master` merge. While Box NPC PR #74 remains open, review it as a
