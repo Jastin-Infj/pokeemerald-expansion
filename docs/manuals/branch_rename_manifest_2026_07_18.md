@@ -56,11 +56,11 @@ before remote mutation. The recommended decision set is:
 
 | ID | Decision | Recommended approval |
 |---|---|---|
-| D1 | `master` role | Latest accepted stable RHH release plus minimal Markdown, `AGENTS.md`, and approved Lua overlay. |
-| D2 | Upstream source | Intake the pinned stable release through `upgrade/<version>-intake-<date>`; never sync the moving RHH `master` blindly. |
+| D1 | `master` role | Latest accepted official `expansion/<version>` GitHub Release tag plus minimal Markdown, `AGENTS.md`, and approved Lua overlay. |
+| D2 | Upstream source | Intake only a pinned non-draft / non-prerelease official Release tag through `upgrade/<version>-intake-<date>`; never adopt, merge, cherry-pick, or Sync Fork moving `RHH/master`. |
 | D3 | Playable development base | Maintain exactly one `integration/active-runtime-<version>` and accept feature/tuning PRs into it. |
 | D4 | Retention | Preserve unique implementation and recovery refs under `shelf/`, `snapshot/`, or `archive/`; do not mass-delete them. |
-| D5 | Exact upstream baselines | Keep them as `snapshot/upstream-<version>` branches during this transition. Annotated tags may be added later without deleting the branches. |
+| D5 | Version identity | Official release tags are canonical; branches are work lines or retained evidence. Keep valuable existing copies during transition, add annotated local tags to validated integration milestones, and do not create a branch solely to duplicate a version tag. |
 | D6 | `master` protection | Require a PR, block force-push and deletion, require no unavailable outside approval, and do not lock the branch. |
 | D7 | Rename execution | Merge Docs PR #82 first, then execute only eligible rows in the recorded batches. |
 
@@ -155,7 +155,7 @@ After each successful rename batch:
 | `feature/battle-item-restore-policy` | `bf382e0f59f290183626a663cc0a18e1bdf0615d` | `rename` | `archive/prototype-1.15.2/battle-item-restore-policy` | Superseded shelf |
 | `feature/battle-selection-mvp` | `ee0c89f77ea71f7b405c78ae7c2dcc992d306b96` | `rename` | `shelf/runtime-1.15.2/battle-selection` | Validated shelf |
 | `feature/battle-team-boxes-20260716` | `ba98fed3829d3cb03c213d5b7af114782deba67f` | `defer-open-pr` | `shelf/runtime-1.16.1/battle-team-boxes` | PR #75; registered worktree |
-| `feature/battleMain` | `9226420d6aacccc352497aef68298ae6979e190a` | `rename` | `archive/prototype-1.11.1/battle-party-randomizer` | Unrelated early history |
+| `feature/battleMain` | `9226420d6aacccc352497aef68298ae6979e190a` | `rename` | `archive/prototype-unrelated-root/battle-party-randomizer` | Unrelated early history |
 | `feature/birch_case` | `b2104203ca35be7f692f1f05a0a4b21808a2f1ed` | `rename` | `archive/prototype-1.13.3/birch-case` | Old prototype |
 | `feature/box-npc-party-pool-20260705` | `71e9d602f00660f31d662af4eee69f5680d566c0` | `defer-open-pr` | `shelf/runtime-1.16.1/box-npc-party-pool` | PR #74; base of #75 |
 | `feature/champions-partygen-16-20260603` | `46774d096777d15be577c1d12dd617f69000312a` | `defer-open-pr` | `shelf/runtime-1.16.1/champions-partygen` | PR #71 |
@@ -168,10 +168,10 @@ After each successful rename batch:
 | `feature/field-surfboard` | `f5e552b5188563c5d7cf23a3556cdfd561da6755` | `rename` | `archive/prototype-1.14.1/field-surfboard` | Incomplete prototype |
 | `feature/global-no-evolution-20260523` | `51e777ad8ac1541d6eae01ac49b1a6d54cb9cae8` | `rename` | `shelf/runtime-1.15.2/pokemon-vendor-no-evolution` | Validated shelf |
 | `feature/held-item-catalog-current-master-20260519` | `c4f36f6b3baf832cd087a62d8711fa9ff2b70348` | `rename` | `shelf/runtime-1.15.2/held-item-catalog` | Validated shelf |
-| `feature/main_menu` | `747a415125489fe95d781ad8df394bc3e0a8e06b` | `rename` | `archive/prototype-1.11.1/main-menu` | Unrelated early history |
+| `feature/main_menu` | `747a415125489fe95d781ad8df394bc3e0a8e06b` | `rename` | `archive/prototype-unrelated-root/main-menu` | Unrelated early history |
 | `feature/map-asset-relinker-20260525` | `eb5c6cbaaf156ea37079008e7f0d6f2ce963a34a` | `rename` | `tool/1.15.2/map-asset-relinker` | Separate tooling lane |
 | `feature/modern-qol-field-moves` | `8e3629473346e9d4f99b8af4780305bd5675fdbb` | `rename` | `archive/prototype-1.14.1/modern-qol-field-moves` | Superseded prototype |
-| `feature/move_relearner` | `a1517e0c5453030885dfe00ecc70041f25edec1c` | `rename` | `archive/prototype-1.11.1/move-relearner` | Unrelated early history |
+| `feature/move_relearner` | `a1517e0c5453030885dfe00ecc70041f25edec1c` | `rename` | `archive/prototype-unrelated-root/move-relearner` | Unrelated early history |
 | `feature/new-map` | `a721e706051a724de8aa37c25796e977e5d4c812` | `rename` | `archive/prototype-1.14.1/map-region-fly` | Old map experiment |
 | `feature/new-map-test-v15` | `1ac8244f79ed7fbca5f87fa25652eba0565a575b` | `rename` | `archive/prototype-1.15.1/rouge-cave-map` | Closed #4 |
 | `feature/no-random-encounters` | `545989b69580d83b0d5ef4067561020ff82bb75e` | `rename` | `archive/prototype-1.15.2/no-random-encounters` | Superseded prototype |
@@ -181,11 +181,11 @@ After each successful rename batch:
 | `feature/party-select-ui` | `b5ef280867686f185e9897f977076a831fde55d4` | `rename` | `archive/prototype-1.14.1/party-select-ui` | Known-bug prototype |
 | `feature/party-status-ui-overhaul-20260521` | `4a022554dc1d4bdf9250b0271b717981157723d7` | `rename` | `shelf/runtime-1.15.2/party-status-ui` | Validated shelf |
 | `feature/pokemon-state-editor-expansion` | `d80e7a9b157f4a4d720cfcfbe5b8d43fc5221831` | `rename` | `shelf/runtime-1.15.2/pokemon-state-editor` | Validated shelf |
-| `feature/poryscript` | `19d51e2e481cc357caab661cdca6a7cebd4f6ef0` | `rename` | `archive/prototype-1.11.1/poryscript` | Unrelated early history |
+| `feature/poryscript` | `19d51e2e481cc357caab661cdca6a7cebd4f6ef0` | `rename` | `archive/prototype-unrelated-root/poryscript` | Unrelated early history |
 | `feature/prebattle-team-viewer` | `d597041bf9432e8cc67d143915ef828b9b139030` | `rename` | `shelf/runtime-1.15.2/prebattle-team-viewer` | Validated shelf |
 | `feature/prebattle-team-viewer-phase2` | `e5f9f2a7c39849f5cd02523e31e34e6269e9dab8` | `rename` | `shelf/runtime-1.15.2/prebattle-team-viewer-phase2` | Validated shelf |
 | `feature/qol_field_moves` | `30f1096b6dbc9e1999a6fe681a6b5ca5e1caf3f1` | `rename` | `archive/prototype-1.14.1/qol-field-moves` | Superseded prototype |
-| `feature/releaseSystem` | `3d7dcd51ded8af115a5679a7d202890a0260d5c3` | `rename` | `archive/prototype-1.11.1/release-system` | Unrelated early history |
+| `feature/releaseSystem` | `3d7dcd51ded8af115a5679a7d202890a0260d5c3` | `rename` | `archive/prototype-unrelated-root/release-system` | Unrelated early history |
 | `feature/sandbox_v12` | `9ecc7a8f81f64492de332507bb83f0a0053d2469` | `rename` | `archive/prototype-1.12.0/ability-ui-sandbox` | Old prototype |
 | `feature/scout-selection-runtime-20260520` | `554849169cedd2604e6ad4544d3650d5d2eae5a7` | `rename` | `shelf/runtime-1.15.2/scout-selection` | Validated shelf |
 | `feature/smart-gimmick-ai-16-20260604` | `e71c48c886be387047166a06e1edcb99e063abb6` | `defer-open-pr` | `shelf/runtime-1.16.1/smart-gimmick-ai` | PR #72; active dirty worktree |
@@ -206,12 +206,12 @@ After each successful rename batch:
 | `item_keyfly` | `8267035eb37d9eea5a55a7de777013ca12bedee4` | `rename` | `archive/prototype-1.12.0/fly-key-item` | Old prototype |
 | `master` | `9bd7ce7ff1a4202fff4fefc37e0b494fd84b9208` | `keep` | `master` | Default branch |
 | `TM_v12_0` | `87d7ff7d56aea4b510880cb425517d0df527794d` | `rename` | `archive/prototype-1.12.0/gen9-tm-save` | Old prototype |
-| `upgrade/1.15.2` | `6798f72e037d4af6d1a797835f3f3f11591f8c1c` | `rename` | `snapshot/upstream-1.15.2` | Exact upstream snapshot |
+| `upgrade/1.15.2` | `6798f72e037d4af6d1a797835f3f3f11591f8c1c` | `rename` | `snapshot/upstream-1.15.2` | Retained copy; canonical version is official tag `expansion/1.15.2` |
 | `upgrade/master-before-1.16.0-sync-20260531` | `4e48ff993f8dc0e294bbe68c7dedb23ac680db2b` | `rename` | `snapshot/master-pre-1.16.0/20260531` | Recovery baseline |
-| `vanilla/v11_1_1` | `cdab19a84caa9830c8438bed1bdf771f255b63e2` | `rename` | `snapshot/upstream-1.11.1-import` | Early imported root |
-| `vanilla/v12_0_0` | `c120fa71dcdc02ba8bf7f0b9f4b5067339d3dd74` | `rename` | `snapshot/upstream-1.12.0` | Exact upstream snapshot |
-| `vanilla/v13_3_3` | `cbcb7202860cac4807c6ef4ab02a4a2c00273a76` | `rename` | `snapshot/upstream-1.13.3` | Exact upstream snapshot |
-| `vanilla/v14_1` | `15ede047f990e8eb1aed68ccba51c7b8a85d425c` | `rename` | `archive/baseline-1.14.1/local-init` | Upstream plus local init marker |
+| `vanilla/v11_1_1` | `cdab19a84caa9830c8438bed1bdf771f255b63e2` | `rename` | `archive/baseline-unrelated/local-root-20250413` | Local unrelated root; no official release ancestry |
+| `vanilla/v12_0_0` | `c120fa71dcdc02ba8bf7f0b9f4b5067339d3dd74` | `rename` | `external/rhh/master-after-1.12.0-plus33-20250613` | Moving-master snapshot; not official 1.12.0 |
+| `vanilla/v13_3_3` | `cbcb7202860cac4807c6ef4ab02a4a2c00273a76` | `rename` | `external/rhh/master-after-1.13.3-plus122-20251129` | Moving-master snapshot; not official 1.13.3 |
+| `vanilla/v14_1` | `15ede047f990e8eb1aed68ccba51c7b8a85d425c` | `rename` | `archive/baseline-1.14.1-plus28/local-init-20251207` | Development snapshot plus local init marker; not official 1.14.1 |
 
 ## Execution Batches
 

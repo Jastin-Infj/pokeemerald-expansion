@@ -38,7 +38,7 @@ upstream baseline are provenance, not local feature work.
 | Branches never used as a PR head | 38 |
 | Branches with no commits ahead of current `master` | 26, including `master` and preserved upstream snapshots |
 | Branches with commits ahead of current `master` | 66, including this report branch |
-| Branch tips not authored by Jastin | 3 upstream snapshots: `upgrade/1.15.2`, `vanilla/v12_0_0`, `vanilla/v13_3_3` |
+| Branch tips not authored by Jastin | 3 upstream-authored refs: exact official `upgrade/1.15.2`, plus moving-master snapshots `vanilla/v12_0_0` and `vanilla/v13_3_3` |
 | Unrelated early history | 6 branches rooted at `vanilla/v11_1_1` |
 | Branch protection / rulesets | None; every branch, including `master`, reports unprotected |
 | Fork default branch | `master` |
@@ -169,7 +169,7 @@ The 23 retained 1.15.2 Docs branches are listed below. Most are merged into
 
 | Branch | Content / status |
 |---|---|
-| `vanilla/v14_1` | Upstream 1.14.1 snapshot plus local `vanilla init` marker |
+| `vanilla/v14_1` | Development snapshot 28 commits after official 1.14.1, including local `vanilla init` tip; not an official release baseline |
 | `Documents/GPT` | Early AGENTS/project-link documentation experiment |
 | `feature/EX/ex-rz-upstream1` | Broad randomizer line: encounter/time slots, DexNav, trainer rank/tag logic, item weighting/icons, generated data, tests, and extensive planning docs |
 | `feature/ex-rz-upstream1` | Earlier two-commit trainer randomizer prototype; superseded by the broader EX branch |
@@ -183,14 +183,14 @@ The 23 retained 1.15.2 Docs branches are listed below. Most are merged into
 
 | Branch | Content / status |
 |---|---|
-| `vanilla/v13_3_3` | Exact upstream snapshot; tip authored by an upstream contributor |
+| `vanilla/v13_3_3` | Moving `RHH/master` snapshot 122 commits after official 1.13.3; external reference only, never an intake baseline |
 | `feature/birch_case` | Custom Birch case UI plus Dojo map and script/content changes |
 
 ### 1.12.0 Lineage - 8
 
 | Branch | Content / status |
 |---|---|
-| `vanilla/v12_0_0` | Exact upstream snapshot; tip authored by an upstream contributor |
+| `vanilla/v12_0_0` | Moving `RHH/master` snapshot 33 commits after official 1.12.0; external reference only, never an intake baseline |
 | `TM_v12_0` | Three local commits implementing the Gen 9 TM set and save use |
 | `dev` | Old mixed integration line containing map/editor, shop, DexNav, TM, relearner, key-item, weather, relic/gem, berry restore, AI, and party-select experiments |
 | `feature/dynamicmulti` | One-commit dynamic multi/tutorial prototype |
@@ -207,7 +207,7 @@ the current line.
 
 | Branch | Content / status |
 |---|---|
-| `vanilla/v11_1_1` | One-commit imported baseline |
+| `vanilla/v11_1_1` | One-commit local root with no official expansion release ancestry; not an upstream baseline |
 | `feature/main_menu` | One local main-menu commit |
 | `feature/poryscript` | One local Poryscript commit |
 | `feature/move_relearner` | One local move-relearner commit |
@@ -246,7 +246,7 @@ name.
 
 | Pattern | Purpose | Mutability |
 |---|---|---|
-| `master` | Latest accepted stable RHH release plus minimal project Docs/AGENTS overlay | Updated only by upstream-intake or Docs/Lua PR |
+| `master` | Latest accepted official `expansion/<version>` Release tag plus minimal project Docs/AGENTS overlay | Updated only by release-tag intake or Docs/Lua PR |
 | `upgrade/<version>-intake-<date>` | One upstream release intake | Short-lived PR branch |
 | `integration/active-runtime-<version>` | The one current playable all-feature line | Receives PRs; no direct feature implementation |
 | `tuning/runtime-<version>/<topic>` | Small balancing or compatibility change based on active integration | Short-lived PR into active integration |
@@ -272,22 +272,27 @@ finalized, are:
 | `feature/champions-partygen-16-20260603` | `shelf/runtime-1.16.1/champions-partygen` |
 | `feature/map-asset-relinker-20260525` | `tool/1.15.2/map-asset-relinker` |
 
-The baseline names should be normalized only after deciding whether exact
-upstream snapshots remain branches or become annotated tags. If they remain
-branches, use `snapshot/upstream-<version>` rather than `vanilla/*` and
-`upgrade/*` for immutable historical points.
+Official `expansion/<version>` tags are the canonical version identities.
+Branches represent active work lines or preserved re-apply/comparison evidence,
+not the version number itself. Existing exact-upstream copies may remain under
+`snapshot/upstream-<version>` during this transition, but do not create a new
+branch solely to duplicate an official tag. Add an immutable annotated local
+tag to important validated integration milestones while retaining any branch
+that still has re-apply or recovery value.
 
 ## Master Recommendation
 
-Keep `master` on the latest accepted stable release, not on the moving RHH
-`master`. Retain only the minimal project Docs, AGENTS, and approved Lua overlay
-there. This is the recommended compromise for this repository because:
+Keep `master` on the latest accepted official `expansion/<version>` GitHub
+Release tag, never on the moving `RHH/master`. A commit that exists only on
+`RHH/master` is ineligible until an official non-draft / non-prerelease Release
+contains it. Retain only the minimal project Docs, AGENTS, and approved Lua
+overlay there. This is the recommended compromise for this repository because:
 
 - RHH `master` is already untagged 1.16.3, while the latest stable release is
   1.16.2;
 - an exact-upstream `master` would make Sync Fork easier but remove the local
   workflow contract from the default branch;
-- controlled release intake can preserve upstream API/structure authority
+- controlled official-tag intake can preserve released API/structure authority
   without silently adopting unreleased commits;
 - the real missing development baseline is an active all-feature integration,
   not more runtime code on `master`.
@@ -301,7 +306,7 @@ merges. It is therefore too restrictive here. Because this is a personal fork,
 do not require an outside approval that the owner cannot supply; require the PR
 path and selected status checks instead.
 
-After a controlled 1.16.2 intake, create
+After a controlled official 1.16.2 release-tag intake, create
 `integration/active-runtime-1.16.2` fresh from the updated `master`. Reapply the
 accepted full-stack features, runtime-lab features, and Champions PartyGen in a
 recorded order through separate PRs. Create every balancing or small adjustment

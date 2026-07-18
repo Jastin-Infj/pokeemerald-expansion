@@ -79,6 +79,15 @@
 - Treat each upstream release generation independently. This policy applies to
   1.16.1 -> 1.16.2, 1.16.x -> 1.17, and later transitions; do not hard-code the
   integration workflow to one release number.
+- Never adopt, merge, cherry-pick, or Sync Fork the moving `RHH/master` branch.
+  It is discovery/comparison input only, regardless of how far it has advanced.
+  A commit becomes eligible for intake only after pokeemerald-expansion
+  publishes it in an official, non-draft, non-prerelease
+  `expansion/<version>` GitHub Release tag.
+- Treat that official release tag as the canonical upstream version identity;
+  do not create a new branch solely to duplicate it. Branches remain work lines
+  or retained implementation evidence. Use immutable annotated local tags for
+  important validated integration milestones, without moving an existing tag.
 - Before porting local features, fetch the non-pushable upstream remote, verify
   the exact release tag and commit, record the current fork `master` commit, and
   preserve the previous playable line under `snapshot/runtime-<old-version>/*`.
@@ -86,11 +95,11 @@
   the only normal exception that permits upstream-authored source / data /
   generated changes to enter `master`; local runtime feature implementation is
   still excluded from `master`.
-- Upstream is authoritative during conflict resolution. When upstream renames a
-  variable, changes an API, replaces a struct, changes a save/data layout, moves
-  ownership, or updates generated formats, preserve the new upstream contract
-  and port the local feature's intent onto it. Do not restore an old file or
-  field merely because the local branch used it.
+- The pinned official release tag is authoritative during conflict resolution.
+  When that release renames a variable, changes an API, replaces a struct,
+  changes a save/data layout, moves ownership, or updates generated formats,
+  preserve the released contract and port the local feature's intent onto it.
+  Do not restore an old file or field merely because the local branch used it.
 - Never resolve a release conflict with blanket `ours` / `theirs`. Inspect the
   semantic change, identify all producers and consumers, adapt local call sites
   and tests, and document any compatibility shim that remains necessary.
