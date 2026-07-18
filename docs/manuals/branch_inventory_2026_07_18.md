@@ -234,6 +234,9 @@ worktree/upstream repair pass.
 
 ## Proposed Naming Model
 
+The complete old-to-new mapping and transactional execution order are recorded
+in [Branch Rename Manifest 2026-07-18](branch_rename_manifest_2026_07_18.md).
+
 GitHub Flow normally recommends deleting a branch after its PR is merged so
 that completed work is not mistaken for active work. This repository makes a
 deliberate exception for implementation evidence and recovery points. A
