@@ -719,75 +719,6 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleRandom =
     .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
 };
 
-#define REGISTERED_TEAM_CONFIG(teamId_, format_, memberMode_)                         \
-    {                                                                                 \
-        .poolMode = BOX_NPC_POOL_REGISTERED_BATTLE_TEAM,                              \
-        .battleTeamId = (teamId_),                                                     \
-        .battleFormat = (format_),                                                     \
-        .memberMode = (memberMode_),                                                   \
-        .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,         \
-        .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,                                             \
-    }
-
-enum {
-    TEAM_BATTLE_SINGLE_FIRST,
-    TEAM_BATTLE_SINGLE_RANDOM,
-    TEAM_BATTLE_DOUBLE_FIRST,
-    TEAM_BATTLE_DOUBLE_RANDOM,
-    TEAM_BATTLE_MODE_COUNT,
-};
-
-static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_RegisteredTeams[BATTLE_TEAM_COUNT][TEAM_BATTLE_MODE_COUNT] =
-{
-    [0] =
-    {
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-    },
-    [1] =
-    {
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-    },
-    [2] =
-    {
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-    },
-};
-
-#undef REGISTERED_TEAM_CONFIG
-
-#define BATTLE_TEAM_DEBUG_MENU(teamId_)                                                                                                    \
-    { COMPOUND_STRING("Single first 3"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_SINGLE_FIRST] },  \
-    { COMPOUND_STRING("Single random 3"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_SINGLE_RANDOM] }, \
-    { COMPOUND_STRING("Double first 4"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_DOUBLE_FIRST] },  \
-    { COMPOUND_STRING("Double random 4"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_DOUBLE_RANDOM] }, \
-    { NULL }
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam1[] =
-{
-    BATTLE_TEAM_DEBUG_MENU(0)
-};
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam2[] =
-{
-    BATTLE_TEAM_DEBUG_MENU(1)
-};
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam3[] =
-{
-    BATTLE_TEAM_DEBUG_MENU(2)
-};
-
-#undef BATTLE_TEAM_DEBUG_MENU
-
 static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleLegacy[] =
 {
     { COMPOUND_STRING("Single slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleSlotsFirst },
@@ -808,7 +739,6 @@ static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
     { COMPOUND_STRING("Legacy Box 1 pool…"),   DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
     { NULL }
 };
-
 static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
 {
     { COMPOUND_STRING("Mega Single"),   DebugAction_Party_BattleGauntletMegaSingles },
@@ -956,6 +886,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Main[] =
     { COMPOUND_STRING("Utilities…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_Utilities, },
     { COMPOUND_STRING("PC/Bag…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_PCBag, },
     { COMPOUND_STRING("Party…"),        DebugAction_OpenSubMenu, sDebugMenu_Actions_Party, },
+    { COMPOUND_STRING("Battle Lab"),    DebugAction_Party_BattleTeamManager, },
     { COMPOUND_STRING("Give X…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_Give, },
     { COMPOUND_STRING("Player…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_Player, },
     { COMPOUND_STRING("Scripts…"),      DebugAction_OpenSubMenu, sDebugMenu_Actions_Scripts, },
@@ -5233,37 +5164,36 @@ static void DebugAction_Party_BattleTeamManager(u8 taskId)
     ShowPokemonStorageBattleTeamManager();
 }
 
+static void DebugAction_Party_BoxNpcBattleShowPreparedMessage(u8 taskId)
+{
+    Debug_DestroyMenu_Full_Script(taskId, Debug_ShowFieldMessageStringVar4);
+}
+
 static void DebugAction_Party_BoxNpcBattleShowMessage(u8 taskId, const u8 *message)
 {
     StringCopy(gStringVar4, message);
-    Debug_DestroyMenu_Full_Script(taskId, Debug_ShowFieldMessageStringVar4);
+    DebugAction_Party_BoxNpcBattleShowPreparedMessage(taskId);
 }
 
 static bool32 DebugAction_Party_BoxNpcBattleHasPlayerMons(const struct BoxNpcPartyPoolConfig *config)
 {
-    u8 requiredMons = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4 ? 2 : 1;
+    u8 requiredMons = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4
+                    ? BOX_NPC_DOUBLE_BATTLE_SIZE
+                    : BOX_NPC_SINGLE_BATTLE_SIZE;
 
     return CountPartyAliveNonEggMonsExcept(PARTY_SIZE) >= requiredMons;
 }
 
-static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
+bool32 Debug_StartPreparedBoxNpcBattle(const struct BoxNpcPartyPoolConfig *config)
 {
-    const struct BoxNpcPartyPoolConfig *config = params;
+    u8 battleCount = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4
+                   ? BOX_NPC_DOUBLE_BATTLE_SIZE
+                   : BOX_NPC_SINGLE_BATTLE_SIZE;
 
-    if (!DebugAction_Party_BoxNpcBattleHasPlayerMons(config))
+    if (!BoxNpcPartyPool_TryStagePlayerParty(battleCount))
     {
         BoxNpcPartyPool_ClearPendingBattleInitPolicy();
-        if (config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4)
-            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("Current party needs two usable Pokemon."));
-        else
-            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("Current party needs one usable Pokemon."));
-        return;
-    }
-
-    if (!BoxNpcPartyPool_TryBuildOpponentParty(config, NULL))
-    {
-        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
-        return;
+        return FALSE;
     }
 
     gBattleTypeFlags = BATTLE_TYPE_TRAINER;
@@ -5275,7 +5205,33 @@ static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
     CalculatePlayerPartyCount();
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
-    Debug_DestroyMenu_Full(taskId);
+    return TRUE;
+}
+
+static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
+{
+    const struct BoxNpcPartyPoolConfig *config = params;
+
+    if (!DebugAction_Party_BoxNpcBattleHasPlayerMons(config))
+    {
+        BoxNpcPartyPool_ClearPendingBattleInitPolicy();
+        if (config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4)
+            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("A 4v4 needs four usable Pokemon."));
+        else
+            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("A 3v3 needs three usable Pokemon."));
+        return;
+    }
+
+    if (!BoxNpcPartyPool_TryBuildOpponentParty(config, NULL))
+    {
+        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
+        return;
+    }
+
+    if (Debug_StartPreparedBoxNpcBattle(config))
+        Debug_DestroyMenu_Full(taskId);
+    else
+        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
 }
 
 static void DebugAction_Party_BattleSingle(u8 taskId)

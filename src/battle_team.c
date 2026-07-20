@@ -108,6 +108,24 @@ void BattleTeam_ClearSlot(u8 teamId, u8 teamPosition)
         ClearSlot(&GetRegistry()->teams[teamId][teamPosition]);
 }
 
+void BattleTeam_SwapSlots(u8 teamId, u8 firstPosition, u8 secondPosition)
+{
+    struct BattleTeamSlot temp;
+    struct BattleTeamRegistry *registry;
+
+    EnsureRegistryInitialized();
+    if (!IsTeamAndPositionValid(teamId, firstPosition)
+     || !IsTeamAndPositionValid(teamId, secondPosition)
+     || firstPosition == secondPosition)
+        return;
+
+    registry = GetRegistry();
+    temp = registry->teams[teamId][firstPosition];
+    registry->teams[teamId][firstPosition] = registry->teams[teamId][secondPosition];
+    registry->teams[teamId][secondPosition] = temp;
+    registry->lastViewedTeam = teamId;
+}
+
 bool32 BattleTeam_TryGetFullRoster(u8 teamId, struct BattleTeamSlot *slots)
 {
     u32 i;
@@ -138,9 +156,15 @@ u8 BattleTeam_GetRegisteredCount(u8 teamId)
 
 bool32 BattleTeam_IsBoxSlotRegistered(u8 boxId, u8 boxPosition)
 {
+    return BattleTeam_GetBoxSlotTeamMask(boxId, boxPosition) != 0;
+}
+
+u8 BattleTeam_GetBoxSlotTeamMask(u8 boxId, u8 boxPosition)
+{
     struct BattleTeamSlot slot;
     u32 teamId;
     u32 teamPosition;
+    u8 teamMask = 0;
 
     for (teamId = 0; teamId < BATTLE_TEAM_COUNT; teamId++)
     {
@@ -149,10 +173,43 @@ bool32 BattleTeam_IsBoxSlotRegistered(u8 boxId, u8 boxPosition)
             if (BattleTeam_TryGetMember(teamId, teamPosition, &slot)
              && slot.boxId == boxId
              && slot.boxPosition == boxPosition)
-                return TRUE;
+            {
+                teamMask |= 1 << teamId;
+                break;
+            }
         }
     }
-    return FALSE;
+    return teamMask;
+}
+
+void BattleTeam_BuildBoxSlotTeamMasks(u8 boxId, u8 *teamMasks)
+{
+    struct BattleTeamRegistry *registry;
+    u32 teamId;
+    u32 teamPosition;
+
+    if (teamMasks == NULL)
+        return;
+
+    memset(teamMasks, 0, IN_BOX_COUNT);
+    EnsureRegistryInitialized();
+    registry = GetRegistry();
+    for (teamId = 0; teamId < BATTLE_TEAM_COUNT; teamId++)
+    {
+        for (teamPosition = 0; teamPosition < BATTLE_TEAM_MEMBER_COUNT; teamPosition++)
+        {
+            struct BattleTeamSlot *slot = &registry->teams[teamId][teamPosition];
+
+            if (!BattleTeam_CanRegisterBoxSlot(slot->boxId, slot->boxPosition))
+            {
+                ClearSlot(slot);
+            }
+            else if (slot->boxId == boxId)
+            {
+                teamMasks[slot->boxPosition] |= 1 << teamId;
+            }
+        }
+    }
 }
 
 u8 BattleTeam_GetLastViewedTeam(void)

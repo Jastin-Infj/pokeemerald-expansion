@@ -58,8 +58,8 @@ three teams:
 - Exactly six ordered slots per team.
 - A slot stores `{boxId, boxPosition}`, not a `struct BoxPokemon` copy.
 - A source may appear in multiple teams.
-- Registering the same source twice in one team moves its registration to the
-  newly selected team slot.
+- Registering the same source twice in one team is rejected and preserves its
+  original team slot. The same source remains valid in different teams.
 - Empty slots, Eggs, Bad Eggs, and out-of-range references are invalid.
 - If an external system removes a source, the stale registration is cleared the
   next time it is queried.
@@ -80,7 +80,11 @@ three teams:
 ### Debug battles
 
 - A registered Battle Team must have all six valid members before battle.
-- Singles copy three members; doubles copy four.
+- Singles copy three opponent members and stage exactly three usable player
+  members; doubles copy four and stage exactly four.
+- All six original player records and the logical party count are restored
+  byte-for-byte after the staged debug battle. Defeat/forfeit does not enter
+  whiteout healing after restoration.
 - First-N mode is deterministic and preserves team order.
 - Random-N mode samples from the six without replacement.
 - Enemy copies start fully healed.
@@ -95,15 +99,15 @@ three teams:
 | --- | --- | --- |
 | Save extension | `struct SaveBlock3`, save chunks in `src/save.c` | Registry is appended to SaveBlock3. Size changes from 4 to 84 bytes and remains below the 1,624-byte limit. |
 | Pokemon Storage | `gPokemonStoragePtr`, `GetBoxMonDataAt`, `SetBoxMonAt`, `CheckBoxMonSanityAt` | References are valid only for an existing non-Egg, non-Bad-Egg Box Pokemon. |
-| Storage UI | `src/pokemon_storage_system.c` | Adds the team manager, Box-only selector, and registered-source movement locks. |
+| Storage UI | `src/pokemon_storage_system.c` | Adds the in-storage six-slot editor/Battle Lab, fixed BG badge overlays, and registered-source movement locks. |
 | PC selection | `src/chooseboxmon.c`, `SELECT_PC_MON_*` | Marks destructive selection types and keeps the Lotad/Seedot size check on a distinct non-destructive type. |
 | Box NPC source | `BoxNpcPartyPoolConfig`, `BoxNpcPartyPoolResult` | Candidate sources must carry both Box ID and Box position. |
 | Battle copy | `BoxMonAtToMon`, `HealPokemon`, `ZeroEnemyPartyMons` | Opponent party copies are temporary and contiguous from slot zero. |
-| Debug battle route | `src/debug.c`, `BattleSetup_StartTrainerBattle_Debug` | Adds Team 1-3 single/double first/random routes without removing legacy routes. |
+| Debug battle route | `src/debug.c`, `src/battle_setup.c`, `BattleSetup_StartTrainerBattle_Debug` | Starts registered-team and legacy routes with exact player counts, then restores the full player party through the debug end callback. |
 | Gimmick policy | `BoxNpcPartyPool_ApplyPendingBattleInitPolicy` | Existing pending Tera/Dynamax policy applies equally to registered-team copies. |
 | Randomness | `RNG_BOX_NPC_PARTY_POOL_BATTLE_MEMBER` | Existing final-member sampling tag is reused, avoiding a second preview roll. |
 | Save tests | `test/save.c` | Intentional SaveBlock3 growth must update the compatibility baseline to 84. |
-| Feature tests | `test/battle_team.c` | Covers references, uniqueness, stale cleanup, Box preservation, and NPC copy behavior. |
+| Feature tests | `test/battle_team.c` | Covers references, uniqueness, stale cleanup, Box preservation, NPC copy behavior, exact player staging/restoration, Double4 random selection, incomplete teams, and pending gimmick policy. |
 
 ## Save Compatibility
 
