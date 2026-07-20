@@ -251,7 +251,6 @@ EWRAM_DATA bool8 gIsDebugBattle = FALSE;
 EWRAM_DATA u64 gDebugAIFlags = 0;
 EWRAM_DATA u8 gDebugGimmickAccessFlags = 0;
 static EWRAM_DATA u8 sCurrentDebugAiTrainerId = 0;
-static EWRAM_DATA u8 sBoxNpcBattleTeamMenuTexts[BATTLE_TEAM_COUNT][26] = {0};
 
 // *******************************
 // Define functions
@@ -308,7 +307,6 @@ static void DebugAction_Party_ClearParty(u8 taskId);
 static void DebugAction_Party_SetParty(u8 taskId);
 static void DebugAction_Party_BattleSingle(u8 taskId);
 static void DebugAction_Party_BattleTeamManager(u8 taskId);
-static void DebugAction_Party_OpenBoxNpcBattleMenu(u8 taskId);
 static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params);
 static void DebugAction_Party_BattleSingles3v3(u8 taskId);
 static void DebugAction_Party_BattleDoubles4v4(u8 taskId);
@@ -721,75 +719,6 @@ static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_DoubleRandom =
     .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,
 };
 
-#define REGISTERED_TEAM_CONFIG(teamId_, format_, memberMode_)                         \
-    {                                                                                 \
-        .poolMode = BOX_NPC_POOL_REGISTERED_BATTLE_TEAM,                              \
-        .battleTeamId = (teamId_),                                                     \
-        .battleFormat = (format_),                                                     \
-        .memberMode = (memberMode_),                                                   \
-        .gimmickPolicy = BOX_NPC_GIMMICK_ALLOW_TERA_DYNAMAX_ALL_FINAL_MEMBERS,         \
-        .aiFlags = BOX_NPC_DEBUG_AI_FLAGS,                                             \
-    }
-
-enum {
-    TEAM_BATTLE_SINGLE_FIRST,
-    TEAM_BATTLE_SINGLE_RANDOM,
-    TEAM_BATTLE_DOUBLE_FIRST,
-    TEAM_BATTLE_DOUBLE_RANDOM,
-    TEAM_BATTLE_MODE_COUNT,
-};
-
-static const struct BoxNpcPartyPoolConfig sBoxNpcBattle_RegisteredTeams[BATTLE_TEAM_COUNT][TEAM_BATTLE_MODE_COUNT] =
-{
-    [0] =
-    {
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(0, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-    },
-    [1] =
-    {
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(1, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-    },
-    [2] =
-    {
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_SINGLE_3, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_FIRST_N),
-        REGISTERED_TEAM_CONFIG(2, BOX_NPC_BATTLE_DOUBLE_4, BOX_NPC_BATTLE_MEMBERS_RANDOM_N),
-    },
-};
-
-#undef REGISTERED_TEAM_CONFIG
-
-#define BATTLE_TEAM_DEBUG_MENU(teamId_)                                                                                                    \
-    { COMPOUND_STRING("Single first 3"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_SINGLE_FIRST] },  \
-    { COMPOUND_STRING("Single random 3"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_SINGLE_RANDOM] }, \
-    { COMPOUND_STRING("Double first 4"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_DOUBLE_FIRST] },  \
-    { COMPOUND_STRING("Double random 4"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_RegisteredTeams[(teamId_)][TEAM_BATTLE_DOUBLE_RANDOM] }, \
-    { NULL }
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam1[] =
-{
-    BATTLE_TEAM_DEBUG_MENU(0)
-};
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam2[] =
-{
-    BATTLE_TEAM_DEBUG_MENU(1)
-};
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleTeam3[] =
-{
-    BATTLE_TEAM_DEBUG_MENU(2)
-};
-
-#undef BATTLE_TEAM_DEBUG_MENU
-
 static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleLegacy[] =
 {
     { COMPOUND_STRING("Single slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_SingleSlotsFirst },
@@ -798,16 +727,6 @@ static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleLegacy[] =
     { COMPOUND_STRING("Double slots 1-6"),  DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleSlotsFirst },
     { COMPOUND_STRING("Double first valid"), DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleFirstValid },
     { COMPOUND_STRING("Double random"),     DebugAction_Party_BoxNpcBattle, &sBoxNpcBattle_DoubleRandom },
-    { NULL }
-};
-
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
-{
-    { COMPOUND_STRING("Manage Battle Teams"), DebugAction_Party_BattleTeamManager },
-    { sBoxNpcBattleTeamMenuTexts[0],            DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam1 },
-    { sBoxNpcBattleTeamMenuTexts[1],            DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam2 },
-    { sBoxNpcBattleTeamMenuTexts[2],            DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam3 },
-    { COMPOUND_STRING("Legacy Box 1 pool…"),   DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
     { NULL }
 };
 
@@ -847,7 +766,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
-    { COMPOUND_STRING("Box NPC Battle…"),    DebugAction_Party_OpenBoxNpcBattleMenu },
+    { COMPOUND_STRING("Box NPC Legacy…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
     { COMPOUND_STRING("Battle 3v3 Single"),  DebugAction_Party_BattleSingles3v3 },
     { COMPOUND_STRING("Battle 4v4 Double"),  DebugAction_Party_BattleDoubles4v4 },
     { COMPOUND_STRING("Battle Dmax/Z Single"), DebugAction_Party_BattleDmaxZSingles },
@@ -958,6 +877,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Main[] =
     { COMPOUND_STRING("Utilities…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_Utilities, },
     { COMPOUND_STRING("PC/Bag…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_PCBag, },
     { COMPOUND_STRING("Party…"),        DebugAction_OpenSubMenu, sDebugMenu_Actions_Party, },
+    { COMPOUND_STRING("Battle Lab"),    DebugAction_Party_BattleTeamManager, },
     { COMPOUND_STRING("Give X…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_Give, },
     { COMPOUND_STRING("Player…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_Player, },
     { COMPOUND_STRING("Scripts…"),      DebugAction_OpenSubMenu, sDebugMenu_Actions_Scripts, },
@@ -1079,7 +999,6 @@ static const struct DebugMenuOption *Debug_GetCurrentCallbackMenu(void)
 static bool32 IsSubMenuAction(const void *action)
 {
     return action == DebugAction_OpenSubMenu
-        || action == DebugAction_Party_OpenBoxNpcBattleMenu
         || action == DebugAction_OpenSubMenuFlagsVars
         || action == DebugAction_OpenSubMenuFakeRTC
         || action == DebugAction_OpenSubMenuCreateFollowerNPC
@@ -5236,24 +5155,6 @@ static void DebugAction_Party_BattleTeamManager(u8 taskId)
     ShowPokemonStorageBattleTeamManager();
 }
 
-static void DebugAction_Party_OpenBoxNpcBattleMenu(u8 taskId)
-{
-    u32 teamId;
-
-    for (teamId = 0; teamId < BATTLE_TEAM_COUNT; teamId++)
-    {
-        StringCopy(sBoxNpcBattleTeamMenuTexts[teamId], COMPOUND_STRING("Battle Team "));
-        ConvertIntToDecimalStringN(gStringVar1, teamId + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
-        StringAppend(sBoxNpcBattleTeamMenuTexts[teamId], gStringVar1);
-        StringAppend(sBoxNpcBattleTeamMenuTexts[teamId], COMPOUND_STRING("  "));
-        ConvertIntToDecimalStringN(gStringVar1, BattleTeam_GetRegisteredCount(teamId), STR_CONV_MODE_LEFT_ALIGN, 1);
-        StringAppend(sBoxNpcBattleTeamMenuTexts[teamId], gStringVar1);
-        StringAppend(sBoxNpcBattleTeamMenuTexts[teamId], COMPOUND_STRING("/6"));
-    }
-
-    DebugAction_OpenSubMenu(taskId, sDebugMenu_Actions_BoxNpcBattle);
-}
-
 static void DebugAction_Party_BoxNpcBattleShowPreparedMessage(u8 taskId)
 {
     Debug_DestroyMenu_Full_Script(taskId, Debug_ShowFieldMessageStringVar4);
@@ -5265,51 +5166,25 @@ static void DebugAction_Party_BoxNpcBattleShowMessage(u8 taskId, const u8 *messa
     DebugAction_Party_BoxNpcBattleShowPreparedMessage(taskId);
 }
 
-static void DebugAction_Party_BoxNpcBattleShowIncompleteTeam(u8 taskId, u8 teamId)
-{
-    u8 invalidPosition = BattleTeam_GetFirstInvalidPosition(teamId);
-
-    if (invalidPosition == BATTLE_TEAM_SLOT_NONE)
-    {
-        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
-        return;
-    }
-
-    ConvertIntToDecimalStringN(gStringVar1, teamId + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
-    ConvertIntToDecimalStringN(gStringVar2, BattleTeam_GetRegisteredCount(teamId), STR_CONV_MODE_LEFT_ALIGN, 1);
-    ConvertIntToDecimalStringN(gStringVar3, invalidPosition + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
-    StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("TEAM {STR_VAR_1}: {STR_VAR_2}/6 valid.\nSLOT {STR_VAR_3} is empty or invalid."));
-    DebugAction_Party_BoxNpcBattleShowPreparedMessage(taskId);
-}
-
 static bool32 DebugAction_Party_BoxNpcBattleHasPlayerMons(const struct BoxNpcPartyPoolConfig *config)
 {
-    u8 requiredMons = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4 ? 2 : 1;
+    u8 requiredMons = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4
+                    ? BOX_NPC_DOUBLE_BATTLE_SIZE
+                    : BOX_NPC_SINGLE_BATTLE_SIZE;
 
     return CountPartyAliveNonEggMonsExcept(PARTY_SIZE) >= requiredMons;
 }
 
-static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
+bool32 Debug_StartPreparedBoxNpcBattle(const struct BoxNpcPartyPoolConfig *config)
 {
-    const struct BoxNpcPartyPoolConfig *config = params;
+    u8 battleCount = config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4
+                   ? BOX_NPC_DOUBLE_BATTLE_SIZE
+                   : BOX_NPC_SINGLE_BATTLE_SIZE;
 
-    if (!DebugAction_Party_BoxNpcBattleHasPlayerMons(config))
+    if (!BoxNpcPartyPool_TryStagePlayerParty(battleCount))
     {
         BoxNpcPartyPool_ClearPendingBattleInitPolicy();
-        if (config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4)
-            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("Current party needs two usable Pokemon."));
-        else
-            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("Current party needs one usable Pokemon."));
-        return;
-    }
-
-    if (!BoxNpcPartyPool_TryBuildOpponentParty(config, NULL))
-    {
-        if (BoxNpcPartyPool_GetLastError() == BOX_NPC_PARTY_POOL_ERROR_BATTLE_TEAM_INCOMPLETE)
-            DebugAction_Party_BoxNpcBattleShowIncompleteTeam(taskId, config->battleTeamId);
-        else
-            DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
-        return;
+        return FALSE;
     }
 
     gBattleTypeFlags = BATTLE_TYPE_TRAINER;
@@ -5321,7 +5196,33 @@ static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
     CalculatePlayerPartyCount();
     CalculateEnemyPartyCount();
     BattleSetup_StartTrainerBattle_Debug();
-    Debug_DestroyMenu_Full(taskId);
+    return TRUE;
+}
+
+static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params)
+{
+    const struct BoxNpcPartyPoolConfig *config = params;
+
+    if (!DebugAction_Party_BoxNpcBattleHasPlayerMons(config))
+    {
+        BoxNpcPartyPool_ClearPendingBattleInitPolicy();
+        if (config->battleFormat == BOX_NPC_BATTLE_DOUBLE_4)
+            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("A 4v4 needs four usable Pokemon."));
+        else
+            DebugAction_Party_BoxNpcBattleShowMessage(taskId, COMPOUND_STRING("A 3v3 needs three usable Pokemon."));
+        return;
+    }
+
+    if (!BoxNpcPartyPool_TryBuildOpponentParty(config, NULL))
+    {
+        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
+        return;
+    }
+
+    if (Debug_StartPreparedBoxNpcBattle(config))
+        Debug_DestroyMenu_Full(taskId);
+    else
+        DebugAction_Party_BoxNpcBattleShowMessage(taskId, BoxNpcPartyPool_GetLastErrorText());
 }
 
 static void DebugAction_Party_BattleSingle(u8 taskId)

@@ -4,6 +4,7 @@
 #include "battle_setup.h"
 #include "battle_tower.h"
 #include "battle_transition.h"
+#include "box_npc_party_pool.h"
 #include "main.h"
 #include "task.h"
 #include "safari_zone.h"
@@ -1378,6 +1379,19 @@ void BattleSetup_StartTrainerBattle(void)
 
 static void CB2_EndDebugBattle(void)
 {
+    if (BoxNpcPartyPool_RestorePlayerParty())
+    {
+        BoxNpcPartyPool_ClearPendingBattleInitPolicy();
+        gIsDebugBattle = FALSE;
+        gDebugGimmickAccessFlags = 0;
+        // A staged debug battle must not white out after the exact party backup
+        // has been restored, since the recovery flow would heal and mutate it.
+        if (IsPlayerDefeated(gBattleOutcome))
+            gBattleOutcome = B_OUTCOME_PLAYER_TELEPORTED;
+        SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+        return;
+    }
+
     if (gBattleTypeFlags & BATTLE_TYPE_INGAME_PARTNER)
     {
         for (u32 i = 0; i < 3; i++)

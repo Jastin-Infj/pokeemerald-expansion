@@ -12,6 +12,10 @@ static EWRAM_DATA enum BoxNpcPartyPoolError sLastError = BOX_NPC_PARTY_POOL_ERRO
 static EWRAM_DATA bool8 sPendingBattleInitPolicy = FALSE;
 static EWRAM_DATA u8 sPendingBattleCount = 0;
 static EWRAM_DATA enum BoxNpcOpponentGimmickPolicy sPendingGimmickPolicy = BOX_NPC_GIMMICK_NATURAL;
+static EWRAM_DATA struct Pokemon sSavedPlayerParty[PARTY_SIZE] = {0};
+static EWRAM_DATA u8 sSavedPlayerPartyCount = 0;
+static EWRAM_DATA u8 sStagedPlayerPartyCount = 0;
+static EWRAM_DATA bool8 sPlayerPartyStaged = FALSE;
 
 static void InitResult(struct BoxNpcPartyPoolResult *result, const struct BoxNpcPartyPoolConfig *config)
 {
@@ -255,6 +259,72 @@ bool32 BoxNpcPartyPool_TryBuildOpponentParty(
     return TRUE;
 }
 
+bool32 BoxNpcPartyPool_TryStagePlayerParty(u8 battleCount)
+{
+    struct Pokemon stagedParty[PARTY_SIZE];
+    u32 source;
+    u8 stagedCount = 0;
+
+    if (sPlayerPartyStaged)
+    {
+        if (sStagedPlayerPartyCount == battleCount)
+            return TRUE;
+        sLastError = BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_PLAYER_MONS;
+        return FALSE;
+    }
+
+    if (battleCount == 0 || battleCount > PARTY_SIZE)
+    {
+        sLastError = BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_PLAYER_MONS;
+        return FALSE;
+    }
+
+    memset(stagedParty, 0, sizeof(stagedParty));
+    for (source = 0; source < PARTY_SIZE && stagedCount < battleCount; source++)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][source];
+
+        if (GetMonData(mon, MON_DATA_SPECIES) != SPECIES_NONE
+         && !GetMonData(mon, MON_DATA_IS_EGG)
+         && GetMonData(mon, MON_DATA_HP) != 0)
+            stagedParty[stagedCount++] = *mon;
+    }
+
+    if (stagedCount != battleCount)
+    {
+        sLastError = BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_PLAYER_MONS;
+        return FALSE;
+    }
+
+    memcpy(sSavedPlayerParty, gParties[B_TRAINER_PLAYER], sizeof(sSavedPlayerParty));
+    sSavedPlayerPartyCount = CalculatePlayerPartyCount();
+    memcpy(gParties[B_TRAINER_PLAYER], stagedParty, sizeof(stagedParty));
+    gPartiesCount[B_TRAINER_PLAYER] = battleCount;
+    sStagedPlayerPartyCount = battleCount;
+    sPlayerPartyStaged = TRUE;
+    sLastError = BOX_NPC_PARTY_POOL_ERROR_NONE;
+    return TRUE;
+}
+
+bool32 BoxNpcPartyPool_RestorePlayerParty(void)
+{
+    if (!sPlayerPartyStaged)
+        return FALSE;
+
+    memcpy(gParties[B_TRAINER_PLAYER], sSavedPlayerParty, sizeof(sSavedPlayerParty));
+    gPartiesCount[B_TRAINER_PLAYER] = sSavedPlayerPartyCount;
+    memset(sSavedPlayerParty, 0, sizeof(sSavedPlayerParty));
+    sSavedPlayerPartyCount = 0;
+    sStagedPlayerPartyCount = 0;
+    sPlayerPartyStaged = FALSE;
+    return TRUE;
+}
+
+bool32 BoxNpcPartyPool_IsPlayerPartyStaged(void)
+{
+    return sPlayerPartyStaged;
+}
+
 void BoxNpcPartyPool_ApplyPendingBattleInitPolicy(void)
 {
     u32 i;
@@ -305,6 +375,8 @@ const u8 *BoxNpcPartyPool_GetLastErrorText(void)
         return COMPOUND_STRING("That Battle Team does not exist.");
     case BOX_NPC_PARTY_POOL_ERROR_BATTLE_TEAM_INCOMPLETE:
         return COMPOUND_STRING("Battle Team needs six valid Pokemon.");
+    case BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_PLAYER_MONS:
+        return COMPOUND_STRING("Not enough usable party Pokemon.");
     case BOX_NPC_PARTY_POOL_ERROR_NONE:
     default:
         return COMPOUND_STRING("Box NPC party pool is ready.");
