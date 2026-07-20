@@ -13,8 +13,10 @@ as the six-Pokemon opponent candidate roster for 3v3 singles and 4v4 doubles.
 |---|---|
 | Standalone source shelf | `feature/battle-team-boxes-20260716` at `ba98fed382`; draft PR #75 |
 | Required base | Box NPC reapply PR #76 at integration target `17b67dfe98` |
-| Fresh candidate | `integration/runtime-lab-battle-team-pr-20260716` |
-| Runtime equality | Source files match the standalone Battle Team shelf |
+| Frozen combined snapshot | `snapshot/runtime-1.16.1/battle-lab-20260716` at `4e960aecea` |
+| Mutable integration base | `integration/runtime-lab-current-1.16.1` |
+| Current fix candidate | `fix/runtime-lab-battle-team-incomplete-20260718`; draft PR #84 |
+| Current behavior | Battle Teams are edited directly in Pokemon Storage with six framed native-size icons and an independently restored Team/Box cursor, fixed shared-palette BG-tile Box badges, replacement/reorder/remove actions, exact read-only source Summary, a read-only player-party inspector, and true both-side 3v3/4v4 Battle Lab staging with lossless party restoration |
 | Master policy | This runtime slice is not eligible for the docs / Lua-only master path |
 
 - [Goal and Dependencies](goal.md)

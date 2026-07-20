@@ -1216,7 +1216,7 @@ void ShowPokemonSummaryScreen(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, 
     if (gInitialSummaryScreenCallback == NULL)
         gInitialSummaryScreenCallback = callback;
 
-    if (mode == SUMMARY_MODE_BOX || monIndex == PC_MON_CHOSEN)
+    if (mode == SUMMARY_MODE_BOX || mode == SUMMARY_MODE_BOX_READ_ONLY || monIndex == PC_MON_CHOSEN)
         sMonSummaryScreen->isBoxMon = TRUE;
     else
         sMonSummaryScreen->isBoxMon = FALSE;
@@ -1230,6 +1230,12 @@ void ShowPokemonSummaryScreen(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, 
     case SUMMARY_MODE_RELEARNER_CONTEST:
         sMonSummaryScreen->minPageIndex = 0;
         sMonSummaryScreen->maxPageIndex = PSS_PAGE_COUNT - 1;
+        break;
+    case SUMMARY_MODE_BOX_READ_ONLY:
+        sMonSummaryScreen->minPageIndex = 0;
+        sMonSummaryScreen->maxPageIndex = PSS_PAGE_COUNT - 1;
+        sMonSummaryScreen->lockMonFlag = TRUE;
+        sMonSummaryScreen->lockMovesFlag = TRUE;
         break;
     case SUMMARY_MODE_LOCK_MOVES:
         sMonSummaryScreen->minPageIndex = 0;
@@ -4782,7 +4788,9 @@ static inline bool32 ShouldShowIvEvPrompt(void)
     if (P_SUMMARY_SCREEN_IV_EV_BOX_ONLY)
     {
         return (P_SUMMARY_SCREEN_IV_EV_INFO || FlagGet(P_FLAG_SUMMARY_SCREEN_IV_EV_INFO))
-            && (sMonSummaryScreen->mode == SUMMARY_MODE_BOX || sMonSummaryScreen->mode == SUMMARY_MODE_BOX_CURSOR);
+            && (sMonSummaryScreen->mode == SUMMARY_MODE_BOX
+             || sMonSummaryScreen->mode == SUMMARY_MODE_BOX_CURSOR
+             || sMonSummaryScreen->mode == SUMMARY_MODE_BOX_READ_ONLY);
     }
     else if (!P_SUMMARY_SCREEN_IV_EV_BOX_ONLY)
     {

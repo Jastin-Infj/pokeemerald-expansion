@@ -41,6 +41,7 @@ enum BoxNpcPartyPoolError
     BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_VALID_MONS,
     BOX_NPC_PARTY_POOL_ERROR_INVALID_BATTLE_TEAM,
     BOX_NPC_PARTY_POOL_ERROR_BATTLE_TEAM_INCOMPLETE,
+    BOX_NPC_PARTY_POOL_ERROR_NOT_ENOUGH_PLAYER_MONS,
 };
 
 struct BoxNpcPartyPoolConfig
@@ -69,6 +70,9 @@ struct BoxNpcPartyPoolResult
 bool32 BoxNpcPartyPool_TryBuildOpponentParty(
     const struct BoxNpcPartyPoolConfig *config,
     struct BoxNpcPartyPoolResult *result);
+bool32 BoxNpcPartyPool_TryStagePlayerParty(u8 battleCount);
+bool32 BoxNpcPartyPool_RestorePlayerParty(void);
+bool32 BoxNpcPartyPool_IsPlayerPartyStaged(void);
 void BoxNpcPartyPool_ApplyPendingBattleInitPolicy(void);
 void BoxNpcPartyPool_ClearPendingBattleInitPolicy(void);
 const struct BoxNpcPartyPoolResult *BoxNpcPartyPool_GetLastResult(void);
