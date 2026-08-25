@@ -57,6 +57,10 @@ tools/mgba_live/mgba_live_cli.sh status --all
 手動実行する経路では project-local root を優先する。`MGBA_LIVE_RUNTIME_ROOT`、
 `MGBA_LIVE_CLI`、`MGBA_LIVE_UVX` で明示的に上書きできる。
 
+`start_mgba_live.sh` は `QT_QPA_PLATFORM` が未指定で `WAYLAND_DISPLAY` がある場合、
+`QT_QPA_PLATFORM=wayland` を自動選択する。X11 を使う必要がある場合は
+`QT_QPA_PLATFORM=xcb` を明示する。
+
 ## Known Working Path
 
 2026-05-06 時点で、この workspace では通常 Qt/xcb display を使う path が mGBA Live CLI の操作まで成功した。

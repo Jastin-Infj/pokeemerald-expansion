@@ -15,6 +15,8 @@ Environment:
   ROM            ROM path, default ./pokeemerald.gba
   READY_TIMEOUT  bridge ready timeout in seconds, default 20
   VIDEO_SYNC     set to 0 to skip videoSync=1, default 1
+  QT_QPA_PLATFORM
+                 Qt platform override; defaults to wayland when WAYLAND_DISPLAY exists
   BATTLE_ACTION_LOG_AUTOSAVE
                   set to 0 to skip battle action log autosave, default 1
   BATTLE_ACTION_LOG_OUT
@@ -53,6 +55,9 @@ if [ ! -f "$rom" ]; then
 fi
 
 export DISPLAY="${DISPLAY:-:0}"
+if [ -z "${QT_QPA_PLATFORM:-}" ] && [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  export QT_QPA_PLATFORM=wayland
+fi
 
 script_args=""
 if [ "$autosave" != "0" ]; then

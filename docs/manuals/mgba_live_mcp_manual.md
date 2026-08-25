@@ -56,6 +56,10 @@ tools/mgba_live/mgba_live_cli.sh stop --session team-box
 tools/mgba_live/mgba_live_cli.sh status --all
 ```
 
+`start_mgba_live.sh` は `QT_QPA_PLATFORM` が未指定で `WAYLAND_DISPLAY` が存在する場合、
+WSLg で安定しやすい `QT_QPA_PLATFORM=wayland` を自動設定する。X11 を明示的に使う場合は
+`QT_QPA_PLATFORM=xcb` を指定する。
+
 最後の結果は `[]` にする。手書き Lua は `/tmp` に置き、再利用する helper だけを
 `tools/mgba_live/` に置く。
 
