@@ -7,7 +7,10 @@ Usage:
   tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]
 
 Environment:
-  MGBA_LIVE_CLI  mgba-live-cli path or command name
+  MGBA_LIVE_CLI  direct mgba-live-cli path or command override
+  MGBA_LIVE_UVX  uvx path used when mgba-live-cli is not installed
+  MGBA_LIVE_RUNTIME_ROOT
+                 session state directory, default .cache/mgba-live-runtime
   TIMEOUT        run-lua timeout in seconds, default 8
 
 Examples:
@@ -27,14 +30,9 @@ timeout="${TIMEOUT:-8}"
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 lua_script="$script_dir/battle_action_log_export.lua"
+runtime_root="${MGBA_LIVE_RUNTIME_ROOT:-$project_root/.cache/mgba-live-runtime}"
 
-if [ -n "${MGBA_LIVE_CLI:-}" ]; then
-  mgba_live_cli="$MGBA_LIVE_CLI"
-elif [ -x "/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli" ]; then
-  mgba_live_cli="/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli"
-else
-  mgba_live_cli="mgba-live-cli"
-fi
+mgba_live_cli="$script_dir/mgba_live_cli.sh"
 
 status_sessions() {
   "$mgba_live_cli" status --all 2>/dev/null || printf '[]'
@@ -60,7 +58,7 @@ except Exception:
 print("yes" if any(item.get("session_id") == wanted for item in data) else "no")' "$wanted" 2>/dev/null || printf 'no'
 }
 
-active_session_file="${HOME:-}/.mgba-live-mcp/runtime/active_session"
+active_session_file="$runtime_root/active_session"
 if [ "${1:-}" = "" ]; then
   status_json=$(status_sessions)
   session=""

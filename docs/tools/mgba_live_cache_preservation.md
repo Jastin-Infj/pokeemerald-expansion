@@ -19,6 +19,7 @@
 | `.cache` | `323M` | local-only | workspace-local tool cache root。Git 追跡対象外。 |
 | `.cache/mgba-script-src-master` | `99M` | Required | working mGBA source checkout。`--script` 対応 build の source。 |
 | `.cache/mgba-script-build-master` | `53M` | Required | working Qt + Lua scripting build output。`qt/mgba-qt` を含む。 |
+| `.cache/mgba-live-runtime` | local-only | Required for direct project CLI | project-local session metadata、heartbeat、screenshots、archived Lua bridge copies。worktree ごとに分離される。 |
 | `/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg` | `36M` | Required or refreshable | `mgba-live-mcp 0.5.0` package cache。`mgba-live-cli` と bridge Lua を含む。 |
 | `/home/jastin/.mgba-live-mcp/runtime` | `608K` | Optional evidence | session metadata、logs、archived bridge copies、screenshots。active session はなし。 |
 | `.cache/mgba-script-src` | `87M` | Optional | older 0.10.5 source investigation checkout。final working path ではない。 |
@@ -110,6 +111,11 @@ Observed package:
 | Bridge Lua | `/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/lib/python3.12/site-packages/mgba_live_mcp/resources/mgba_live_bridge.lua` |
 
 The uv archive path is content/cache specific. After reinstalling with `uvx mgba-live-mcp`, the path may change. Do not hard-code the archive path in feature docs without also saying it is an observed local path.
+
+Project scripts use `tools/mgba_live/mgba_live_cli.sh` instead of requiring this
+content-addressed CLI path. The wrapper resolves the cached entry point, PATH,
+or `uvx`, and sets `MGBA_LIVE_RUNTIME_ROOT` to `.cache/mgba-live-runtime/` by
+default. This is the supported direct-Lua path for project worktrees.
 
 ## Feature Surface Preserved By The Cache
 

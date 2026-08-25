@@ -7,7 +7,10 @@ Usage:
   tools/mgba_live/start_mgba_live.sh [SESSION] [FPS] [ROM]
 
 Environment:
-  MGBA_LIVE_CLI  mgba-live-cli path or command name
+  MGBA_LIVE_CLI  direct mgba-live-cli path or command override
+  MGBA_LIVE_UVX  uvx path used when mgba-live-cli is not installed
+  MGBA_LIVE_RUNTIME_ROOT
+                 session state directory, default .cache/mgba-live-runtime
   FPS_TARGET     FPS target, default 120
   ROM            ROM path, default ./pokeemerald.gba
   READY_TIMEOUT  bridge ready timeout in seconds, default 20
@@ -42,13 +45,7 @@ video_sync="${VIDEO_SYNC:-1}"
 autosave="${BATTLE_ACTION_LOG_AUTOSAVE:-1}"
 autosave_script="$script_dir/battle_action_log_autosave.lua"
 
-if [ -n "${MGBA_LIVE_CLI:-}" ]; then
-  mgba_live_cli="$MGBA_LIVE_CLI"
-elif [ -x "/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli" ]; then
-  mgba_live_cli="/home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli"
-else
-  mgba_live_cli="mgba-live-cli"
-fi
+mgba_live_cli="$script_dir/mgba_live_cli.sh"
 
 if [ ! -f "$rom" ]; then
   echo "ROM not found: $rom" >&2

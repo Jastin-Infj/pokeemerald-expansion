@@ -31,6 +31,34 @@ exec /home/jastin/dev/pokeemerald-expansion/.cache/mgba-script-build-master/qt/m
 `mgba-live-mcp` は `PATH` 上の `mgba-qt` を探すため、wrapper が先に見つかる状態なら、
 MCP tool の `mgba_live_start` に `mgba_path` を毎回渡さなくてよい。
 
+## Direct CLI / Lua (MCP不要)
+
+画面確認や手書き Lua の実行は MCP を使わず、プロジェクト内の wrapper から直接行える。
+`mgba_live_cli.sh` は次の順で `mgba-live-cli` を解決する。
+
+1. `MGBA_LIVE_CLI`
+2. 観測済みの uv cache entry point
+3. `PATH` 上の `mgba-live-cli`
+4. `MGBA_LIVE_UVX` または `/home/jastin/.local/bin/uvx` の
+   `uvx --from mgba-live-mcp` fallback
+
+セッション状態は既定で現在の worktree の
+`.cache/mgba-live-runtime/` に保存する。これにより MCP server の有無や
+`~/.mgba-live-mcp/runtime/` の書込み権限に依存せず、worktree ごとにセッションを分離できる。
+必要なら `MGBA_LIVE_RUNTIME_ROOT` で変更する。
+
+```sh
+BATTLE_ACTION_LOG_AUTOSAVE=0 \
+  tools/mgba_live/start_mgba_live.sh team-box 60 /tmp/pokeemerald.gba
+tools/mgba_live/run_lua.sh team-box /tmp/check_team_box.lua
+tools/mgba_live/mgba_live_cli.sh screenshot --session team-box --out /tmp/team-box.png
+tools/mgba_live/mgba_live_cli.sh stop --session team-box
+tools/mgba_live/mgba_live_cli.sh status --all
+```
+
+最後の結果は `[]` にする。手書き Lua は `/tmp` に置き、再利用する helper だけを
+`tools/mgba_live/` に置く。
+
 ## Quick Setup Check
 
 作業開始時、または mGBA が動かない時は、先に wrapper と script support を確認する。
@@ -73,16 +101,19 @@ runtime に影響する source / data / config 変更を push する前に、MCP
 feature-specific な確認が難しい場合でも、boot / screenshot / input が通ったか、
 どこで止まったかを feature docs に残す。失敗したものを成功扱いにしない。
 
-## CLI Fallback
+## Raw CLI Fallback
 
-MCP tool 側で切り分けしづらい場合は CLI を使う。
+プロジェクト wrapper が使えない場合だけ、package cache の raw CLI を直接使う。
+通常の手動検証では上の `tools/mgba_live/mgba_live_cli.sh` を優先する。
 
 ```sh
-rtk env DISPLAY=:0 /home/jastin/.cache/uv/archive-v0/b4fssk3xyIDxQlGkquLhg/bin/mgba-live-cli status --all
+rtk tools/mgba_live/mgba_live_cli.sh status --all
 ```
 
-`start` を CLI で使う時は、cache path が変わる可能性に注意する。
-固定 path が存在しない場合は `uvx mgba-live-mcp` の cache を確認し直す。
+raw CLI を使う場合は `DISPLAY=:0` と script-capable `mgba-qt` wrapper を指定する。
+package cache の content-addressed path は再インストールで変わるため、project script に
+固定 path を追加しない。固定 path が無い場合は `MGBA_LIVE_UVX` または
+`uvx --from mgba-live-mcp mgba-live-cli` の cache を確認し直す。
 
 ## Reusable Lua Tools
 
@@ -92,6 +123,8 @@ Current reusable helpers:
 
 | Tool | Purpose |
 |---|---|
+| `tools/mgba_live/mgba_live_cli.sh` | Project-local direct CLI entrypoint. Resolves the package runner and isolates session state per worktree. |
+| `tools/mgba_live/run_lua.sh` | Runs a hand-written Lua file in a named live session without MCP. |
 | `tools/mgba_live/battle_action_log_export.lua` | Reads `gBattleActionLog` and the signature-compatible `gBattleAiTraceLog` from the running ROM and writes host JSON. |
 | `tools/mgba_live/battle_action_log_autosave.lua` | Startup Lua script loaded by the start wrappers to keep the latest non-empty action-log plus compatible AI-trace snapshot on the host. |
 | `tools/mgba_live/start_mgba_live.sh` | WSL / Linux shortcut to start mGBA Live with explicit session, FPS, and ROM arguments. Defaults to 120 FPS. |

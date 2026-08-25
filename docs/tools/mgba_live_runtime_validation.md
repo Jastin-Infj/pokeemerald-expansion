@@ -41,6 +41,22 @@ Codex から MCP を使う場合は、最初に一度だけ起動確認を試み
 (`--mgba-path`、`DISPLAY=:0`、save / savestate など) を feature
 `test_plan.md` に記録する。
 
+MCP を使わない手動検証は、次の project-local CLI wrapper を使う。
+
+```bash
+tools/mgba_live/start_mgba_live.sh direct-check 60 /tmp/pokeemerald.gba
+tools/mgba_live/run_lua.sh direct-check /tmp/check.lua
+tools/mgba_live/mgba_live_cli.sh screenshot --session direct-check --out /tmp/direct-check.png
+tools/mgba_live/mgba_live_cli.sh stop --session direct-check
+tools/mgba_live/mgba_live_cli.sh status --all
+```
+
+この wrapper は `mgba-live-cli` の session root を既定で
+`.cache/mgba-live-runtime/` に置く。従来の package default
+`~/.mgba-live-mcp/runtime/` は Codex の project sandbox 外になるため、直接 CLI を
+手動実行する経路では project-local root を優先する。`MGBA_LIVE_RUNTIME_ROOT`、
+`MGBA_LIVE_CLI`、`MGBA_LIVE_UVX` で明示的に上書きできる。
+
 ## Known Working Path
 
 2026-05-06 時点で、この workspace では通常 Qt/xcb display を使う path が mGBA Live CLI の操作まで成功した。
