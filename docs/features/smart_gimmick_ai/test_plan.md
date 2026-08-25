@@ -11,8 +11,8 @@ final local results below are the implementation-branch handoff evidence.
 
 ## Fresh Local Handoff Check - August 25, 2026
 
-The staged Smart AI slice was revalidated in the current working tree before
-handoff. These results cover the staged source plus the user's remaining local
+The Smart AI slice was revalidated in the current working tree before
+handoff. These results cover the committed source plus the user's remaining local
 generated files; they do not make those unrelated files part of this feature.
 
 | Check | Result |

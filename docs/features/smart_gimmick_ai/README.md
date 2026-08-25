@@ -8,8 +8,8 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 | --- | --- |
 | Runtime branch | `integration/smart-ai-board-search-20260720` |
 | Runtime base | `integration/runtime-lab-current-1.16.1` at `4e960aecea0185912e21a28f40e00fab1b388874` |
-| Code status | Locally validated, uncommitted snapshot-derived joint board-search integration; not master-ready |
-| Feature commit / PR | None yet; the current work is an uncommitted integration slice |
+| Code status | Locally validated, committed snapshot-derived joint board-search integration; not master-ready |
+| Feature commit / PR | Local commit `fe68cd2d9c`; no PR yet |
 | Primary docs | `docs/tutorials/ai_flags.md`, this folder |
 | Main flags | `AI_FLAG_SMART_GIMMICK`, `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`, `AI_FLAG_AGGRESSIVE_GIMMICK`, `AI_FLAG_READ_PLAYER_MOVE` |
 

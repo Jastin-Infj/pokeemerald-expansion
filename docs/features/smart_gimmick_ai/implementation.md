@@ -11,13 +11,12 @@ per-battler evaluator.
 
 ## Current Joint Board-Search Handoff - July 22, 2026
 
-This implementation is an uncommitted working-tree slice on
+This implementation is the local commit `fe68cd2d9c` on
 `integration/smart-ai-board-search-20260720`, based on
 `integration/runtime-lab-current-1.16.1` at
 `4e960aecea0185912e21a28f40e00fab1b388874`. It is playable integration and
 has completed local review-fix validation; it is not a master-ready branch or
-permission to merge runtime source into `master`. No feature commit or PR exists
-yet.
+permission to merge runtime source into `master`. No feature PR exists yet.
 
 The new runtime is split into these layers:
 

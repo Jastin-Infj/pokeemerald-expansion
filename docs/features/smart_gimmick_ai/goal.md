@@ -5,12 +5,13 @@
 The current milestone is the playable smart doubles joint board-search
 integration on `integration/smart-ai-board-search-20260720`. It is based on
 `integration/runtime-lab-current-1.16.1` at
-`4e960aecea0185912e21a28f40e00fab1b388874`. There is no feature commit or PR
-for this working-tree slice yet.
+`4e960aecea0185912e21a28f40e00fab1b388874`. The implementation is committed
+locally as `fe68cd2d9c`; no feature PR exists yet.
 
 This branch is snapshot-derived integration evidence, not a master-ready
 runtime line. Final review-fix validation is recorded as complete locally in
-`test_plan.md`; the slice remains uncommitted and has no feature PR.
+`test_plan.md`; the local commit is not a feature PR and is not permission to
+merge runtime source into `master`.
 The earlier `feature/smart-gimmick-ai-16-20260604` snapshot and its
 `46ed9d403f` / `dd55f9a45d` handoff ancestry remain historical references for
 the score-layer behavior now used as the legacy fallback; they are not the
