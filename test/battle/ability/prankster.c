@@ -43,6 +43,26 @@ SINGLE_BATTLE_TEST("Prankster-affected moves don't affect Dark-type Pokémon aft
     }
 }
 
+SINGLE_BATTLE_TEST("Prankster Parting Shot does not affect a target that Terastallizes into Dark")
+{
+    GIVEN {
+        WITH_CONFIG(B_PRANKSTER_DARK_TYPES, GEN_7);
+        PLAYER(SPECIES_WOBBUFFET) { TeraType(TYPE_DARK); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_VOLBEAT) { Ability(ABILITY_PRANKSTER); Moves(MOVE_PARTING_SHOT); }
+        // Keep a legal pivot available so Parting Shot cannot pass merely
+        // because its user has no replacement.
+        OPPONENT(SPECIES_WYNAUT);
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_CELEBRATE, gimmick: GIMMICK_TERA);
+            MOVE(opponent, MOVE_PARTING_SHOT);
+        }
+    } THEN {
+        EXPECT_EQ(player->statStages[STAT_ATK], DEFAULT_STAT_STAGE);
+        EXPECT_EQ(player->statStages[STAT_SPATK], DEFAULT_STAT_STAGE);
+    }
+}
+
 DOUBLE_BATTLE_TEST("Prankster-affected moves affect Ally Dark-type Pokémon")
 {
     GIVEN {

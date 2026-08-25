@@ -92,8 +92,8 @@ Current reusable helpers:
 
 | Tool | Purpose |
 |---|---|
-| `tools/mgba_live/battle_action_log_export.lua` | Reads `gBattleActionLog` from the running ROM and writes host JSON. |
-| `tools/mgba_live/battle_action_log_autosave.lua` | Startup Lua script loaded by the start wrappers to keep the latest non-empty battle action log on the host. |
+| `tools/mgba_live/battle_action_log_export.lua` | Reads `gBattleActionLog` and the signature-compatible `gBattleAiTraceLog` from the running ROM and writes host JSON. |
+| `tools/mgba_live/battle_action_log_autosave.lua` | Startup Lua script loaded by the start wrappers to keep the latest non-empty action-log plus compatible AI-trace snapshot on the host. |
 | `tools/mgba_live/start_mgba_live.sh` | WSL / Linux shortcut to start mGBA Live with explicit session, FPS, and ROM arguments. Defaults to 120 FPS. |
 | `tools/mgba_live/start_mgba_live.bat` | Windows shortcut to start mGBA Live with explicit session, FPS, and ROM arguments. Defaults to 120 FPS. |
 | `tools/mgba_live/export_battle_action_log.sh` | WSL / Linux shortcut for the exporter. |
@@ -115,7 +115,91 @@ tools\mgba_live\start_mgba_live.bat manual-ai-log 120
 tools\mgba_live\export_battle_action_log.bat manual-ai-log %TEMP%\battle-action-log.json
 ```
 
-The exporter resolves symbols from `pokeemerald.map`, so build the current ROM first. It writes schema `pokeemerald.battle_action_log.v3` with header state, battler positions, named moves / items / gimmicks, action names, switch-in party indexes, selected-gimmick markers, resolved switch-in markers, corrected switch-in markers, AI reason tags such as `clean_damage_preferred`, `perish_escape`, `hax_out`, and `commander_slot_correction`, plus named AI threat flags and AI risk kinds. The backing log is in EWRAM and is cleared by battle initialization, so export while the target battle is still active. If the session closes before manual export and autosave was not running, the battle action log cannot be recovered from `archived_sessions`.
+The exporter resolves symbols from `pokeemerald.map`, so the ROM and map must come
+from the same build. Both backing buffers are in EWRAM and are cleared by battle
+initialization; export while the target battle is still active. If the session
+closes before manual export and autosave was not running, the snapshot cannot be
+recovered from `archived_sessions`.
+
+Current export-buffer layouts are fixed by compile-time assertions:
+
+| Buffer | Layout | Total |
+|---|---|---:|
+| `gBattleActionLog` | 128 entries × 28 bytes + 8-byte header | 3,592 bytes |
+| `gBattleAiTraceLog` | 32 plans × 32 bytes + 256 candidates × 28 bytes + 96 boards × 96 bytes + 16-byte header | 17,424 bytes |
+
+`gBattleActionLog` records confirmed commands for all live battlers and resolved
+switch-ins. Its entries include named moves / items / gimmicks, targets, switch-in
+party indexes, selected-gimmick markers, corrected-switch markers, AI plan / rank
+links, reason tags, threat flags, and risk kinds. `gBattleAiTraceLog` schema version
+5 uses header magic `0xA15C` and records plans, their retained candidates, and board
+snapshots for the before, predicted-after, and actual-after phases.
+
+When both the trace version and magic match, the exporter writes schema
+`pokeemerald.battle_action_log.v5`. The top-level trace keys are
+`ai_trace_header`, `ai_plans`, `ai_candidates`, and `ai_board_snapshots`; action
+entries remain under `entries`. Confirm `source.ai_trace_signature_valid == true`
+before using the trace as planner evidence. If `gBattleAiTraceLog` is absent or its
+version / magic does not match, the exporter deliberately emits
+`pokeemerald.battle_action_log.v4` with action-log data only. That fallback protects
+against a stale `pokeemerald.map` or a different ROM layout; it is not evidence that
+the runtime produced no AI plan.
+
+Autosave calls the same exporter, so a compatible run also preserves the v5 trace
+keys. It skips empty action logs and keeps the latest non-empty snapshot at the
+configured `BATTLE_ACTION_LOG_OUT` path.
+
+## Joint Planner Runtime Acceptance
+
+Use `Party -> Joint Trace Double` from the field debug menu for a focused joint
+planner check. The fixture is an ordinary active-2v2 trainer double with a reserve on
+the AI side. The party source deliberately omits explicit `Party Size` lines so
+trainer generation preserves the listed player two / AI three members:
+
+- player-left is Sassy 0-Speed, bulky Intimidate Arcanine with only Tailwind.
+- player-right is Sassy 0-Speed, bulky Power Herb Sturdy Skarmory with only Geomancy.
+- AI-left is level-7 Adamant, zero-Attack-IV, physically bulky Scizorite Technician
+  Scizor with only Bullet Punch.
+- AI-right is Timid Focus Sash Prankster Whimsicott with only Tailwind.
+- the AI reserve is Timid Power Herb Fairy Aura Xerneas with only Geomancy, and the
+  route grants Mega Ring access.
+
+The AI has Smart Trainer, Smart Mon Choices, Omniscient, and Read Player Move flags.
+This board supplies a real prospective Mega profile, a switch candidate, and
+nonzero board scores while keeping the selected depth-3 path inside the production
+frame budgets. Raw roll / critical exactness is intentionally verified by the C
+simulator suite rather than inferred from this runtime fixture.
+
+Enter and confirm Tailwind for the player-left battler and Geomancy for the
+player-right battler. Let the opponent choose, then allow the complete turn and
+end-turn trace capture to finish before exporting while the battle remains active;
+exporting immediately after command selection can legitimately omit `actual-after`.
+A successful joint-path sample must satisfy all of the following:
+
+- schema is `pokeemerald.battle_action_log.v5`, trace signature is valid, and the
+  trace header reports version 5 plus magic `0xA15C` (`41308` in decimal JSON).
+- `ai_plans` and `ai_candidates` are non-empty.
+- at least one plan has `joint` and `deepest_complete_used` in `flag_names`, without
+  `legacy_evaluator`, reports a completed depth, and has nonzero candidate score
+  components.
+- its chosen candidate has `joint` and `chosen` in `flag_names`; the retained or
+  forced-trace review set also exposes a Mega action and a switch-to-Xerneas action.
+- both opponent action-log entries link to that same `ai_plan_id` and candidate
+  rank.
+- the before, predicted-after, and actual-after boards are present, and prediction /
+  actual action links agree.
+
+The fixture proves shared-plan arbitration, prospective Mega and reserve-switch
+visibility, command linkage, and v5 export. It does not export the raw stochastic
+frontier, so exact 16-roll, critical, true-Speed-tie, and post-board-merge behavior
+must be paired with the focused C simulator regressions. It also does not validate
+every move, switch-in effect, field state, or gimmick; use a feature-specific battle
+in addition when those mechanics are the target.
+
+The former two-Shuckle, no-item, no-gimmick Tackle fixture and session
+`smart-ai-joint-trace-final2-20260722` remain superseded wiring history only. They
+proved a shared nonlegacy plan and v5 links, but every candidate score was zero and
+the board had no switch, gimmick, or stochastic KO boundary.
 
 ## Validation Rules
 

@@ -1,11 +1,39 @@
 #include "global.h"
 #include "battle.h"
 #include "test/battle.h"
+#include "battle_ai_joint_planner.h"
+#include "battle_ai_joint_runtime.h"
+#include "battle_ai_main.h"
 #include "battle_ai_util.h"
+#include "battle_gimmick.h"
+#include "malloc.h"
 
 #define TEST_IVS_PHYSICAL() HPIV(31); AttackIV(31); DefenseIV(31); SpAttackIV(31); SpDefenseIV(31); SpeedIV(31)
 #define TEST_IVS_SPECIAL() HPIV(31); AttackIV(0); DefenseIV(31); SpAttackIV(31); SpDefenseIV(31); SpeedIV(31)
 #define TEST_IVS_TRICK_ROOM() HPIV(31); AttackIV(0); DefenseIV(31); SpAttackIV(31); SpDefenseIV(31); SpeedIV(0)
+
+struct AiSmartGimmickSimFixture
+{
+    struct AiSimContext context;
+    struct AiSimBoard before;
+    struct AiSimBoard after;
+    struct AiSimJointTurn turn;
+    struct AiSimTurnResult result;
+};
+
+static EWRAM_DATA struct AiSmartGimmickSimFixture *sSmartGimmickSimFixture;
+
+static struct AiSmartGimmickSimFixture *GetSmartGimmickSimFixture(void)
+{
+    if (sSmartGimmickSimFixture == NULL)
+        sSmartGimmickSimFixture = AllocZeroed(sizeof(*sSmartGimmickSimFixture));
+    return sSmartGimmickSimFixture;
+}
+
+static void FreeSmartGimmickSimFixture(void)
+{
+    TRY_FREE_AND_SET_NULL(sSmartGimmickSimFixture);
+}
 
 #define PLAYER_INCINEROAR(...) \
     PLAYER(SPECIES_INCINEROAR) { \
@@ -92,6 +120,14 @@
         Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_CAREFUL); \
         TEST_IVS_PHYSICAL(); \
         MaxHP(197); HP(197); Attack(130); Defense(100); SpDefense(145); Speed(115); \
+        Moves(__VA_ARGS__); \
+    }
+
+#define PLAYER_MARSHADOW_Z(...) \
+    PLAYER(SPECIES_MARSHADOW) { \
+        Level(50); Item(ITEM_MARSHADIUM_Z); Nature(NATURE_JOLLY); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(166); HP(166); Attack(177); Defense(100); SpAttack(99); SpDefense(110); Speed(194); \
         Moves(__VA_ARGS__); \
     }
 
@@ -247,6 +283,14 @@
         Moves(__VA_ARGS__); \
     }
 
+#define OPPONENT_INCINEROAR_DMAX_LEVEL_100(...) \
+    OPPONENT(SPECIES_INCINEROAR) { \
+        Level(100); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_INTIMIDATE); Nature(NATURE_CAREFUL); DynamaxLevel(10); \
+        TEST_IVS_PHYSICAL(); \
+        MaxHP(394); HP(394); Attack(266); Defense(236); SpDefense(288); Speed(156); \
+        Moves(__VA_ARGS__); \
+    }
+
 #define OPPONENT_RILLABOOM(...) \
     OPPONENT(SPECIES_RILLABOOM) { \
         Level(50); Item(ITEM_ASSAULT_VEST); Ability(ABILITY_GRASSY_SURGE); Nature(NATURE_ADAMANT); \
@@ -270,6 +314,19 @@
         MaxHP(167); HP(167); Attack(204); Defense(115); SpDefense(120); Speed(132); \
         Moves(__VA_ARGS__); \
     }
+
+static void SetupConfirmedFakeOutBadMoveTest(enum BattlerId source, enum BattlerId battler)
+{
+    gChosenActionByBattler[source] = B_ACTION_USE_MOVE;
+    gChosenMoveByBattler[source] = MOVE_FAKE_OUT;
+    gBattleStruct->chosenMovePositions[source] = 0;
+    gBattleStruct->moveTarget[source] = battler;
+    gBattleStruct->battlerState[source].isFirstTurn = 1;
+    gAiThinkingStruct->aiFlags[battler] |= AI_FLAG_READ_PLAYER_MOVE;
+    SetAiLogicDataForTurn(gAiLogicData);
+    BattleAI_SetupAIData(0xF, battler);
+    gAiLogicData->partnerMove = MOVE_NONE;
+}
 
 AI_SINGLE_BATTLE_TEST("AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY: AI conserves Dynamax when it has no immediate payoff")
 {
@@ -407,9 +464,15 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not mirror a selected T
         TURN {
             MOVE(playerLeft, MOVE_TRICK_ROOM);
             MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentRight);
-            EXPECT_MOVES(opponentLeft, MOVE_PSYCHIC, MOVE_HELPING_HAND, MOVE_PROTECT);
             EXPECT_MOVES(opponentRight, MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
         }
+    } THEN {
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        const struct BattleActionLogEntry *entry = BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+
+        EXPECT(entry != NULL);
+        if (entry != NULL)
+            EXPECT_NE(entry->move, MOVE_TRICK_ROOM);
     }
 }
 
@@ -604,6 +667,183 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI disrupts selected Geomancy i
     }
 }
 
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T2 joint runtime simulates Power Herb Geomancy before selected slower Knock Off")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_GEOMANCY) == EFFECT_GEOMANCY);
+        ASSUME(GetMoveEffect(MOVE_KNOCK_OFF) == EFFECT_KNOCK_OFF);
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_BLISSEY) {
+            Level(50); Item(ITEM_POWER_HERB); Ability(ABILITY_PRESSURE); Nature(NATURE_CALM); TEST_IVS_SPECIAL();
+            MaxHP(330); HP(330); Defense(60); SpAttack(95); SpDefense(120); Speed(55);
+            Moves(MOVE_GEOMANCY);
+        }
+        PLAYER(SPECIES_INCINEROAR) {
+            Level(50); Item(ITEM_SITRUS_BERRY); Ability(ABILITY_GUTS); Nature(NATURE_CAREFUL);
+            TEST_IVS_PHYSICAL();
+            MaxHP(202); HP(202); Attack(1); Defense(120); SpDefense(146); Speed(80);
+            Moves(MOVE_KNOCK_OFF);
+        }
+        OPPONENT(SPECIES_XERNEAS) {
+            Level(50); Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); Nature(NATURE_MODEST); TEST_IVS_SPECIAL();
+            MaxHP(223); HP(223); Defense(115); SpAttack(201); SpDefense(118); Speed(130);
+            Moves(MOVE_GEOMANCY);
+        }
+        OPPONENT(SPECIES_MARSHADOW) {
+            Level(50); Item(ITEM_POWER_HERB); Ability(ABILITY_TECHNICIAN); Nature(NATURE_JOLLY); TEST_IVS_PHYSICAL();
+            MaxHP(166); HP(1); Attack(177); Defense(100); SpAttack(99); SpDefense(110); Speed(194);
+            Moves(MOVE_GEOMANCY);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+        }
+    } THEN {
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        const struct BattleActionLogEntry *entry = BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+        const struct BattleAiTraceCandidate *candidate;
+
+        EXPECT(entry != NULL);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT_GT(Test_BattleAiJointRuntime_GetStepCount(), 0);
+        EXPECT_NE(Test_BattleAiJointRuntime_GetPlanId(), BATTLE_AI_TRACE_ID_NONE);
+        if (entry == NULL)
+            return;
+        EXPECT_EQ(entry->aiPlanId, Test_BattleAiJointRuntime_GetPlanId());
+        plan = BattleAiTrace_GetPlan(entry->aiPlanId);
+        EXPECT(plan != NULL);
+        if (plan != NULL)
+        {
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT);
+            EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR));
+            EXPECT_GE(plan->completedDepth, AI_JOINT_STANDARD_DEPTH);
+            EXPECT_EQ(entry->move, MOVE_GEOMANCY);
+            candidate = BattleAiTrace_GetCandidate(plan->firstCandidateSequence + entry->aiCandidateRank);
+            EXPECT(candidate != NULL);
+            if (candidate != NULL)
+                EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_JOINT);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T2 unsupported spread action preflights to coherent legacy AI")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) {
+            Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); Speed(180); Moves(MOVE_GEOMANCY);
+        }
+        PLAYER(SPECIES_WOBBUFFET) {
+            Ability(ABILITY_GUTS); Speed(80); Moves(MOVE_KNOCK_OFF);
+        }
+        OPPONENT(SPECIES_XERNEAS) {
+            Level(50); Item(ITEM_NONE); Ability(ABILITY_GUTS); Nature(NATURE_MODEST); TEST_IVS_SPECIAL();
+            MaxHP(223); HP(223); Defense(115); SpAttack(201); SpDefense(118); Speed(130);
+            Moves(MOVE_DAZZLING_GLEAM);
+        }
+        OPPONENT(SPECIES_WOBBUFFET) {
+            Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); Speed(40); Moves(MOVE_GEOMANCY);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_DAZZLING_GLEAM);
+            EXPECT_MOVE(opponentRight, MOVE_GEOMANCY);
+        }
+    } THEN {
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        const struct BattleActionLogEntry *entry =
+            BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+
+        EXPECT(entry != NULL);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 0);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetStepCount(), 0);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetPlanId(), BATTLE_AI_TRACE_ID_NONE);
+        EXPECT(!Test_BattleAiJointRuntime_IsAllocated());
+        if (entry == NULL)
+            return;
+        EXPECT_EQ(entry->move, MOVE_DAZZLING_GLEAM);
+        EXPECT_NE(entry->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        plan = BattleAiTrace_GetPlan(entry->aiPlanId);
+        EXPECT(plan != NULL);
+        if (plan != NULL)
+        {
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_VALID);
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+            EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T2 Power Herb Geomancy gets no denial value when Knock Off targets its partner")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_GEOMANCY) == EFFECT_GEOMANCY);
+        ASSUME(GetMoveEffect(MOVE_KNOCK_OFF) == EFFECT_KNOCK_OFF);
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_MARSHADOW_Z(MOVE_SPECTRAL_THIEF, MOVE_CLOSE_COMBAT, MOVE_SHADOW_SNEAK, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT(SPECIES_XERNEAS) {
+            Level(50); Item(ITEM_POWER_HERB); Nature(NATURE_MODEST); TEST_IVS_SPECIAL();
+            MaxHP(223); HP(223); Defense(115); SpAttack(201); SpDefense(118); Speed(130);
+            Moves(MOVE_GEOMANCY, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_MARSHADOW) {
+            Level(50); Item(ITEM_MARSHADIUM_Z); Nature(NATURE_JOLLY); TEST_IVS_PHYSICAL();
+            MaxHP(166); HP(166); Attack(177); Defense(100); SpAttack(99); SpDefense(110); Speed(194);
+            Moves(MOVE_SPECTRAL_THIEF, MOVE_CLOSE_COMBAT, MOVE_SHADOW_SNEAK, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_SHADOW_SNEAK, target: opponentRight);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentRight);
+            EXPECT_MOVES(opponentLeft, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM);
+            SCORE_GT(opponentLeft, MOVE_MOONBLAST, MOVE_GEOMANCY, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T2 Power Herb Geomancy gets no denial value against faster selected Knock Off")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_GEOMANCY) == EFFECT_GEOMANCY);
+        ASSUME(GetMoveEffect(MOVE_KNOCK_OFF) == EFFECT_KNOCK_OFF);
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_MARSHADOW_Z(MOVE_SPECTRAL_THIEF, MOVE_KNOCK_OFF, MOVE_SHADOW_SNEAK, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT(SPECIES_XERNEAS) {
+            Level(50); Item(ITEM_POWER_HERB); Nature(NATURE_MODEST); TEST_IVS_SPECIAL();
+            MaxHP(223); HP(223); Defense(115); SpAttack(201); SpDefense(118); Speed(130);
+            Moves(MOVE_GEOMANCY, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_MARSHADOW) {
+            Level(50); Item(ITEM_MARSHADIUM_Z); Nature(NATURE_JOLLY); TEST_IVS_PHYSICAL();
+            MaxHP(166); HP(166); Attack(177); Defense(100); SpAttack(99); SpDefense(110); Speed(194);
+            Moves(MOVE_SPECTRAL_THIEF, MOVE_CLOSE_COMBAT, MOVE_SHADOW_SNEAK, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentLeft);
+            MOVE(playerRight, MOVE_KNOCK_OFF, target: opponentRight);
+            EXPECT_MOVES(opponentLeft, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM);
+            SCORE_GT(opponentLeft, MOVE_MOONBLAST, MOVE_GEOMANCY, target: playerLeft);
+        }
+    }
+}
+
 AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI does not aim redirectable single-target pressure into selected Rage Powder")
 {
     GIVEN {
@@ -639,6 +879,71 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI switches Mega Gengar to Inci
     } WHEN {
         TURN {
             MOVE(playerLeft, MOVE_GRASSY_GLIDE, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI sacrifices a spent active instead of chipping its unused Dynamax win condition")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_TACKLE) == TARGET_SELECTED);
+        ASSUME(GetMoveCategory(MOVE_TACKLE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_RILLABOOM(MOVE_TACKLE, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT(SPECIES_MAGIKARP) {
+            Level(5); Item(ITEM_NONE); Ability(ABILITY_SWIFT_SWIM);
+            MaxHP(18); HP(1); Attack(10); Defense(10); SpDefense(10); Speed(20);
+            Moves(MOVE_TACKLE);
+        }
+        OPPONENT_INCINEROAR_DMAX_LEVEL_100(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_MOVE(opponentRight, MOVE_TACKLE, target: playerLeft);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI accepts reserve chip when preserving the active is worth more")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_TACKLE) == TARGET_SELECTED);
+        ASSUME(GetMoveCategory(MOVE_TACKLE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_RILLABOOM(MOVE_TACKLE, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_GENGAR_MEGA_ACTIVE(35, MOVE_SHADOW_BALL, MOVE_SLUDGE_BOMB, MOVE_FOCUS_BLAST, MOVE_PROTECT);
+        OPPONENT_INCINEROAR_DMAX_LEVEL_100(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentRight);
+            MOVE(playerRight, MOVE_TAILWIND);
+            EXPECT_SWITCH(opponentRight, 2);
+        }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: AI exposes a lower-value cushion before its unused Dynamax win condition")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_TACKLE) == TARGET_SELECTED);
+        ASSUME(GetMoveCategory(MOVE_TACKLE) == DAMAGE_CATEGORY_PHYSICAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_SMART_SWITCHING | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_RILLABOOM(MOVE_TACKLE, MOVE_GRASSY_GLIDE, MOVE_WOOD_HAMMER, MOVE_KNOCK_OFF);
+        PLAYER_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_TORNADUS(MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
+        OPPONENT_GENGAR_MEGA_ACTIVE(35, MOVE_SHADOW_BALL, MOVE_SLUDGE_BOMB, MOVE_FOCUS_BLAST, MOVE_PROTECT);
+        OPPONENT_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_INCINEROAR_DMAX_LEVEL_100(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentRight);
             MOVE(playerRight, MOVE_TAILWIND);
             EXPECT_SWITCH(opponentRight, 2);
         }
@@ -883,6 +1188,1481 @@ AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Fake Out discounts slo
             EXPECT_MOVES(opponentLeft, MOVE_TAILWIND, MOVE_TAUNT, MOVE_BLEAKWIND_STORM, MOVE_PROTECT);
             SCORE_LT_VAL(opponentRight, MOVE_DRAGON_CLAW, AI_SCORE_DEFAULT, target: playerLeft);
         }
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T0 Whimsicott protects instead of losing Tailwind to confirmed Fake Out")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveEffect(MOVE_PROTECT) == EFFECT_PROTECT);
+        ASSUME(GetMoveEffect(MOVE_TAILWIND) == EFFECT_TAILWIND);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_PREDICTION | AI_FLAG_POWERFUL_STATUS | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_MARSHADOW_Z(MOVE_SPECTRAL_THIEF, MOVE_CLOSE_COMBAT, MOVE_SHADOW_SNEAK, MOVE_PROTECT);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        OPPONENT_TAPU_KOKO_Z(MOVE_THUNDERBOLT, MOVE_DAZZLING_GLEAM, MOVE_VOLT_SWITCH, MOVE_PROTECT);
+        OPPONENT_WHIMSICOTT(MOVE_TAILWIND, MOVE_ENCORE, MOVE_MOONBLAST, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_SPECTRAL_THIEF, gimmick: GIMMICK_Z_MOVE, target: opponentLeft);
+            MOVE(playerRight, MOVE_FAKE_OUT, target: opponentRight);
+            EXPECT_MOVES(opponentRight, MOVE_PROTECT, MOVE_TAILWIND);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *entry = BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+        const struct BattleAiTraceCandidate *candidate;
+
+        EXPECT(entry != NULL);
+        EXPECT_EQ(entry->move, MOVE_PROTECT);
+        EXPECT_EQ(entry->aiReason, AI_DECISION_REASON_KNOWN_COMMAND_ANSWER);
+        EXPECT_NE(entry->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        plan = BattleAiTrace_GetPlan(entry->aiPlanId);
+        EXPECT(plan != NULL);
+        if (plan != NULL)
+        {
+            candidate = BattleAiTrace_GetCandidate(plan->firstCandidateSequence + entry->aiCandidateRank);
+            EXPECT(candidate != NULL);
+            if (candidate != NULL)
+            {
+                EXPECT(candidate->readInteractionFlags[0] & AI_READ_INTERACTION_PROTECT);
+                EXPECT(candidate->readInteractionFlags[0] & AI_READ_INTERACTION_FAKE_OUT);
+            }
+        }
+
+        gChosenActionByBattler[source] = B_ACTION_USE_MOVE;
+        gChosenMoveByBattler[source] = MOVE_FAKE_OUT;
+        gBattleStruct->chosenMovePositions[source] = 0;
+        gBattleStruct->moveTarget[source] = battler;
+        gBattleStruct->battlerState[source].isFirstTurn = 1;
+        gAiThinkingStruct->aiFlags[battler] |= AI_FLAG_READ_PLAYER_MOVE;
+        SetAiLogicDataForTurn(gAiLogicData);
+        BattleAI_SetupAIData(0xF, battler);
+        gAiLogicData->partnerMove = MOVE_NONE;
+
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, battler, MOVE_TAILWIND, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT_GT(Test_AI_CheckBadMove(battler, battler, MOVE_PROTECT, 3, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][battler][0] & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+        EXPECT(gAiBattleData->candidateReadInteractionFlags[battler][battler][0] & AI_READ_INTERACTION_FAKE_OUT);
+
+        gAiBattleData->candidateReadInteractionFlags[battler][battler][1] = AI_READ_INTERACTION_NONE;
+        Test_AI_CheckBadMove(battler, battler, MOVE_WIDE_GUARD, 1, AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateReadInteractionFlags[battler][battler][1] & AI_READ_INTERACTION_PROTECT));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Dynamax action bypasses the confirmed Fake Out hard gate")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PROTECT);
+        OPPONENT_CHARIZARD_DMAX(MOVE_AIR_SLASH, MOVE_PROTECT);
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_AIR_SLASH, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_DYNAMAX;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetActiveGimmick(battler), GIMMICK_NONE);
+        EXPECT_GT(Test_AI_CheckBadMove(battler, source, MOVE_AIR_SLASH, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0] & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Ghost Tera action bypasses Normal Fake Out hard gate")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PROTECT);
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); TeraType(TYPE_GHOST);
+            TEST_IVS_SPECIAL();
+            MaxHP(135); HP(135); Defense(105); SpAttack(129); SpDefense(95); Speed(184);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetActiveGimmick(battler), GIMMICK_NONE);
+        EXPECT_EQ(GetBattlerTeraType(battler), TYPE_GHOST);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0] & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected non-Ghost Tera exposes a natural Ghost to confirmed Fake Out")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PROTECT);
+        OPPONENT(SPECIES_GENGAR) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_CURSED_BODY); Speed(184); TeraType(TYPE_STEEL);
+            Moves(MOVE_SHADOW_BALL, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_SHADOW_BALL, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.toActivate &= ~(1u << battler);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT(IS_BATTLER_OF_TYPE(battler, TYPE_GHOST));
+        EXPECT_GT(Test_AI_CheckBadMove(battler, source, MOVE_SHADOW_BALL, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetBattlerTeraType(battler), TYPE_STEEL);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_SHADOW_BALL, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: type-changing ability Fake Out is not exempted by selected Ghost Tera")
+{
+    u32 ability;
+
+    PARAMETRIZE { ability = ABILITY_AERILATE; }
+    PARAMETRIZE { ability = ABILITY_DRAGONIZE; }
+    PARAMETRIZE { ability = ABILITY_GALVANIZE; }
+    PARAMETRIZE { ability = ABILITY_PIXILATE; }
+    PARAMETRIZE { ability = ABILITY_REFRIGERATE; }
+
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) {
+            Level(50); Ability(ability); Speed(200);
+            Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Nature(NATURE_TIMID); TeraType(TYPE_GHOST);
+            TEST_IVS_SPECIAL();
+            MaxHP(135); HP(135); Defense(105); SpAttack(129); SpDefense(95); Speed(184);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetActiveGimmick(battler), GIMMICK_NONE);
+        EXPECT_EQ(GetBattlerTeraType(battler), TYPE_GHOST);
+        EXPECT_EQ(gAiLogicData->abilities[source], ability);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0] & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Scrappy and Mind's Eye Fake Out still gate selected Ghost Tera")
+{
+    u32 ability;
+
+    PARAMETRIZE { ability = ABILITY_SCRAPPY; }
+    PARAMETRIZE { ability = ABILITY_MINDS_EYE; }
+
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ability); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Speed(184); TeraType(TYPE_GHOST);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], ability);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Ring Target and Foresight keep Normal Fake Out live through selected Ghost Tera")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Item(ITEM_RING_TARGET); Ability(ABILITY_PRANKSTER); Speed(184); TeraType(TYPE_GHOST);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->holdEffects[battler], HOLD_EFFECT_RING_TARGET);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+
+        gAiLogicData->holdEffects[battler] = HOLD_EFFECT_NONE;
+        gBattleMons[battler].volatiles.foresight = TRUE;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: selected Mega ability Fake Out still gates selected Ghost Tera")
+{
+    u32 sourceSpecies;
+    u32 sourceItem;
+    u32 sourceAbility;
+    u32 megaSpecies;
+    u32 megaAbility;
+
+    PARAMETRIZE {
+        sourceSpecies = SPECIES_LOPUNNY;
+        sourceItem = ITEM_LOPUNNITE;
+        sourceAbility = ABILITY_LIMBER;
+        megaSpecies = SPECIES_LOPUNNY_MEGA;
+        megaAbility = ABILITY_SCRAPPY;
+    }
+    PARAMETRIZE {
+        sourceSpecies = SPECIES_FERALIGATR;
+        sourceItem = ITEM_FERALIGITE;
+        sourceAbility = ABILITY_TORRENT;
+        megaSpecies = SPECIES_FERALIGATR_MEGA;
+        megaAbility = ABILITY_DRAGONIZE;
+    }
+
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(sourceSpecies) {
+            Item(sourceItem); Ability(sourceAbility); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Speed(184); TeraType(TYPE_GHOST);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleStruct->gimmick.usableGimmick[source] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << source;
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], sourceAbility);
+        EXPECT_EQ(GetAbilityBySpecies(megaSpecies, gBattleMons[source].abilityNum), megaAbility);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: planned Mega Scrappy or Dragonize Fake Out gates a natural Ghost")
+{
+    u32 sourceSpecies;
+    u32 sourceItem;
+    u32 sourceAbility;
+    u32 megaSpecies;
+    u32 megaAbility;
+
+    PARAMETRIZE {
+        sourceSpecies = SPECIES_LOPUNNY;
+        sourceItem = ITEM_LOPUNNITE;
+        sourceAbility = ABILITY_LIMBER;
+        megaSpecies = SPECIES_LOPUNNY_MEGA;
+        megaAbility = ABILITY_SCRAPPY;
+    }
+    PARAMETRIZE {
+        sourceSpecies = SPECIES_FERALIGATR;
+        sourceItem = ITEM_FERALIGITE;
+        sourceAbility = ABILITY_TORRENT;
+        megaSpecies = SPECIES_FERALIGATR_MEGA;
+        megaAbility = ABILITY_DRAGONIZE;
+    }
+
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(sourceSpecies) {
+            Item(sourceItem); Ability(sourceAbility); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_GENGAR) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_CURSED_BODY); Speed(184);
+            Moves(MOVE_SHADOW_BALL, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_SHADOW_BALL, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleStruct->gimmick.toActivate &= ~(1u << source);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT(IS_BATTLER_OF_TYPE(battler, TYPE_GHOST));
+        EXPECT_EQ(gAiLogicData->abilities[source], sourceAbility);
+        EXPECT_GT(Test_AI_CheckBadMove(battler, source, MOVE_SHADOW_BALL, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+
+        gBattleStruct->gimmick.usableGimmick[source] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << source;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetAbilityBySpecies(megaSpecies, gBattleMons[source].abilityNum), megaAbility);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_SHADOW_BALL, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: current Sheer Force removes both confirmed Fake Out penalties")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_HARIYAMA) {
+            Ability(ABILITY_SHEER_FORCE); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Speed(184);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], ABILITY_SHEER_FORCE);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: planned Mega Sheer Force removes both confirmed Fake Out penalties")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_CAMERUPT) {
+            Item(ITEM_CAMERUPTITE); Ability(ABILITY_MAGMA_ARMOR); Speed(200);
+            Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Speed(184);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleStruct->gimmick.toActivate &= ~(1u << source);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], ABILITY_MAGMA_ARMOR);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+
+        gBattleStruct->gimmick.usableGimmick[source] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << source;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetAbilityBySpecies(SPECIES_CAMERUPT_MEGA, gBattleMons[source].abilityNum), ABILITY_SHEER_FORCE);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Neutralizing Gas suppresses planned Mega Fake Out abilities")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveType(MOVE_FAKE_OUT) == TYPE_NORMAL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_LOPUNNY) {
+            Item(ITEM_LOPUNNITE); Ability(ABILITY_LIMBER); Speed(200);
+            Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        PLAYER(SPECIES_WEEZING) { Ability(ABILITY_NEUTRALIZING_GAS); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_GENGAR) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_CURSED_BODY); Speed(184);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_SHADOW_TAG); Speed(40); Moves(MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVES(opponentLeft, MOVE_MOONBLAST, MOVE_PROTECT);
+            EXPECT_MOVE(opponentRight, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId gasSource = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleStruct->gimmick.usableGimmick[source] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << source;
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT(gBattleMons[gasSource].volatiles.neutralizingGas);
+        EXPECT_EQ(gAiLogicData->abilities[source], ABILITY_NONE);
+        EXPECT_EQ(GetAbilityBySpecies(SPECIES_LOPUNNY_MEGA, gBattleMons[source].abilityNum), ABILITY_SCRAPPY);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+
+        gBattleMons[gasSource].volatiles.neutralizingGas = FALSE;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Ability Shield preserves a Fake Out target flinch immunity")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetItemHoldEffect(ITEM_ABILITY_SHIELD) == HOLD_EFFECT_ABILITY_SHIELD);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_PANGORO) {
+            Ability(ABILITY_MOLD_BREAKER); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_LUCARIO) {
+            Item(ITEM_ABILITY_SHIELD); Ability(ABILITY_INNER_FOCUS); Speed(184);
+            Moves(MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_MOONBLAST, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiLogicData->holdEffects[battler] = HOLD_EFFECT_NONE;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], ABILITY_MOLD_BREAKER);
+        EXPECT_EQ(gAiLogicData->abilities[battler], ABILITY_INNER_FOCUS);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+
+        gAiLogicData->holdEffects[battler] = HOLD_EFFECT_ABILITY_SHIELD;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Ability Shield preserves a partner priority blocker")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetItemHoldEffect(ITEM_ABILITY_SHIELD) == HOLD_EFFECT_ABILITY_SHIELD);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_PANGORO) {
+            Ability(ABILITY_MOLD_BREAKER); Speed(200); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_SHADOW_TAG); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) {
+            Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRANKSTER); Speed(184); Moves(MOVE_MOONBLAST);
+        }
+        OPPONENT(SPECIES_TSAREENA) {
+            Item(ITEM_ABILITY_SHIELD); Ability(ABILITY_QUEENLY_MAJESTY); Speed(100); Moves(MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_MOONBLAST);
+            EXPECT_MOVE(opponentRight, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId partner = BATTLE_PARTNER(battler);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiLogicData->holdEffects[partner] = HOLD_EFFECT_NONE;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], ABILITY_MOLD_BREAKER);
+        EXPECT_EQ(gAiLogicData->abilities[partner], ABILITY_QUEENLY_MAJESTY);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+
+        gAiLogicData->holdEffects[partner] = HOLD_EFFECT_ABILITY_SHIELD;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: faster planned player Mega Fake Out gates a same-priority AI action")
+{
+    GIVEN {
+        WITH_CONFIG(B_MEGA_EVO_TURN_ORDER, GEN_7);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_LOPUNNY) {
+            Level(50); Item(ITEM_LOPUNNITE); Ability(ABILITY_LIMBER); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL(); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WEAVILE) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRESSURE); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL(); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleMons[source].speed = 137;
+        gBattleMons[battler].speed = 150;
+        gBattleStruct->battlerState[battler].isFirstTurn = 1;
+        gBattleStruct->gimmick.toActivate &= ~(1u << source);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_LT(gBattleMons[source].speed, gBattleMons[battler].speed);
+        EXPECT_GT(Test_AI_CheckBadMove(battler, source, MOVE_FAKE_OUT, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+
+        gBattleStruct->gimmick.usableGimmick[source] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << source;
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetConfig(B_MEGA_EVO_TURN_ORDER), GEN_7);
+        EXPECT_GT(GetSpeciesBaseSpeed(SPECIES_LOPUNNY_MEGA), GetSpeciesBaseSpeed(SPECIES_WEAVILE));
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_FAKE_OUT, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Gen 6 order keeps planned player Mega speed out of the current turn")
+{
+    GIVEN {
+        WITH_CONFIG(B_MEGA_EVO_TURN_ORDER, GEN_6);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_LOPUNNY) {
+            Level(50); Item(ITEM_LOPUNNITE); Ability(ABILITY_LIMBER); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL(); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_WEAVILE) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRESSURE); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL(); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleMons[source].speed = 137;
+        gBattleMons[battler].speed = 150;
+        gBattleStruct->battlerState[battler].isFirstTurn = 1;
+        gBattleStruct->gimmick.usableGimmick[source] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << source;
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(GetConfig(B_MEGA_EVO_TURN_ORDER), GEN_6);
+        EXPECT_LT(gBattleMons[source].speed, gBattleMons[battler].speed);
+        EXPECT_GT(GetSpeciesBaseSpeed(SPECIES_LOPUNNY_MEGA), GetSpeciesBaseSpeed(SPECIES_WEAVILE));
+        EXPECT_GT(Test_AI_CheckBadMove(battler, source, MOVE_FAKE_OUT, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: faster selected AI Mega Fake Out escapes the same-priority hard gate")
+{
+    GIVEN {
+        WITH_CONFIG(B_MEGA_EVO_TURN_ORDER, GEN_7);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WEAVILE) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_PRESSURE); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL(); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_LOPUNNY) {
+            Level(50); Item(ITEM_FOCUS_SASH); Ability(ABILITY_LIMBER); Nature(NATURE_JOLLY);
+            TEST_IVS_PHYSICAL(); Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(player, MOVE_PROTECT);
+            EXPECT_MOVES(opponent, MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        gBattleMons[battler].item = ITEM_LOPUNNITE;
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gBattleMons[source].speed = 140;
+        gBattleMons[battler].speed = 137;
+        gBattleStruct->battlerState[battler].isFirstTurn = 1;
+        SetActiveGimmick(battler, GIMMICK_NONE);
+        gBattleStruct->gimmick.toActivate &= ~(1u << battler);
+        SetAIUsingGimmick(battler, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_LT(gBattleMons[battler].speed, gBattleMons[source].speed);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_FAKE_OUT, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+
+        gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_MEGA;
+        gBattleStruct->gimmick.toActivate |= 1u << battler;
+        SetAIUsingGimmick(battler, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_GT(GetSpeciesBaseSpeed(SPECIES_LOPUNNY_MEGA), GetSpeciesBaseSpeed(SPECIES_WEAVILE));
+        EXPECT_GT(Test_AI_CheckBadMove(battler, source, MOVE_FAKE_OUT, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: faster repeated Quick Guard prevents both confirmed Fake Out penalties")
+{
+    GIVEN {
+        WITH_CONFIG(B_QUICK_GUARD, GEN_6);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveProtectMethod(MOVE_QUICK_GUARD) == PROTECT_QUICK_GUARD);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Ability(ABILITY_INTIMIDATE); Speed(150); Moves(MOVE_FAKE_OUT, MOVE_PROTECT); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_SHADOW_TAG); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) { Ability(ABILITY_PRANKSTER); Speed(80); Moves(MOVE_MOONBLAST); }
+        OPPONENT(SPECIES_GALLADE) { Ability(ABILITY_STEADFAST); Speed(200); Moves(MOVE_QUICK_GUARD); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_MOONBLAST);
+            EXPECT_MOVE(opponentRight, MOVE_QUICK_GUARD);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId partner = BATTLE_PARTNER(battler);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gAiLogicData->partnerMove = MOVE_QUICK_GUARD;
+        gBattleMons[partner].volatiles.consecutiveMoveUses = 1;
+        SetAIUsingGimmick(partner, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_GT(gBattleMons[partner].speed, gBattleMons[source].speed);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+
+        gBattleStruct->gimmick.usableGimmick[partner] = GIMMICK_DYNAMAX;
+        SetAIUsingGimmick(partner, USE_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: slower Quick Guard cannot excuse a confirmed Fake Out hard gate")
+{
+    GIVEN {
+        WITH_CONFIG(B_QUICK_GUARD, GEN_6);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveProtectMethod(MOVE_QUICK_GUARD) == PROTECT_QUICK_GUARD);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Ability(ABILITY_INTIMIDATE); Speed(150); Moves(MOVE_FAKE_OUT, MOVE_PROTECT); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_SHADOW_TAG); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) { Ability(ABILITY_PRANKSTER); Speed(80); Moves(MOVE_MOONBLAST); }
+        OPPONENT(SPECIES_GALLADE) { Ability(ABILITY_STEADFAST); Speed(100); Moves(MOVE_QUICK_GUARD); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_MOONBLAST);
+            EXPECT_MOVE(opponentRight, MOVE_QUICK_GUARD);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId partner = BATTLE_PARTNER(battler);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gAiLogicData->partnerMove = MOVE_QUICK_GUARD;
+        gBattleMons[partner].volatiles.consecutiveMoveUses = 1;
+        SetAIUsingGimmick(partner, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_LT(gBattleMons[partner].speed, gBattleMons[source].speed);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: speed-tied Quick Guard is not a guaranteed Fake Out answer")
+{
+    GIVEN {
+        WITH_CONFIG(B_QUICK_GUARD, GEN_6);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveProtectMethod(MOVE_QUICK_GUARD) == PROTECT_QUICK_GUARD);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_INCINEROAR) { Ability(ABILITY_INTIMIDATE); Speed(150); Moves(MOVE_FAKE_OUT, MOVE_PROTECT); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_SHADOW_TAG); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) { Ability(ABILITY_PRANKSTER); Speed(80); Moves(MOVE_MOONBLAST); }
+        OPPONENT(SPECIES_GALLADE) { Ability(ABILITY_STEADFAST); Speed(150); Moves(MOVE_QUICK_GUARD); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_MOONBLAST);
+            EXPECT_MOVE(opponentRight, MOVE_QUICK_GUARD);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId partner = BATTLE_PARTNER(battler);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gAiLogicData->partnerMove = MOVE_QUICK_GUARD;
+        SetAIUsingGimmick(partner, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gBattleMons[partner].speed, gBattleMons[source].speed);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), 0);
+        EXPECT(gAiBattleData->candidateRejectionFlags[battler][source][0]
+             & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: faster Quick Guard wins within the shared moves-last bracket")
+{
+    GIVEN {
+        WITH_CONFIG(B_QUICK_GUARD, GEN_6);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveProtectMethod(MOVE_QUICK_GUARD) == PROTECT_QUICK_GUARD);
+        ASSUME(GetItemHoldEffect(ITEM_LAGGING_TAIL) == HOLD_EFFECT_LAGGING_TAIL);
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_SABLEYE) { Ability(ABILITY_STALL); Speed(150); Moves(MOVE_FAKE_OUT, MOVE_PROTECT); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_SHADOW_TAG); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WHIMSICOTT) { Ability(ABILITY_PRANKSTER); Speed(80); Moves(MOVE_MOONBLAST); }
+        OPPONENT(SPECIES_GALLADE) {
+            Item(ITEM_LAGGING_TAIL); Ability(ABILITY_STEADFAST); Speed(200); Moves(MOVE_QUICK_GUARD);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_MOONBLAST);
+            EXPECT_MOVE(opponentRight, MOVE_QUICK_GUARD);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId partner = BATTLE_PARTNER(battler);
+
+        SetupConfirmedFakeOutBadMoveTest(source, battler);
+        gAiLogicData->partnerMove = MOVE_QUICK_GUARD;
+        SetAIUsingGimmick(partner, NO_GIMMICK);
+        gAiBattleData->candidateRejectionFlags[battler][source][0] = AI_CANDIDATE_REJECTION_NONE;
+
+        EXPECT_EQ(gAiLogicData->abilities[source], ABILITY_STALL);
+        EXPECT_EQ(gAiLogicData->holdEffects[partner], HOLD_EFFECT_LAGGING_TAIL);
+        EXPECT_GT(gBattleMons[partner].speed, gBattleMons[source].speed);
+        EXPECT_EQ(Test_AI_CheckBadMove(battler, source, MOVE_MOONBLAST, 0, AI_SCORE_DEFAULT), AI_SCORE_DEFAULT);
+        EXPECT(!(gAiBattleData->candidateRejectionFlags[battler][source][0]
+              & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Joint runtime composes faster Quick Guard with an action behind confirmed Fake Out")
+{
+    GIVEN {
+        WITH_CONFIG(B_QUICK_GUARD, GEN_6);
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        ASSUME(GetMoveProtectMethod(MOVE_QUICK_GUARD) == PROTECT_QUICK_GUARD);
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) {
+            Ability(ABILITY_GUTS); MaxHP(200); HP(200); Attack(1); Defense(100); SpDefense(100); Speed(150);
+            Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        PLAYER(SPECIES_WOBBUFFET) {
+            Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); MaxHP(200); HP(200); Speed(40);
+            Moves(MOVE_GEOMANCY);
+        }
+        // Opponent-left is evaluated before its higher-id partner.  With no
+        // previous turn, legacy GetAllyChosenMove therefore exposes
+        // lastUsedMove == MOVE_NONE rather than the later Quick Guard choice.
+        OPPONENT(SPECIES_XERNEAS) {
+            Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); MaxHP(223); HP(1); Defense(115); SpDefense(118); Speed(100);
+            Moves(MOVE_GEOMANCY);
+        }
+        OPPONENT(SPECIES_WOBBUFFET) {
+            Ability(ABILITY_GUTS); MaxHP(200); HP(200); Speed(200);
+            Moves(MOVE_QUICK_GUARD);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentLeft);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentRight, MOVE_QUICK_GUARD);
+        }
+    } THEN {
+        enum BattlerId victim = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId guard = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *victimAction =
+            BattleActionLog_GetLastEntry(victim, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *guardAction =
+            BattleActionLog_GetLastEntry(guard, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan = NULL;
+        const struct BattleAiTraceCandidate *chosen = NULL;
+        bool32 foundComposedPair = FALSE;
+
+        EXPECT(victimAction != NULL);
+        EXPECT(guardAction != NULL);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT_GT(Test_BattleAiJointRuntime_GetStepCount(), 0);
+        EXPECT_NE(Test_BattleAiJointRuntime_GetPlanId(), BATTLE_AI_TRACE_ID_NONE);
+        if (victimAction != NULL && guardAction != NULL)
+        {
+            EXPECT_NE(victimAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+            EXPECT_EQ(victimAction->aiPlanId, guardAction->aiPlanId);
+            EXPECT_EQ(victimAction->aiCandidateRank, guardAction->aiCandidateRank);
+            EXPECT_EQ(victimAction->aiPlanId, Test_BattleAiJointRuntime_GetPlanId());
+            plan = BattleAiTrace_GetPlan(victimAction->aiPlanId);
+        }
+        EXPECT(plan != NULL);
+        if (plan != NULL)
+        {
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT);
+            EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR));
+            EXPECT_GE(plan->completedDepth, AI_JOINT_STANDARD_DEPTH);
+            EXPECT(plan->chosenRank < plan->candidateCount);
+            chosen = BattleAiTrace_GetCandidate(plan->firstCandidateSequence + plan->chosenRank);
+        }
+        EXPECT(chosen != NULL);
+        if (chosen != NULL)
+            EXPECT(chosen->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN);
+        for (u32 rank = 0; plan != NULL && rank < plan->candidateCount; rank++)
+        {
+            const struct BattleAiTraceCandidate *candidate =
+                BattleAiTrace_GetCandidate(plan->firstCandidateSequence + rank);
+            bool32 hasVictim = FALSE;
+            bool32 hasGuard = FALSE;
+            u32 victimActionIndex = ARRAY_COUNT(candidate->actions);
+
+            if (candidate == NULL)
+                continue;
+            for (u32 actionIndex = 0; actionIndex < ARRAY_COUNT(candidate->actions); actionIndex++)
+            {
+                const struct BattleAiTraceAction *action = &candidate->actions[actionIndex];
+                enum BattlerId actor;
+
+                if (!(action->actorMeta & BATTLE_AI_TRACE_ACTION_VALID))
+                    continue;
+                actor = action->actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK;
+                if (actor == victim && action->choice == MOVE_GEOMANCY)
+                {
+                    hasVictim = TRUE;
+                    victimActionIndex = actionIndex;
+                }
+                else if (actor == guard && action->choice == MOVE_QUICK_GUARD)
+                    hasGuard = TRUE;
+            }
+            if (hasVictim && hasGuard)
+            {
+                foundComposedPair = TRUE;
+                EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_JOINT);
+                EXPECT(!(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE));
+                EXPECT_GE(candidate->completedDepth, 1);
+                EXPECT(victimActionIndex < ARRAY_COUNT(candidate->actions));
+                if (victimActionIndex < ARRAY_COUNT(candidate->actions))
+                {
+                    EXPECT(candidate->readInteractionFlags[victimActionIndex]
+                           & AI_READ_INTERACTION_FAKE_OUT);
+                    EXPECT(!(candidate->rejectionFlags[victimActionIndex]
+                           & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+                }
+            }
+        }
+        EXPECT(foundComposedPair);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Joint runtime composes faster partner Fake Out before the confirmed player Fake Out")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) {
+            Ability(ABILITY_GUTS); MaxHP(200); HP(1); Attack(1); Defense(100); SpDefense(100); Speed(150);
+            Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+        // Ghost typing leaves only the selected Fake Out user as a useful
+        // target for the AI partner's own Fake Out.
+        PLAYER(SPECIES_GENGAR) {
+            Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); MaxHP(160); HP(160); Speed(40);
+            Moves(MOVE_GEOMANCY);
+        }
+        OPPONENT(SPECIES_XERNEAS) {
+            Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); MaxHP(223); HP(1); Defense(115); SpDefense(118); Speed(100);
+            Moves(MOVE_GEOMANCY);
+        }
+        OPPONENT(SPECIES_WOBBUFFET) {
+            Ability(ABILITY_GUTS); MaxHP(200); HP(200); Attack(100); Speed(200);
+            Moves(MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_FAKE_OUT, target: opponentLeft);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+            EXPECT_MOVES(opponentRight, MOVE_FAKE_OUT, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId victim = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId stopper = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *victimAction =
+            BattleActionLog_GetLastEntry(victim, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *stopperAction =
+            BattleActionLog_GetLastEntry(stopper, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan = NULL;
+        const struct BattleAiTraceCandidate *chosen = NULL;
+        bool32 foundComposedPair = FALSE;
+        enum BattlerId playerFakeOutUser = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+
+        EXPECT(victimAction != NULL);
+        EXPECT(stopperAction != NULL);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT_GT(Test_BattleAiJointRuntime_GetStepCount(), 0);
+        if (victimAction != NULL && stopperAction != NULL)
+        {
+            EXPECT_NE(victimAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+            EXPECT_EQ(victimAction->aiPlanId, stopperAction->aiPlanId);
+            EXPECT_EQ(victimAction->aiCandidateRank, stopperAction->aiCandidateRank);
+            EXPECT_EQ(victimAction->aiPlanId, Test_BattleAiJointRuntime_GetPlanId());
+            plan = BattleAiTrace_GetPlan(victimAction->aiPlanId);
+        }
+        EXPECT(plan != NULL);
+        if (plan != NULL)
+        {
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT);
+            EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR));
+            EXPECT_GE(plan->completedDepth, AI_JOINT_STANDARD_DEPTH);
+            EXPECT(plan->chosenRank < plan->candidateCount);
+            chosen = BattleAiTrace_GetCandidate(plan->firstCandidateSequence + plan->chosenRank);
+        }
+        EXPECT(chosen != NULL);
+        if (chosen != NULL)
+            EXPECT(chosen->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN);
+        for (u32 rank = 0; plan != NULL && rank < plan->candidateCount; rank++)
+        {
+            const struct BattleAiTraceCandidate *candidate =
+                BattleAiTrace_GetCandidate(plan->firstCandidateSequence + rank);
+            bool32 hasVictim = FALSE;
+            bool32 hasStopper = FALSE;
+            u32 victimActionIndex = ARRAY_COUNT(candidate->actions);
+
+            if (candidate == NULL)
+                continue;
+            for (u32 actionIndex = 0; actionIndex < ARRAY_COUNT(candidate->actions); actionIndex++)
+            {
+                const struct BattleAiTraceAction *action = &candidate->actions[actionIndex];
+                enum BattlerId actor;
+                enum BattlerId target;
+
+                if (!(action->actorMeta & BATTLE_AI_TRACE_ACTION_VALID))
+                    continue;
+                actor = action->actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK;
+                target = action->targetMeta & BATTLE_AI_TRACE_ACTION_TARGET_MASK;
+                if (actor == victim && action->choice == MOVE_GEOMANCY)
+                {
+                    hasVictim = TRUE;
+                    victimActionIndex = actionIndex;
+                }
+                else if (actor == stopper
+                      && action->choice == MOVE_FAKE_OUT
+                      && target == playerFakeOutUser)
+                    hasStopper = TRUE;
+            }
+            if (hasVictim && hasStopper)
+            {
+                foundComposedPair = TRUE;
+                EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_JOINT);
+                EXPECT(!(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE));
+                EXPECT_GE(candidate->completedDepth, 1);
+                EXPECT(victimActionIndex < ARRAY_COUNT(candidate->actions));
+                if (victimActionIndex < ARRAY_COUNT(candidate->actions))
+                {
+                    EXPECT(candidate->readInteractionFlags[victimActionIndex]
+                           & AI_READ_INTERACTION_FAKE_OUT);
+                    EXPECT(!(candidate->rejectionFlags[victimActionIndex]
+                           & AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH));
+                }
+            }
+        }
+        EXPECT(foundComposedPair);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: Joint runtime composed simulator still skips an unguarded confirmed Fake Out victim")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_FAKE_OUT) == EFFECT_FIRST_TURN_ONLY);
+        ASSUME(MoveHasAdditionalEffect(MOVE_FAKE_OUT, MOVE_EFFECT_FLINCH));
+        AI_FLAGS(AI_FLAG_BASIC_TRAINER | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); MaxHP(200); HP(200); Speed(150); Moves(MOVE_PROTECT); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); MaxHP(200); HP(200); Speed(40); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); MaxHP(200); HP(200); Speed(50); Moves(MOVE_PROTECT); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); MaxHP(200); HP(200); Speed(30); Moves(MOVE_PROTECT); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_PROTECT);
+            MOVE(playerRight, MOVE_PROTECT);
+            EXPECT_MOVE(opponentLeft, MOVE_PROTECT);
+            EXPECT_MOVE(opponentRight, MOVE_PROTECT);
+        }
+    } THEN {
+        enum BattlerId source = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId victim = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        struct AiSmartGimmickSimFixture *fixture = GetSmartGimmickSimFixture();
+        enum AiSimApplyStatus applyStatus;
+        u32 sourceRoster;
+        u32 victimRoster;
+
+        EXPECT(fixture != NULL);
+        if (fixture == NULL)
+            return;
+        memset(fixture, 0, sizeof(*fixture));
+        SetAiLogicDataForTurn(gAiLogicData);
+        EXPECT(AiSim_CaptureKnownBoard(victim, gAiLogicData,
+                                      &fixture->context, &fixture->before));
+        sourceRoster = fixture->before.active[source].rosterIndex;
+        victimRoster = fixture->before.active[victim].rosterIndex;
+        EXPECT_LT(sourceRoster, AI_SIM_ROSTER_COUNT);
+        EXPECT_LT(victimRoster, AI_SIM_ROSTER_COUNT);
+        if (sourceRoster >= AI_SIM_ROSTER_COUNT || victimRoster >= AI_SIM_ROSTER_COUNT)
+        {
+            FreeSmartGimmickSimFixture();
+            return;
+        }
+
+        fixture->context.mons[sourceRoster].moves[0] = MOVE_FAKE_OUT;
+        fixture->context.mons[victimRoster].moves[0] = MOVE_GEOMANCY;
+        // The preceding live Protect turn may leave command-cycle bookkeeping
+        // in gBattleMons that capture correctly reports as an unsupported
+        // volatile.  This is a synthetic clean board: the represented active
+        // states are reset below, so remove only that capture-boundary marker.
+        fixture->context.flags &= ~AI_SIM_CONTEXT_VOLATILE_STATE;
+        fixture->before.party[sourceRoster].hp = fixture->context.mons[sourceRoster].normal.maxHp;
+        fixture->before.party[sourceRoster].pp[0] = 10;
+        fixture->before.party[sourceRoster].status1 = 0;
+        fixture->before.party[victimRoster].hp = fixture->context.mons[victimRoster].normal.maxHp;
+        fixture->before.party[victimRoster].item = ITEM_POWER_HERB;
+        fixture->before.party[victimRoster].pp[0] = 10;
+        fixture->before.party[victimRoster].status1 = 0;
+        fixture->before.active[source].firstTurn = TRUE;
+        fixture->before.active[source].consecutiveMoveUses = 0;
+        fixture->before.active[source].chargingMove = MOVE_NONE;
+        fixture->before.active[source].volatileFlags = 0;
+        fixture->before.active[victim].consecutiveMoveUses = 0;
+        fixture->before.active[victim].chargingMove = MOVE_NONE;
+        fixture->before.active[victim].volatileFlags = 0;
+        for (u32 stat = 0; stat < NUM_BATTLE_STATS; stat++)
+            fixture->before.active[victim].statStages[stat] = DEFAULT_STAT_STAGE;
+
+        fixture->turn.actions[source] = (struct AiSimAction) {
+            .actor = source,
+            .target = victim,
+            .kind = AI_SIM_ACTION_MOVE,
+            .choice = MOVE_FAKE_OUT,
+            .moveSlot = 0,
+        };
+        fixture->turn.actions[victim] = (struct AiSimAction) {
+            .actor = victim,
+            .target = victim,
+            .kind = AI_SIM_ACTION_MOVE,
+            .choice = MOVE_GEOMANCY,
+            .moveSlot = 0,
+        };
+        fixture->turn.actionMask = (1u << source) | (1u << victim);
+        fixture->turn.confirmedPlayerMask = 1u << source;
+        fixture->turn.flags = AI_SIM_JOINT_CONSERVATIVE_ENEMY_TIES;
+
+        applyStatus = AiSim_ApplyJointTurn(&fixture->context, &fixture->before,
+                                          &fixture->turn, NULL,
+                                          &fixture->after, &fixture->result);
+        EXPECT_EQ(fixture->result.unsupportedFlags, AI_SIM_UNSUPPORTED_NONE);
+        EXPECT_EQ(applyStatus, AI_SIM_APPLY_OK);
+        EXPECT(fixture->result.events & AI_SIM_EVENT_FLINCH);
+        EXPECT(fixture->result.executedMask & (1u << source));
+        EXPECT(fixture->result.skippedMask & (1u << victim));
+        EXPECT(!(fixture->result.executedMask & (1u << victim)));
+        EXPECT(fixture->result.readInteractionFlags[victim] & AI_READ_INTERACTION_FAKE_OUT);
+        EXPECT_EQ(fixture->after.party[victimRoster].item, ITEM_POWER_HERB);
+        EXPECT_EQ(fixture->after.party[victimRoster].pp[0], fixture->before.party[victimRoster].pp[0]);
+        EXPECT_EQ(fixture->after.active[victim].statStages[STAT_SPATK], DEFAULT_STAT_STAGE);
+        FreeSmartGimmickSimFixture();
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T6 ordinary Moonblast is never an eligible direct ally target")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_MOONBLAST) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER_INCINEROAR(MOVE_FAKE_OUT, MOVE_PARTING_SHOT, MOVE_FLARE_BLITZ, MOVE_KNOCK_OFF);
+        PLAYER(SPECIES_MEWTWO) {
+            Level(50); Item(ITEM_LIFE_ORB); Nature(NATURE_TIMID); TEST_IVS_SPECIAL();
+            MaxHP(181); HP(181); Defense(110); SpAttack(206); SpDefense(110); Speed(200);
+            Moves(MOVE_PSYSTRIKE, MOVE_EXPANDING_FORCE, MOVE_ICE_BEAM, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_XERNEAS) {
+            Level(50); Item(ITEM_POWER_HERB); Nature(NATURE_MODEST); TEST_IVS_SPECIAL();
+            MaxHP(201); HP(201); Defense(115); SpAttack(183); SpDefense(118); Speed(119);
+            Moves(MOVE_GEOMANCY, MOVE_MOONBLAST, MOVE_DAZZLING_GLEAM, MOVE_PROTECT);
+        }
+        OPPONENT(SPECIES_MEWTWO) {
+            Level(50); Item(ITEM_LIFE_ORB); Nature(NATURE_TIMID); TEST_IVS_SPECIAL();
+            MaxHP(181); HP(181); Defense(110); SpAttack(206); SpDefense(110); Speed(200);
+            Moves(MOVE_PSYSTRIKE, MOVE_EXPANDING_FORCE, MOVE_ICE_BEAM, MOVE_PROTECT);
+        }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_KNOCK_OFF, target: opponentRight);
+            MOVE(playerRight, MOVE_EXPANDING_FORCE, target: opponentLeft);
+            SCORE_EQ_VAL(opponentLeft, MOVE_MOONBLAST, 0, target: opponentRight);
+        }
+    } THEN {
+        enum BattlerId opponentLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId opponentRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *entry = BattleActionLog_GetLastEntry(opponentLeftBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+        bool32 foundRejectedAllyTarget = FALSE;
+
+        EXPECT(Test_ApplyBattleModeAiFlags(AI_FLAG_BASIC_TRAINER) & AI_FLAG_DOUBLE_BATTLE);
+        EXPECT_EQ(Test_ApplyBattleModeAiFlags(0), 0);
+        EXPECT(entry != NULL);
+        EXPECT_NE(entry->target, opponentRightBattler);
+        EXPECT_NE(entry->aiReason, AI_DECISION_REASON_KNOWN_COMMAND_ANSWER);
+        EXPECT_NE(entry->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        plan = BattleAiTrace_GetPlan(entry->aiPlanId);
+        EXPECT(plan != NULL);
+        for (u32 rank = 0; plan != NULL && rank < plan->candidateCount; rank++)
+        {
+            const struct BattleAiTraceCandidate *candidate = BattleAiTrace_GetCandidate(plan->firstCandidateSequence + rank);
+
+            if (candidate != NULL && candidate->rejectionFlags[0] & AI_CANDIDATE_REJECTION_UNAPPROVED_ALLY_TARGET)
+                foundRejectedAllyTarget = TRUE;
+        }
+        EXPECT(foundRejectedAllyTarget);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("AI_FLAG_READ_PLAYER_MOVE: T6 joint runtime rejects ordinary ally Moonblast while preserving a legal pair")
+{
+    GIVEN {
+        ASSUME(GetMoveTarget(MOVE_MOONBLAST) == TARGET_SELECTED);
+        AI_FLAGS(AI_FLAG_SMART_TRAINER | AI_FLAG_PREDICTION | AI_FLAG_SMART_GIMMICK | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES | AI_FLAG_OMNISCIENT | AI_FLAG_KNOW_OPPONENT_PARTY
+               | AI_FLAG_POWERFUL_STATUS | AI_FLAG_AGGRESSIVE_GIMMICK | AI_FLAG_READ_PLAYER_MOVE);
+        PLAYER(SPECIES_WOBBUFFET) { HP(1); Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); Speed(180); Moves(MOVE_GEOMANCY); }
+        PLAYER(SPECIES_WOBBUFFET) { HP(1); Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); Speed(160); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_XERNEAS) {
+            Item(ITEM_NONE); Ability(ABILITY_GUTS); Speed(200); Moves(MOVE_MOONBLAST);
+        }
+        OPPONENT(SPECIES_WOBBUFFET) { Item(ITEM_POWER_HERB); Ability(ABILITY_GUTS); Speed(40); Moves(MOVE_GEOMANCY); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentLeft, MOVE_MOONBLAST);
+            EXPECT_MOVE(opponentRight, MOVE_GEOMANCY);
+        }
+    } THEN {
+        enum BattlerId opponentLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId opponentRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(opponentLeftBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(opponentRightBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan = NULL;
+        const struct BattleAiTraceCandidate *chosen = NULL;
+        bool32 foundChosenXerneasAction = FALSE;
+        bool32 foundRejectedMoonblastAlly = FALSE;
+
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT(Test_BattleAiJointRuntime_GetStepCount() > 0);
+        if (leftAction != NULL && rightAction != NULL)
+        {
+            EXPECT_NE(leftAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+            EXPECT_EQ(leftAction->aiPlanId, rightAction->aiPlanId);
+            EXPECT_EQ(leftAction->aiCandidateRank, rightAction->aiCandidateRank);
+            EXPECT_EQ(Test_BattleAiJointRuntime_GetPlanId(), leftAction->aiPlanId);
+            if (leftAction->move == MOVE_MOONBLAST)
+                EXPECT_NE(leftAction->target, opponentRightBattler);
+
+            plan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        }
+        EXPECT(plan != NULL);
+        if (plan != NULL)
+        {
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_VALID);
+            EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT);
+            EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR));
+            EXPECT_EQ(plan->actorMask,
+                      (1u << opponentLeftBattler) | (1u << opponentRightBattler));
+            EXPECT(plan->chosenRank < plan->candidateCount);
+            if (leftAction != NULL)
+                EXPECT_EQ(plan->chosenRank, leftAction->aiCandidateRank);
+
+            chosen = BattleAiTrace_GetCandidate(plan->firstCandidateSequence + plan->chosenRank);
+            EXPECT(chosen != NULL);
+            if (chosen != NULL)
+            {
+                EXPECT(chosen->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN);
+                for (u32 actionIndex = 0; actionIndex < ARRAY_COUNT(chosen->actions); actionIndex++)
+                {
+                    const struct BattleAiTraceAction *action = &chosen->actions[actionIndex];
+                    enum BattlerId actor;
+                    enum BattlerId target;
+
+                    if (!(action->actorMeta & BATTLE_AI_TRACE_ACTION_VALID))
+                        continue;
+                    actor = action->actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK;
+                    target = action->targetMeta & BATTLE_AI_TRACE_ACTION_TARGET_MASK;
+                    EXPECT(!(chosen->rejectionFlags[actionIndex]
+                           & AI_CANDIDATE_REJECTION_UNAPPROVED_ALLY_TARGET));
+                    if (target == BATTLE_PARTNER(actor))
+                        EXPECT_NE(chosen->allyInteractionKinds[actionIndex], AI_ALLY_INTERACTION_NONE);
+                    if (actor == opponentLeftBattler)
+                    {
+                        foundChosenXerneasAction = TRUE;
+                        if (leftAction != NULL)
+                        {
+                            EXPECT_EQ(action->choice, leftAction->move);
+                            EXPECT_EQ(target, leftAction->target);
+                        }
+                        if (action->choice == MOVE_MOONBLAST)
+                            EXPECT_NE(target, opponentRightBattler);
+                    }
+                }
+            }
+
+            for (u32 rank = 0; rank < plan->candidateCount; rank++)
+            {
+                const struct BattleAiTraceCandidate *candidate =
+                    BattleAiTrace_GetCandidate(plan->firstCandidateSequence + rank);
+
+                if (candidate == NULL)
+                    continue;
+                for (u32 actionIndex = 0; actionIndex < ARRAY_COUNT(candidate->actions); actionIndex++)
+                {
+                    const struct BattleAiTraceAction *action = &candidate->actions[actionIndex];
+                    enum BattlerId actor;
+                    enum BattlerId target;
+
+                    if (!(action->actorMeta & BATTLE_AI_TRACE_ACTION_VALID))
+                        continue;
+                    actor = action->actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK;
+                    target = action->targetMeta & BATTLE_AI_TRACE_ACTION_TARGET_MASK;
+                    if (actor != opponentLeftBattler
+                     || action->choice != MOVE_MOONBLAST
+                     || target != opponentRightBattler)
+                        continue;
+
+                    foundRejectedMoonblastAlly = TRUE;
+                    EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE);
+                    EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_PRUNED);
+                    EXPECT(!(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN));
+                    EXPECT(candidate->rejectionFlags[actionIndex]
+                           & AI_CANDIDATE_REJECTION_UNAPPROVED_ALLY_TARGET);
+                    EXPECT_EQ(candidate->allyInteractionKinds[actionIndex], AI_ALLY_INTERACTION_NONE);
+                }
+            }
+        }
+        EXPECT(foundChosenXerneasAction);
+        EXPECT(foundRejectedMoonblastAlly);
     }
 }
 

@@ -310,6 +310,7 @@ static void DebugAction_Party_BattleTeamManager(u8 taskId);
 static void DebugAction_Party_BoxNpcBattle(u8 taskId, const void *params);
 static void DebugAction_Party_BattleSingles3v3(u8 taskId);
 static void DebugAction_Party_BattleDoubles4v4(u8 taskId);
+static void DebugAction_Party_BattleJointTraceDoubles(u8 taskId);
 static void DebugAction_Party_BattleDmaxZSingles(u8 taskId);
 static void DebugAction_Party_BattleDmaxZDoubles(u8 taskId);
 static void DebugAction_Party_BattleGimmickSingles(u8 taskId);
@@ -769,6 +770,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Box NPC Legacy…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
     { COMPOUND_STRING("Battle 3v3 Single"),  DebugAction_Party_BattleSingles3v3 },
     { COMPOUND_STRING("Battle 4v4 Double"),  DebugAction_Party_BattleDoubles4v4 },
+    { COMPOUND_STRING("Joint Trace Double"), DebugAction_Party_BattleJointTraceDoubles },
     { COMPOUND_STRING("Battle Dmax/Z Single"), DebugAction_Party_BattleDmaxZSingles },
     { COMPOUND_STRING("Battle Dmax/Z Double"), DebugAction_Party_BattleDmaxZDoubles },
     { COMPOUND_STRING("Battle Gimmick Single"), DebugAction_Party_BattleGimmickSingles },
@@ -5056,6 +5058,8 @@ enum DebugTrainerIds
     DEBUG_TRAINER_AI_SINGLES_3V3,
     DEBUG_TRAINER_PLAYER_DOUBLES_4V4,
     DEBUG_TRAINER_AI_DOUBLES_4V4,
+    DEBUG_TRAINER_PLAYER_JOINT_TRACE_DOUBLES,
+    DEBUG_TRAINER_AI_JOINT_TRACE_DOUBLES,
     DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES,
     DEBUG_TRAINER_AI_DMAX_Z_SINGLES,
     DEBUG_TRAINER_PLAYER_DMAX_Z_DOUBLES,
@@ -5238,6 +5242,11 @@ static void DebugAction_Party_BattleSingles3v3(u8 taskId)
 static void DebugAction_Party_BattleDoubles4v4(u8 taskId)
 {
     DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_DOUBLES_4V4, DEBUG_TRAINER_AI_DOUBLES_4V4, FALSE, 0);
+}
+
+static void DebugAction_Party_BattleJointTraceDoubles(u8 taskId)
+{
+    DebugAction_Party_StartDebugBattle(taskId, DEBUG_TRAINER_PLAYER_JOINT_TRACE_DOUBLES, DEBUG_TRAINER_AI_JOINT_TRACE_DOUBLES, FALSE, GIMMICK_ACCESS_MEGA_RING);
 }
 
 static void DebugAction_Party_BattleDmaxZSingles(u8 taskId)

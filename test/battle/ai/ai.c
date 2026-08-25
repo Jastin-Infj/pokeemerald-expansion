@@ -1,6 +1,8 @@
 #include "global.h"
 #include "test/battle.h"
 #include "battle_ai_main.h"
+#include "battle_ai_joint_planner.h"
+#include "battle_ai_joint_runtime.h"
 #include "battle_ai_util.h"
 #include "battle_setup.h"
 #include "constants/battle.h"
@@ -50,6 +52,674 @@ SINGLE_BATTLE_TEST("AI runtime knowledge maps move categories from move data")
         EXPECT(AI_MoveHasKnowledgeFlag(MOVE_PARTING_SHOT, AI_MOVE_KNOWLEDGE_Z_REPLACEMENT_HEAL));
         EXPECT(AI_MoveHasKnowledgeFlag(MOVE_CURSE, AI_MOVE_KNOWLEDGE_Z_STAT_BOOST));
         EXPECT(AI_MoveHasKnowledgeFlag(MOVE_CURSE, AI_MOVE_KNOWLEDGE_Z_RECOVERY));
+    }
+}
+
+SINGLE_BATTLE_TEST("Battle AI trace stores a compact plan and links its selected action")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Speed(2); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(1); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); MOVE(opponent, MOVE_CELEBRATE); }
+    } THEN {
+        enum BattlerId playerBattler = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId opponentBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        struct BattleAiTracePlan tracePlan = {0};
+        struct BattleAiTraceCandidate traceCandidate = {0};
+        const struct BattleAiTracePlan *loggedPlan;
+        const struct BattleAiTraceCandidate *loggedCandidate;
+        const struct BattleAiTraceBoard *loggedBoard;
+        const struct BattleActionLogEntry *linkedAction;
+        u16 planId;
+
+        BattleAiTrace_InitAction(&tracePlan.predictedPlayerActions[0], playerBattler, B_ACTION_USE_MOVE, MOVE_CELEBRATE, opponentBattler, 0, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_CONFIRMED_COMMAND);
+        BattleAiTrace_InitAction(&traceCandidate.actions[0], opponentBattler, B_ACTION_USE_MOVE, MOVE_CELEBRATE, playerBattler, 0, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_NONE);
+        tracePlan.actorMask = 1u << opponentBattler;
+        tracePlan.chosenRank = 0;
+        tracePlan.requestedDepth = 1;
+        tracePlan.completedDepth = 1;
+        tracePlan.flags = BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR | BATTLE_AI_TRACE_PLAN_COMPONENTS_PARTIAL;
+        traceCandidate.totalScore = 100;
+        traceCandidate.immediateScore = 100;
+        traceCandidate.readInteractionFlags[0] = AI_READ_INTERACTION_KNOWN_KO;
+        traceCandidate.allyInteractionKinds[0] = AI_ALLY_INTERACTION_SUPPORT;
+        traceCandidate.completedDepth = 1;
+        traceCandidate.flags = BATTLE_AI_TRACE_CANDIDATE_COMPLETE | BATTLE_AI_TRACE_CANDIDATE_COMPONENTS_PARTIAL;
+
+        planId = BattleAiTrace_RecordPlan(&tracePlan, &traceCandidate, 1);
+        BattleAiTrace_SetBattlerDecision(opponentBattler, planId, 0);
+        EXPECT_EQ(gAiBattleData->decisionPlanId[opponentBattler], planId);
+        EXPECT_EQ(gAiBattleData->decisionCandidateRank[opponentBattler], 0);
+        BattleActionLog_RecordSwitchIn(opponentBattler, 0, FALSE);
+
+        loggedPlan = BattleAiTrace_GetPlan(planId);
+        EXPECT(loggedPlan != NULL);
+        EXPECT_EQ(loggedPlan->candidateCount, 1);
+        EXPECT_EQ(loggedPlan->chosenRank, 0);
+        EXPECT(loggedPlan->flags & BATTLE_AI_TRACE_PLAN_VALID);
+        loggedCandidate = BattleAiTrace_GetCandidate(loggedPlan->firstCandidateSequence);
+        EXPECT(loggedCandidate != NULL);
+        EXPECT_EQ(loggedCandidate->totalScore, 100);
+        EXPECT_EQ(loggedCandidate->readInteractionFlags[0], AI_READ_INTERACTION_KNOWN_KO);
+        EXPECT_EQ(loggedCandidate->allyInteractionKinds[0], AI_ALLY_INTERACTION_SUPPORT);
+        EXPECT(loggedCandidate->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN);
+        loggedBoard = BattleAiTrace_GetBoard(loggedPlan->boardSequence);
+        EXPECT(loggedBoard != NULL);
+        EXPECT_EQ(loggedBoard->planId, planId);
+        EXPECT_EQ(loggedBoard->meta & BATTLE_AI_TRACE_BOARD_PHASE_MASK, BATTLE_AI_TRACE_BOARD_PHASE_BEFORE);
+        linkedAction = BattleActionLog_GetLastEntry(opponentBattler, 1u << B_ACTION_SWITCH);
+        EXPECT(linkedAction != NULL);
+        EXPECT_EQ(linkedAction->aiPlanId, planId);
+        EXPECT_EQ(linkedAction->aiCandidateRank, 0);
+    }
+}
+
+TEST("Battle AI trace rings preserve retained plans across cursor and sequence wrap")
+{
+        struct BattleAiTracePlan tracePlan = {0};
+        struct BattleAiTraceCandidate traceCandidates[BATTLE_AI_TRACE_TOP_CANDIDATES] = {0};
+        u16 planIds[BATTLE_AI_TRACE_PLAN_ENTRIES + 1];
+        u16 firstCandidateSequences[BATTLE_AI_TRACE_PLAN_ENTRIES + 1];
+        u16 beforeBoardSequences[BATTLE_AI_TRACE_PLAN_ENTRIES + 1];
+        u16 predictedBoardSequences[BATTLE_AI_TRACE_PLAN_ENTRIES + 1];
+        u16 actualBoardSequences[BATTLE_AI_TRACE_PLAN_ENTRIES + 1];
+
+        BattleAiTrace_Clear();
+        EXPECT_EQ(gBattleAiTraceLog.schemaVersion, BATTLE_AI_TRACE_SCHEMA_VERSION);
+        EXPECT_EQ(gBattleAiTraceLog.magic, BATTLE_AI_TRACE_HEADER_MAGIC);
+
+        // Start each counter close to rollover so this also verifies that zero,
+        // the sentinel for an absent trace link, is skipped by every ring.
+        gBattleAiTraceLog.planSequence = 0xFFFE;
+        gBattleAiTraceLog.candidateSequence = 0xFFF8;
+        gBattleAiTraceLog.boardSequence = 0xFFFC;
+        tracePlan.chosenRank = 0;
+        for (u32 rank = 0; rank < ARRAY_COUNT(traceCandidates); rank++)
+        {
+            traceCandidates[rank].totalScore = rank;
+            traceCandidates[rank].completedDepth = 1;
+            traceCandidates[rank].flags = BATTLE_AI_TRACE_CANDIDATE_COMPLETE;
+        }
+
+        for (u32 i = 0; i < ARRAY_COUNT(planIds); i++)
+        {
+            const struct BattleAiTracePlan *loggedPlan;
+
+            planIds[i] = BattleAiTrace_RecordPlan(&tracePlan, traceCandidates, ARRAY_COUNT(traceCandidates));
+            loggedPlan = BattleAiTrace_GetPlan(planIds[i]);
+            EXPECT(loggedPlan != NULL);
+            firstCandidateSequences[i] = loggedPlan->firstCandidateSequence;
+            beforeBoardSequences[i] = loggedPlan->boardSequence;
+            predictedBoardSequences[i] = BattleAiTrace_CaptureBoard(planIds[i], BATTLE_AI_TRACE_BOARD_PHASE_PREDICTED_AFTER);
+            actualBoardSequences[i] = BattleAiTrace_CaptureBoard(planIds[i], BATTLE_AI_TRACE_BOARD_PHASE_ACTUAL_AFTER);
+        }
+
+        EXPECT_EQ(planIds[0], 0xFFFF);
+        EXPECT_EQ(planIds[1], 1);
+        EXPECT_EQ(firstCandidateSequences[0], 0xFFF9);
+        EXPECT_EQ(firstCandidateSequences[1], 2);
+        EXPECT_EQ(beforeBoardSequences[0], 0xFFFD);
+        EXPECT_EQ(beforeBoardSequences[1], 1);
+        EXPECT_EQ(gBattleAiTraceLog.planCount, BATTLE_AI_TRACE_PLAN_ENTRIES);
+        EXPECT_EQ(gBattleAiTraceLog.candidateCount, BATTLE_AI_TRACE_CANDIDATE_ENTRIES);
+        EXPECT_EQ(gBattleAiTraceLog.boardCount, BATTLE_AI_TRACE_BOARD_ENTRIES);
+        EXPECT_EQ(gBattleAiTraceLog.planCursor, 1);
+        EXPECT_EQ(gBattleAiTraceLog.candidateCursor, BATTLE_AI_TRACE_TOP_CANDIDATES);
+        EXPECT_EQ(gBattleAiTraceLog.boardCursor, 3);
+
+        // The overwritten oldest plan and all three of its board links
+        // disappear together.  Every retained plan still has all candidates
+        // and before/predicted/actual board snapshots available.
+        EXPECT(BattleAiTrace_GetPlan(planIds[0]) == NULL);
+        EXPECT(BattleAiTrace_GetCandidate(firstCandidateSequences[0]) == NULL);
+        EXPECT(BattleAiTrace_GetBoard(beforeBoardSequences[0]) == NULL);
+        for (u32 i = 1; i < ARRAY_COUNT(planIds); i++)
+        {
+            const struct BattleAiTracePlan *loggedPlan = BattleAiTrace_GetPlan(planIds[i]);
+            u16 candidateSequence = firstCandidateSequences[i];
+
+            EXPECT(loggedPlan != NULL);
+            EXPECT_EQ(loggedPlan->boardSequence, beforeBoardSequences[i]);
+            EXPECT(BattleAiTrace_GetBoard(beforeBoardSequences[i]) != NULL);
+            EXPECT(BattleAiTrace_GetBoard(predictedBoardSequences[i]) != NULL);
+            EXPECT(BattleAiTrace_GetBoard(actualBoardSequences[i]) != NULL);
+            for (u32 rank = 0; rank < BATTLE_AI_TRACE_TOP_CANDIDATES; rank++)
+            {
+                EXPECT(BattleAiTrace_GetCandidate(candidateSequence) != NULL);
+                candidateSequence++;
+                if (candidateSequence == BATTLE_AI_TRACE_ID_NONE)
+                    candidateSequence++;
+            }
+        }
+}
+
+AI_SINGLE_BATTLE_TEST("Battle AI trace links a legacy final switch instead of its scored move")
+{
+    PASSES_RANDOMLY(SHOULD_SWITCH_HASBADODDS_PERCENTAGE, 100, RNG_AI_SWITCH_HASBADODDS);
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_MAGNITUDE) == EFFECT_MAGNITUDE);
+        ASSUME(GetMoveType(MOVE_MAGNITUDE) == TYPE_GROUND);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_SMART_SWITCHING
+               | AI_FLAG_SMART_MON_CHOICES
+               | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_GEODUDE) { Level(15); Moves(MOVE_DEFENSE_CURL, MOVE_MAGNITUDE); }
+        OPPONENT(SPECIES_TYRUNT) { Level(13); Moves(MOVE_BITE, MOVE_THUNDER_FANG, MOVE_ROCK_TOMB); }
+        OPPONENT(SPECIES_ZUBAT) { Level(14); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_MAGNITUDE); EXPECT_SWITCH(opponent, 1); }
+    } THEN {
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        const struct BattleActionLogEntry *entry =
+            BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_SWITCH);
+        const struct BattleAiTracePlan *plan;
+        const struct BattleAiTraceCandidate *candidate;
+        u16 candidateSequence;
+
+        EXPECT(entry != NULL);
+        EXPECT_NE(entry->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        plan = BattleAiTrace_GetPlan(entry->aiPlanId);
+        EXPECT(plan != NULL);
+        EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+        EXPECT_EQ(entry->aiCandidateRank, plan->chosenRank);
+
+        candidateSequence = plan->firstCandidateSequence;
+        for (u32 rank = 0; rank < plan->chosenRank; rank++)
+        {
+            candidateSequence++;
+            if (candidateSequence == BATTLE_AI_TRACE_ID_NONE)
+                candidateSequence++;
+        }
+        candidate = BattleAiTrace_GetCandidate(candidateSequence);
+        EXPECT(candidate != NULL);
+        EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN);
+        EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE);
+        EXPECT(candidate->actions[0].actorMeta & BATTLE_AI_TRACE_ACTION_VALID);
+        EXPECT_EQ((candidate->actions[0].actorMeta & BATTLE_AI_TRACE_ACTION_KIND_MASK)
+                >> BATTLE_AI_TRACE_ACTION_KIND_SHIFT,
+                  BATTLE_AI_TRACE_ACTION_SWITCH);
+        EXPECT_EQ(candidate->actions[0].choice, 1);
+        EXPECT_EQ(entry->partyIndex, candidate->actions[0].choice);
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Battle AI trace links a legacy final move after command refresh")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_WOBBUFFET) { Speed(2); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(1); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); EXPECT_MOVE(opponent, MOVE_TACKLE); }
+    } THEN {
+        enum BattlerId battler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        const struct BattleActionLogEntry *entry =
+            BattleActionLog_GetLastEntry(battler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+        const struct BattleAiTraceCandidate *candidate;
+        u16 candidateSequence;
+
+        EXPECT(entry != NULL);
+        EXPECT_NE(entry->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        plan = BattleAiTrace_GetPlan(entry->aiPlanId);
+        EXPECT(plan != NULL);
+        EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+        EXPECT_EQ(entry->aiCandidateRank, plan->chosenRank);
+
+        candidateSequence = plan->firstCandidateSequence;
+        for (u32 rank = 0; rank < plan->chosenRank; rank++)
+        {
+            candidateSequence++;
+            if (candidateSequence == BATTLE_AI_TRACE_ID_NONE)
+                candidateSequence++;
+        }
+        candidate = BattleAiTrace_GetCandidate(candidateSequence);
+        EXPECT(candidate != NULL);
+        EXPECT(candidate->flags & BATTLE_AI_TRACE_CANDIDATE_CHOSEN);
+        EXPECT_EQ((candidate->actions[0].actorMeta & BATTLE_AI_TRACE_ACTION_KIND_MASK)
+                >> BATTLE_AI_TRACE_ACTION_KIND_SHIFT,
+                  BATTLE_AI_TRACE_ACTION_MOVE);
+        EXPECT_EQ(candidate->actions[0].choice, MOVE_TACKLE);
+        EXPECT_EQ(candidate->actions[0].choice, entry->move);
+        EXPECT_EQ(candidate->actions[0].targetMeta & BATTLE_AI_TRACE_ACTION_TARGET_MASK,
+                  entry->target);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime computes one shared complete plan in either opponent controller order")
+{
+    u32 reverseLogicChance;
+
+    PARAMETRIZE { reverseLogicChance = 0; }
+    PARAMETRIZE { reverseLogicChance = 100; }
+
+    GIVEN {
+        WITH_CONFIG(AI_REVERSE_BATTLER_LOGIC_ORDER_CHANCE, reverseLogicChance);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(200); Moves(MOVE_GEOMANCY); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(180); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(60); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(40); Moves(MOVE_GEOMANCY); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentRight, MOVE_GEOMANCY);
+        }
+    } THEN {
+        enum BattlerId left = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId right = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(left, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(right, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        EXPECT_NE(leftAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        EXPECT_EQ(leftAction->aiPlanId, rightAction->aiPlanId);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT(Test_BattleAiJointRuntime_GetStepCount() > 0);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetPlanId(), leftAction->aiPlanId);
+        EXPECT(!Test_BattleAiJointRuntime_IsAllocated());
+        plan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        EXPECT(plan != NULL);
+        EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_VALID);
+        EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT);
+        EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR));
+        EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_NODE_BUDGET_HIT));
+        EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_FRAME_BUDGET_HIT));
+        EXPECT_EQ(plan->actorMask, (1u << left) | (1u << right));
+        EXPECT_GE(plan->requestedDepth, AI_JOINT_STANDARD_DEPTH);
+        EXPECT_EQ(plan->completedDepth, plan->requestedDepth);
+        EXPECT_EQ(plan->terminationReason, BATTLE_AI_TRACE_TERMINATION_COMPLETE);
+        EXPECT(plan->nodesVisited <= AI_JOINT_DEFAULT_TOTAL_NODES);
+        EXPECT(plan->elapsedFrames <= AI_JOINT_DEFAULT_TOTAL_FRAMES);
+        EXPECT_EQ(plan->nodeBudget, AI_JOINT_DEFAULT_TOTAL_NODES);
+        EXPECT_EQ(plan->frameBudget, AI_JOINT_DEFAULT_TOTAL_FRAMES);
+        EXPECT(plan->chosenRank < plan->candidateCount);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime promptly falls back when the exact all-Tackle frontier exceeds capacity")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentLeft);
+            MOVE(playerRight, MOVE_TACKLE, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_TACKLE);
+            EXPECT_MOVE(opponentRight, MOVE_TACKLE);
+        }
+    } THEN {
+        enum BattlerId left = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId right = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(left, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(right, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *leftPlan;
+        const struct BattleAiTracePlan *rightPlan;
+
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT(Test_BattleAiJointRuntime_GetStepCount() > 0);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetPlanId(), BATTLE_AI_TRACE_ID_NONE);
+        EXPECT(!Test_BattleAiJointRuntime_IsAllocated());
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        EXPECT_NE(leftAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        EXPECT_NE(rightAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        leftPlan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        rightPlan = BattleAiTrace_GetPlan(rightAction->aiPlanId);
+        EXPECT(leftPlan != NULL);
+        EXPECT(rightPlan != NULL);
+        EXPECT(leftPlan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+        EXPECT(rightPlan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+        EXPECT(!(leftPlan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+        EXPECT(!(rightPlan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime searches a real prospective Mega profile")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(200); Moves(MOVE_GEOMANCY); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(180); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_SCIZOR) { Ability(ABILITY_TECHNICIAN); Item(ITEM_SCIZORITE); Speed(100); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(40); Moves(MOVE_GEOMANCY); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentRight, MOVE_GEOMANCY);
+        }
+    } THEN {
+        enum BattlerId left = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId right = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(left, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(right, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        EXPECT_NE(leftAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        EXPECT_EQ(leftAction->aiPlanId, rightAction->aiPlanId);
+        plan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        EXPECT(plan != NULL);
+        EXPECT(plan->flags & BATTLE_AI_TRACE_PLAN_JOINT);
+        EXPECT(!(plan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime fails closed on an unsupported prospective Mega ability")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_SABLEYE) { Ability(ABILITY_PRANKSTER); Item(ITEM_SABLENITE); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentLeft);
+            MOVE(playerRight, MOVE_TACKLE, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_TACKLE);
+            EXPECT_MOVE(opponentRight, MOVE_TACKLE);
+        }
+    } THEN {
+        enum BattlerId left = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId right = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(left, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(right, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *leftPlan;
+        const struct BattleAiTracePlan *rightPlan;
+
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        leftPlan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        rightPlan = BattleAiTrace_GetPlan(rightAction->aiPlanId);
+        EXPECT(leftPlan != NULL);
+        EXPECT(rightPlan != NULL);
+        EXPECT(leftPlan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+        EXPECT(rightPlan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+        EXPECT(!(leftPlan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+        EXPECT(!(rightPlan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime tiny budget fails closed to the repaired legacy actions")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_TACKLE); }
+    } WHEN {
+        Test_BattleAiJointRuntime_SetLimits(1, 1, 1, 1);
+        TURN {
+            MOVE(playerLeft, MOVE_TACKLE, target: opponentLeft);
+            MOVE(playerRight, MOVE_TACKLE, target: opponentRight);
+            EXPECT_MOVE(opponentLeft, MOVE_TACKLE);
+            EXPECT_MOVE(opponentRight, MOVE_TACKLE);
+        }
+    } THEN {
+        enum BattlerId left = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId right = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(left, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(right, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *leftPlan;
+        const struct BattleAiTracePlan *rightPlan;
+
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetPlanId(), BATTLE_AI_TRACE_ID_NONE);
+        EXPECT(!Test_BattleAiJointRuntime_IsAllocated());
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        EXPECT_NE(leftAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        EXPECT_NE(rightAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        leftPlan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        rightPlan = BattleAiTrace_GetPlan(rightAction->aiPlanId);
+        EXPECT(leftPlan != NULL);
+        EXPECT(rightPlan != NULL);
+        if (leftPlan != NULL)
+        {
+            const struct BattleAiTraceCandidate *chosen = BattleAiTrace_GetCandidate(
+                leftPlan->firstCandidateSequence + leftAction->aiCandidateRank);
+
+            EXPECT(leftPlan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+            EXPECT(!(leftPlan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+            EXPECT(chosen != NULL);
+            if (chosen != NULL)
+            {
+                EXPECT_EQ(chosen->actions[0].actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK,
+                          left);
+                EXPECT_EQ(chosen->actions[0].choice, MOVE_TACKLE);
+            }
+        }
+        if (rightPlan != NULL)
+        {
+            const struct BattleAiTraceCandidate *chosen = BattleAiTrace_GetCandidate(
+                rightPlan->firstCandidateSequence + rightAction->aiCandidateRank);
+
+            EXPECT(rightPlan->flags & BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR);
+            EXPECT(!(rightPlan->flags & BATTLE_AI_TRACE_PLAN_JOINT));
+            EXPECT(chosen != NULL);
+            if (chosen != NULL)
+            {
+                EXPECT_EQ(chosen->actions[0].actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK,
+                          right);
+                EXPECT_EQ(chosen->actions[0].choice, MOVE_TACKLE);
+            }
+        }
+        Test_BattleAiJointRuntime_ClearLimits();
+        BattleAiJointRuntime_Reset();
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime clearing tiny limits before a search restores the default budget")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(200); Moves(MOVE_GEOMANCY); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(180); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(60); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(40); Moves(MOVE_GEOMANCY); }
+    } WHEN {
+        Test_BattleAiJointRuntime_SetLimits(1, 1, 1, 1);
+        Test_BattleAiJointRuntime_ClearLimits();
+        BattleAiJointRuntime_Reset();
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            MOVE(playerRight, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentRight, MOVE_GEOMANCY);
+        }
+    } THEN {
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT_NE(Test_BattleAiJointRuntime_GetPlanId(), BATTLE_AI_TRACE_ID_NONE);
+        Test_BattleAiJointRuntime_ClearLimits();
+        BattleAiJointRuntime_Reset();
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime does not leave opponent controllers pending with one live player battler")
+{
+    GIVEN {
+        ASSUME(GetMoveEffect(MOVE_MEMENTO) == EFFECT_MEMENTO);
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Speed(1); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Speed(100); Moves(MOVE_MEMENTO); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Speed(2); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Speed(3); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            MOVE(playerRight, MOVE_MEMENTO, target: opponentLeft);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+        BattleAiJointRuntime_Reset();
+        TURN {
+            MOVE(playerLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    } THEN {
+        enum BattlerId opponent = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        EXPECT_EQ(BattleAiJointRuntime_Prepare(opponent), AI_JOINT_RUNTIME_NOT_ELIGIBLE);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime is ineligible without deadlock while Commander hides a player battler")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_TATSUGIRI) { Ability(ABILITY_COMMANDER); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_DONDOZO) { Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_CELEBRATE); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Moves(MOVE_CELEBRATE); }
+    } WHEN {
+        TURN {
+            MOVE(playerRight, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentLeft, MOVE_CELEBRATE);
+            EXPECT_MOVE(opponentRight, MOVE_CELEBRATE);
+        }
+    } THEN {
+        enum BattlerId commander = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId opponent = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+
+        EXPECT(gBattleStruct->battlerState[commander].commandingDondozo);
+        EXPECT_EQ(BattleAiJointRuntime_Prepare(opponent), AI_JOINT_RUNTIME_NOT_ELIGIBLE);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 0);
+    }
+}
+
+AI_DOUBLE_BATTLE_TEST("Joint runtime shares one plan when confirmed player commands mix a move and switch")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE
+               | AI_FLAG_CHECK_VIABILITY
+               | AI_FLAG_TRY_TO_FAINT
+               | AI_FLAG_READ_PLAYER_MOVE
+               | AI_FLAG_DOUBLE_BATTLE
+               | AI_FLAG_OMNISCIENT
+               | AI_FLAG_SMART_MON_CHOICES);
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(200); Moves(MOVE_GEOMANCY); }
+        PLAYER(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(180); Moves(MOVE_GEOMANCY); }
+        PLAYER(SPECIES_WYNAUT) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(160); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(60); Moves(MOVE_GEOMANCY); }
+        OPPONENT(SPECIES_WOBBUFFET) { Ability(ABILITY_GUTS); Item(ITEM_POWER_HERB); Speed(40); Moves(MOVE_GEOMANCY); }
+    } WHEN {
+        TURN {
+            MOVE(playerLeft, MOVE_GEOMANCY);
+            SWITCH(playerRight, 2);
+            EXPECT_MOVE(opponentLeft, MOVE_GEOMANCY);
+            EXPECT_MOVE(opponentRight, MOVE_GEOMANCY);
+        }
+    } THEN {
+        enum BattlerId playerMove = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
+        enum BattlerId playerSwitch = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
+        enum BattlerId opponentLeftBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
+        enum BattlerId opponentRightBattler = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
+        const struct BattleActionLogEntry *leftAction =
+            BattleActionLog_GetLastEntry(opponentLeftBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleActionLogEntry *rightAction =
+            BattleActionLog_GetLastEntry(opponentRightBattler, 1u << B_ACTION_USE_MOVE);
+        const struct BattleAiTracePlan *plan;
+
+        EXPECT(leftAction != NULL);
+        EXPECT(rightAction != NULL);
+        EXPECT_NE(leftAction->aiPlanId, BATTLE_AI_TRACE_ID_NONE);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetBuildCount(), 1);
+        EXPECT_EQ(Test_BattleAiJointRuntime_GetPlanId(), leftAction->aiPlanId);
+        EXPECT_EQ(leftAction->aiPlanId, rightAction->aiPlanId);
+        plan = BattleAiTrace_GetPlan(leftAction->aiPlanId);
+        EXPECT(plan != NULL);
+        EXPECT_EQ(plan->predictedPlayerActions[0].actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK,
+                  playerMove);
+        EXPECT_EQ((plan->predictedPlayerActions[0].actorMeta & BATTLE_AI_TRACE_ACTION_KIND_MASK)
+                >> BATTLE_AI_TRACE_ACTION_KIND_SHIFT,
+                  BATTLE_AI_TRACE_ACTION_MOVE);
+        EXPECT_EQ(plan->predictedPlayerActions[0].choice, MOVE_GEOMANCY);
+        EXPECT_EQ(plan->predictedPlayerActions[1].actorMeta & BATTLE_AI_TRACE_ACTION_ACTOR_MASK,
+                  playerSwitch);
+        EXPECT_EQ((plan->predictedPlayerActions[1].actorMeta & BATTLE_AI_TRACE_ACTION_KIND_MASK)
+                >> BATTLE_AI_TRACE_ACTION_KIND_SHIFT,
+                  BATTLE_AI_TRACE_ACTION_SWITCH);
+        EXPECT_EQ(plan->predictedPlayerActions[1].choice, 2);
     }
 }
 

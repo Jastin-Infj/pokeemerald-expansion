@@ -6,10 +6,10 @@ Smart Gimmick AI makes trainer-owned gimmicks behave like strategic resources in
 
 | Field | Value |
 | --- | --- |
-| Runtime branch | `feature/smart-gimmick-ai-16-20260604` |
-| Code status | Accepted interim-complete runtime snapshot; further planner work moves to a new branch |
-| Completion code snapshot | `46ed9d403f` plus master handoff ancestry merge `dd55f9a45d` |
-| Feature PR | Draft PR #72 against `master` |
+| Runtime branch | `integration/smart-ai-board-search-20260720` |
+| Runtime base | `integration/runtime-lab-current-1.16.1` at `4e960aecea0185912e21a28f40e00fab1b388874` |
+| Code status | Locally validated, uncommitted snapshot-derived joint board-search integration; not master-ready |
+| Feature commit / PR | None yet; the current work is an uncommitted integration slice |
 | Primary docs | `docs/tutorials/ai_flags.md`, this folder |
 | Main flags | `AI_FLAG_SMART_GIMMICK`, `AI_FLAG_GIMMICK_ENV_TERA_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_ONLY`, `AI_FLAG_GIMMICK_ENV_DYNAMAX_TERA`, `AI_FLAG_GIMMICK_ENV_ALL`, `AI_FLAG_GIMMICK_ENV_INVERSE_BATTLE`, `AI_FLAG_AGGRESSIVE_GIMMICK`, `AI_FLAG_READ_PLAYER_MOVE` |
 
@@ -25,9 +25,10 @@ Markdown documentation, `AGENTS.md` when workflow rules change, and explicitly
 approved Lua automation. Source, include, data, test, graphics, generated, and
 non-Lua tool changes are not eligible for the docs-only master path.
 
-The next runtime line starts from this completed Smart AI snapshot on a new
-integration branch. It must take Box NPC Party Pool before Battle Team Boxes so
-the registered teams retain their required party-copy and debug-battle base.
+The current branch was built from the runtime-lab snapshot named above. It is a
+playable integration and evidence shelf, not permission to copy its source-like
+changes into `master`. Any later publication must preserve that lineage and use
+the repository's feature / integration branch policy.
 
 ## Runtime Intent
 
@@ -45,6 +46,137 @@ the registered teams retain their required party-copy and debug-battle base.
 - Smart switching can read a predicted `Taunt` as a free-positioning turn: a utility-heavy active Pokemon that cannot punish Taunt in place may pivot directly to an attacker, while Pokemon that can already attack, win the matchup, or ignore Taunt stay in.
 - In read-mode doubles, an already Choice-locked attacker can pivot when it is being ignored, its locked move no longer makes progress, and the available switch-in is not punished by the confirmed player move set. If that spent Pokemon is being attacked, it can stay as a cushion instead of exposing a reserve.
 - Protect is scored as a turn-gain tool, not a passive singles default. Singles Protect needs a payoff such as residual damage, recovery, choice scouting, Substitute threshold, Disable / Encore follow-up, Wish, or Explosion avoidance. Consecutive Protect is penalized for reduced success odds, but a second Protect can still be selected when the payoff remains.
+
+## Current Doubles Joint Board Search
+
+The current integration adds a shared doubles planner above the earlier
+per-battler score layer. It runs only when all of these conditions are true:
+
+- The format is an ordinary non-link NPC trainer 2v2 double, not a recorded,
+  Palace, Safari, roaming, first-battle, multi, two-opponent, or in-game-partner
+  route, and the trainer has no item command inventory to arbitrate.
+- The AI has `AI_FLAG_READ_PLAYER_MOVE`, `AI_FLAG_DOUBLE_BATTLE`,
+  `AI_FLAG_OMNISCIENT`, and `AI_FLAG_SMART_MON_CHOICES`, and does not have
+  `AI_FLAG_ATTACKS_PARTNER`.
+- Exactly two non-Commander AI-side battlers and two commandable non-Commander
+  player battlers are alive and present.
+- Exactly two live player-side commands have been confirmed, and both are move
+  or switch actions; neither player battler is in a forced multi-turn or
+  recharge state.
+
+An eligible side builds one immutable board snapshot and one shared plan for
+both AI battlers. Candidate roots pair legal move, switch, and supported gimmick
+actions; forced replacements are represented explicitly instead of being
+treated as ordinary free choices. The simulator uses pre-form initial order for
+pre-Gen-7 Mega rules and post-form order for Gen 7+, then either freezes that
+initial order before Gen 8 or recalculates the remaining move actions under
+Gen-8+ rules as the board changes. For supported single-target damage it enumerates all 16 damage
+rolls, configured critical-hit branches, and only the action-order permutations
+that are genuinely tied after priority, Stall / item order, and effective Speed.
+Protect, secondary-effect, and thaw branches use the same integer-weighted
+frontier. Each branch is applied before equivalent post-turn boards have their
+weights added; transient per-turn event summaries are not part of the merge key.
+For the narrow case with exactly one ordinary single-target, single-hit
+`EFFECT_HIT`, the simulator can prove that the other Tailwind, Trick Room, safe
+physical-side Geomancy, and non-target switch actions do not change that hit's
+inputs. It then groups equal raw-damage roll / critical classes before replaying
+the complete turn. Unsafe mixed turns, including a special hit into a Geomancy
+user or a Fairy hit whose input changes with a Fairy Aura switch, stay on the raw
+enumeration path. Re-selecting Tailwind while it is already active is represented
+as a deterministic no-op: PP is spent, the timer is not refreshed, and no new
+field-change event is emitted. A new application uses the configured pre-Gen-5
+three-turn or Gen-5+ four-turn duration.
+The planner therefore does not substitute one median roll. The 32-board frontier is
+enforced after merging; a separate 4,096-application safety ceiling fails closed if
+a huge raw Cartesian product would monopolize one controller task even while
+collapsing to few boards. It then evaluates realized board
+pressure and searches three plies with a selective five-ply extension for the
+closest leading roots. Both opponent commands are restored from the same chosen
+root, so the action log links them to the same plan ID and candidate rank.
+
+With full battle knowledge, snapshot capture also derives prospective Mega and
+Ultra Burst profiles from copied live party data, including the target species,
+recalculated stats, types, and ability. Eligibility is retained for known active
+and reserve party members, so a searched switch can be followed by a legal Mega,
+Ultra Burst, Z-Move, or Tera action on a later ply. Ultra Necrozma retains its
+independent Z eligibility after Ultra Burst. Dynamax eligibility can be captured,
+but active or newly selected Dynamax remains outside the joint simulator.
+
+Snapshot profiles use `TYPE_MYSTERY` for their unused third type slot instead of
+reading a nonexistent species type. Already transformed Mega / Ultra party members
+retain their transformed profile across a switch, and forced replacement consults
+the incoming member's persistent form rather than the outgoing slot's flags. Test
+fixtures also reapply forced abilities to prospective transformed profiles; that
+last rule is test-harness parity and does not alter production ability selection.
+
+The search is deliberately bounded rather than exhaustive. Current defaults
+allow 32 generated atomic actions per actor, retain 12 per actor, form 32 joint
+roots, search depth 3, and extend at most 3 top / close roots to depth 5, with
+2,048 normal or 3,072 deep nodes,
+160 normal or 220 deep frames, 12 nodes per resumable slice, at most 32 merged
+stochastic outcomes per joint turn, and 16 transposition entries. Its 16,248-byte
+heap arena stays below 16 KiB and is released once both commands have been
+committed. Exact enumeration uses a separate 2,596-byte, single-job static EWRAM
+scratch so controller-task stacks do not carry the frontier. A separate
+540-byte validation scratch keeps `AiSim_CheckJointTurn()` off the same fixed
+1 KiB stack. Final object-code inspection reports local stack allocations of
+240 / 124 / 244 bytes for `AiSim_EnumerateOutcomes()` in normal / debug /
+`TESTING` builds and 56 / 28 / 56 bytes for `AiSim_CheckJointTurn()`; each
+function also saves 36 bytes of registers. Reducing the
+transposition table from 64 to 16 entries keeps the heap arena within its ceiling;
+it changes cache capacity, not which legal outcomes are represented.
+
+Unsupported state fails closed for the whole AI side: the existing legacy
+evaluator chooses both commands instead of mixing a partial joint plan with a
+legacy decision. This includes boards with active Dynamax, or whose generated
+action set contains any newly selected Dynamax / Max candidate or explicit Max
+Move power that must be resolved dynamically, plus unsupported form-entry
+effects or an unknown simulation profile. Prospective Mega and Ultra Burst entry
+effects still require a supported derived profile. Stellar Tera is unsupported
+both while active and when a persistently Terastallized reserve would enter through
+an ordinary switch or forced replacement; those paths report gimmick and damage-
+modifier boundaries before falling back. Damaging spread moves,
+multi-hit damage, pre-Generation-3 critical rules, and a frontier that still has
+more than 32 distinct post-turn boards after merging, or a turn that reaches the
+4,096 exact-outcome application safety ceiling, are also
+categorical boundaries: finding one while generating a legal action makes the
+whole side-wide root set incomplete rather than silently dropping that line.
+Moves whose flags change repeat legality, bypass target abilities, or ignore target
+defensive/evasion stages also fail closed until those rules are represented exactly.
+Commander and other mechanics not represented by the bounded simulator remain
+explicit fallback boundaries. Arena allocation failure or exhausting the budget
+before any usable depth-3 root completes returns to the legacy evaluator without
+deadlocking command selection. Once at least one depth-3 root is complete, a
+limit reached while evaluating remaining roots or a selective continuation keeps
+the deepest completed result and records that termination in the trace.
+
+Targeted Prankster status transitions represented by the simulator follow the
+live blockers as well: grounded opposing targets are protected by Psychic
+Terrain, and Gen 7+ Dark immunity uses the target's current simulated type,
+including a Dark Tera conversion and excluding a target that Terastallized away
+from Dark.
+
+Confirmed Fake Out reads are evaluated against each candidate's prospective
+form instead of only the current battler. This includes planned Mega / Ultra /
+Tera typing, ability and Speed, Gen-6 versus Gen-7 Mega order, Sheer Force,
+Neutralizing Gas, Ability Shield, Dazzling-family protection, Ghost overrides,
+flinch immunities, Quick Guard order, and the shared Stall / Lagging Tail
+last-move bracket. The joint root builder defers the legacy confirmed-flinch
+rejection so a complete pair can supply faster Quick Guard or flinch the player
+Fake Out user first. The exact composed-turn simulator still skips the action
+when neither answer exists.
+
+`Party -> Joint Trace Double` is the focused runtime fixture for this path. It
+omits explicit `Party Size` lines so trainer generation preserves the listed
+player two / AI three members. The player leads Intimidate Arcanine with only
+Tailwind and Power Herb Sturdy Skarmory with only Geomancy. The AI leads a level-7,
+zero-Attack-IV Scizorite Technician Scizor with only Bullet Punch and Focus Sash
+Prankster Whimsicott with only Tailwind, keeps Power Herb Fairy Aura Xerneas with
+only Geomancy in reserve, and receives Mega Ring access. The deliberately bulky,
+resisted selected target keeps the live depth-3 path inside production budgets
+while still exposing prospective Mega and reserve-switch candidates. Exact
+roll / critical weights are proved by the focused C simulator suite; this live
+fixture is the planner, linkage, board-snapshot, and exporter acceptance route.
 
 ## Current Mega / Ultra Burst Payoffs
 
@@ -99,7 +231,17 @@ Read mode also distinguishes "the player side has Encore" from "Encore is select
 
 Read mode also applies soft penalties for ordinary slower actions into confirmed or visible `Fake Out` pressure. This uses actual move priority, so lower-priority `Extreme Speed` is still discounted against Gen 5+ `Fake Out`, while priority blockers such as `Armor Tail` / `Dazzling` / `Queenly Majesty` and Psychic Terrain remove the Fake Out threat.
 
-The branch now keeps an in-ROM battle action ring buffer (`gBattleActionLog`) for command-buffer audits. It records confirmed move / switch / item commands for every live battler each turn, including move slot, target, selected gimmick, switch-in party index, AI reason tag, and compact AI trace fields for board threat flags, relevant risk family, short-horizon line flags, stable line family, fallback risk line family, and loss clock. It also records resolved switch-ins separately. `AI_FLAG_READ_PLAYER_MOVE` can fall back to the current battle's logged selected move when no current confirmed command is available. Normal mGBA still cannot write host files directly, so persistent external logs are exported through mGBA Live / Lua.
+The branch keeps an in-ROM battle action ring buffer (`gBattleActionLog`) for
+command-buffer audits. Its 128 entries are 28 bytes each; with the header, the
+buffer occupies 3,592 bytes. It records confirmed move / switch / item commands
+for every live battler each turn, including move slot, target, selected gimmick,
+switch-in party index, AI reason tag, and compact board / risk / line fields. It
+also records resolved switch-ins separately. Joint choices store a plan ID and
+candidate rank that link both AI actions to the separate planner trace.
+`AI_FLAG_READ_PLAYER_MOVE` can fall back to the current battle's logged selected
+move when no current confirmed command is available. Normal mGBA still cannot
+write host files directly, so persistent external logs are exported through
+mGBA Live / Lua.
 
 For manual read-quality rechecks, use `Party -> Gauntlet Battles -> Read Single` or `Read Double`. `Read Single` starts a level-50 3v3 singles battle from mirrored 6-Pokemon weighted pools with all gimmick access. `Read Double` starts a level-50 4v4 doubles battle from mirrored 8-Pokemon weighted pools with all gimmick access. Both sides can roll comparable support, speed control, field control, priority pressure, Mega, Z-Move, Dynamax / Gigantamax, and Tera candidates, while the AI side has full read-mode flags enabled.
 
@@ -109,7 +251,24 @@ For Champion / Elite NPC-mode manual checks, use `Party -> Gauntlet Battles -> C
 
 Use `tools/mgba_live/start_mgba_live.sh manual-ai-log 120` from WSL / Linux, or `tools\mgba_live\start_mgba_live.bat manual-ai-log 120` from Windows, to open mGBA Live with an explicit 120 FPS target. The helper defaults to 120 FPS when the second argument is omitted. The helper also starts battle action log autosave by default; the latest non-empty snapshot is written to `/tmp/<session>-battle-action-log-autosave.json` on WSL / Linux unless `BATTLE_ACTION_LOG_OUT` is set. Set `BATTLE_ACTION_LOG_AUTOSAVE=0` only when host-side log writes are not wanted.
 
-Use `tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]` from WSL / Linux, or `tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]` from Windows when `mgba-live-cli` is on `PATH`. Both wrappers call `tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live session and write JSON using schema `pokeemerald.battle_action_log.v4`. If the WSL / Linux wrapper is called without a session, it uses the active mGBA Live session when one exists. The JSON includes header state, battler positions, action names, move / item / gimmick names, target battlers, party indexes, selected gimmick markers, resolved switch-in markers, corrected switch-in markers, AI reason tags, named AI threat flags, named AI risk kinds, and named short-horizon line facts. Because `gBattleActionLog` is runtime EWRAM, export it during the current battle before starting another battle or returning through a path that reinitializes battle state.
+Use `tools/mgba_live/export_battle_action_log.sh [SESSION] [OUT_JSON]` from
+WSL / Linux, or
+`tools\mgba_live\export_battle_action_log.bat [SESSION] [OUT_JSON]` from Windows
+when `mgba-live-cli` is on `PATH`. Both wrappers call
+`tools/mgba_live/battle_action_log_export.lua` against the running mGBA Live
+session. With a valid planner signature, the exporter writes schema
+`pokeemerald.battle_action_log.v5` and adds `ai_trace_header`, `ai_plans`,
+`ai_candidates`, and `ai_board_snapshots` to the action-log data. The trace uses
+version 5 and magic `0xA15C`: 32 32-byte plan records, 256 28-byte candidate
+records, 96 96-byte board snapshots, and a 16-byte header, for 17,424 bytes.
+Each plan retains up to eight candidates total. The chosen root is forced into
+that set if needed, and one rejected atomic fact can occupy or replace a
+non-chosen slot so legality failures remain reviewable. A missing or mismatched
+trace signature fails safely to the v4 action-only export instead of decoding
+incompatible memory. If the WSL / Linux wrapper is called
+without a session, it uses the active mGBA Live session when one exists. Because
+both logs are runtime EWRAM, export during the current battle before another
+battle or a path that reinitializes battle state.
 
 Double-battle loss review should use exported or autosaved logs as evidence, not memory of a single loss. Treat one loss as a candidate pattern only. Prefer repeated patterns such as over-pivoting, under-protecting a pinned slot, ignoring spread pressure, or spending a gimmick into low board value before changing runtime weights, so the AI does not overfit to one player line.
 

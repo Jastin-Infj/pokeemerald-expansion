@@ -114,7 +114,22 @@ Predictions should be weighted by information source and confidence. A likely `P
 
 `AI_FLAG_READ_PLAYER_MOVE` may treat already-confirmed player commands as a higher-confidence source than heuristic prediction. The opponent controller waits for all live player-side commands, then recomputes action / move choice against the confirmed command buffer. Confirmed moves override heuristic incoming-move prediction, confirmed switches override heuristic switch-in prediction, and selected player-side defensive gimmicks are included in damage calculation. If no current confirmed command is available, the AI may fall back to the current battle's action log for that battler's most recent selected move before falling back to last-used move history. This began as a debug / gauntlet audit mode, but the current branch policy is to auto-apply it to non-link NPC trainer AI at runtime. Recorded and link battles remain excluded so explicit replays and test-runner AI flag scripts stay deterministic. If this mode is used for player-style learning, the observed commands should be logged with source tags and kept separate from generic VGC / single-battle priors so the model does not overfit to one player's habits.
 
-Runtime logging now starts with the in-ROM `gBattleActionLog` ring buffer. It stores confirmed commands for all live battlers and resolved switch-ins, including correction markers for invalid switch-in fallback. Long-term persistent logging should add an mGBA Live / Lua dump path for external files. Normal mGBA play cannot write host files directly from the ROM, so any persistent external log must be exported by tooling after the battle state records the chosen moves, predicted moves, selected targets, switch choice, gimmick decision, and reason tags.
+Runtime logging uses two in-ROM EWRAM ring buffers. `gBattleActionLog` stores 128 ×
+28-byte confirmed-command / resolved-switch entries plus an 8-byte header (3,592
+bytes total), including correction markers for invalid switch-in fallback and links
+from AI actions to plan ID / candidate rank. `gBattleAiTraceLog` stores 32 × 32-byte
+plans, 256 × 28-byte candidates, 96 × 96-byte board snapshots, and a 16-byte header
+(17,424 bytes total). Trace schema version 5 is identified by magic `0xA15C`.
+
+Persistent host export is implemented by
+`tools/mgba_live/battle_action_log_export.lua`; the startup autosave script invokes
+the same exporter for the latest non-empty action log. With a matching ROM / map and
+trace signature, JSON schema `pokeemerald.battle_action_log.v5` includes
+`ai_trace_header`, `ai_plans`, `ai_candidates`, and `ai_board_snapshots` alongside
+`entries`. A missing or mismatched trace signature intentionally produces
+`pokeemerald.battle_action_log.v4` with action-log data only. Normal mGBA play still
+cannot write host files directly from the ROM, so manual export or autosave must run
+while the battle state is available.
 
 Recommended prediction tags:
 
@@ -131,6 +146,126 @@ Recommended prediction tags:
 - `predicted_phazing`
 - `predicted_tera`
 - `predicted_dynamax`
+
+## Current Joint Board Arbitration
+
+Central doubles arbitration is implemented for the conservative board-search
+envelope. The opponent controller waits for both player commands, takes one immutable
+board snapshot, generates move / switch / modeled gimmick-plus-move candidates for
+both AI battlers, and chooses one side-wide action pair. Both opponent controller
+callbacks then consume that shared plan, so partner choices cannot independently
+select incompatible targets, switches, or once-per-trainer resources. With full
+knowledge, the snapshot derives prospective Mega / Ultra profiles from real active
+and reserve party data and retains future per-mon gimmick eligibility. A searched
+switch can therefore expose a reserve Mega, Ultra Burst, Z-Move, or Tera candidate on
+a later ply; Ultra Burst preserves its independently legal later Z action.
+
+The runtime joint path is eligible only when all of the following are true:
+
+- the battle is an ordinary non-link 2v2 NPC trainer double, with exactly two live,
+  commandable non-Commander player battlers and exactly two live non-Commander AI
+  battlers, and the trainer has no item command inventory.
+- both AI battlers have `AI_FLAG_READ_PLAYER_MOVE`, `AI_FLAG_DOUBLE_BATTLE`,
+  `AI_FLAG_OMNISCIENT`, and `AI_FLAG_SMART_MON_CHOICES`, and neither has
+  `AI_FLAG_ATTACKS_PARTNER`.
+- both player commands are confirmed move or switch actions. Trainer-item / run
+  actions, forced multi-turn moves, recharge, asymmetric replacement boards, multi,
+  partner, Palace, Safari, recorded playback, and other excluded formats stay on the
+  legacy path.
+
+The planner executes actions in configured runtime order. Pre-Gen-7 Mega / Ultra
+rules sort the initial turn from pre-form profiles, while Gen 7+ sorts from the
+activated profile. Pre-Gen-8 rules preserve that initial remaining order; Gen 8+
+recalculates remaining move actions after the first move and later board changes.
+Tie discovery follows the same boundary and never reintroduces an actor that already
+acted. The planner enumerates all 16 supported single-target damage rolls, configured
+critical branches, and only genuinely tied priority / effective-Speed order
+permutations with exact integer weights. Protect,
+secondary-effect, and thaw branches share that frontier. Every raw branch is applied
+before equivalent post-turn boards have their weights added; transient turn-result
+events are excluded from the merge key. A narrow single-hit proof may group equal
+raw-damage classes before whole-turn replay only when exactly one ordinary
+single-target hit exists and every other action is proven not to change its inputs.
+Multiple damage actions, special damage into a Geomancy user, Fairy damage with a
+switchable Fairy Aura, and other unsafe combinations retain raw enumeration. The
+32-outcome bound is checked after the post-board merge. Independently, one joint turn may perform at most 4,096 exact outcome
+applications; reaching that CPU-safety ceiling fails closed even if many raw
+branches would merge to fewer boards. The planner includes forced
+replacements and scores realized board pressure rather than only raw damage. It
+completes the standard depth-three search before a selective depth-five extension and
+advances in bounded per-frame slices. The transposition table has 16 entries, and the
+heap runtime arena occupies 16,248 bytes, below 16 KiB. It is released after all
+battler commands are committed, and allocation failure is a normal legacy-fallback
+condition. Exact enumeration owns a separate 2,596-byte static EWRAM scratch under
+the runtime's single-job/non-reentrant contract so controller-task stacks stay small.
+Joint-turn validation owns a second 540-byte board scratch under the same contract;
+final object-code local stack allocations are 240 normal / 124 debug / 244
+`TESTING` bytes for `AiSim_EnumerateOutcomes()` and 56 / 28 / 56 bytes for
+`AiSim_CheckJointTurn()`, with another 36 saved-register bytes in each function.
+
+The immutable simulator fails closed rather than approximating an unmodeled line.
+Unsupported snapshot knowledge, field / volatile / residual state, move effects,
+damage modifiers, redirection, substitute, switch-in effects, incomplete root
+generation, reaching budget before any usable depth-3 root completes, or an invalid
+chosen pair discards the joint result and runs the existing evaluator. A limit hit
+after a usable root completes preserves the deepest completed result. In particular:
+
+- already-active Dynamax, or any generated newly selected Dynamax / Max Move
+  candidate, makes the whole joint root set unsupported until the compact action
+  carries exact base-derived Max power and effect state.
+- prospective Mega / Ultra forms require a valid known transformed profile and a
+  modeled passive ability. Full-knowledge profiles are derived from the copied party
+  mon, target species, recalculated stats, types, and ability; unmodeled entry effects
+  such as Intimidate or weather setters still fail closed.
+  The unused third profile type is `TYPE_MYSTERY`; forced replacement reads the
+  incoming member's persistent Mega / Ultra state, not the outgoing slot's flags.
+  Test-only forced abilities are reapplied to prospective transformed profiles for
+  harness parity without changing production ability resolution.
+- Tera requires a valid supported Tera Type. Stellar and unknown types fail closed,
+  including an already-active Stellar user and a persistently Stellar-Tera reserve
+  entering through an ordinary switch or forced replacement.
+- Z-Moves are admitted only when their converted move and effects are represented by
+  the simulator.
+- Moves flagged `cantUseTwice`, `ignoresTargetAbility`, or
+  `ignoresTargetDefenseEvasionStages` fail closed, including signature Z variants,
+  until repeat legality and the alternate damage path are represented.
+- damaging spread moves, multi-hit damage, and pre-Generation-3 critical rules fail
+  closed because their independent target / strike RNG is not represented by the
+  compact per-actor outcome key. A frontier with more than 32 distinct post-turn
+  boards after merging, or a turn reaching 4,096 exact outcome applications, is also
+  unsupported. Encountering any such
+  legal action makes the side-wide root set incomplete rather than removing only that
+  action.
+- targeted Prankster status effects represented by the simulator obey grounded
+  Psychic Terrain and the configured Gen 7+ Dark immunity. Dark checks use the
+  target's current simulated type, so Dark Tera blocks and Terastallizing away from
+  Dark does not.
+- a confirmed Fake Out is a composed-turn interaction rather than an atomic root
+  illegality. Candidate-specific legacy checks account for prospective forms,
+  abilities, typing, Speed, Sheer Force, ability suppression / Ability Shield,
+  priority blocking, flinch immunity, and executable Quick Guard. The joint root
+  retains Fake Out provenance while deferring the confirmed-flinch rejection so a
+  paired Quick Guard or earlier ally Fake Out can answer it. With no such answer,
+  exact turn application still flinches and skips the victim action.
+- Tailwind uses the configured pre-Gen-5 three-turn or Gen-5+ four-turn duration.
+  Selecting it again while already active is a deterministic no-op that spends PP,
+  does not refresh the timer, and does not emit a new field-change event.
+
+`Party -> Joint Trace Double` is the focused runtime acceptance fixture. Both sides
+are deliberately asymmetric, and explicit `Party Size` lines are omitted so the
+listed player two / AI three members keep their order. The player leads Intimidate
+Arcanine with only Tailwind and Power Herb Sturdy Skarmory with only Geomancy. The
+AI leads a level-7, zero-Attack-IV Scizorite Technician Scizor with only Bullet
+Punch and Focus Sash Prankster Whimsicott with only Tailwind, keeps Power Herb Fairy
+Aura Xerneas with only Geomancy in reserve, and has Mega Ring access. After Tailwind and Geomancy are
+confirmed, a valid v5 export must contain a plan flagged `joint` and
+`deepest_complete_used` (not `legacy_evaluator`), a chosen candidate flagged `joint`
+and `chosen`, nonzero candidate scores, reviewable Mega and switch roots, and both
+opponent action entries linked to the same plan ID and candidate rank. The trace proves
+the live candidate and board path. The bulky, resisted selected target keeps this
+planner acceptance deterministic enough to complete depth 3 under production
+budgets; focused C regressions remain the direct evidence for raw 16-roll / critical /
+Speed-tie weights because v5 does not export that frontier.
 
 ## Board Advantage Policy
 
@@ -319,11 +454,15 @@ Mega and Ultra Burst primarily change stats, ability, sometimes typing, and imme
 
 Required checks:
 
+- Prospective target-form profiles for known active and reserve party members,
+  derived from the real party mon rather than injected only by simulator tests.
 - Pre-form ability value: `Air Lock`, `Cloud Nine`, trapping, weather, terrain, Intimidate, or item / ability scouting value.
 - Post-form ability value: trapping, weather, damage amplification, defensive race, priority, or field control.
 - Speed flip and damage thresholds.
 - Whether setup should happen before spending the transformation.
 - Whether the target form creates a bad interaction with weather, terrain, item, or partner plan.
+- Whether a searched switch exposes later Mega / Ultra eligibility, and whether Ultra
+  Burst preserves a later legal Z action.
 
 ### Z-Move
 
@@ -333,7 +472,7 @@ Required checks:
 
 - Base move type, category, target, disabled state, PP, and accuracy.
 - Damaging Z power, KO conversion, low-accuracy KO stabilization, trap pressure, and damage-race improvement.
-- Status Z effect, whether the status effect is useful now, and whether Dark-type / Prankster / Magic Bounce / Good as Gold / Taunt / Assault Vest style blockers matter.
+- Status Z effect, whether the status effect is useful now, and whether grounded Psychic Terrain, the target's current Dark type after Tera, Prankster, Magic Bounce, Good as Gold, Taunt, or Assault Vest-style blockers matter.
 - Z-Crystal item lock and whether the item slot has opportunity cost compared with another item category.
 
 ### Dynamax / Gigantamax
@@ -362,7 +501,7 @@ Required checks:
 
 ## Required Runtime Outputs
 
-The long-term runtime layer should be able to answer:
+The runtime layer and its v5 trace should be able to answer:
 
 - What is the effective move after gimmick conversion?
 - What are the effective type, category, power, target, and move-shape flags?
@@ -384,9 +523,23 @@ The long-term runtime layer should be able to answer:
 
 ## Current Gap List
 
-- Max Move side-effect families and G-Max unique / residual effects are exposed as reusable AI move knowledge flags, but most non-residual G-Max unique effects still need tactic-specific scoring.
+- Central move / switch / modeled-gimmick arbitration now runs for eligible 2v2 boards; unsupported candidates or boards deliberately use the legacy evaluator rather than a partial joint result.
+- Active Dynamax, newly selected Dynamax, exact Max Move dynamic power, and most G-Max unique / residual effects remain outside the immutable board-search envelope. Reusable AI knowledge flags still support legacy tactic scoring.
+- Full-knowledge active and reserve Mega / Ultra profiles and later reserve gimmick
+  eligibility are now derived from real party data. Entry-event abilities and unknown
+  transformed profiles still fail closed.
+- Exact stochastic enumeration currently covers single-target, single-hit modern
+  critical rules. A proven one-hit invariant-input case can group equal raw-damage
+  classes before replay; unsafe mixed turns stay on raw enumeration. Damaging spread,
+  multi-hit, pre-Generation-3 critical rules, more than 32 distinct states after
+  post-board merge, and the 4,096-application safety ceiling are explicit whole-side
+  fallback boundaries.
+- The 16-entry transposition table keeps the heap arena at 16,248 bytes. The exact
+  frontier instead uses its separate 2,596-byte static EWRAM scratch. The smaller
+  cache can cause more recomputation inside the existing node / frame budgets, but
+  it does not change outcome legality or probability weights.
 - Status Z-Move effects are still mostly evaluated through existing Z viability logic rather than the shared runtime knowledge layer.
 - Tera defensive evaluation now rejects pure defensive Tera lines that introduce a new large-hit weakness, but it still does not run a full multi-turn defensive type search.
-- Combined gimmick environments need a central resource arbitration pass so Mega / Z / Dynamax / Tera decisions are compared consistently.
+- Combined gimmick environments are compared centrally only for candidates the simulator can represent exactly; expanding that supported envelope must preserve the same fail-closed contract.
 - Ability and item categories are broad runtime knowledge flags; deeper scoring still needs targeted predicates such as "this item protects the exact line the opponent is threatening".
 - Battle-script-only edge behavior still needs audit coverage for mechanics that do not surface cleanly through `GetMoveEffect()`, move flags, ability constants, or hold effects.

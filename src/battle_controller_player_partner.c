@@ -268,7 +268,9 @@ static void PlayerPartnerHandleTrainerSlideBack(enum BattlerId battler)
 
 static void PlayerPartnerHandleChooseAction(enum BattlerId battler)
 {
-    AI_TrySwitchOrUseItem(battler);
+    u32 finalAction = AI_TrySwitchOrUseItem(battler);
+
+    BattleAI_RecordLegacyPlanTrace(battler, finalAction);
     BtlController_Complete(battler);
 }
 

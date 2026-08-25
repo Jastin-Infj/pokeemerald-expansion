@@ -1,6 +1,7 @@
 #include "global.h"
 #include "battle.h"
 #include "battle_ai_main.h"
+#include "battle_ai_joint_runtime.h"
 #include "battle_ai_switch.h"
 #include "battle_ai_util.h"
 #include "constants/battle.h"
@@ -501,11 +502,26 @@ static void RefreshOpponentAIWithKnownPlayerCommands(enum BattlerId battler)
 
 static void OpponentHandleChooseAction(enum BattlerId battler)
 {
+    enum AiJointRuntimeStatus jointStatus;
+    u32 finalAction;
+    bool32 appliedStoredAction = FALSE;
+
     if (ShouldWaitForKnownPlayerCommands(battler))
         return;
 
-    RefreshOpponentAIWithKnownPlayerCommands(battler);
-    AI_TrySwitchOrUseItem(battler);
+    jointStatus = BattleAiJointRuntime_Prepare(battler);
+    if (jointStatus == AI_JOINT_RUNTIME_PENDING)
+        return;
+    if (jointStatus == AI_JOINT_RUNTIME_READY
+     || jointStatus == AI_JOINT_RUNTIME_FALLBACK)
+        appliedStoredAction = BattleAiJointRuntime_ApplyAction(battler);
+    if (!appliedStoredAction)
+        RefreshOpponentAIWithKnownPlayerCommands(battler);
+    finalAction = AI_TrySwitchOrUseItem(battler);
+    if ((jointStatus != AI_JOINT_RUNTIME_READY || !appliedStoredAction)
+     && (finalAction != B_ACTION_USE_MOVE || appliedStoredAction))
+        BattleAI_RecordLegacyPlanTrace(battler, finalAction);
+    BattleAiJointRuntime_RestoreTraceDecision(battler);
     BtlController_Complete(battler);
 }
 
@@ -567,6 +583,7 @@ static enum BattlerId GetValidOpponentChosenTarget(enum BattlerId battler, enum 
 static void OpponentHandleChooseMove(enum BattlerId battler)
 {
     u32 chosenMoveIndex;
+    bool32 reusedStoredMove;
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
 
     if (gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_FIRST_BATTLE | BATTLE_TYPE_SAFARI | BATTLE_TYPE_ROAMER)
@@ -591,7 +608,12 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
             if (ShouldWaitForKnownPlayerCommands(battler))
                 return;
 
-            RefreshOpponentAIWithKnownPlayerCommands(battler);
+            // A joint action was committed during choose-action.  Replay its
+            // exact move, target and gimmick here; only battles outside the
+            // conservative joint-planner envelope run the legacy scorer.
+            reusedStoredMove = BattleAiJointRuntime_ReuseMove(battler);
+            if (!reusedStoredMove)
+                RefreshOpponentAIWithKnownPlayerCommands(battler);
 
             chosenMoveIndex = gAiBattleData->chosenMoveIndex[battler];
             gBattlerTarget = gAiBattleData->chosenTarget[battler];
@@ -615,16 +637,28 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
              || !IsBattlerAlive(gBattlerTarget)
              || !CanTargetBattler(battler, gBattlerTarget, chosenMove))
                 gBattlerTarget = GetValidOpponentChosenTarget(battler, chosenMove, gBattlerTarget);
-            // If opponent can and should use a gimmick (considering trainer data), do it
+            // If opponent can and should use a gimmick (considering trainer data), do it.
+            // Record a refreshed legacy move only after its emitted target and gimmick
+            // have been finalized, because ComputeAiBattlerDecisions clears trace links.
             enum Gimmick usableGimmick = gBattleStruct->gimmick.usableGimmick[battler];
-            if (usableGimmick != GIMMICK_NONE && IsAIUsingGimmick(battler) && !HasTrainerUsedGimmick(battler, usableGimmick))
+            bool32 useGimmick = usableGimmick != GIMMICK_NONE
+                             && IsAIUsingGimmick(battler)
+                             && !HasTrainerUsedGimmick(battler, usableGimmick);
+
+            if (!useGimmick)
+                SetAIUsingGimmick(battler, NO_GIMMICK);
+            if (!reusedStoredMove)
+            {
+                gAiBattleData->chosenTarget[battler] = gBattlerTarget;
+                BattleAI_RecordLegacyPlanTrace(battler, B_ACTION_USE_MOVE);
+            }
+            if (useGimmick)
             {
                 gBattleStruct->gimmick.toActivate |= 1u << battler;
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_EXEC_SCRIPT, (chosenMoveIndex) | (RET_GIMMICK) | (gBattlerTarget << 8));
             }
             else
             {
-                SetAIUsingGimmick(battler, NO_GIMMICK);
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_EXEC_SCRIPT, (chosenMoveIndex) | (gBattlerTarget << 8));
             }
         }

@@ -1,6 +1,8 @@
 #include "global.h"
 #include "battle.h"
 #include "battle_anim.h"
+#include "battle_ai_board_sim.h"
+#include "battle_ai_joint_runtime.h"
 #include "battle_ai_main.h"
 #include "battle_ai_record.h"
 #include "battle_arena.h"
@@ -205,6 +207,7 @@ EWRAM_DATA u16 gPaydayMoney = 0;
 EWRAM_DATA u8 gBattleCommunication[BATTLE_COMMUNICATION_ENTRIES_COUNT] = {0};
 EWRAM_DATA u8 gBattleOutcome = 0;
 EWRAM_DATA struct BattleActionLog gBattleActionLog = {0};
+EWRAM_DATA struct BattleAiTraceLog gBattleAiTraceLog = {0};
 EWRAM_DATA struct ProtectStruct gProtectStructs[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA struct SpecialStatus gSpecialStatuses[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA u16 gBattleWeather = 0;
@@ -263,6 +266,339 @@ void BattleActionLog_Clear(void)
 {
     memset(&gBattleActionLog, 0, sizeof(gBattleActionLog));
     gBattleActionLog.lastRecordedTurn = 0xFFFF;
+    BattleAiTrace_Clear();
+}
+
+static u16 BattleAiTrace_NextSequence(u16 *sequence)
+{
+    (*sequence)++;
+    if (*sequence == BATTLE_AI_TRACE_ID_NONE)
+        (*sequence)++;
+    return *sequence;
+}
+
+static u8 BattleAiTrace_CompactTimer(u16 timer, bool32 *clamped)
+{
+    if (timer > 0xFF)
+    {
+        *clamped = TRUE;
+        return 0xFF;
+    }
+    return timer;
+}
+
+void BattleAiTrace_Clear(void)
+{
+    memset(&gBattleAiTraceLog, 0, sizeof(gBattleAiTraceLog));
+    gBattleAiTraceLog.schemaVersion = BATTLE_AI_TRACE_SCHEMA_VERSION;
+    gBattleAiTraceLog.magic = BATTLE_AI_TRACE_HEADER_MAGIC;
+}
+
+void BattleAiTrace_InitAction(struct BattleAiTraceAction *action, enum BattlerId battler, u32 battleAction, u16 choice, u32 target, u32 moveSlot, enum Gimmick gimmick, u32 predictionSource)
+{
+    u32 actionKind;
+
+    if (action == NULL)
+        return;
+
+    memset(action, 0, sizeof(*action));
+    switch (battleAction)
+    {
+    case B_ACTION_USE_MOVE:
+        actionKind = BATTLE_AI_TRACE_ACTION_MOVE;
+        break;
+    case B_ACTION_SWITCH:
+        actionKind = BATTLE_AI_TRACE_ACTION_SWITCH;
+        break;
+    case B_ACTION_USE_ITEM:
+        actionKind = BATTLE_AI_TRACE_ACTION_ITEM;
+        break;
+    default:
+        return;
+    }
+
+    if (battler >= MAX_BATTLERS_COUNT)
+        return;
+    if (target > MAX_BATTLERS_COUNT)
+        target = MAX_BATTLERS_COUNT;
+    if (moveSlot > MAX_MON_MOVES)
+        moveSlot = MAX_MON_MOVES;
+    if (gimmick >= GIMMICKS_COUNT)
+        gimmick = GIMMICK_NONE;
+    if (predictionSource > BATTLE_AI_TRACE_PREDICTION_ACTION_LOG_FALLBACK)
+        predictionSource = BATTLE_AI_TRACE_PREDICTION_NONE;
+
+    action->choice = choice;
+    action->actorMeta = (battler & BATTLE_AI_TRACE_ACTION_ACTOR_MASK)
+                      | ((actionKind << BATTLE_AI_TRACE_ACTION_KIND_SHIFT) & BATTLE_AI_TRACE_ACTION_KIND_MASK)
+                      | ((moveSlot << BATTLE_AI_TRACE_ACTION_MOVE_SLOT_SHIFT) & BATTLE_AI_TRACE_ACTION_MOVE_SLOT_MASK)
+                      | BATTLE_AI_TRACE_ACTION_VALID;
+    action->targetMeta = (target & BATTLE_AI_TRACE_ACTION_TARGET_MASK)
+                       | ((gimmick << BATTLE_AI_TRACE_ACTION_GIMMICK_SHIFT) & BATTLE_AI_TRACE_ACTION_GIMMICK_MASK)
+                       | ((predictionSource << BATTLE_AI_TRACE_ACTION_PREDICTION_SHIFT) & BATTLE_AI_TRACE_ACTION_PREDICTION_MASK);
+}
+
+u16 BattleAiTrace_CaptureBoard(u16 planId, enum BattleAiTraceBoardPhase phase)
+{
+    struct BattleAiTraceBoard *board;
+    bool32 timersClamped = FALSE;
+    u32 battlerMask = 0;
+
+    if (phase <= BATTLE_AI_TRACE_BOARD_PHASE_NONE || phase > BATTLE_AI_TRACE_BOARD_PHASE_ACTUAL_AFTER)
+        return BATTLE_AI_TRACE_ID_NONE;
+
+    board = &gBattleAiTraceLog.boards[gBattleAiTraceLog.boardCursor];
+    memset(board, 0, sizeof(*board));
+    board->sequence = BattleAiTrace_NextSequence(&gBattleAiTraceLog.boardSequence);
+    board->planId = planId;
+    board->weather = gBattleWeather;
+    board->fieldStatuses = gFieldStatuses;
+
+    for (u32 side = 0; side < NUM_BATTLE_SIDES; side++)
+    {
+        board->sideStatuses[side] = gSideStatuses[side];
+        board->tailwindTimers[side] = BattleAiTrace_CompactTimer(gSideTimers[side].tailwindTimer, &timersClamped);
+        board->reflectTimers[side] = BattleAiTrace_CompactTimer(gSideTimers[side].reflectTimer, &timersClamped);
+        board->lightScreenTimers[side] = BattleAiTrace_CompactTimer(gSideTimers[side].lightscreenTimer, &timersClamped);
+        board->auroraVeilTimers[side] = BattleAiTrace_CompactTimer(gSideTimers[side].auroraVeilTimer, &timersClamped);
+    }
+
+    board->trickRoomTimer = BattleAiTrace_CompactTimer(gFieldTimers.trickRoomTimer, &timersClamped);
+    board->terrainTimer = BattleAiTrace_CompactTimer(gFieldTimers.terrainTimer, &timersClamped);
+    board->gravityTimer = BattleAiTrace_CompactTimer(gFieldTimers.gravityTimer, &timersClamped);
+    board->magicRoomTimer = BattleAiTrace_CompactTimer(gFieldTimers.magicRoomTimer, &timersClamped);
+
+    for (enum BattlerId battler = 0; battler < MAX_BATTLERS_COUNT; battler++)
+    {
+        struct BattleAiTraceBattlerState *state = &board->battlers[battler];
+
+        if (battler >= gBattlersCount || (gAbsentBattlerFlags & (1u << battler)))
+            continue;
+
+        battlerMask |= 1u << battler;
+        state->species = gBattleMons[battler].species;
+        state->hp = gBattleMons[battler].hp;
+        state->maxHp = gBattleMons[battler].maxHP;
+        state->item = gBattleMons[battler].item;
+        state->status1 = gBattleMons[battler].status1;
+        for (u32 stat = 0; stat < NUM_BATTLE_STATS; stat++)
+        {
+            u32 shift = (stat & 1) * 4;
+
+            state->statStages[stat / 2] |= (gBattleMons[battler].statStages[stat] & 0xF) << shift;
+        }
+    }
+
+    board->meta = BATTLE_AI_TRACE_BOARD_VALID
+                | (phase & BATTLE_AI_TRACE_BOARD_PHASE_MASK)
+                | ((battlerMask << BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT) & BATTLE_AI_TRACE_BOARD_BATTLER_MASK);
+    if (timersClamped)
+        board->meta |= BATTLE_AI_TRACE_BOARD_TIMERS_CLAMPED;
+
+    gBattleAiTraceLog.boardCursor++;
+    if (gBattleAiTraceLog.boardCursor >= BATTLE_AI_TRACE_BOARD_ENTRIES)
+        gBattleAiTraceLog.boardCursor = 0;
+    if (gBattleAiTraceLog.boardCount < BATTLE_AI_TRACE_BOARD_ENTRIES)
+        gBattleAiTraceLog.boardCount++;
+
+    return board->sequence;
+}
+
+u16 BattleAiTrace_CaptureSimBoard(u16 planId, const struct AiSimContext *context, const struct AiSimBoard *simBoard)
+{
+    struct BattleAiTraceBoard *traceBoard;
+    bool32 timersClamped = FALSE;
+    u32 battlerMask = 0;
+
+    if (context == NULL || simBoard == NULL || planId == BATTLE_AI_TRACE_ID_NONE)
+        return BATTLE_AI_TRACE_ID_NONE;
+
+    traceBoard = &gBattleAiTraceLog.boards[gBattleAiTraceLog.boardCursor];
+    memset(traceBoard, 0, sizeof(*traceBoard));
+    traceBoard->sequence = BattleAiTrace_NextSequence(&gBattleAiTraceLog.boardSequence);
+    traceBoard->planId = planId;
+    traceBoard->weather = simBoard->weather;
+    traceBoard->fieldStatuses = simBoard->fieldStatuses;
+
+    for (u32 side = 0; side < NUM_BATTLE_SIDES; side++)
+    {
+        traceBoard->sideStatuses[side] = simBoard->sides[side].statuses;
+        traceBoard->tailwindTimers[side] = BattleAiTrace_CompactTimer(simBoard->sides[side].tailwindTimer, &timersClamped);
+        traceBoard->reflectTimers[side] = BattleAiTrace_CompactTimer(simBoard->sides[side].reflectTimer, &timersClamped);
+        traceBoard->lightScreenTimers[side] = BattleAiTrace_CompactTimer(simBoard->sides[side].lightScreenTimer, &timersClamped);
+        traceBoard->auroraVeilTimers[side] = BattleAiTrace_CompactTimer(simBoard->sides[side].auroraVeilTimer, &timersClamped);
+    }
+
+    traceBoard->trickRoomTimer = BattleAiTrace_CompactTimer(simBoard->trickRoomTimer, &timersClamped);
+    traceBoard->terrainTimer = BattleAiTrace_CompactTimer(simBoard->terrainTimer, &timersClamped);
+    traceBoard->gravityTimer = BattleAiTrace_CompactTimer(simBoard->gravityTimer, &timersClamped);
+    traceBoard->magicRoomTimer = BattleAiTrace_CompactTimer(simBoard->magicRoomTimer, &timersClamped);
+
+    for (enum BattlerId battler = 0; battler < MAX_BATTLERS_COUNT; battler++)
+    {
+        const struct AiSimActiveState *active;
+        const struct AiSimMonTemplate *mon;
+        const struct AiSimCombatProfile *profile;
+        const struct AiSimPartyState *party;
+        struct BattleAiTraceBattlerState *state;
+        u32 rosterIndex;
+
+        if (battler >= context->battlersCount
+         || !(simBoard->activeMask & (1u << battler))
+         || (simBoard->absentMask & (1u << battler)))
+            continue;
+
+        active = &simBoard->active[battler];
+        rosterIndex = active->rosterIndex;
+        if (rosterIndex >= AI_SIM_ROSTER_COUNT)
+            continue;
+        mon = &context->mons[rosterIndex];
+        if (!(mon->flags & AI_SIM_MON_PRESENT))
+            continue;
+        profile = (active->flags & AI_SIM_ACTIVE_TRANSFORMED) ? &mon->transformed : &mon->normal;
+        if (!(profile->flags & AI_SIM_PROFILE_VALID))
+            continue;
+
+        party = &simBoard->party[rosterIndex];
+        state = &traceBoard->battlers[battler];
+        battlerMask |= 1u << battler;
+        state->species = profile->species;
+        state->hp = party->hp;
+        state->maxHp = profile->maxHp;
+        if (active->flags & AI_SIM_ACTIVE_DYNAMAX)
+            state->maxHp = min(UINT16_MAX, ((u32)state->maxHp * mon->dynamaxHpPercent + 50) / 100);
+        state->item = party->item;
+        state->status1 = party->status1;
+        for (u32 stat = 0; stat < NUM_BATTLE_STATS; stat++)
+        {
+            u32 shift = (stat & 1) * 4;
+
+            state->statStages[stat / 2] |= (active->statStages[stat] & 0xF) << shift;
+        }
+    }
+
+    traceBoard->meta = BATTLE_AI_TRACE_BOARD_VALID
+                     | BATTLE_AI_TRACE_BOARD_PHASE_PREDICTED_AFTER
+                     | ((battlerMask << BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT) & BATTLE_AI_TRACE_BOARD_BATTLER_MASK);
+    if (timersClamped)
+        traceBoard->meta |= BATTLE_AI_TRACE_BOARD_TIMERS_CLAMPED;
+
+    gBattleAiTraceLog.boardCursor++;
+    if (gBattleAiTraceLog.boardCursor >= BATTLE_AI_TRACE_BOARD_ENTRIES)
+        gBattleAiTraceLog.boardCursor = 0;
+    if (gBattleAiTraceLog.boardCount < BATTLE_AI_TRACE_BOARD_ENTRIES)
+        gBattleAiTraceLog.boardCount++;
+
+    return traceBoard->sequence;
+}
+
+u16 BattleAiTrace_RecordPlan(const struct BattleAiTracePlan *plan, const struct BattleAiTraceCandidate *candidates, u32 candidateCount)
+{
+    struct BattleAiTracePlan *loggedPlan;
+    u16 planId;
+
+    if (plan == NULL)
+        return BATTLE_AI_TRACE_ID_NONE;
+    if (candidates == NULL)
+        candidateCount = 0;
+    if (candidateCount > BATTLE_AI_TRACE_TOP_CANDIDATES)
+        candidateCount = BATTLE_AI_TRACE_TOP_CANDIDATES;
+
+    planId = BattleAiTrace_NextSequence(&gBattleAiTraceLog.planSequence);
+    loggedPlan = &gBattleAiTraceLog.plans[gBattleAiTraceLog.planCursor];
+    *loggedPlan = *plan;
+    loggedPlan->sequence = planId;
+    loggedPlan->turn = gBattleResults.battleTurnCounter;
+    loggedPlan->candidateCount = candidateCount;
+    if (loggedPlan->chosenRank >= candidateCount)
+        loggedPlan->chosenRank = BATTLE_AI_TRACE_CANDIDATE_RANK_NONE;
+    loggedPlan->firstCandidateSequence = BATTLE_AI_TRACE_ID_NONE;
+
+    for (u32 rank = 0; rank < candidateCount; rank++)
+    {
+        struct BattleAiTraceCandidate *loggedCandidate = &gBattleAiTraceLog.candidates[gBattleAiTraceLog.candidateCursor];
+
+        *loggedCandidate = candidates[rank];
+        loggedCandidate->sequence = BattleAiTrace_NextSequence(&gBattleAiTraceLog.candidateSequence);
+        loggedCandidate->flags |= BATTLE_AI_TRACE_CANDIDATE_VALID;
+        loggedCandidate->flags &= ~BATTLE_AI_TRACE_CANDIDATE_CHOSEN;
+        if (rank == loggedPlan->chosenRank)
+            loggedCandidate->flags |= BATTLE_AI_TRACE_CANDIDATE_CHOSEN;
+        if (rank == 0)
+            loggedPlan->firstCandidateSequence = loggedCandidate->sequence;
+
+        gBattleAiTraceLog.candidateCursor = (gBattleAiTraceLog.candidateCursor + 1) % BATTLE_AI_TRACE_CANDIDATE_ENTRIES;
+        if (gBattleAiTraceLog.candidateCount < BATTLE_AI_TRACE_CANDIDATE_ENTRIES)
+            gBattleAiTraceLog.candidateCount++;
+    }
+
+    loggedPlan->boardSequence = BattleAiTrace_CaptureBoard(planId, BATTLE_AI_TRACE_BOARD_PHASE_BEFORE);
+    loggedPlan->flags |= BATTLE_AI_TRACE_PLAN_VALID;
+    gBattleAiTraceLog.planCursor++;
+    if (gBattleAiTraceLog.planCursor >= BATTLE_AI_TRACE_PLAN_ENTRIES)
+        gBattleAiTraceLog.planCursor = 0;
+    if (gBattleAiTraceLog.planCount < BATTLE_AI_TRACE_PLAN_ENTRIES)
+        gBattleAiTraceLog.planCount++;
+
+    return planId;
+}
+
+const struct BattleAiTracePlan *BattleAiTrace_GetPlan(u16 planId)
+{
+    for (u32 i = 0; i < gBattleAiTraceLog.planCount; i++)
+    {
+        u32 index = (gBattleAiTraceLog.planCursor + BATTLE_AI_TRACE_PLAN_ENTRIES - 1 - i) % BATTLE_AI_TRACE_PLAN_ENTRIES;
+        const struct BattleAiTracePlan *plan = &gBattleAiTraceLog.plans[index];
+
+        if ((plan->flags & BATTLE_AI_TRACE_PLAN_VALID) && plan->sequence == planId)
+            return plan;
+    }
+    return NULL;
+}
+
+const struct BattleAiTraceCandidate *BattleAiTrace_GetCandidate(u16 candidateSequence)
+{
+    for (u32 i = 0; i < gBattleAiTraceLog.candidateCount; i++)
+    {
+        u32 index = (gBattleAiTraceLog.candidateCursor + BATTLE_AI_TRACE_CANDIDATE_ENTRIES - 1 - i) % BATTLE_AI_TRACE_CANDIDATE_ENTRIES;
+        const struct BattleAiTraceCandidate *candidate = &gBattleAiTraceLog.candidates[index];
+
+        if ((candidate->flags & BATTLE_AI_TRACE_CANDIDATE_VALID) && candidate->sequence == candidateSequence)
+            return candidate;
+    }
+    return NULL;
+}
+
+const struct BattleAiTraceBoard *BattleAiTrace_GetBoard(u16 boardSequence)
+{
+    for (u32 i = 0; i < gBattleAiTraceLog.boardCount; i++)
+    {
+        u32 index = (gBattleAiTraceLog.boardCursor + BATTLE_AI_TRACE_BOARD_ENTRIES - 1 - i) % BATTLE_AI_TRACE_BOARD_ENTRIES;
+        const struct BattleAiTraceBoard *board = &gBattleAiTraceLog.boards[index];
+
+        if ((board->meta & BATTLE_AI_TRACE_BOARD_VALID) && board->sequence == boardSequence)
+            return board;
+    }
+    return NULL;
+}
+
+void BattleAiTrace_SetBattlerDecision(enum BattlerId battler, u16 planId, u32 candidateRank)
+{
+    const struct BattleAiTracePlan *plan;
+
+    if (gAiBattleData == NULL || battler >= MAX_BATTLERS_COUNT)
+        return;
+
+    plan = BattleAiTrace_GetPlan(planId);
+    if (plan == NULL || plan->turn != gBattleResults.battleTurnCounter || candidateRank >= plan->candidateCount)
+    {
+        gAiBattleData->decisionPlanId[battler] = BATTLE_AI_TRACE_ID_NONE;
+        gAiBattleData->decisionCandidateRank[battler] = BATTLE_AI_TRACE_CANDIDATE_RANK_NONE;
+        return;
+    }
+
+    gAiBattleData->decisionPlanId[battler] = planId;
+    gAiBattleData->decisionCandidateRank[battler] = candidateRank;
 }
 
 static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battler, u32 action)
@@ -277,6 +613,8 @@ static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battle
     entry->target = MAX_BATTLERS_COUNT;
     entry->moveSlot = MAX_MON_MOVES;
     entry->partyIndex = PARTY_SIZE;
+    entry->aiCandidateRank = BATTLE_AI_TRACE_CANDIDATE_RANK_NONE;
+    entry->aiPlanId = BATTLE_AI_TRACE_ID_NONE;
     entry->gimmick = GIMMICK_NONE;
     entry->aiReason = AI_DECISION_REASON_NONE;
     entry->flags = BATTLE_ACTION_LOG_FLAG_VALID;
@@ -298,7 +636,11 @@ static struct BattleActionLogEntry *BattleActionLog_Append(enum BattlerId battle
 
 static void BattleActionLog_CopyAiDecisionTrace(struct BattleActionLogEntry *entry, enum BattlerId battler)
 {
-    if (entry == NULL || !BattlerHasAi(battler) || gAiBattleData == NULL)
+    const struct BattleAiTracePlan *plan;
+
+    if (entry == NULL || gAiBattleData == NULL)
+        return;
+    if (!BattlerHasAi(battler) && gAiBattleData->decisionPlanId[battler] == BATTLE_AI_TRACE_ID_NONE)
         return;
 
     entry->aiReason = gAiBattleData->decisionReason[battler];
@@ -308,6 +650,14 @@ static void BattleActionLog_CopyAiDecisionTrace(struct BattleActionLogEntry *ent
     entry->aiStableLineFamily = gAiBattleData->decisionStableLineFamily[battler];
     entry->aiFallbackLineFamily = gAiBattleData->decisionFallbackLineFamily[battler];
     entry->aiLossClock = gAiBattleData->decisionLossClock[battler];
+    plan = BattleAiTrace_GetPlan(gAiBattleData->decisionPlanId[battler]);
+    if (plan != NULL
+     && plan->turn == entry->turn
+     && gAiBattleData->decisionCandidateRank[battler] < plan->candidateCount)
+    {
+        entry->aiPlanId = gAiBattleData->decisionPlanId[battler];
+        entry->aiCandidateRank = gAiBattleData->decisionCandidateRank[battler];
+    }
 }
 
 void BattleActionLog_RecordConfirmedCommands(void)
@@ -4079,6 +4429,38 @@ void BattleTurnPassed(void)
     BattleScriptExecute(BattleScript_EndTurnEvents);
 }
 
+static void BattleAiTrace_CaptureActualBoardsForCurrentTurn(void)
+{
+    u16 capturedPlanIds[MAX_BATTLERS_COUNT] = {0};
+    u32 capturedCount = 0;
+
+    if (gAiBattleData == NULL)
+        return;
+
+    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    {
+        u16 planId = gAiBattleData->decisionPlanId[battler];
+        const struct BattleAiTracePlan *plan = BattleAiTrace_GetPlan(planId);
+        bool32 alreadyCaptured = FALSE;
+
+        if (plan == NULL || plan->turn != gBattleResults.battleTurnCounter)
+            continue;
+        for (u32 i = 0; i < capturedCount; i++)
+        {
+            if (capturedPlanIds[i] == planId)
+            {
+                alreadyCaptured = TRUE;
+                break;
+            }
+        }
+        if (alreadyCaptured)
+            continue;
+
+        BattleAiTrace_CaptureBoard(planId, BATTLE_AI_TRACE_BOARD_PHASE_ACTUAL_AFTER);
+        capturedPlanIds[capturedCount++] = planId;
+    }
+}
+
 bool32 EndTurnEvents(void) // Called from Battle Script
 {
     gBattleStruct->speedTieBreaks = RandomUniform(RNG_SPEED_TIE, 0, Factorial(MAX_BATTLERS_COUNT) - 1);
@@ -4095,6 +4477,7 @@ bool32 EndTurnEvents(void) // Called from Battle Script
     gBattleScripting.animTurn = 0;
     gBattleScripting.animTargetsHit = 0;
     gBattleScripting.moveendState = 0;
+    BattleAiTrace_CaptureActualBoardsForCurrentTurn();
 
     for (u32 i = 0; i < 5; i++)
         gBattleCommunication[i] = 0;
@@ -4775,6 +5158,7 @@ static void HandleTurnActionSelectionState(void)
     {
         RecordedBattle_CheckMovesetChanges(B_RECORD_MODE_RECORDING);
         BattleActionLog_RecordConfirmedCommands();
+        BattleAiJointRuntime_ReleaseData();
 
         if (WILD_DOUBLE_BATTLE
             && gBattleStruct->throwingPokeBall

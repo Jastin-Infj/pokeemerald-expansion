@@ -362,6 +362,63 @@ Pool Weight: 4
 - Sucker Punch
 - Iron Head
 
+=== DEBUG_TRAINER_PLAYER_JOINT_TRACE_DOUBLES ===
+Name: Trace P2
+Class: Pkmn Trainer 1
+Battle Type: Doubles
+Pic: Brendan
+Gender: Male
+Music: Male
+
+Arcanine
+Ability: Intimidate
+Sassy Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 4 Def / 252 SpD
+- Tailwind
+
+Skarmory @ ITEM_POWER_HERB
+Ability: Sturdy
+Sassy Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 0 Spe
+EVs: 252 HP / 4 Def / 252 SpD
+- Geomancy
+
+=== DEBUG_TRAINER_AI_JOINT_TRACE_DOUBLES ===
+Name: Joint AI
+AI: Smart Trainer / Smart Mon Choices / Omniscient / Read Player Move
+Class: Rival
+Battle Type: Doubles
+Pic: Steven
+Gender: Male
+Music: Male
+
+Scizor @ ITEM_SCIZORITE
+Ability: Technician
+Adamant Nature
+Level: 7
+IVs: 31 HP / 0 Atk / 31 Def / 0 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 252 Def / 4 SpD
+- Bullet Punch
+
+Whimsicott @ ITEM_FOCUS_SASH
+Ability: Prankster
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 252 HP / 4 SpA / 252 Spe
+- Tailwind
+
+Xerneas @ ITEM_POWER_HERB
+Ability: Fairy Aura
+Timid Nature
+Level: 50
+IVs: 31 HP / 0 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
+EVs: 4 HP / 252 SpA / 252 Spe
+- Geomancy
+
 === DEBUG_TRAINER_PLAYER_DMAX_Z_SINGLES ===
 Name: Z Line
 Class: Pkmn Trainer 1

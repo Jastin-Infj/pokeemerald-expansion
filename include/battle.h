@@ -68,6 +68,54 @@
 #define BATTLE_ACTION_LOG_AI_RISK_NONE  0
 #define BATTLE_ACTION_LOG_AI_RISK(kind) ((kind) + 1)
 
+#define BATTLE_AI_TRACE_PLAN_ENTRIES      32
+#define BATTLE_AI_TRACE_CANDIDATE_ENTRIES 256
+#define BATTLE_AI_TRACE_BOARD_ENTRIES     (BATTLE_AI_TRACE_PLAN_ENTRIES * 3)
+#define BATTLE_AI_TRACE_TOP_CANDIDATES    8
+#define BATTLE_AI_TRACE_SCHEMA_VERSION    5
+#define BATTLE_AI_TRACE_HEADER_MAGIC      0xA15C
+STATIC_ASSERT(BATTLE_AI_TRACE_CANDIDATE_ENTRIES == 256, BattleAiTraceCandidateCursorRequires256Entries)
+STATIC_ASSERT(BATTLE_AI_TRACE_BOARD_ENTRIES <= 0xFF, BattleAiTraceBoardCursorRequiresByteSizedCapacity)
+
+#define BATTLE_AI_TRACE_ID_NONE             0
+#define BATTLE_AI_TRACE_CANDIDATE_RANK_NONE 0xFF
+
+#define BATTLE_AI_TRACE_ACTION_ACTOR_MASK        0x03
+#define BATTLE_AI_TRACE_ACTION_KIND_SHIFT        2
+#define BATTLE_AI_TRACE_ACTION_KIND_MASK         (0x03 << BATTLE_AI_TRACE_ACTION_KIND_SHIFT)
+#define BATTLE_AI_TRACE_ACTION_MOVE_SLOT_SHIFT   4
+#define BATTLE_AI_TRACE_ACTION_MOVE_SLOT_MASK    (0x07 << BATTLE_AI_TRACE_ACTION_MOVE_SLOT_SHIFT)
+#define BATTLE_AI_TRACE_ACTION_VALID             (1 << 7)
+#define BATTLE_AI_TRACE_ACTION_TARGET_MASK       0x07
+#define BATTLE_AI_TRACE_ACTION_GIMMICK_SHIFT     3
+#define BATTLE_AI_TRACE_ACTION_GIMMICK_MASK      (0x07 << BATTLE_AI_TRACE_ACTION_GIMMICK_SHIFT)
+#define BATTLE_AI_TRACE_ACTION_PREDICTION_SHIFT  6
+#define BATTLE_AI_TRACE_ACTION_PREDICTION_MASK   (0x03 << BATTLE_AI_TRACE_ACTION_PREDICTION_SHIFT)
+
+#define BATTLE_AI_TRACE_PLAN_VALID                 (1 << 0)
+#define BATTLE_AI_TRACE_PLAN_JOINT                 (1 << 1)
+#define BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR      (1 << 2)
+#define BATTLE_AI_TRACE_PLAN_COMPONENTS_PARTIAL    (1 << 3)
+#define BATTLE_AI_TRACE_PLAN_DEEPEST_COMPLETE_USED (1 << 4)
+#define BATTLE_AI_TRACE_PLAN_NODE_BUDGET_HIT       (1 << 5)
+#define BATTLE_AI_TRACE_PLAN_FRAME_BUDGET_HIT      (1 << 6)
+#define BATTLE_AI_TRACE_PLAN_TRUNCATED              (1 << 7)
+
+#define BATTLE_AI_TRACE_CANDIDATE_VALID              (1 << 0)
+#define BATTLE_AI_TRACE_CANDIDATE_CHOSEN             (1 << 1)
+#define BATTLE_AI_TRACE_CANDIDATE_JOINT              (1 << 2)
+#define BATTLE_AI_TRACE_CANDIDATE_COMPLETE           (1 << 3)
+#define BATTLE_AI_TRACE_CANDIDATE_SCORE_CLAMPED      (1 << 4)
+#define BATTLE_AI_TRACE_CANDIDATE_PRUNED             (1 << 5)
+#define BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE       (1 << 6)
+#define BATTLE_AI_TRACE_CANDIDATE_COMPONENTS_PARTIAL (1 << 7)
+
+#define BATTLE_AI_TRACE_BOARD_PHASE_MASK        0x0003
+#define BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT 2
+#define BATTLE_AI_TRACE_BOARD_BATTLER_MASK      (0xF << BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT)
+#define BATTLE_AI_TRACE_BOARD_TIMERS_CLAMPED    (1 << 6)
+#define BATTLE_AI_TRACE_BOARD_VALID             (1 << 15)
+
 enum AiDecisionReason
 {
     AI_DECISION_REASON_NONE,
@@ -84,6 +132,217 @@ enum AiDecisionReason
     AI_DECISION_REASON_COMMANDER_SLOT_CORRECTION,
 };
 
+#define AI_CANDIDATE_REJECTION_NONE                   0
+#define AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH       (1 << 0)
+#define AI_CANDIDATE_REJECTION_UNAPPROVED_ALLY_TARGET (1 << 1)
+
+#define AI_READ_INTERACTION_NONE                0
+#define AI_READ_INTERACTION_PROTECT             (1 << 0)
+#define AI_READ_INTERACTION_REDIRECTION         (1 << 1)
+#define AI_READ_INTERACTION_FAKE_OUT             (1 << 2)
+#define AI_READ_INTERACTION_KNOWN_KO             (1 << 3)
+#define AI_READ_INTERACTION_SETUP_ITEM_SEQUENCE  (1 << 4)
+
+enum AiAllyInteractionKind
+{
+    AI_ALLY_INTERACTION_NONE,
+    AI_ALLY_INTERACTION_EXPLICIT_HOSTILITY,
+    AI_ALLY_INTERACTION_HEAL_OR_CURE,
+    AI_ALLY_INTERACTION_SUPPORT,
+    AI_ALLY_INTERACTION_ABILITY_TRIGGER,
+    AI_ALLY_INTERACTION_ITEM_TRIGGER,
+};
+
+enum BattleAiTraceActionKind
+{
+    BATTLE_AI_TRACE_ACTION_NONE,
+    BATTLE_AI_TRACE_ACTION_MOVE,
+    BATTLE_AI_TRACE_ACTION_SWITCH,
+    BATTLE_AI_TRACE_ACTION_ITEM,
+};
+
+enum BattleAiTracePredictionSource
+{
+    BATTLE_AI_TRACE_PREDICTION_NONE,
+    BATTLE_AI_TRACE_PREDICTION_NORMAL,
+    BATTLE_AI_TRACE_PREDICTION_CONFIRMED_COMMAND,
+    BATTLE_AI_TRACE_PREDICTION_ACTION_LOG_FALLBACK,
+};
+
+enum BattleAiTraceTerminationReason
+{
+    BATTLE_AI_TRACE_TERMINATION_COMPLETE,
+    BATTLE_AI_TRACE_TERMINATION_NODE_BUDGET,
+    BATTLE_AI_TRACE_TERMINATION_FRAME_BUDGET,
+    BATTLE_AI_TRACE_TERMINATION_CANDIDATE_BUDGET,
+    BATTLE_AI_TRACE_TERMINATION_FALLBACK,
+};
+
+enum BattleAiTraceBoardPhase
+{
+    BATTLE_AI_TRACE_BOARD_PHASE_NONE,
+    BATTLE_AI_TRACE_BOARD_PHASE_BEFORE,
+    BATTLE_AI_TRACE_BOARD_PHASE_PREDICTED_AFTER,
+    BATTLE_AI_TRACE_BOARD_PHASE_ACTUAL_AFTER,
+};
+
+struct BattleAiTraceAction
+{
+    u16 choice;
+    u8 actorMeta;
+    u8 targetMeta;
+};
+STATIC_ASSERT(sizeof(struct BattleAiTraceAction) == 4, BattleAiTraceActionSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceAction, choice) == 0, BattleAiTraceActionChoiceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceAction, actorMeta) == 2, BattleAiTraceActionActorOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceAction, targetMeta) == 3, BattleAiTraceActionTargetOffsetChanged)
+
+struct BattleAiTraceCandidate
+{
+    struct BattleAiTraceAction actions[2];
+    s16 totalScore;
+    s16 immediateScore;
+    s16 futureScore;
+    s16 riskScore;
+    s16 resourceScore;
+    u16 sequence;
+    u8 rejectionFlags[2];
+    u8 readInteractionFlags[2];
+    u8 allyInteractionKinds[2];
+    u8 completedDepth;
+    u8 flags;
+};
+STATIC_ASSERT(sizeof(struct BattleAiTraceCandidate) == 28, BattleAiTraceCandidateSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, actions) == 0, BattleAiTraceCandidateActionsOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, totalScore) == 8, BattleAiTraceCandidateScoreOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, immediateScore) == 10, BattleAiTraceCandidateImmediateOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, futureScore) == 12, BattleAiTraceCandidateFutureOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, riskScore) == 14, BattleAiTraceCandidateRiskOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, resourceScore) == 16, BattleAiTraceCandidateResourceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, sequence) == 18, BattleAiTraceCandidateSequenceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, rejectionFlags) == 20, BattleAiTraceCandidateRejectionOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, readInteractionFlags) == 22, BattleAiTraceCandidateReadOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, allyInteractionKinds) == 24, BattleAiTraceCandidateAllyOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, completedDepth) == 26, BattleAiTraceCandidateDepthOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceCandidate, flags) == 27, BattleAiTraceCandidateFlagsOffsetChanged)
+
+struct BattleAiTracePlan
+{
+    u16 sequence;
+    u16 turn;
+    u16 firstCandidateSequence;
+    u16 boardSequence;
+    u16 nodesVisited;
+    u16 nodeBudget;
+    u16 cacheHits;
+    u16 elapsedFrames;
+    struct BattleAiTraceAction predictedPlayerActions[2];
+    u8 actorMask;
+    u8 candidateCount;
+    u8 chosenRank;
+    u8 requestedDepth;
+    u8 completedDepth;
+    u8 terminationReason;
+    u8 flags;
+    u8 frameBudget;
+};
+STATIC_ASSERT(sizeof(struct BattleAiTracePlan) == 32, BattleAiTracePlanSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, sequence) == 0, BattleAiTracePlanSequenceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, turn) == 2, BattleAiTracePlanTurnOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, firstCandidateSequence) == 4, BattleAiTracePlanFirstCandidateOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, boardSequence) == 6, BattleAiTracePlanBoardOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, nodesVisited) == 8, BattleAiTracePlanNodesOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, nodeBudget) == 10, BattleAiTracePlanNodeBudgetOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, cacheHits) == 12, BattleAiTracePlanCacheOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, elapsedFrames) == 14, BattleAiTracePlanElapsedOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, predictedPlayerActions) == 16, BattleAiTracePlanPredictionsOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, actorMask) == 24, BattleAiTracePlanActorMaskOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, candidateCount) == 25, BattleAiTracePlanCandidateCountOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, chosenRank) == 26, BattleAiTracePlanChosenRankOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, requestedDepth) == 27, BattleAiTracePlanRequestedDepthOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, completedDepth) == 28, BattleAiTracePlanCompletedDepthOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, terminationReason) == 29, BattleAiTracePlanTerminationOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, flags) == 30, BattleAiTracePlanFlagsOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTracePlan, frameBudget) == 31, BattleAiTracePlanFrameBudgetOffsetChanged)
+
+struct BattleAiTraceBattlerState
+{
+    u16 species;
+    u16 hp;
+    u16 maxHp;
+    u16 item;
+    u32 status1;
+    u8 statStages[4];
+};
+STATIC_ASSERT(sizeof(struct BattleAiTraceBattlerState) == 16, BattleAiTraceBattlerStateSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBattlerState, species) == 0, BattleAiTraceBattlerSpeciesOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBattlerState, hp) == 2, BattleAiTraceBattlerHpOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBattlerState, maxHp) == 4, BattleAiTraceBattlerMaxHpOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBattlerState, item) == 6, BattleAiTraceBattlerItemOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBattlerState, status1) == 8, BattleAiTraceBattlerStatusOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBattlerState, statStages) == 12, BattleAiTraceBattlerStagesOffsetChanged)
+
+struct BattleAiTraceBoard
+{
+    u16 sequence;
+    u16 planId;
+    u16 weather;
+    u16 meta;
+    u32 fieldStatuses;
+    u32 sideStatuses[NUM_BATTLE_SIDES];
+    struct BattleAiTraceBattlerState battlers[MAX_BATTLERS_COUNT];
+    u8 tailwindTimers[NUM_BATTLE_SIDES];
+    u8 reflectTimers[NUM_BATTLE_SIDES];
+    u8 lightScreenTimers[NUM_BATTLE_SIDES];
+    u8 auroraVeilTimers[NUM_BATTLE_SIDES];
+    u8 trickRoomTimer;
+    u8 terrainTimer;
+    u8 gravityTimer;
+    u8 magicRoomTimer;
+};
+STATIC_ASSERT(sizeof(struct BattleAiTraceBoard) == 96, BattleAiTraceBoardSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, sequence) == 0, BattleAiTraceBoardSequenceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, planId) == 2, BattleAiTraceBoardPlanOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, weather) == 4, BattleAiTraceBoardWeatherOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, meta) == 6, BattleAiTraceBoardMetaOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, fieldStatuses) == 8, BattleAiTraceBoardFieldOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, sideStatuses) == 12, BattleAiTraceBoardSidesOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, battlers) == 20, BattleAiTraceBoardBattlersOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceBoard, tailwindTimers) == 84, BattleAiTraceBoardTimersOffsetChanged)
+
+struct BattleAiTraceLog
+{
+    struct BattleAiTracePlan plans[BATTLE_AI_TRACE_PLAN_ENTRIES];
+    struct BattleAiTraceCandidate candidates[BATTLE_AI_TRACE_CANDIDATE_ENTRIES];
+    struct BattleAiTraceBoard boards[BATTLE_AI_TRACE_BOARD_ENTRIES];
+    u16 planSequence;
+    u16 candidateSequence;
+    u16 boardSequence;
+    u16 candidateCount;
+    u8 planCursor;
+    u8 planCount;
+    u8 candidateCursor;
+    u8 boardCursor;
+    u8 boardCount;
+    u8 schemaVersion;
+    u16 magic;
+};
+STATIC_ASSERT(sizeof(struct BattleAiTraceLog) == 17424, BattleAiTraceLogSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, plans) == 0, BattleAiTraceLogPlansOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, candidates) == 1024, BattleAiTraceLogCandidatesOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, boards) == 8192, BattleAiTraceLogBoardsOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, planSequence) == 17408, BattleAiTraceLogHeaderOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, candidateSequence) == 17410, BattleAiTraceLogCandidateSequenceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, boardSequence) == 17412, BattleAiTraceLogBoardSequenceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, candidateCount) == 17414, BattleAiTraceLogCandidateCountOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, planCursor) == 17416, BattleAiTraceLogPlanCursorOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, planCount) == 17417, BattleAiTraceLogPlanCountOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, candidateCursor) == 17418, BattleAiTraceLogCandidateCursorOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, boardCursor) == 17419, BattleAiTraceLogBoardCursorOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, boardCount) == 17420, BattleAiTraceLogBoardCountOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, schemaVersion) == 17421, BattleAiTraceLogSchemaOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleAiTraceLog, magic) == 17422, BattleAiTraceLogMagicOffsetChanged)
+
 struct BattleActionLogEntry
 {
     u16 sequence;
@@ -95,6 +354,8 @@ struct BattleActionLogEntry
     u8 target;
     u8 moveSlot;
     u8 partyIndex;
+    u8 aiCandidateRank;
+    u16 aiPlanId;
     enum Gimmick gimmick;
     u8 aiReason;
     u8 flags;
@@ -106,6 +367,26 @@ struct BattleActionLogEntry
     u8 aiLossClock;
 };
 STATIC_ASSERT(sizeof(struct BattleActionLogEntry) == 28, BattleActionLogEntrySizeChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, sequence) == 0, BattleActionLogSequenceOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, turn) == 2, BattleActionLogTurnOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, move) == 4, BattleActionLogMoveOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, item) == 6, BattleActionLogItemOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, battler) == 8, BattleActionLogBattlerOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, action) == 9, BattleActionLogActionOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, target) == 10, BattleActionLogTargetOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, moveSlot) == 11, BattleActionLogMoveSlotOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, partyIndex) == 12, BattleActionLogPartyOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiCandidateRank) == 13, BattleActionLogCandidateRankOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiPlanId) == 14, BattleActionLogPlanIdOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, gimmick) == 16, BattleActionLogGimmickOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiReason) == 20, BattleActionLogReasonOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, flags) == 21, BattleActionLogFlagsOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiThreatFlags) == 22, BattleActionLogThreatOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiRiskKind) == 23, BattleActionLogRiskOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiLineFlags) == 24, BattleActionLogLineOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiStableLineFamily) == 25, BattleActionLogStableLineOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiFallbackLineFamily) == 26, BattleActionLogFallbackLineOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLogEntry, aiLossClock) == 27, BattleActionLogLossClockOffsetChanged)
 
 struct BattleActionLog
 {
@@ -115,6 +396,11 @@ struct BattleActionLog
     u8 cursor;
     u8 count;
 };
+STATIC_ASSERT(sizeof(struct BattleActionLog) == 3592, BattleActionLogSizeChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLog, sequence) == 3584, BattleActionLogHeaderOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLog, lastRecordedTurn) == 3586, BattleActionLogLastTurnOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLog, cursor) == 3588, BattleActionLogCursorOffsetChanged)
+STATIC_ASSERT(offsetof(struct BattleActionLog, count) == 3589, BattleActionLogCountOffsetChanged)
 
 // Fully Cleared each turn after end turn effects are done. A few things are cleared before end turn effects
 struct ProtectStruct
@@ -792,6 +1078,9 @@ struct BattleStruct
 struct AiBattleData
 {
     s32 finalScore[MAX_BATTLERS_COUNT][MAX_BATTLERS_COUNT][MAX_MON_MOVES]; // AI, target, moves to make debugging easier
+    u8 candidateRejectionFlags[MAX_BATTLERS_COUNT][MAX_BATTLERS_COUNT][MAX_MON_MOVES];
+    u8 candidateReadInteractionFlags[MAX_BATTLERS_COUNT][MAX_BATTLERS_COUNT][MAX_MON_MOVES];
+    u8 candidateAllyInteractionKinds[MAX_BATTLERS_COUNT][MAX_BATTLERS_COUNT][MAX_MON_MOVES];
     u8 playerStallMons[PARTY_SIZE];
     u8 chosenMoveIndex[MAX_BATTLERS_COUNT];
     u8 chosenTarget[MAX_BATTLERS_COUNT];
@@ -802,6 +1091,8 @@ struct AiBattleData
     u8 decisionStableLineFamily[MAX_BATTLERS_COUNT];
     u8 decisionFallbackLineFamily[MAX_BATTLERS_COUNT];
     u8 decisionLossClock[MAX_BATTLERS_COUNT];
+    u16 decisionPlanId[MAX_BATTLERS_COUNT];
+    u8 decisionCandidateRank[MAX_BATTLERS_COUNT];
     u16 aiUsingGimmick:6;
     u8 actionFlee:1;
     u8 choiceWatch:1;
@@ -1034,6 +1325,7 @@ extern u8 gBattleTextBuff3[TEXT_BUFF_ARRAY_COUNT + 13]; //to handle stupidly lar
 extern u32 gBattleTypeFlags;
 extern u8 gBattleEnvironment;
 extern struct BattleActionLog gBattleActionLog;
+extern struct BattleAiTraceLog gBattleAiTraceLog;
 extern u8 *gBattleAnimBgTileBuffer;
 extern u8 *gBattleAnimBgTilemapBuffer;
 extern u32 gBattleControllerExecFlags;
@@ -1099,6 +1391,17 @@ void BattleActionLog_RecordConfirmedCommands(void);
 void BattleActionLog_RecordSwitchIn(enum BattlerId battler, u32 partyIndex, bool32 corrected);
 const struct BattleActionLogEntry *BattleActionLog_GetLastEntry(enum BattlerId battler, u32 actionMask);
 enum Move BattleActionLog_GetLastSelectedMove(enum BattlerId battler);
+void BattleAiTrace_Clear(void);
+void BattleAiTrace_InitAction(struct BattleAiTraceAction *action, enum BattlerId battler, u32 battleAction, u16 choice, u32 target, u32 moveSlot, enum Gimmick gimmick, u32 predictionSource);
+u16 BattleAiTrace_RecordPlan(const struct BattleAiTracePlan *plan, const struct BattleAiTraceCandidate *candidates, u32 candidateCount);
+u16 BattleAiTrace_CaptureBoard(u16 planId, enum BattleAiTraceBoardPhase phase);
+struct AiSimContext;
+struct AiSimBoard;
+u16 BattleAiTrace_CaptureSimBoard(u16 planId, const struct AiSimContext *context, const struct AiSimBoard *simBoard);
+void BattleAiTrace_SetBattlerDecision(enum BattlerId battler, u16 planId, u32 candidateRank);
+const struct BattleAiTracePlan *BattleAiTrace_GetPlan(u16 planId);
+const struct BattleAiTraceCandidate *BattleAiTrace_GetCandidate(u16 candidateSequence);
+const struct BattleAiTraceBoard *BattleAiTrace_GetBoard(u16 boardSequence);
 extern struct StartingStatuses gStartingStatuses;
 extern struct AiBattleData *gAiBattleData;
 extern struct AiThinkingStruct *gAiThinkingStruct;

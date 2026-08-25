@@ -1,5 +1,231 @@
 # Smart Gimmick AI Test Plan
 
+## Review-Fix Completion Gate - July 22, 2026
+
+This gate covers the uncommitted joint board-search slice on
+`integration/smart-ai-board-search-20260720`, based on
+`integration/runtime-lab-current-1.16.1` at
+`4e960aecea0185912e21a28f40e00fab1b388874`. It is implementation-branch
+evidence only; it does not make the runtime diff eligible for `master`. The
+final local results below are the implementation-branch handoff evidence.
+
+## Fresh Local Handoff Check - August 25, 2026
+
+The staged Smart AI slice was revalidated in the current working tree before
+handoff. These results cover the staged source plus the user's remaining local
+generated files; they do not make those unrelated files part of this feature.
+
+| Check | Result |
+| --- | --- |
+| `rtk git diff --cached --check` | Passed. |
+| `rtk make -j16 -O check TESTS='AI board simulator'` | Passed 44/44. |
+| `rtk make -j16 -O check TESTS='AI board snapshot'` | Passed 7/7. |
+| `rtk make -j16 -O check TESTS='Joint runtime'` | Passed 9/9. |
+| `rtk make -j16 -O check TESTS='AI joint planner'` | Passed 18/18. |
+| `rtk make -j16 -O check TESTS='AI joint board evaluation'` | Passed 5/5. |
+| `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE:'` | Exit 0. The runner output was abbreviated by RTK and emitted a clock-skew warning; the prior 70/70 result remains the complete count. |
+| `rtk make -j16 -O check TESTS='test/battle/ai/ai_smart_gimmick.c'` | Exit 0. The runner output was abbreviated by RTK; no failing exit was reported. |
+| `rtk make -j16 -O all` | Passed; existing linker RWX warning only. |
+| `rtk make -j16 -O debug` | Passed; existing linker RWX warning only. |
+| `rtk make -j16 -O check` | Exit 0; existing expected / known labels remain. |
+| mGBA Live MCP | Not available as a callable tool in this session. Fresh ROM boot, screenshot/input, and Joint Trace route validation remain manual checks. |
+
+Long GitHub Actions were not re-waited. The missing mGBA Live MCP validation is
+an explicit handoff gap, not a claim that the runtime route was freshly
+confirmed in this session.
+
+| Check | Result |
+| --- | --- |
+| `rtk make -j16 -O check TESTS='AI board simulator'` | Passed 44/44; `/tmp/smart-ai-board-simulator-tailwind-config-final-20260722.log`. Covers exact classes, repeated Tailwind, configured pre-Gen-5 duration, 16 rolls, criticals, true Speed ties, survival boundaries, merge / CPU caps, generation order, and fail-closed mechanics. |
+| `rtk make -j16 -O check TESTS='AI board snapshot'` | Passed 7/7; `/tmp/smart-ai-board-snapshot-final-20260722.log`. |
+| `rtk make -j16 -O check TESTS='Joint runtime'` | Passed 9/9; `/tmp/smart-ai-joint-runtime-exact-class-final-20260722.log`. |
+| `rtk make -j16 -O check TESTS='AI joint planner'` | Passed 18/18; `/tmp/smart-ai-joint-planner-exact-class-final-20260722.log`. |
+| `rtk make -j16 -O check TESTS='AI joint board evaluation'` | Passed 5/5; `/tmp/smart-ai-joint-board-evaluation-exact-class-final-20260722.log`. |
+| Prankster live-oracle and simulator controls | Passed: focused Parting Shot live oracle 1/1 (`/tmp/smart-ai-prankster-parting-shot-final-20260722.log`) plus the Dark-Tera, base-Dark, Tera-away, Psychic Terrain, and config controls in the 44/44 simulator suite. |
+| `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE:'` | Passed 70/70; `/tmp/read-player-move-broad-20260722.log`. |
+| Fake Out composed-turn controls | Passed 3/3; `/tmp/joint-fakeout-defer-exact-20260722.log`. |
+| `rtk make -j16 -O check TESTS='Trainer Party Pool'` | Passed 10/10 on the final level-7 fixture; `/tmp/smart-ai-trainer-party-pool-level7-final-20260722.log`. |
+| `rtk make -j16 -O check` | Exit 0: 5,682 total, 5,066 passed, 12 accepted known failing, 598 TODO, and 6 expected failing; `/tmp/smart-ai-full-check-tailwind-config-final-20260722.log`. |
+| `rtk make -j16 -O all` | Passed; `/tmp/smart-ai-normal-build-tailwind-config-final-20260722.log`; existing linker RWX warning only. |
+| `rtk make -j16 -O debug` | Passed; `/tmp/smart-ai-debug-build-tailwind-config-final-20260722.log`; existing linker RWX warning only. |
+| Normal ROM memory | EWRAM 251,288 bytes (95.86%); IWRAM 28,384 bytes (86.62%); ROM 26,633,604 bytes (79.37%). Debug: 251,280 / 28,444 / 26,684,308 bytes. |
+| Final object-code stack inspection | `AiSim_EnumerateOutcomes`: 240 normal / 124 debug / 244 `TESTING` local bytes; `AiSim_CheckJointTurn`: 56 / 28 / 56 local bytes. Each prologue also saves 36 bytes of registers. Static scratch remains 2,596 + 540 bytes in EWRAM. Logs: `/tmp/smart-ai-stack-{normal,debug,testing}-final-20260722.log`. |
+| `rtk git diff --check` | Exit 0 after final source and documentation updates. |
+| `rtk mdbook build docs` | Exit 0; `/tmp/smart-ai-mdbook-tailwind-config-final-20260722.log`. Existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>`, and large search-index warnings remain. |
+| Revised mGBA Live v5 joint acceptance | Passed in `smart-ai-review-final19-20260722`; one joint nonlegacy depth-3 plan, 8 candidates, 3 boards, 4 actions, Mega and reserve-switch roots, linked predictions / actions, and matching predicted / actual boards. |
+| mGBA Live cleanup | `stop` returned `stopped:true`; final `status --all` returned `[]`. |
+
+The review-fix simulator regressions must demonstrate the semantic boundaries,
+not only count emitted keys. Required direct evidence includes:
+
+- exact integer weights for all 16 single-target damage rolls, configured
+  critical odds, and only genuinely tied priority / effective-Speed orders.
+- pre-Gen-7 initial Mega / Ultra order using pre-form Speed, Gen-7+ initial order
+  using post-form Speed, pre-Gen-8 fixed remaining order, and Gen-8+ dynamic
+  remaining order after Tailwind or another represented Speed change. Apply and
+  exact tie enumeration must agree, and acted battlers must not re-enter a tie.
+- configured pre-Gen-5 versus Gen-5+ consecutive Protect weights, Gen-6+ Knock
+  Off power only for a removable item, and Tera's 60-BP floor after supported
+  base-power modifiers.
+- KO-boundary changes, Focus Sash and Sturdy survival, and a slower action being
+  removed before execution.
+- exact raw stochastic probability mass represented before equivalent post-turn
+  boards are merged, including four one-HP Ice Beams collapsing 24 tie orders
+  into four equally weighted survivor boards, with the 32-state cap enforced
+  only afterward.
+- a mixed status / damage turn whose `64^3` raw branches collapse to few boards
+  stopping at the independent 4,096-application ceiling and failing closed.
+- the narrow one-hit invariant-input proof compressing exact roll / critical
+  classes across Tailwind, Trick Room, physically safe Geomancy, prospective
+  Mega power / ability, and a non-target Fairy Aura switch while preserving
+  probability mass and completing below the raw-application ceiling. A special
+  hit into the Geomancy user and other input-changing controls must stay on the
+  raw path.
+- repeated active Tailwind spending PP without refreshing its timer or emitting
+  a field-change event, plus new Tailwind using three turns under the pre-Gen-5
+  config and four turns under Gen 5+ before normal end-turn decrement.
+- damaging spread, multi-hit, pre-Generation-3 critical rules, or more than 32
+  distinct merged states making the legal root set unresolved and causing a
+  coherent whole-side legacy fallback.
+- repeat-prohibited, target-ability-ignoring, and defense-stage-ignoring move flags
+  (including signature Z forms) failing closed instead of using ordinary-hit math.
+- persistent Mega / Ultra max HP remaining stable when the transformed member moves
+  from active play back to the bench during evaluation.
+- prospective Mega / Ultra profiles and reserve Mega / Ultra / Z / Tera
+  eligibility captured through the real snapshot path, including Ultra Burst
+  followed by its later Z resource.
+- active Stellar and persistent Stellar reserves entering through ordinary or
+  forced replacement rejecting the whole joint line with gimmick and damage-
+  modifier boundaries.
+- snapshot profiles keeping the unused third type as `TYPE_MYSTERY`, forced
+  replacement consulting the incoming persistent Mega / Ultra state, and the
+  test harness preserving forced abilities across prospective transformation.
+- targeted Prankster status behavior for grounded Psychic Terrain and the
+  target's current Dark type, including Dark Tera and Tera-away controls.
+- confirmed Fake Out against prospective Tera / Mega / Ultra state, including
+  Ghost conversion / removal, Scrappy / Mind's Eye / type-changing abilities,
+  Sheer Force, Neutralizing Gas / Gastro Acid, Ability Shield, Dazzling,
+  flinch-immunity items / abilities, Gen-6/7 Mega Speed order, executable Quick
+  Guard, strict tie behavior, and the shared Stall / Lagging Tail bracket.
+  Joint-root evidence must show that a complete faster Quick Guard or earlier
+  ally Fake Out pair survives atomic retention, while the no-answer composed
+  simulator control still marks the victim action skipped.
+- stack canaries around the exact scratch and heap fixture remaining intact
+  across three-action order enumeration, with the 540-byte validation board off
+  the 1 KiB controller-task stack. Object inspection must record the normal /
+  debug / `TESTING` local allocations: 240 / 124 / 244 bytes for enumeration and
+  56 / 28 / 56 bytes for joint-turn validation, plus 36 saved-register bytes in
+  each function.
+
+### Revised mGBA Live v5 Joint Evidence
+
+`Party -> Joint Trace Double` is now an asymmetric tactical fixture rather than
+an all-zero wiring board. It omits explicit `Party Size` lines so trainer
+generation preserves the listed player two / AI three members. The player leads
+slow bulky Intimidate Arcanine with only Tailwind and Power Herb Sturdy Skarmory
+with only Geomancy. The AI leads a level-7, zero-Attack-IV Scizorite Technician
+Scizor with only Bullet Punch and Focus Sash Prankster Whimsicott with only
+Tailwind, keeps Power Herb Fairy Aura Xerneas with only Geomancy in reserve, and
+receives Mega Ring access. Confirm Tailwind for the player-left slot and Geomancy
+for the player-right slot before waiting for opponent planning. Final generated
+`src/data/debug_trainers.h` inspection reports player `.partySize = 2` and AI
+`.partySize = 3` in exactly that listed order.
+
+The accepted run must use `/home/jastin/.local/bin/mgba-qt`, which resolves the
+project’s script-capable build and defaults `DISPLAY` to `:0`. Export while the
+battle is active. Final accepted facts:
+
+- Session, JSON, and screenshots: `smart-ai-review-final19-20260722`;
+  `/tmp/smart-ai-review-final19-20260722-pre-resolution.json`;
+  `/tmp/smart-ai-review-final19-20260722-after.json`;
+  `/tmp/smart-ai-review-final19-20260722-command.png`; and
+  `/tmp/smart-ai-review-final19-20260722-after.png`.
+- Schema / signature: `pokeemerald.battle_action_log.v5`, valid trace signature,
+  version 5, magic `0xA15C` (`41308`).
+- Record counts: one plan, eight candidates, three boards after turn completion,
+  and four confirmed actions.
+- Search result: plan flags include `joint` and `deepest_complete_used`, exclude
+  `legacy_evaluator`, and report completed depth 3. It visited 60 nodes, completed
+  all nine depth-1 roots and three selected depth-3 roots, then terminated with
+  `frame_budget` while attempting depth 5 (elapsed 237, recorded frame budget 220).
+  `frame_budget_hit` and `trace_truncated` are therefore visible; the retained
+  eight-candidate sequence set itself reports `candidate_trace_complete = true`.
+- Scores: chosen rank 0 has immediate 4 and total 4; retained roots also expose
+  nonzero future and resource components. This fixture's risk components are zero.
+- Candidate families: the eight retained candidate records include Mega Bullet Punch and
+  switch-to-reserve-Xerneas actions in addition to the chosen ordinary Bullet
+  Punch plus Tailwind root.
+- Linkage: battlers 1 and 3 both use plan 1 / rank 0 with valid trace links. Both
+  confirmed player predictions and both chosen AI actions are full matches. The
+  before, predicted-after, and actual-after boards are available; predicted and
+  actual battlers / timers agree, including Skarmory at 171/172 HP with its Power
+  Herb consumed and Tailwind timers `[3, 3]`.
+- Cleanup: `stop` returned `stopped:true`; final managed-session status was `[]`.
+
+Scizorite supplies the prospective Mega path and reserve Xerneas supplies the
+switch path. The selected Skarmory target is intentionally bulky and
+Steel-resistant so the runtime acceptance completes depth 3 inside production
+budgets. The v5 JSON does not expose the raw stochastic frontier; focused C
+regressions are the direct exact 16-roll / critical / post-board-merge proof.
+The live sample must not be described as a stochastic weight comparison.
+
+Fixture diagnostics kept production limits unchanged. Level-8 Scizor in session
+`smart-ai-review-final17-20260722` preserved a small live damage-class split, but
+the read-only hook reported nine completed depth-1 roots, zero depth-3 roots, 60
+nodes, and elapsed 165 at the 160-frame cutoff, so the side correctly used legacy.
+Earlier weak Fairy-target variants multiplied exact branches enough that even a
+temporary Lua-only 600 / 700 frame diagnostic did not complete depth 3; attempted
+Battle Armor / Shell Armor substitutes were themselves unsupported and failed
+closed. The accepted level-7 bulky Steel-target fixture resolves that runtime
+check without changing the 160 / 220 production budgets. A direct MCP start with
+the script-build binary also exited `SIGABRT` when no `DISPLAY` was inherited;
+the project wrapper supplied `DISPLAY=:0` and final19 completed normally. These
+failed diagnostics are superseded evidence, not accepted runtime results. The
+remaining manual risk is the intentionally bounded simulator envelope described
+below; the target planner / export / end-turn behavior was confirmed in final19.
+
+### Superseded Wiring Baseline
+
+The previous `Party -> Joint Trace Double` run remains useful only as historical
+wiring evidence. It used two no-item, no-gimmick, Sturdy Shuckle with Tackle on
+each side. Session `smart-ai-joint-trace-final2-20260722` and
+`/tmp/smart-ai-joint-trace-final-v5.json` recorded one nonlegacy depth-3 plan,
+five candidates, three boards, four linked actions, and clean shutdown. All
+candidate scores were zero, with no switch, gimmick, or stochastic KO boundary;
+it is superseded by the revised fixture and is not final tactical acceptance.
+
+### Historical Heap-Lifetime / Grassy Terrain Regression
+
+The earlier session `smart-ai-board-search-final-20260722` generated a valid v5
+trace, then hit `src/malloc.c:104` requesting 13,024 bytes while restoring the
+Grassy Terrain background. Diagnosis identified the overlapping allocations:
+the previous layout's 16,268-byte joint runtime arena was still live, while Smol
+decompression of `gBattleAnimBgImage_GrassyTerrain` needed a 13,024-byte
+temporary buffer. The Lua exporter was read-only and was not causal.
+
+The runtime now frees the arena after every battler has confirmed and
+`BattleActionLog_RecordConfirmedCommands()` has copied action and trace links,
+before turn-order execution. Historical session
+`smart-ai-arena-release-final-20260722` repeated that 4v4 route through Dynamax,
+Grassy Terrain restore, faint / replacement, and the next command menu without
+an OOM. Its second-turn export had 6 legacy plans, 48 candidates, 12 boards, and
+14 entries. That result remains lifecycle evidence only because Dynamax made all
+plans legacy. The current layout uses a 16,248-byte heap arena, a separate
+2,596-byte static exact-enumeration EWRAM scratch, and 16 transposition entries;
+final-source runtime revalidation is recorded above rather than inferred from
+this historical run.
+
+The remaining accepted risk is the deliberately bounded simulation envelope.
+Active or newly selected Dynamax / Max actions, dynamic Max Move power,
+unsupported form-entry abilities or unknown profiles, damaging spread,
+multi-hit, pre-Generation-3 critical rules, more than 32 distinct post-merge
+states, the 4,096-application CPU-safety ceiling, Commander, and other unencoded
+mechanics use the coherent legacy path.
+The smaller 16-entry transposition cache may cause more recomputation inside the
+same node / frame budgets but does not change exact weights. Long GitHub Actions
+will not be re-waited; final local checks, revised mGBA evidence, and exact
+focused regressions are the handoff basis.
+
 ## Completion Gate - July 16, 2026
 
 | Check | Result |
@@ -37,6 +263,7 @@ keeping this feature branch indefinitely open for tuning.
 
 | Check | Command | Status |
 | --- | --- | --- |
+| Known-KO switch / sacrifice cost pass | `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE: AI sacrifices a spent active'`; `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE: AI accepts reserve chip'`; `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE: AI exposes a lower-value cushion'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_smart_gimmick.c'`; `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_switching.c'`; `rtk git diff --check`; `rtk make -j16 -O all`; `rtk mdbook build docs`; mGBA Live session `smart-ai-switch-sacrifice-risk-final-20260720` | Pass / partial runtime on 2026-07-20. The three new regressions passed individually and the complete Smart Gimmick file passed after the final arithmetic and switch-precedence hardening. `AI_FLAG_READ_PLAYER_MOVE` passed 40 tests. Full `ai_switching.c` exited 0 with its existing accepted `KNOWN_FAILING` label unchanged. The previously regressed selected-KO singles and Tera-survival cases were also rerun individually and passed. `git diff --check` exited 0. The normal ROM build passed with the existing linker RWX warning. mdBook exited 0 with the existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>` warning, and large-search-index warning. The first MCP start used the script-capable binary directly but inherited no `DISPLAY`, exited early with `SIGABRT`, and is non-evidence; `status --all` remained `[]`. The accepted exact-final-source run used `/home/jastin/.local/bin/mgba-qt`, started pid `1165134` at 120 FPS, returned `{ok=true}` Lua validation before and after `START`, captured `/tmp/smart-ai-switch-sacrifice-risk-final-20260720-boot.png` and `/tmp/smart-ai-switch-sacrifice-risk-final-20260720-after-start.png`, reached the continue menu, stopped with `stopped:true`, and final managed status was `[]`. This smoke covers boot / bridge / rendering / input, not the exact battle decision; the C battle tests are the direct behavior evidence. The remaining accepted risk is that the new comparison is a bounded one-turn value heuristic, not a unified two-to-three-turn endgame planner. Long GitHub Actions were not re-waited. |
 | Doubles partner final-terrain Protect pass | `rtk make -j1 -O check TESTS='Protect: AI values doubles Protect when final Electric Terrain lets the partner punish'`; `rtk make -j1 -O check TESTS='Protect: AI does not burn nonfinal Electric Terrain for a partner attack'`; `rtk make -j16 -O check TESTS='Protect: AI'`; `rtk make -j16 -O check TESTS='test/battle/ai/check_bad_move.c'`; `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_smart_gimmick.c'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_doubles.c'`; `rtk git diff --check`; `rtk mdbook build docs`; `rtk make -j16 -O all`; mGBA Live session `doubles-terrain-protect-smoke-20260705` | Pass on 2026-07-05. Adds a narrow doubles score-layer bridge where a pinned slot can Protect through the final turn of Electric Terrain when terrain expiry lowers incoming pressure and the partner has enough post-expiry pressure to punish. The paired negative keeps nonfinal terrain from receiving the same wait-line value. The focused positive failed before the implementation with equal `ProtectChecks()` scores, then passed after the terrain helper was added. Focused checks passed sequentially; `Protect: AI` passed 36 tests, full `check_bad_move.c` passed, `AI_FLAG_READ_PLAYER_MOVE` passed 37 tests, full `ai_smart_gimmick.c` passed, and full `ai_doubles.c` exited 0 with its existing `KNOWN_FAILING` / `TO_DO` labels unchanged. `git diff --check` exited 0. mdBook exited 0 with the existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>` warning, and large-search-index warning. Normal ROM build passed with the existing linker RWX warning. mGBA Live booted the rebuilt `pokeemerald.gba`, `status --all` showed pid `1207091` alive at 120 FPS, Lua returned `{ok=true, validation=doubles_terrain_protect_smoke_20260705}` before input and `{ok=true, validation=doubles_terrain_protect_after_start_20260705}` after `START`, screenshots `/tmp/doubles-terrain-protect-smoke-20260705-boot.png` and `/tmp/doubles-terrain-protect-smoke-20260705-after-start.png` were captured, `START` input was accepted, `stop --grace 1` returned `stopped:true`, and final `status --all` returned `[]`. |
 | Doubles partner final-screen Protect pass | `rtk make -j1 -O check TESTS='Protect: AI values doubles Protect when the partner can punish final opposing screen'`; `rtk make -j1 -O check TESTS='Protect: AI does not burn final opposing screen when the partner can break it'`; `rtk make -j16 -O check TESTS='Protect: AI'`; `rtk make -j16 -O check TESTS='test/battle/ai/check_bad_move.c'`; `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_smart_gimmick.c'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_doubles.c'`; `rtk git diff --check`; `rtk mdbook build docs`; `rtk make -j16 -O all`; mGBA Live session `doubles-screen-protect-smoke-20260705` | Pass on 2026-07-05. Adds a narrow doubles score-layer bridge where a pinned slot can Protect through the final turn of opposing Reflect / Light Screen / Aurora Veil when its partner gains a post-expiry KO or meaningful large-hit payoff. The paired negative keeps partner screen-breaking moves such as `Brick Break` from preferring a wait line. The focused positive failed before the implementation with equal `ProtectChecks()` scores, then passed after the partner screen-expiry helper was added. Focused checks passed sequentially; `Protect: AI` passed 34 tests, full `check_bad_move.c` passed 43 tests, `AI_FLAG_READ_PLAYER_MOVE` passed 37 tests, full `ai_smart_gimmick.c` passed, and full `ai_doubles.c` exited 0 with existing `KNOWN_FAILING` / `TO_DO` labels unchanged. `git diff --check` exited 0. mdBook exited 0 with the existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>` warning, and large-search-index warning. Normal ROM build passed with the existing linker RWX warning. mGBA Live booted the rebuilt ROM, `status --all` showed pid `1198701` alive at 120 FPS, Lua returned `{ok=true, validation=doubles_screen_protect_smoke_20260705}` before input and `{ok=true, validation=doubles_screen_protect_after_start_20260705}` after `START`, screenshots `/tmp/doubles-screen-protect-smoke-20260705-boot.png` and `/tmp/doubles-screen-protect-smoke-20260705-after-start.png` were captured, `START` input was accepted, `stop --grace 1` returned `stopped:true`, and final `status --all` returned `[]`. |
 | Doubles final-Perish Protect pass | `rtk make -j1 -O check TESTS='Protect: AI values doubles Protect while opposing Perish count expires'`; `rtk make -j1 -O check TESTS='Protect: AI does not value doubles Protect when both Perish counts expire'`; `rtk make -j16 -O check TESTS='Protect: AI'`; `rtk make -j16 -O check TESTS='test/battle/ai/check_bad_move.c'`; `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_smart_gimmick.c'`; `rtk make -j16 -O check TESTS='test/battle/ai/ai_doubles.c'`; `rtk git diff --check`; `rtk mdbook build docs`; `rtk make -j16 -O all`; mGBA Live session `doubles-perish-protect-smoke-20260705` | Pass on 2026-07-05. Adds a narrow doubles score-layer bridge where a pinned slot can Protect while the targeted opposing active Pokemon alone falls to an already-active Perish Song count at end of turn. The paired negative rejects the self-nullifying case where the protected slot and target both fall to Perish this turn, preventing the ordinary doubles Protect bump from treating that as a better next board. Focused checks passed sequentially; `Protect: AI` passed 32 tests, full `check_bad_move.c` passed 41 tests, `AI_FLAG_READ_PLAYER_MOVE` passed 37 tests, full `ai_smart_gimmick.c` passed, and full `ai_doubles.c` exited 0 with existing `KNOWN_FAILING` / `TO_DO` labels unchanged. `git diff --check` exited 0. mdBook exited 0 with the existing missing root `CHANGELOG.md` include, `CREDITS.md` `</img>` warning, and large-search-index warning. Normal ROM build passed with the existing linker RWX warning. mGBA Live booted the rebuilt ROM, `status --all` showed pid `1169649` alive at 120 FPS, Lua returned `{ok=true, validation=doubles_perish_protect_smoke_retry_20260705}` before input and `{ok=true, validation=doubles_perish_protect_after_start_20260705}` after `START`, screenshots `/tmp/doubles-perish-protect-smoke-20260705-boot.png` and `/tmp/doubles-perish-protect-smoke-20260705-after-start.png` were captured, `START` input was accepted, `stop --grace 1` returned `stopped:true`, and final `status --all` returned `[]`. A first parallel Lua / screenshot attempt timed out on the Lua command and is non-evidence; the single-command retry passed. |
@@ -238,7 +465,11 @@ Expected results:
 - Double battles should not hit the `IsValidSwitchIn()` ASSERT when the AI tries to reposition. If both active AI Pokemon want to switch but only one legal reserve exists, or a partner already reserved the best target, the second switch request should be canceled or redirected to a legal reserve.
 - Opponent gimmicks are not forced to fire immediately in smart-timing fixtures. They are expected to activate only when the smart timing checks find a concrete payoff: last-Pokemon pressure, one-reserve low-HP late commit, KO conversion, Max Move board control, disruption prevention, useful Mega / Tera form timing, or a valid Z-Move payoff.
 - In gauntlet fixtures, `Aggressive Gimmick` should make Dynamax / Tera / damaging Z-Move use visibly more proactive than the normal smart-conservation fixtures. A good manual target is roughly "often spends on real pressure, sometimes holds," not "always press immediately" and not "never spend until the last Pokemon."
-- In gauntlet fixtures, `Read Player Move` can only read player commands that have already been confirmed by the controller. In doubles, if only one player-side battler has confirmed when the opponent recomputes, the read is intentionally partial until a later full turn-tree evaluator exists.
+- In gauntlet fixtures, `Read Player Move` can only read commands already
+  confirmed by the controller. Eligible joint doubles must wait for both live
+  player commands before building the shared plan; a one-command partial plan
+  is not accepted. Formats outside the joint envelope retain their explicit
+  legacy behavior.
 - Player-side double battle move selection should not leak a first battler's selected gimmick state into the second battler's first rendered move menu. After choosing Z-Move or Dynamax for the first player battler, the second player battler should initially show its normal move names, PP, and type text unless START is pressed for that second battler and that battler is eligible for the selected gimmick.
 
 For mGBA Live validation, do not stop at title-screen boot. Use a progressed debug save or scripted input route, open `Party -> Gauntlet Battles`, start one target gauntlet, choose a player move, and capture the opponent response. If the automation cannot reach that state, record the exact navigation failure here instead of marking the runtime check complete.
@@ -299,7 +530,7 @@ For desperation comeback timing, use boards where the AI is likely to lose withi
 - If a normal damaging move can KO, likely KO, or win the short damage race, the AI should prefer that clean line over flinch, crit, OHKO, or low-accuracy status fishing.
 - If the AI has no reserve or is trapped under Perish Song pressure, a faster flinch, paralysis, sleep, OHKO, or critical-hit line can become viable as a last-chance out.
 - If a reserve can still switch out of Perish Song and there is no opposing setup pressure, the AI should not treat Perish Song alone as permission to fish for flinch.
-- In doubles, near-term loss pressure can justify Fake Out-style flinch, Taunt into a known status move, Tailwind, Trick Room, speed drops, or Throat Chop against sound moves when those lines can stop the immediate checkmate. Soundproof switching is available for the narrow read-Perish escape case. Ally-target Speed manipulation now has a narrow active-Trick-Room / immediate-KO score bridge, but broader switch / Protect / order-planner checks remain future work.
+- In doubles, near-term loss pressure can justify Fake Out-style flinch, Taunt into a known status move, Tailwind, Trick Room, speed drops, or Throat Chop against sound moves when those lines can stop the immediate checkmate. Soundproof switching is available for the narrow read-Perish escape case. Eligible supported boards compare these actions in the bounded joint search; mechanics or transitions outside that envelope retain the narrower score-layer bridges.
 - Spread moves that KO an ally should remain rejected unless the AI is already under near-term board pressure, the spread move creates real opposing-side pressure, and a reserve can use the opened slot.
 - Commander Dondozo should be the target, not swallowed Tatsugiri. If Dondozo can be KOed, the AI should remember that Tatsugiri remains afterward, especially when Tatsugiri is poisoned / burned or carrying Toxic Orb / Flame Orb.
 
@@ -307,11 +538,35 @@ For desperation comeback timing, use boards where the AI is likely to lose withi
 
 - G-Max unique effects are now exposed as broad reusable move knowledge flags, with residual G-Max effects separated. Most non-residual unique effects still need separate scoring if they become important to trainer fixtures.
 - Smart Z-Move status tactics still depend on the existing status Z-Move checks. `Z-Detect` / Fake Out timing is covered, but broader status Z-Moves such as Z-Haze, Z-Tailwind, and Z-Trick Room still need tactic-specific models before relying on them as competitive lines.
-- The AI now applies a lightweight future board-pressure heuristic to damaging doubles candidates, including a three-turn same-move horizon for Choice / Gorilla Tactics users and a partner-coverage gap reward when reliable future context is available. This is intentionally broader than `AI_FLAG_READ_PLAYER_MOVE`, but it still does not perform a full turn-tree search.
+- The preserved score-layer fallback applies a lightweight future
+  board-pressure heuristic to damaging doubles candidates, including a
+  three-turn same-move horizon for Choice / Gorilla Tactics users and a
+  partner-coverage gap reward. Eligible supported 2v2 boards instead use the
+  bounded shared tree; neither path claims an exhaustive game-tree solution.
+- Exact joint damage enumeration is bounded to modern, single-target,
+  single-hit actions. Damaging spread, multi-hit, pre-Generation-3 critical
+  rules, more than 32 distinct post-board states after merging, and the 4,096-
+  application safety ceiling are whole-side legacy boundaries rather than
+  shared-roll approximations.
+- The transposition table has 16 entries so the heap arena remains 16,248 bytes.
+  Exact enumeration uses a separate 2,596-byte static EWRAM scratch. The smaller
+  cache may increase recomputation and reach an existing node or frame budget
+  sooner, but does not change branch weights or legal-state handling.
 - Tactical partner activation is still heuristic. It separates spread, priority, and low-damage non-priority triggers, but it does not yet solve every multi-turn line where an ally accepts damage now for a later-positioning payoff.
-- `AI_FLAG_READ_PLAYER_MOVE` is now also a non-link NPC trainer policy for trainers that already have AI flags. The rollout is intentionally runtime-only so it does not duplicate partygen's ownership of generated trainer-party / tactic-pool content. It still evaluates one chosen command set plus bounded future-pressure heuristics instead of searching a full turn tree.
+- `AI_FLAG_READ_PLAYER_MOVE` is also a non-link NPC trainer policy for trainers
+  that already have AI flags. The rollout is runtime-only so it does not
+  duplicate partygen's ownership of generated trainer-party / tactic-pool
+  content. Eligible supported doubles use the bounded shared tree; singles and
+  unsupported doubles use one confirmed command set plus the preserved
+  score-layer heuristics.
 - Choice-role-done switching is intentionally conservative. It currently requires a confirmed read turn, an already locked Choice / Gorilla Tactics move, no known damage into the active slot, weak locked-move progress, and a switch-in that is not punished by known damage. If the role-done Pokemon is already being hit, the AI can keep it as a cushion rather than exposing the reserve. It does not yet model every status-target, PP, or two-turn sacrifice line.
-- Focused-slot collapse switching is a targeted doubles slice, not a full 2-3 turn planner. It recognizes selected-gimmick focus damage, Fake Out-style one-turn disruption, high-value active preservation, safe switch-ins, Focus Sash / support cushions, selected Protect counterplay such as Feint / protection bypass, and one-turn Grassy Terrain recovery in switch-in survival. It does not yet model every Volt Switch pivot, timer-stall Protect, unconfirmed Protect counterplay prediction, or multi-turn recovery / chip line requested in `goal.md`.
+- Focused-slot collapse switching remains a targeted fallback primitive and a
+  source of switch candidates. It recognizes selected-gimmick focus damage,
+  Fake Out-style disruption, active preservation, safe switch-ins, Focus Sash /
+  support cushions, Protect counterplay, and one-turn Grassy recovery. The joint
+  search compares supported move / switch lines, but still fails closed on
+  unencoded pivots, recovery / chip sequences, and mechanics outside its compact
+  transition model.
 - Protect scoring is payoff-based, not a full opponent turn-tree read. It recognizes common turn-gain reasons, consecutive-use risk, and one-turn deterministic recovery such as Grassy Terrain and Leftovers, but it does not yet solve every PP-stall, double-target, "Protect to bait a switch", or full recovery-plus-timer line.
 - Desperation comeback scoring is payoff-gated through the shared risk governor and deliberately narrow, but it is still a heuristic. It does not yet solve full 2-3 turn forced lines, broad sound-pressure switching, or the broader ally-order planner beyond the narrow Scary Face-style active-Trick-Room / immediate-KO score bridge.
 - Double switching and board-control pivoting are heuristic position checks, not a full VGC turn solver. Board-control pivots can identify weather, terrain, Tailwind, and Trick Room roles, but they do not yet search full multi-turn lines such as "switch setter now, protect partner next turn, then reposition again."
@@ -320,4 +575,5 @@ For desperation comeback timing, use boards where the AI is likely to lose withi
 
 ## GitHub Actions
 
-Long GitHub Actions were not re-waited for this local handoff. Local `check`, `all`, docs build, and mGBA Live smoke provide the branch evidence for this update.
+Long GitHub Actions were not re-waited for this local handoff. Local `check`,
+`all`, `debug`, docs build, and revised mGBA Live evidence are recorded above.

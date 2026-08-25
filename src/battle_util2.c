@@ -1,6 +1,7 @@
 #include "global.h"
 #include "battle.h"
 #include "battle_anim.h"
+#include "battle_ai_joint_runtime.h"
 #include "battle_controllers.h"
 #include "malloc.h"
 #include "pokemon.h"
@@ -70,6 +71,8 @@ void AllocateBattleResources(void)
 
 void FreeBattleResources(void)
 {
+    BattleAiJointRuntime_Reset();
+
     if (gBattleTypeFlags & BATTLE_TYPE_TRAINER_TOWER && gMapHeader.regionMapSectionId == MAPSEC_TRAINER_TOWER_2)
         FreeTrainerTowerBattleStruct();
     else if (gBattleTypeFlags & BATTLE_TYPE_TRAINER_HILL)

@@ -60,6 +60,12 @@ struct FocusedSwitchCandidate
     u32 score;
     enum FocusedSwitchCandidateKind kind;
 };
+enum KnownSingleTargetKoDecision
+{
+    KNOWN_SINGLE_TARGET_KO_UNRESOLVED,
+    KNOWN_SINGLE_TARGET_KO_STAY,
+    KNOWN_SINGLE_TARGET_KO_SWITCH,
+};
 static bool32 CanUseSuperEffectiveMoveAgainstOpponents(enum BattlerId battler, enum BattlerId opposingBattler);
 static bool32 CanUseSuperEffectiveMoveAgainstOpponent(enum BattlerId battler, enum BattlerId opposingBattler);
 static u32 GetSwitchinHazardsDamage(enum BattlerId battler);
@@ -86,7 +92,7 @@ static bool32 ShouldSwitchIfIntimidateBenefit(struct SwitchAiContext *switchCont
 static bool32 ShouldSwitchIfBoardControlBenefit(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfDoublePositionBad(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfPredictedTauntPunish(struct SwitchAiContext *switchContext);
-static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchContext);
+static enum KnownSingleTargetKoDecision DecideKnownSingleTargetKO(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfKnownFocusedSlotCollapse(struct SwitchAiContext *switchContext);
 static bool32 ShouldSwitchIfReadChoiceRoleDone(struct SwitchAiContext *switchContext);
 static bool32 ShouldStayInForKnownTeraSurvival(struct SwitchAiContext *switchContext);
@@ -3237,8 +3243,15 @@ bool32 ShouldSwitch(enum BattlerId battler)
         return TRUE;
     if (ShouldStayInForKnownTeraSurvival(&switchContext))
         return FALSE;
-    if (ShouldSwitchIfKnownSingleTargetKO(&switchContext))
+    switch (DecideKnownSingleTargetKO(&switchContext))
+    {
+    case KNOWN_SINGLE_TARGET_KO_STAY:
+        return FALSE;
+    case KNOWN_SINGLE_TARGET_KO_SWITCH:
         return TRUE;
+    case KNOWN_SINGLE_TARGET_KO_UNRESOLVED:
+        break;
+    }
     if (ShouldPreserveDoubleBattlerWithProtect(&switchContext))
         return FALSE;
     if (ShouldSwitchIfKnownFocusedSlotCollapse(&switchContext))
@@ -3332,6 +3345,7 @@ void ModifySwitchAfterMoveScoring(enum BattlerId battler)
     switchContext.opposingBattler = GetOppositeBattler(switchContext.battler);
     switchContext.party = GetBattlerParty(switchContext.battler);
     switchContext.lastId = GetAILastPartyIndex(switchContext.battler);
+    SetKnownIncomingMoveForSwitchContext(&switchContext);
     GetActiveBattlerIds(switchContext.battler, &switchContext.battlerIn1, &switchContext.battlerIn2);
     GetShouldSwitchPartyMonEligibility(&switchContext);
 
@@ -3344,6 +3358,22 @@ void ModifySwitchAfterMoveScoring(enum BattlerId battler)
 
     if (switchContext.eligiblePartyMons == 0)
         return;
+
+    // Do not override a higher-priority switch reason that already won in
+    // ShouldSwitch. Recheck only the no-switch path so late move scoring cannot
+    // turn a deliberate sacrifice into an all-scores-bad switch.
+    if (!(gAiLogicData->shouldSwitch & (1u << battler)))
+    {
+        enum KnownSingleTargetKoDecision knownKoDecision = DecideKnownSingleTargetKO(&switchContext);
+
+        if (knownKoDecision == KNOWN_SINGLE_TARGET_KO_STAY)
+            return;
+        if (knownKoDecision == KNOWN_SINGLE_TARGET_KO_SWITCH)
+        {
+            gAiLogicData->shouldSwitch |= (1u << battler);
+            return;
+        }
+    }
 
     if (ShouldSwitchIfAllScoresBad(&switchContext))
         gAiLogicData->shouldSwitch |= (1u << battler);
@@ -4216,7 +4246,121 @@ static bool32 ShouldStayInForKnownTeraSurvival(struct SwitchAiContext *switchCon
     return bestDamage * 100 >= targetHp * 35;
 }
 
-static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext *switchContext)
+static bool32 BattlerHasKnownKoStrategicRole(enum BattlerId battler)
+{
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum BattleMoveEffects effect = GetMoveEffect(gBattleMons[battler].moves[moveIndex]);
+
+        if (effect == EFFECT_TAILWIND
+         || effect == EFFECT_TRICK_ROOM
+         || effect == EFFECT_ENCORE
+         || effect == EFFECT_FIRST_TURN_ONLY
+         || effect == EFFECT_HIT_ESCAPE
+         || effect == EFFECT_PARTING_SHOT)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static u32 GetKnownKoOffensivePressureValue(enum BattlerId battler, enum DamageCalcContext damageContext)
+{
+    u32 pressureValue = 0;
+
+    for (enum BattlerId target = 0; target < gBattlersCount; target++)
+    {
+        u32 damage;
+
+        if (!IsBattlerAlive(target) || IsBattlerAlly(battler, target))
+            continue;
+
+        damage = GetBestDmgFromBattler(battler, target, damageContext);
+        if (damage > gBattleMons[target].hp)
+            damage = gBattleMons[target].hp;
+        pressureValue += damage;
+    }
+
+    return pressureValue;
+}
+
+static bool32 BattlerHasUnusedGimmick(enum BattlerId battler)
+{
+    for (enum Gimmick gimmick = GIMMICK_MEGA; gimmick < GIMMICKS_COUNT; gimmick++)
+    {
+        if (CanActivateGimmick(battler, gimmick))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static bool32 SwitchinHasUnusedGimmick(enum BattlerId battler, u32 monIndex)
+{
+    u32 savedPartyIndex = gBattlerPartyIndexes[battler];
+    bool32 hasUnusedGimmick;
+
+    gBattlerPartyIndexes[battler] = monIndex;
+    hasUnusedGimmick = BattlerHasUnusedGimmick(battler);
+    gBattlerPartyIndexes[battler] = savedPartyIndex;
+
+    return hasUnusedGimmick;
+}
+
+static u32 GetKnownKoBattlerValue(
+    struct SwitchAiContext *switchContext,
+    enum DamageCalcContext damageContext,
+    bool32 hasActiveGimmick,
+    bool32 hasUnusedGimmick)
+{
+    enum BattlerId battler = switchContext->battler;
+    u32 maxHp = max(1, gBattleMons[battler].maxHP);
+    u32 pressureValue = GetKnownKoOffensivePressureValue(battler, damageContext);
+    u32 value = gBattleMons[battler].hp + pressureValue;
+
+    if (BattlerHasKnownKoStrategicRole(battler))
+        value += maxHp / 3;
+    if (HasChoiceEffect(battler))
+        value += maxHp / 2;
+    if (AnyUsefulStatIsRaised(battler))
+        value += maxHp / 2;
+    if (hasActiveGimmick)
+        value += maxHp;
+    if (hasUnusedGimmick)
+        value += maxHp + pressureValue / 2;
+
+    return max(1, value);
+}
+
+static u32 GetKnownKoSwitchinExposureCost(
+    struct SwitchAiContext *switchContext,
+    u32 incomingDamage,
+    u32 switchinValue,
+    bool32 hasUnusedGimmick)
+{
+    enum BattlerId battler = switchContext->battler;
+    u32 hp = max(1, gBattleMons[battler].hp);
+    u32 damage = min(incomingDamage, hp);
+    u32 exposureCost;
+
+    if (damage == 0)
+        return 0;
+
+    exposureCost = DIV_ROUND_UP((u64)switchinValue * damage, hp);
+
+    // A role-bearing reserve is worth more than its raw HP. Switching it into
+    // damage also gives up the clean entry it would receive after a deliberate
+    // sacrifice, so include a bounded role-risk cost for that exposure.
+    if (hasUnusedGimmick)
+        exposureCost += switchinValue / 4;
+    if (gAiLogicData->holdEffects[battler] == HOLD_EFFECT_FOCUS_SASH
+     && gBattleMons[battler].hp == gBattleMons[battler].maxHP)
+        exposureCost += switchinValue / 4;
+
+    return max(1, exposureCost);
+}
+
+static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext *switchContext, u32 *bestExposureCost)
 {
     struct IncomingHealInfo healInfoData;
     const struct IncomingHealInfo *healInfo = &healInfoData;
@@ -4225,6 +4369,7 @@ static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext 
     u32 savedNotOnField = gBattleStruct->battlerState[switchContext->battler].notOnField;
     u32 bestMonId = PARTY_SIZE;
     u32 bestScore = 1;
+    u32 lowestExposureCost = UINT32_MAX;
     bool32 bestHasFakeOut = FALSE;
     bool32 bestHasPivot = FALSE;
 
@@ -4236,8 +4381,13 @@ static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext 
         u32 originalHp;
         u32 hitsToKO;
         u32 score;
+        u32 knownDamage;
+        u32 switchinValue;
+        u32 exposureCost;
         bool32 hasFakeOut;
         bool32 hasPivot;
+        bool32 hasActiveGimmick;
+        bool32 hasUnusedGimmick;
 
         if (!(switchContext->eligiblePartyMons & (1u << monIndex)))
             continue;
@@ -4255,11 +4405,8 @@ static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext 
         if (gAiLogicData->abilities[switchContext->battler] == ABILITY_TRUANT && IsTruantMonVulnerable(switchContext->battler, switchContext->incomingBattler))
             continue;
 
-        hitsToKO = GetSwitchinHitsToKO(
-            GetKnownPlayerSelectedMoveDamageForSwitch(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMove, switchContext->incomingMoveIndex, AI_SWITCHIN_DEFENDING),
-            switchContext->battler,
-            healInfo,
-            originalHp);
+        knownDamage = GetKnownPlayerSelectedMoveDamageForSwitch(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMove, switchContext->incomingMoveIndex, AI_SWITCHIN_DEFENDING);
+        hitsToKO = GetSwitchinHitsToKO(knownDamage, switchContext->battler, healInfo, originalHp);
 
         // This path bypasses the doubles Protect-preservation guard, so require
         // a real defensive pivot rather than a switch-in that merely survives.
@@ -4275,12 +4422,28 @@ static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext 
         if (hasPivot)
             score++;
 
-        if (score > bestScore
-         || (score == bestScore && hasFakeOut && !bestHasFakeOut)
-         || (score == bestScore && hasFakeOut == bestHasFakeOut && hasPivot && !bestHasPivot))
+        hasUnusedGimmick = SwitchinHasUnusedGimmick(switchContext->battler, monIndex);
+        hasActiveGimmick = gBattleStruct->gimmick.activeGimmick
+            [GetBattlerTrainer(switchContext->battler)][monIndex] != GIMMICK_NONE;
+        switchinValue = GetKnownKoBattlerValue(
+            switchContext,
+            AI_SWITCHIN_ATTACKING,
+            hasActiveGimmick,
+            hasUnusedGimmick);
+        exposureCost = GetKnownKoSwitchinExposureCost(
+            switchContext,
+            knownDamage,
+            switchinValue,
+            hasUnusedGimmick);
+
+        if (exposureCost < lowestExposureCost
+         || (exposureCost == lowestExposureCost && score > bestScore)
+         || (exposureCost == lowestExposureCost && score == bestScore && hasFakeOut && !bestHasFakeOut)
+         || (exposureCost == lowestExposureCost && score == bestScore && hasFakeOut == bestHasFakeOut && hasPivot && !bestHasPivot))
         {
             bestMonId = monIndex;
             bestScore = score;
+            lowestExposureCost = exposureCost;
             bestHasFakeOut = hasFakeOut;
             bestHasPivot = hasPivot;
         }
@@ -4290,36 +4453,53 @@ static u32 FindSwitchinThatSurvivesKnownSingleTargetMove(struct SwitchAiContext 
     FreeRestoreAiLogicData(savedAiLogicData);
     FreeRestoreBattleMons(savedBattleMons);
 
+    if (bestExposureCost != NULL)
+        *bestExposureCost = lowestExposureCost;
+
     return bestMonId;
 }
 
-static bool32 ShouldSwitchIfKnownSingleTargetKO(struct SwitchAiContext *switchContext)
+static enum KnownSingleTargetKoDecision DecideKnownSingleTargetKO(struct SwitchAiContext *switchContext)
 {
     u32 switchinId;
     u32 incomingDamage;
+    u32 activeValue;
+    u32 switchinExposureCost;
 
     if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_SMART_SWITCHING))
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
     if (!(gAiThinkingStruct->aiFlags[switchContext->battler] & AI_FLAG_READ_PLAYER_MOVE))
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
     if (switchContext->incomingBattler >= gBattlersCount || switchContext->incomingMoveIndex >= MAX_MON_MOVES)
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
     if (IsBattleMoveStatus(switchContext->incomingMove))
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
     if (IsBattlerAlly(switchContext->battler, switchContext->incomingBattler))
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
 
     incomingDamage = GetKnownPlayerSelectedMoveDamageForSwitch(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMove, switchContext->incomingMoveIndex, AI_DEFENDING);
     if (incomingDamage < gBattleMons[switchContext->battler].hp)
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
     if (CanEndureHit(switchContext->incomingBattler, switchContext->battler, switchContext->incomingMove))
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
 
-    switchinId = FindSwitchinThatSurvivesKnownSingleTargetMove(switchContext);
+    activeValue = GetKnownKoBattlerValue(
+        switchContext,
+        AI_ATTACKING,
+        GetActiveGimmick(switchContext->battler) != GIMMICK_NONE,
+        BattlerHasUnusedGimmick(switchContext->battler));
+    switchinId = FindSwitchinThatSurvivesKnownSingleTargetMove(switchContext, &switchinExposureCost);
     if (switchinId == PARTY_SIZE)
-        return FALSE;
+        return KNOWN_SINGLE_TARGET_KO_UNRESOLVED;
 
-    return SetSwitchinAndSwitch(switchContext->battler, switchinId);
+    // Staying loses the active Pokemon but gives the reserve a clean, free
+    // entry. Switch only when the active resource saved is worth more than the
+    // confirmed damage and role risk imposed on the chosen reserve.
+    if (switchinExposureCost != 0 && activeValue <= switchinExposureCost)
+        return KNOWN_SINGLE_TARGET_KO_STAY;
+
+    SetSwitchinAndSwitch(switchContext->battler, switchinId);
+    return KNOWN_SINGLE_TARGET_KO_SWITCH;
 }
 
 static bool32 IsBattlerWorthFocusedPreserve(struct SwitchAiContext *switchContext)

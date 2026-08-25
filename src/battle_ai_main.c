@@ -7,6 +7,7 @@
 #include "battle_ai_items.h"
 #include "battle_ai_switch.h"
 #include "battle_ai_main.h"
+#include "battle_ai_joint_runtime.h"
 #include "battle_ai_record.h"
 #include "battle_util.h"
 #include "battle_stat_change.h"
@@ -62,6 +63,9 @@
 #define DESPERATION_DIRECT_STOP_SCORE (BEST_EFFECT + GOOD_EFFECT)
 #define DESPERATION_SPEED_CONTROL_SCORE DECENT_EFFECT
 #define PARTNER_ACTIVATION_LOW_DAMAGE_PERCENT 15
+#define READ_PLAYER_POWER_HERB_SEQUENCE_SCORE DECENT_EFFECT
+#define READ_PLAYER_SETUP_FUTURE_PRESSURE_PERCENT 50
+#define AI_LEGACY_TRACE_MAX_CANDIDATES (MAX_MON_MOVES * MAX_BATTLERS_COUNT)
 
 struct AiDecisionLineTrace
 {
@@ -69,6 +73,14 @@ struct AiDecisionLineTrace
     u8 stableLineFamily;
     u8 fallbackLineFamily;
     u8 lossClock;
+};
+
+struct AiLegacyTraceCandidate
+{
+    struct BattleAiTraceCandidate trace;
+    u8 moveIndex;
+    enum BattlerId scoreTarget;
+    bool8 chosen;
 };
 
 static u32 ChooseMoveOrAction(enum BattlerId battler);
@@ -94,16 +106,25 @@ static s32 GetCommanderDondozoFaintBonus(enum BattlerId battlerDef);
 static bool32 MoveHasChanceEffect(enum BattlerId battlerAtk, enum Move move, enum MoveEffect moveEffect);
 static bool32 MoveCanLowerTargetSpeed(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, struct AiLogicData *aiData);
 static void AI_ClearDecisionReason(enum BattlerId battler);
+static void AI_ClearCandidateTrace(enum BattlerId battler);
+static void AI_MarkCandidateRejection(enum BattlerId battlerAtk, enum BattlerId battlerDef, u8 rejectionFlag);
+static void AI_MarkCandidateReadInteraction(enum BattlerId battlerAtk, enum BattlerId battlerDef, u8 interactionFlag);
+static void AI_MarkCandidateAllyInteraction(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum AiAllyInteractionKind interactionKind);
+static void AI_RecordLegacyPlanTrace(enum BattlerId battler, u32 finalAction);
 static void AI_SetDecisionReasonTrace(enum BattlerId battler, enum AiDecisionReason reason, u32 threatFlags, u8 riskKind, const struct AiDecisionLineTrace *lineTrace);
 static void AI_SetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex);
 static void AI_SetSwitchDecisionReason(enum BattlerId battler);
 static enum AiDecisionReason AI_GetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex);
 static enum AiDecisionReason AI_GetSwitchDecisionReason(enum BattlerId battler);
+static bool32 GetReadPlayerConfirmedFakeOutCommand(enum BattlerId battlerAtk, enum Gimmick targetGimmick, enum BattlerId *fakeOutBattler, enum Move *fakeOutMove);
+static bool32 IsReadPlayerProspectiveActionFaster(enum BattlerId battlerAtk, enum Move move, enum Gimmick targetGimmick, enum BattlerId fakeOutBattler, enum Move fakeOutMove, bool32 winSpeedTies);
+static bool32 IsReadPlayerPartnerQuickGuardGuaranteed(enum BattlerId battlerAtk, enum BattlerId fakeOutBattler, enum Move fakeOutMove);
 
 // ewram
 EWRAM_DATA const u8 *gAIScriptPtr = NULL;   // Still used in contests
 EWRAM_DATA AiScoreFunc sDynamicAiFunc = NULL;
 EWRAM_DATA AiSwitchFunc gDynamicAiSwitchFunc = NULL;
+EWRAM_DATA static enum AiDecisionReason sPendingSwitchDecisionReason[MAX_BATTLERS_COUNT] = {0};
 
 // const rom data
 static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, s32 score);
@@ -289,6 +310,37 @@ static bool32 IsReadPlayerBufferedMoveCommand(enum BattlerId battler)
     return gBattleResources != NULL
         && IsOnPlayerSide(battler)
         && gBattleResources->bufferB[battler][1] == B_ACTION_USE_MOVE;
+}
+
+static bool32 TryGetReadPlayerCommittedMoveCommand(enum BattlerId battler, enum Move *move, u32 *moveIndex, enum BattlerId *target)
+{
+    enum Move chosenMove;
+    u32 chosenMoveIndex;
+    enum BattlerId chosenTarget;
+
+    if (battler >= gBattlersCount
+     || BattlerHasAi(battler)
+     || !IsBattlerAlive(battler)
+     || gChosenActionByBattler[battler] != B_ACTION_USE_MOVE)
+        return FALSE;
+
+    chosenMove = gChosenMoveByBattler[battler];
+    chosenMoveIndex = gBattleStruct->chosenMovePositions[battler];
+    chosenTarget = gBattleStruct->moveTarget[battler];
+    if (chosenMove == MOVE_NONE
+     || chosenMove == MOVE_UNAVAILABLE
+     || chosenMoveIndex >= MAX_MON_MOVES
+     || gBattleMons[battler].moves[chosenMoveIndex] != chosenMove
+     || chosenTarget >= gBattlersCount)
+        return FALSE;
+
+    if (move != NULL)
+        *move = chosenMove;
+    if (moveIndex != NULL)
+        *moveIndex = chosenMoveIndex;
+    if (target != NULL)
+        *target = chosenTarget;
+    return TRUE;
 }
 
 static enum Move GetReadPlayerKnownChosenMove(enum BattlerId battler)
@@ -548,6 +600,30 @@ static u32 GetKnownEarlierDamageToBattler(enum BattlerId battlerAtk, enum Battle
             if (totalDamage >= gBattleMons[damagedBattler].hp)
                 return gBattleMons[damagedBattler].hp;
         }
+    }
+
+    return totalDamage;
+}
+
+static u32 GetCommittedReadPlayerEarlierDamageToBattler(enum BattlerId battlerAtk, enum BattlerId damagedBattler, enum Move move, struct AiLogicData *aiData)
+{
+    u32 totalDamage = 0;
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE))
+        return 0;
+
+    for (enum BattlerId source = 0; source < gBattlersCount; source++)
+    {
+        enum Move sourceMove;
+        u32 sourceMoveIndex;
+        enum BattlerId chosenTarget;
+
+        if (!TryGetReadPlayerCommittedMoveCommand(source, &sourceMove, &sourceMoveIndex, &chosenTarget))
+            continue;
+
+        totalDamage += GetEarlierDamageFromKnownMove(battlerAtk, damagedBattler, source, move, sourceMove, sourceMoveIndex, chosenTarget, aiData);
+        if (totalDamage >= gBattleMons[damagedBattler].hp)
+            return gBattleMons[damagedBattler].hp;
     }
 
     return totalDamage;
@@ -1357,25 +1433,754 @@ static bool32 GetReadPlayerGuaranteedFakeOutThreat(enum BattlerId battlerAtk, en
     return FALSE;
 }
 
+static bool32 IsReadPlayerCommittedFakeOutCommand(enum BattlerId battlerAtk,
+                                                  enum BattlerId source,
+                                                  enum Move move,
+                                                  enum BattlerId chosenTarget)
+{
+    if (chosenTarget != battlerAtk
+     || !CanTargetBattler(source, chosenTarget, move)
+     || AI_ShouldAvoidCommanderTatsugiriTarget(chosenTarget, move))
+        return FALSE;
+
+    if (GetMoveEffect(move) != EFFECT_FIRST_TURN_ONLY
+     || !IsBattlersFirstTurn(source)
+     || !MoveHasAdditionalEffect(move, MOVE_EFFECT_FLINCH))
+        return FALSE;
+
+    if (gBattleMons[source].status1 & (STATUS1_SLEEP | STATUS1_FREEZE | STATUS1_PARALYSIS)
+     || gBattleMons[source].volatiles.confusionTurns > 0
+     || gBattleMons[source].volatiles.infatuation)
+        return FALSE;
+
+    if ((gBattleStruct->gimmick.toActivate & (1u << source))
+     && (gBattleStruct->gimmick.usableGimmick[source] == GIMMICK_Z_MOVE
+      || gBattleStruct->gimmick.usableGimmick[source] == GIMMICK_DYNAMAX))
+        return FALSE;
+
+    return TRUE;
+}
+
+static bool32 HasReadPlayerCommittedFakeOutCommand(enum BattlerId battlerAtk)
+{
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !BattlerHasAi(battlerAtk))
+        return FALSE;
+
+    for (enum BattlerId source = 0; source < gBattlersCount; source++)
+    {
+        enum Move move;
+        enum BattlerId chosenTarget;
+
+        if (TryGetReadPlayerCommittedMoveCommand(source, &move, NULL, &chosenTarget)
+         && IsReadPlayerCommittedFakeOutCommand(battlerAtk, source, move, chosenTarget))
+            return TRUE;
+    }
+    return FALSE;
+}
+
 static bool32 ShouldAvoidMoveIntoReadPlayerFakeOut(enum BattlerId battlerAtk, enum Move move)
 {
     enum BattlerId fakeOutBattler = MAX_BATTLERS_COUNT;
     enum Move fakeOutMove = MOVE_NONE;
-
-    if (!GetReadPlayerGuaranteedFakeOutThreat(battlerAtk, &fakeOutBattler, &fakeOutMove))
-        return FALSE;
+    enum Gimmick targetGimmick = IsAIUsingGimmick(battlerAtk)
+                                 ? gBattleStruct->gimmick.usableGimmick[battlerAtk]
+                                 : GIMMICK_NONE;
+    bool32 hasCommittedFakeOut = HasReadPlayerCommittedFakeOutCommand(battlerAtk);
 
     if (GetMoveEffect(move) == EFFECT_PROTECT)
         return FALSE;
 
-    if (gBattleStruct->gimmick.usableGimmick[battlerAtk] == GIMMICK_DYNAMAX
-     && IsAIUsingGimmick(battlerAtk))
+    if (GetActiveGimmick(battlerAtk) == GIMMICK_DYNAMAX || targetGimmick == GIMMICK_DYNAMAX)
         return FALSE;
 
-    if (AI_WhoStrikesFirst(battlerAtk, fakeOutBattler, move, fakeOutMove, CONSIDER_PRIORITY) == AI_IS_FASTER)
+    if (hasCommittedFakeOut)
+    {
+        if (!GetReadPlayerConfirmedFakeOutCommand(battlerAtk,
+                                                  targetGimmick,
+                                                  &fakeOutBattler,
+                                                  &fakeOutMove))
+            return FALSE;
+        if (IsReadPlayerPartnerQuickGuardGuaranteed(battlerAtk,
+                                                    fakeOutBattler,
+                                                    fakeOutMove))
+            return FALSE;
+
+        return !IsReadPlayerProspectiveActionFaster(battlerAtk,
+                                                    move,
+                                                    targetGimmick,
+                                                    fakeOutBattler,
+                                                    fakeOutMove,
+                                                    TRUE);
+    }
+
+    if (!GetReadPlayerGuaranteedFakeOutThreat(battlerAtk, &fakeOutBattler, &fakeOutMove))
         return FALSE;
 
+    return AI_WhoStrikesFirst(battlerAtk,
+                              fakeOutBattler,
+                              move,
+                              fakeOutMove,
+                              CONSIDER_PRIORITY) != AI_IS_FASTER;
+}
+
+static enum Species GetReadPlayerProspectiveGimmickSpecies(enum BattlerId battler,
+                                                           enum Gimmick gimmick,
+                                                           enum Ability ability)
+{
+    enum Species targetSpecies = gBattleMons[battler].species;
+
+    switch (gimmick)
+    {
+    case GIMMICK_MEGA:
+        targetSpecies = GetBattleFormChangeTargetSpecies(battler,
+                                                          FORM_CHANGE_BATTLE_MEGA_EVOLUTION_MOVE,
+                                                          ability);
+        if (targetSpecies == gBattleMons[battler].species)
+            targetSpecies = GetBattleFormChangeTargetSpecies(battler,
+                                                              FORM_CHANGE_BATTLE_MEGA_EVOLUTION_ITEM,
+                                                              ability);
+        break;
+    case GIMMICK_ULTRA_BURST:
+        targetSpecies = GetBattleFormChangeTargetSpecies(battler,
+                                                          FORM_CHANGE_BATTLE_ULTRA_BURST,
+                                                          ability);
+        break;
+    case GIMMICK_TERA:
+        targetSpecies = GetBattleFormChangeTargetSpecies(battler,
+                                                          FORM_CHANGE_BATTLE_TERASTALLIZATION,
+                                                          ability);
+        break;
+    default:
+        break;
+    }
+
+    if (targetSpecies == SPECIES_NONE)
+        return gBattleMons[battler].species;
+    return targetSpecies;
+}
+
+static enum Ability GetReadPlayerProspectiveGimmickAbility(enum BattlerId battler,
+                                                           enum Gimmick gimmick,
+                                                           enum Species *species)
+{
+    enum Ability ability = gAiLogicData->abilities[battler];
+    enum Species targetSpecies = GetReadPlayerProspectiveGimmickSpecies(battler, gimmick, ability);
+
+    if (targetSpecies != gBattleMons[battler].species)
+    {
+        enum Ability savedAbility = gBattleMons[battler].ability;
+
+        gBattleMons[battler].ability = GetAbilityBySpecies(targetSpecies,
+                                                            gBattleMons[battler].abilityNum);
+        ability = GetBattlerAbilityIgnoreMoldBreaker(battler);
+        gBattleMons[battler].ability = savedAbility;
+    }
+    if (species != NULL)
+        *species = targetSpecies;
+    return ability;
+}
+
+static u32 GetReadPlayerProspectiveTotalSpeed(enum BattlerId battler,
+                                              enum Species prospectiveSpecies,
+                                              enum Ability prospectiveAbility)
+{
+    enum Species savedSpecies = gBattleMons[battler].species;
+    u32 savedSpeed = gBattleMons[battler].speed;
+    u32 prospectiveSpeed = savedSpeed;
+    u32 totalSpeed;
+
+    if (prospectiveSpecies != savedSpecies)
+    {
+        struct Pokemon prospectiveMon = *GetBattlerMon(battler);
+        s32 savedLevelUpHp = gBattleScripting.levelUpHP;
+
+        SetMonData(&prospectiveMon, MON_DATA_SPECIES, &prospectiveSpecies);
+        CalculateMonStats(&prospectiveMon);
+        gBattleScripting.levelUpHP = savedLevelUpHp;
+        prospectiveSpeed = GetMonData(&prospectiveMon, MON_DATA_SPEED);
+    }
+
+    // GetBattlerTotalSpeedStat applies every live stage, field, item, status,
+    // and ability modifier around the raw stat.  Present the prospective form
+    // only for that pure calculation, then restore the observed battle state.
+    gBattleMons[battler].species = prospectiveSpecies;
+    gBattleMons[battler].speed = prospectiveSpeed;
+    totalSpeed = GetBattlerTotalSpeedStat(battler,
+                                          prospectiveAbility,
+                                          gAiLogicData->holdEffects[battler]);
+    gBattleMons[battler].species = savedSpecies;
+    gBattleMons[battler].speed = savedSpeed;
+    return totalSpeed;
+}
+
+static bool32 IsReadPlayerProspectiveActionFaster(enum BattlerId battlerAtk,
+                                                  enum Move move,
+                                                  enum Gimmick targetGimmick,
+                                                  enum BattlerId fakeOutBattler,
+                                                  enum Move fakeOutMove,
+                                                  bool32 winSpeedTies)
+{
+    enum Gimmick sourceGimmick = GIMMICK_NONE;
+    enum Gimmick targetOrderGimmick;
+    enum Gimmick sourceOrderGimmick;
+    enum Species targetSpecies;
+    enum Species sourceSpecies;
+    enum Ability targetAbility;
+    enum Ability sourceAbility;
+    enum HoldEffect targetHoldEffect = gAiLogicData->holdEffects[battlerAtk];
+    enum HoldEffect sourceHoldEffect = gAiLogicData->holdEffects[fakeOutBattler];
+    s32 targetPriority;
+    s32 sourcePriority;
+    u32 targetSpeed;
+    u32 sourceSpeed;
+    bool32 targetMovesLast;
+    bool32 sourceMovesLast;
+
+    if (gBattleStruct->gimmick.toActivate & (1u << fakeOutBattler))
+        sourceGimmick = gBattleStruct->gimmick.usableGimmick[fakeOutBattler];
+
+    targetOrderGimmick = targetGimmick;
+    sourceOrderGimmick = sourceGimmick;
+    if (GetConfig(B_MEGA_EVO_TURN_ORDER) < GEN_7)
+    {
+        // Gimmick effects still apply before moves in older rules, but the
+        // already-built action order is not recalculated around the new form.
+        targetOrderGimmick = GIMMICK_NONE;
+        sourceOrderGimmick = GIMMICK_NONE;
+    }
+
+    targetAbility = GetReadPlayerProspectiveGimmickAbility(battlerAtk,
+                                                           targetOrderGimmick,
+                                                           &targetSpecies);
+    sourceAbility = GetReadPlayerProspectiveGimmickAbility(fakeOutBattler,
+                                                           sourceOrderGimmick,
+                                                           &sourceSpecies);
+    targetPriority = GetBattleMovePriority(battlerAtk, targetAbility, move);
+    sourcePriority = GetBattleMovePriority(fakeOutBattler, sourceAbility, fakeOutMove);
+    if (targetPriority > sourcePriority)
+        return TRUE;
+    if (targetPriority < sourcePriority)
+        return FALSE;
+
+    targetMovesLast = targetHoldEffect == HOLD_EFFECT_LAGGING_TAIL || targetAbility == ABILITY_STALL;
+    sourceMovesLast = sourceHoldEffect == HOLD_EFFECT_LAGGING_TAIL || sourceAbility == ABILITY_STALL;
+    if (targetMovesLast != sourceMovesLast)
+        return !targetMovesLast;
+
+    targetSpeed = GetReadPlayerProspectiveTotalSpeed(battlerAtk,
+                                                     targetSpecies,
+                                                     targetAbility);
+    sourceSpeed = GetReadPlayerProspectiveTotalSpeed(fakeOutBattler,
+                                                     sourceSpecies,
+                                                     sourceAbility);
+    if (targetSpeed == sourceSpeed)
+        return winSpeedTies;
+    if (gFieldStatuses & STATUS_FIELD_TRICK_ROOM)
+        return targetSpeed < sourceSpeed;
+    return targetSpeed > sourceSpeed;
+}
+
+static bool32 IsReadPlayerPartnerQuickGuardGuaranteed(enum BattlerId battlerAtk,
+                                                       enum BattlerId fakeOutBattler,
+                                                       enum Move fakeOutMove)
+{
+    enum BattlerId partner = BATTLE_PARTNER(battlerAtk);
+    enum Move partnerMove = gAiLogicData->partnerMove;
+    enum Gimmick partnerGimmick;
+
+    if (!IsDoubleBattle()
+     || partner >= gBattlersCount
+     || !IsBattlerAlive(partner)
+     || partnerMove == MOVE_NONE
+     || GetMoveEffect(partnerMove) != EFFECT_PROTECT
+     || GetMoveProtectMethod(partnerMove) != PROTECT_QUICK_GUARD)
+        return FALSE;
+
+    if (gBattleMons[partner].status1 & (STATUS1_SLEEP | STATUS1_FREEZE | STATUS1_PARALYSIS)
+     || gBattleMons[partner].volatiles.confusionTurns > 0
+     || gBattleMons[partner].volatiles.infatuation
+     || gBattleMons[partner].volatiles.truantCounter)
+        return FALSE;
+
+    if (GetConfig(B_QUICK_GUARD) < GEN_6
+     && gBattleMons[partner].volatiles.consecutiveMoveUses > 0)
+        return FALSE;
+
+    partnerGimmick = IsAIUsingGimmick(partner)
+                      ? gBattleStruct->gimmick.usableGimmick[partner]
+                      : GIMMICK_NONE;
+    if (GetActiveGimmick(partner) == GIMMICK_DYNAMAX
+     || partnerGimmick == GIMMICK_DYNAMAX)
+        return FALSE;
+
+    return IsReadPlayerProspectiveActionFaster(partner,
+                                               partnerMove,
+                                               partnerGimmick,
+                                               fakeOutBattler,
+                                               fakeOutMove,
+                                               FALSE);
+}
+
+static enum Type GetReadPlayerProspectiveMoveType(enum Move move, enum Ability ability)
+{
+    enum Type moveType = GetMoveType(move);
+
+    if (moveType != TYPE_NORMAL)
+        return moveType;
+
+    switch (ability)
+    {
+    case ABILITY_AERILATE:
+        return TYPE_FLYING;
+    case ABILITY_DRAGONIZE:
+        return TYPE_DRAGON;
+    case ABILITY_GALVANIZE:
+        return TYPE_ELECTRIC;
+    case ABILITY_PIXILATE:
+        return TYPE_FAIRY;
+    case ABILITY_REFRIGERATE:
+        return TYPE_ICE;
+    default:
+        return moveType;
+    }
+}
+
+static void GetReadPlayerProspectiveTargetTypes(enum BattlerId battler,
+                                                enum Gimmick gimmick,
+                                                enum Species prospectiveSpecies,
+                                                enum Type types[static 3])
+{
+    GetBattlerTypes(battler, FALSE, types);
+
+    if (gimmick == GIMMICK_TERA)
+    {
+        enum Type teraType = GetBattlerTeraType(battler);
+
+        if (teraType != TYPE_STELLAR)
+        {
+            types[0] = types[1] = types[2] = teraType;
+            return;
+        }
+    }
+
+    if (prospectiveSpecies != gBattleMons[battler].species)
+    {
+        types[0] = GetSpeciesType(prospectiveSpecies, 0);
+        types[1] = GetSpeciesType(prospectiveSpecies, 1);
+        types[2] = TYPE_MYSTERY;
+    }
+}
+
+static bool32 IsReadPlayerProspectiveTargetGrounded(enum BattlerId battler,
+                                                    enum Ability ability,
+                                                    enum HoldEffect holdEffect,
+                                                    const enum Type types[static 3])
+{
+    if (holdEffect == HOLD_EFFECT_IRON_BALL
+     || gFieldStatuses & STATUS_FIELD_GRAVITY
+     || (B_ROOTED_GROUNDING >= GEN_4 && gBattleMons[battler].volatiles.root)
+     || gBattleMons[battler].volatiles.smackDown)
+        return TRUE;
+
+    if (gBattleMons[battler].volatiles.telekinesis
+     || gBattleMons[battler].volatiles.magnetRise
+     || holdEffect == HOLD_EFFECT_AIR_BALLOON
+     || ability == ABILITY_LEVITATE)
+        return FALSE;
+
+    for (u32 i = 0; i < 3; i++)
+    {
+        if (types[i] == TYPE_FLYING)
+            return FALSE;
+    }
     return TRUE;
+}
+
+static uq4_12_t GetReadPlayerProspectiveTypeEffectiveness(enum BattlerId target,
+                                                          enum Ability sourceAbility,
+                                                          enum Type moveType,
+                                                          const enum Type types[static 3])
+{
+    uq4_12_t modifier = UQ_4_12(1.0);
+
+    for (u32 i = 0; i < 3; i++)
+    {
+        uq4_12_t typeModifier;
+
+        if (types[i] == TYPE_MYSTERY
+         || (i > 0 && types[i] == types[0])
+         || (i > 1 && types[i] == types[1]))
+            continue;
+
+        typeModifier = GetTypeModifier(moveType, types[i]);
+        if (typeModifier == UQ_4_12(0.0)
+         && gAiLogicData->holdEffects[target] == HOLD_EFFECT_RING_TARGET)
+        {
+            typeModifier = UQ_4_12(1.0);
+        }
+        else if (typeModifier == UQ_4_12(0.0)
+              && types[i] == TYPE_GHOST
+              && (moveType == TYPE_NORMAL || moveType == TYPE_FIGHTING)
+              && (gBattleMons[target].volatiles.foresight
+               || sourceAbility == ABILITY_SCRAPPY
+               || sourceAbility == ABILITY_MINDS_EYE))
+        {
+            typeModifier = UQ_4_12(1.0);
+        }
+
+        modifier = uq4_12_multiply(modifier, typeModifier);
+    }
+    return modifier;
+}
+
+static bool32 IsReadPlayerMoveGuaranteedFlinchForGimmick(enum BattlerId source,
+                                                         enum BattlerId target,
+                                                         enum Move move,
+                                                         enum Gimmick targetGimmick)
+{
+    enum Gimmick sourceGimmick = GIMMICK_NONE;
+    enum Species targetSpecies;
+    enum Ability sourceAbility;
+    enum Ability targetAbility;
+    enum Ability effectiveTargetAbility;
+    enum Type moveType;
+    enum Type targetTypes[3];
+    enum HoldEffect targetHoldEffect = gAiLogicData->holdEffects[target];
+    s32 priority;
+    bool32 bypassesTargetAbilities;
+    bool32 ignoresTargetAbility;
+    bool32 guaranteedFlinch = FALSE;
+    struct DamageContext ctx = {0};
+
+    if (gBattleStruct->gimmick.toActivate & (1u << source))
+        sourceGimmick = gBattleStruct->gimmick.usableGimmick[source];
+
+    sourceAbility = GetReadPlayerProspectiveGimmickAbility(source, sourceGimmick, NULL);
+    targetAbility = GetReadPlayerProspectiveGimmickAbility(target, targetGimmick, &targetSpecies);
+    moveType = GetReadPlayerProspectiveMoveType(move, sourceAbility);
+    GetReadPlayerProspectiveTargetTypes(target, targetGimmick, targetSpecies, targetTypes);
+
+    if (IsSheerForceAffected(move, sourceAbility))
+        return FALSE;
+
+    if (MoveHasAdditionalEffectWithChance(move, MOVE_EFFECT_FLINCH, 100))
+    {
+        guaranteedFlinch = TRUE;
+    }
+    else
+    {
+        u32 additionalEffectCount = GetMoveAdditionalEffectCount(move);
+
+        for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
+        {
+            const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(move, effectIndex);
+
+            if (additionalEffect->moveEffect == MOVE_EFFECT_FLINCH
+             && MoveEffectIsGuaranteed(source, sourceAbility, additionalEffect))
+            {
+                guaranteedFlinch = TRUE;
+                break;
+            }
+        }
+    }
+    if (!guaranteedFlinch)
+        return FALSE;
+
+    bypassesTargetAbilities = DoesBattlerIgnoreAbilityChecks(source, sourceAbility, move);
+    ignoresTargetAbility = bypassesTargetAbilities && targetHoldEffect != HOLD_EFFECT_ABILITY_SHIELD;
+    effectiveTargetAbility = ignoresTargetAbility ? ABILITY_NONE : targetAbility;
+    priority = GetBattleMovePriority(source, sourceAbility, move);
+
+    if (priority > 0 && !IsBattlerAlly(source, target))
+    {
+        if ((!ignoresTargetAbility && IsDazzlingAbility(targetAbility))
+         || (IsDoubleBattle()
+          && IsDazzlingAbility(gAiLogicData->abilities[BATTLE_PARTNER(target)])
+          && (!bypassesTargetAbilities
+           || gAiLogicData->holdEffects[BATTLE_PARTNER(target)] == HOLD_EFFECT_ABILITY_SHIELD)))
+            return FALSE;
+
+        if ((gFieldStatuses & STATUS_FIELD_PSYCHIC_TERRAIN)
+         && GetMoveTarget(move) != TARGET_ALL_BATTLERS
+         && GetMoveTarget(move) != TARGET_OPPONENTS_FIELD
+         && IsReadPlayerProspectiveTargetGrounded(target, targetAbility, targetHoldEffect, targetTypes))
+            return FALSE;
+    }
+
+    ctx.battlerAtk = source;
+    ctx.battlerDef = target;
+    ctx.move = ctx.chosenMove = move;
+    ctx.moveType = moveType;
+    ctx.abilities[source] = sourceAbility;
+    ctx.abilities[target] = effectiveTargetAbility;
+    ctx.holdEffects[source] = gAiLogicData->holdEffects[source];
+    ctx.holdEffects[target] = targetHoldEffect;
+    if (CanAbilityAbsorbMove(&ctx))
+        return FALSE;
+
+    uq4_12_t effectiveness = GetReadPlayerProspectiveTypeEffectiveness(target,
+                                                                       sourceAbility,
+                                                                       moveType,
+                                                                       targetTypes);
+    if (effectiveness == UQ_4_12(0.0)
+     || (effectiveTargetAbility == ABILITY_WONDER_GUARD
+      && effectiveness <= UQ_4_12(1.0)
+      && GetMovePower(move) != 0))
+        return FALSE;
+
+    if (targetHoldEffect == HOLD_EFFECT_COVERT_CLOAK
+     || DoesSubstituteBlockMove(source, target, move)
+     || (effectiveTargetAbility == ABILITY_SHIELD_DUST || effectiveTargetAbility == ABILITY_INNER_FOCUS))
+        return FALSE;
+
+    return GetTotalAccuracy(source, target, move,
+                            sourceAbility, effectiveTargetAbility,
+                            gAiLogicData->holdEffects[source], targetHoldEffect) >= 100;
+}
+
+static bool32 GetReadPlayerConfirmedFakeOutCommand(enum BattlerId battlerAtk,
+                                                   enum Gimmick targetGimmick,
+                                                   enum BattlerId *fakeOutBattler,
+                                                   enum Move *fakeOutMove)
+{
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || !BattlerHasAi(battlerAtk))
+        return FALSE;
+
+    for (enum BattlerId source = 0; source < gBattlersCount; source++)
+    {
+        enum Move move;
+        enum BattlerId chosenTarget;
+        if (!TryGetReadPlayerCommittedMoveCommand(source, &move, NULL, &chosenTarget))
+            continue;
+
+        if (chosenTarget != battlerAtk
+         || !CanTargetBattler(source, chosenTarget, move)
+         || AI_ShouldAvoidCommanderTatsugiriTarget(chosenTarget, move))
+            continue;
+
+        if (GetMoveEffect(move) != EFFECT_FIRST_TURN_ONLY
+         || !IsBattlersFirstTurn(source)
+         || !MoveHasAdditionalEffect(move, MOVE_EFFECT_FLINCH))
+            continue;
+
+        if (gBattleMons[source].status1 & (STATUS1_SLEEP | STATUS1_FREEZE | STATUS1_PARALYSIS)
+         || gBattleMons[source].volatiles.confusionTurns > 0
+         || gBattleMons[source].volatiles.infatuation)
+            continue;
+
+        if ((gBattleStruct->gimmick.toActivate & (1u << source))
+         && (gBattleStruct->gimmick.usableGimmick[source] == GIMMICK_Z_MOVE
+          || gBattleStruct->gimmick.usableGimmick[source] == GIMMICK_DYNAMAX))
+            continue;
+
+        if (!IsReadPlayerMoveGuaranteedFlinchForGimmick(source, battlerAtk, move, targetGimmick))
+            continue;
+
+        *fakeOutBattler = source;
+        *fakeOutMove = move;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+bool32 AI_ShouldRejectMoveIntoConfirmedFakeOutForGimmick(enum BattlerId battlerAtk,
+                                                         enum Move move,
+                                                         enum Gimmick gimmick)
+{
+    enum BattlerId fakeOutBattler = MAX_BATTLERS_COUNT;
+    enum Move fakeOutMove = MOVE_NONE;
+
+    if (GetActiveGimmick(battlerAtk) == GIMMICK_DYNAMAX || gimmick == GIMMICK_DYNAMAX)
+        return FALSE;
+
+    if (!GetReadPlayerConfirmedFakeOutCommand(battlerAtk, gimmick, &fakeOutBattler, &fakeOutMove))
+        return FALSE;
+
+    if (IsReadPlayerPartnerQuickGuardGuaranteed(battlerAtk,
+                                                fakeOutBattler,
+                                                fakeOutMove))
+        return FALSE;
+
+    return !IsReadPlayerProspectiveActionFaster(battlerAtk,
+                                                move,
+                                                gimmick,
+                                                fakeOutBattler,
+                                                fakeOutMove,
+                                                TRUE);
+}
+
+static bool32 ShouldRejectMoveIntoConfirmedFakeOut(enum BattlerId battlerAtk, enum Move move)
+{
+    enum Gimmick gimmick = IsAIUsingGimmick(battlerAtk)
+                          ? gBattleStruct->gimmick.usableGimmick[battlerAtk]
+                          : GIMMICK_NONE;
+
+    return AI_ShouldRejectMoveIntoConfirmedFakeOutForGimmick(battlerAtk, move, gimmick);
+}
+
+static u32 EstimateValueAfterTwoStageRaise(u32 value, enum BattlerId battler, enum Stat stat)
+{
+    s32 currentStage = gBattleMons[battler].statStages[stat];
+    s32 newStage = min(currentStage + 2, MAX_STAT_STAGE);
+    u32 numerator;
+    u32 denominator;
+
+    if (newStage == currentStage)
+        return value;
+
+    numerator = gStatStageRatios[newStage][0] * gStatStageRatios[currentStage][1];
+    denominator = gStatStageRatios[newStage][1] * gStatStageRatios[currentStage][0];
+    return max(1, (u32)(((u64)value * numerator) / denominator));
+}
+
+static bool32 HasPowerHerbSetupFuturePressure(enum BattlerId battlerAtk, struct AiLogicData *aiData)
+{
+    enum Ability ability = aiData->abilities[battlerAtk];
+    enum Move *moves = GetMovesArray(battlerAtk);
+    u32 moveLimitations = aiData->moveLimitations[battlerAtk];
+    u32 futureSpeed;
+    u32 aliveFoes = 0;
+    u32 pressuredFoes = 0;
+    u32 outspedFoes = 0;
+
+    if (gFieldStatuses & STATUS_FIELD_TRICK_ROOM)
+        return FALSE;
+    if (!BattlerStatCanRise(battlerAtk, ability, STAT_SPATK)
+     || !BattlerStatCanRise(battlerAtk, ability, STAT_SPEED)
+     || ability == ABILITY_CONTRARY)
+        return FALSE;
+
+    futureSpeed = EstimateValueAfterTwoStageRaise(aiData->speedStats[battlerAtk], battlerAtk, STAT_SPEED);
+    for (enum BattlerId foe = 0; foe < gBattlersCount; foe++)
+    {
+        u32 bestFutureDamage = 0;
+
+        if (!IsBattlerAlive(foe) || IsBattlerAlly(battlerAtk, foe))
+            continue;
+
+        aliveFoes++;
+        if (futureSpeed > aiData->speedStats[foe])
+            outspedFoes++;
+
+        for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+        {
+            enum Move pressureMove = moves[moveIndex];
+            u32 damage;
+
+            if (IsMoveUnusable(moveIndex, pressureMove, moveLimitations)
+             || GetMoveCategory(pressureMove) != DAMAGE_CATEGORY_SPECIAL
+             || !CanTargetBattler(battlerAtk, foe, pressureMove)
+             || AI_ShouldAvoidCommanderTatsugiriTarget(foe, pressureMove))
+                continue;
+
+            damage = AI_GetDamage(battlerAtk, foe, moveIndex, AI_ATTACKING, aiData);
+            damage = EstimateValueAfterTwoStageRaise(damage, battlerAtk, STAT_SPATK);
+            if (damage > bestFutureDamage)
+                bestFutureDamage = damage;
+        }
+
+        if ((u64)bestFutureDamage * 100 >= (u64)gBattleMons[foe].hp * READ_PLAYER_SETUP_FUTURE_PRESSURE_PERCENT)
+            pressuredFoes++;
+    }
+
+    return aliveFoes > 0 && pressuredFoes == aliveFoes && outspedFoes == aliveFoes;
+}
+
+static bool32 HasImmediateMoveToRemoveKnockOffSource(enum BattlerId battlerAtk, enum BattlerId source, enum Move knockOffMove, struct AiLogicData *aiData)
+{
+    enum Move *moves = GetMovesArray(battlerAtk);
+    u32 moveLimitations = aiData->moveLimitations[battlerAtk];
+
+    for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+    {
+        enum Move move = moves[moveIndex];
+
+        if (IsMoveUnusable(moveIndex, move, moveLimitations)
+         || IsBattleMoveStatus(move)
+         || !CanTargetBattler(battlerAtk, source, move)
+         || AI_WhoStrikesFirst(battlerAtk, source, move, knockOffMove, CONSIDER_PRIORITY) != AI_IS_FASTER)
+            continue;
+        if (CanIndexMoveFaintTarget(battlerAtk, source, moveIndex, AI_ATTACKING))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static u32 GetCommittedDamageAfterPowerHerbConsumption(enum BattlerId battlerAtk, enum BattlerId knockOffSource, struct AiLogicData *aiData)
+{
+    u32 totalDamage = 0;
+
+    for (enum BattlerId source = 0; source < gBattlersCount; source++)
+    {
+        enum Move move;
+        u32 moveIndex;
+        enum BattlerId target;
+        u32 damage;
+
+        if (!TryGetReadPlayerCommittedMoveCommand(source, &move, &moveIndex, &target)
+         || !CanKnownMoveHitBattler(source, battlerAtk, move, target))
+            continue;
+
+        damage = AI_GetDamage(source, battlerAtk, moveIndex, AI_DEFENDING, aiData);
+        if (source == knockOffSource && GetMoveEffect(move) == EFFECT_KNOCK_OFF && B_KNOCK_OFF_DMG >= GEN_6)
+            damage = (damage * 2 + 2) / 3;
+
+        totalDamage += damage;
+        if (totalDamage >= gBattleMons[battlerAtk].hp)
+            return gBattleMons[battlerAtk].hp;
+    }
+
+    return totalDamage;
+}
+
+static s32 GetReadPlayerPowerHerbSetupLineScore(enum BattlerId battlerAtk, enum Move move, struct AiLogicData *aiData)
+{
+    enum Item item = aiData->items[battlerAtk];
+
+    if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     || GetMoveEffect(move) != EFFECT_GEOMANCY
+     || aiData->holdEffects[battlerAtk] != HOLD_EFFECT_POWER_HERB
+     || item == ITEM_NONE
+     || GetActiveGimmick(battlerAtk) == GIMMICK_DYNAMAX
+     || !HasPowerHerbSetupFuturePressure(battlerAtk, aiData))
+        return NO_INCREASE;
+
+    for (enum BattlerId source = 0; source < gBattlersCount; source++)
+    {
+        enum Move knockOffMove;
+        enum BattlerId target;
+
+        if (!TryGetReadPlayerCommittedMoveCommand(source, &knockOffMove, NULL, &target)
+         || GetMoveEffect(knockOffMove) != EFFECT_KNOCK_OFF
+         || target != battlerAtk
+         || !CanTargetBattler(source, battlerAtk, knockOffMove)
+         || !CanKnockOffItem(battlerAtk, source, item))
+            continue;
+
+        if (gBattleMons[source].status1 & (STATUS1_SLEEP | STATUS1_FREEZE | STATUS1_PARALYSIS)
+         || gBattleMons[source].volatiles.confusionTurns > 0
+         || gBattleMons[source].volatiles.infatuation)
+            continue;
+        if ((gBattleStruct->gimmick.toActivate & (1u << source))
+         && (gBattleStruct->gimmick.usableGimmick[source] == GIMMICK_Z_MOVE
+          || gBattleStruct->gimmick.usableGimmick[source] == GIMMICK_DYNAMAX))
+            continue;
+        if (AI_WhoStrikesFirst(battlerAtk, source, move, knockOffMove, CONSIDER_PRIORITY) != AI_IS_FASTER)
+            continue;
+        if (HasImmediateMoveToRemoveKnockOffSource(battlerAtk, source, knockOffMove, aiData))
+            continue;
+        if (GetCommittedDamageAfterPowerHerbConsumption(battlerAtk, source, aiData) >= gBattleMons[battlerAtk].hp)
+            continue;
+
+        AI_MarkCandidateReadInteraction(battlerAtk, gBattlerTarget, AI_READ_INTERACTION_SETUP_ITEM_SEQUENCE);
+        return READ_PLAYER_POWER_HERB_SEQUENCE_SCORE;
+    }
+
+    return NO_INCREASE;
 }
 
 static s32 (*const sBattleAiFuncTable[])(enum BattlerId, enum BattlerId, enum Move, s32) =
@@ -1574,6 +2379,14 @@ static u64 ApplyNpcTrainerReadPlayerMove(u64 flags)
     return flags;
 }
 
+static u64 ApplyBattleModeAiFlags(u64 flags)
+{
+    if (IsDoubleBattle() && flags != 0)
+        flags |= AI_FLAG_DOUBLE_BATTLE;
+
+    return flags;
+}
+
 static u64 GetAiFlags(u16 trainerId, enum BattlerId battler)
 {
     u64 flags = 0;
@@ -1604,10 +2417,7 @@ static u64 GetAiFlags(u16 trainerId, enum BattlerId battler)
             flags = GetTrainerAIFlagsFromId(trainerId);
     }
 
-    if (IsDoubleBattle() && flags != 0)
-    {
-        flags |= AI_FLAG_DOUBLE_BATTLE;
-    }
+    flags = ApplyBattleModeAiFlags(flags);
 
     // Automatically includes AI_FLAG_SMART_MON_CHOICES to improve smart switching
     if (flags & AI_FLAG_SMART_SWITCHING)
@@ -1630,10 +2440,18 @@ u64 Test_ApplyNpcTrainerReadPlayerMove(u64 flags)
 {
     return ApplyNpcTrainerReadPlayerMove(flags);
 }
+
+
+u64 Test_ApplyBattleModeAiFlags(u64 flags)
+{
+    return ApplyBattleModeAiFlags(flags);
+}
 #endif
 
 void BattleAI_SetupFlags(void)
 {
+    BattleAiJointRuntime_Reset();
+
     if (IsAiVsAiBattle())
         gAiThinkingStruct->aiFlags[B_BATTLER_0] = GetAiFlags(gPartnerTrainerId, B_BATTLER_0);
     else
@@ -1641,8 +2459,11 @@ void BattleAI_SetupFlags(void)
 
     if (DEBUG_OVERWORLD_MENU && gIsDebugBattle)
     {
-        gAiThinkingStruct->aiFlags[B_BATTLER_1] = ApplyNpcTrainerReadPlayerMove(gDebugAIFlags);
-        gAiThinkingStruct->aiFlags[B_BATTLER_3] = ApplyNpcTrainerReadPlayerMove(gDebugAIFlags);
+        u64 flags = ApplyNpcTrainerReadPlayerMove(gDebugAIFlags);
+
+        flags = ApplyBattleModeAiFlags(flags);
+        gAiThinkingStruct->aiFlags[B_BATTLER_1] = flags;
+        gAiThinkingStruct->aiFlags[B_BATTLER_3] = flags;
         return;
     }
 
@@ -1750,7 +2571,9 @@ static void ApplyKnownPlayerSwitchCommandsToAiLogicData(void)
 void ComputeAiBattlerDecisions(enum BattlerId battler)
 {
     gAiLogicData->aiCalcInProgress = TRUE;
+    sPendingSwitchDecisionReason[battler] = AI_DECISION_REASON_NONE;
     AI_ClearDecisionReason(battler);
+    AI_ClearCandidateTrace(battler);
 
         AIDebugTimerStart();
 
@@ -1769,6 +2592,7 @@ void ComputeAiBattlerDecisions(enum BattlerId battler)
     gAiLogicData->mostSuitableMonId[battler] = GetMostSuitableMonToSwitchInto(battler, switchType);
     if (ShouldSwitch(battler))
         gAiLogicData->shouldSwitch |= (1u << battler);
+    sPendingSwitchDecisionReason[battler] = gAiBattleData->decisionReason[battler];
     gBattleStruct->prevTurnSpecies[battler] = gBattleMons[battler].species;
 
     // AI's move scoring
@@ -1776,7 +2600,6 @@ void ComputeAiBattlerDecisions(enum BattlerId battler)
     AI_SetMoveDecisionReason(battler, gAiBattleData->chosenTarget[battler], gAiBattleData->chosenMoveIndex[battler]);
     BattlerChooseNonMoveAction();
     ModifySwitchAfterMoveScoring(battler);
-
         AIDebugTimerEnd();
 
     gAiLogicData->aiCalcInProgress = FALSE;
@@ -1806,7 +2629,370 @@ static void AI_ClearDecisionReason(enum BattlerId battler)
         gAiBattleData->decisionStableLineFamily[battler] = AI_CANDIDATE_LINE_NONE;
         gAiBattleData->decisionFallbackLineFamily[battler] = AI_CANDIDATE_LINE_NONE;
         gAiBattleData->decisionLossClock[battler] = 0;
+        gAiBattleData->decisionPlanId[battler] = BATTLE_AI_TRACE_ID_NONE;
+        gAiBattleData->decisionCandidateRank[battler] = BATTLE_AI_TRACE_CANDIDATE_RANK_NONE;
     }
+}
+
+void BattleAI_ClearDecisionMetadata(enum BattlerId battler)
+{
+    AI_ClearDecisionReason(battler);
+}
+
+static void AI_ClearCandidateTrace(enum BattlerId battler)
+{
+    if (gAiBattleData == NULL || battler >= MAX_BATTLERS_COUNT)
+        return;
+
+    memset(gAiBattleData->candidateRejectionFlags[battler], 0, sizeof(gAiBattleData->candidateRejectionFlags[battler]));
+    memset(gAiBattleData->candidateReadInteractionFlags[battler], 0, sizeof(gAiBattleData->candidateReadInteractionFlags[battler]));
+    memset(gAiBattleData->candidateAllyInteractionKinds[battler], 0, sizeof(gAiBattleData->candidateAllyInteractionKinds[battler]));
+}
+
+static void AI_MarkCandidateRejection(enum BattlerId battlerAtk, enum BattlerId battlerDef, u8 rejectionFlag)
+{
+    u32 moveIndex = gAiThinkingStruct->movesetIndex;
+
+    if (gAiBattleData == NULL
+     || battlerAtk >= MAX_BATTLERS_COUNT
+     || battlerDef >= MAX_BATTLERS_COUNT
+     || moveIndex >= MAX_MON_MOVES)
+        return;
+
+    gAiBattleData->candidateRejectionFlags[battlerAtk][battlerDef][moveIndex] |= rejectionFlag;
+}
+
+static void AI_MarkCandidateReadInteraction(enum BattlerId battlerAtk, enum BattlerId battlerDef, u8 interactionFlag)
+{
+    u32 moveIndex = gAiThinkingStruct->movesetIndex;
+
+    if (gAiBattleData == NULL
+     || battlerAtk >= MAX_BATTLERS_COUNT
+     || battlerDef >= MAX_BATTLERS_COUNT
+     || moveIndex >= MAX_MON_MOVES)
+        return;
+
+    gAiBattleData->candidateReadInteractionFlags[battlerAtk][battlerDef][moveIndex] |= interactionFlag;
+}
+
+static void AI_MarkCandidateAllyInteraction(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum AiAllyInteractionKind interactionKind)
+{
+    u32 moveIndex = gAiThinkingStruct->movesetIndex;
+
+    if (gAiBattleData == NULL
+     || battlerAtk >= MAX_BATTLERS_COUNT
+     || battlerDef >= MAX_BATTLERS_COUNT
+     || moveIndex >= MAX_MON_MOVES)
+        return;
+
+    gAiBattleData->candidateAllyInteractionKinds[battlerAtk][battlerDef][moveIndex] = interactionKind;
+}
+
+static s16 AI_ClampLegacyTraceScore(s32 score, bool32 *clamped)
+{
+    if (score > 32767)
+    {
+        *clamped = TRUE;
+        return 32767;
+    }
+    if (score < -32768)
+    {
+        *clamped = TRUE;
+        return -32768;
+    }
+    return score;
+}
+
+static enum BattlerId AI_GetLegacyTraceActionTarget(enum BattlerId battler, enum BattlerId scoreTarget, enum Move move)
+{
+    enum MoveTarget targetType = AI_GetBattlerMoveTargetType(battler, move);
+
+    switch (targetType)
+    {
+    case TARGET_USER:
+    case TARGET_USER_AND_ALLY:
+    case TARGET_FIELD:
+    case TARGET_ALL_BATTLERS:
+        return battler;
+    case TARGET_ALLY:
+    case TARGET_USER_OR_ALLY:
+        return BATTLE_PARTNER(battler);
+    case TARGET_BOTH:
+        if (IsBattlerAlive(LEFT_FOE(battler)))
+            return LEFT_FOE(battler);
+        return RIGHT_FOE(battler);
+    default:
+        return scoreTarget;
+    }
+}
+
+static bool32 AI_LegacyTraceCandidateComesBefore(const struct AiLegacyTraceCandidate *left, const struct AiLegacyTraceCandidate *right)
+{
+    if (left->trace.totalScore != right->trace.totalScore)
+        return left->trace.totalScore > right->trace.totalScore;
+    if (left->chosen != right->chosen)
+        return left->chosen;
+    if (left->moveIndex != right->moveIndex)
+        return left->moveIndex < right->moveIndex;
+    return left->scoreTarget < right->scoreTarget;
+}
+
+static void AI_SortLegacyTraceCandidates(struct AiLegacyTraceCandidate *candidates, u32 candidateCount)
+{
+    for (u32 i = 1; i < candidateCount; i++)
+    {
+        struct AiLegacyTraceCandidate candidate = candidates[i];
+        u32 insertAt = i;
+
+        while (insertAt > 0 && AI_LegacyTraceCandidateComesBefore(&candidate, &candidates[insertAt - 1]))
+        {
+            candidates[insertAt] = candidates[insertAt - 1];
+            insertAt--;
+        }
+        candidates[insertAt] = candidate;
+    }
+}
+
+static void AI_RecordLegacyPredictedPlayerActions(enum BattlerId battler, struct BattleAiTracePlan *plan)
+{
+    u32 actionIndex = 0;
+
+    for (enum BattlerId source = 0; source < gBattlersCount && actionIndex < ARRAY_COUNT(plan->predictedPlayerActions); source++)
+    {
+        enum Move move;
+        u32 moveIndex;
+        enum BattlerId target;
+        enum Gimmick gimmick = GIMMICK_NONE;
+
+        if (BattlerHasAi(source) || IsBattlerAlly(battler, source) || !IsBattlerAlive(source))
+            continue;
+
+        if (TryGetReadPlayerCommittedMoveCommand(source, &move, &moveIndex, &target))
+        {
+            if (gBattleStruct->gimmick.toActivate & (1u << source))
+                gimmick = gBattleStruct->gimmick.usableGimmick[source];
+            BattleAiTrace_InitAction(&plan->predictedPlayerActions[actionIndex++], source, B_ACTION_USE_MOVE, move, target, moveIndex, gimmick, BATTLE_AI_TRACE_PREDICTION_CONFIRMED_COMMAND);
+        }
+        else if (gChosenActionByBattler[source] == B_ACTION_SWITCH && gBattleStruct->monToSwitchIntoId[source] < PARTY_SIZE)
+        {
+            BattleAiTrace_InitAction(&plan->predictedPlayerActions[actionIndex++], source, B_ACTION_SWITCH, gBattleStruct->monToSwitchIntoId[source], MAX_BATTLERS_COUNT, MAX_MON_MOVES, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_CONFIRMED_COMMAND);
+        }
+        else if (gChosenActionByBattler[source] == B_ACTION_USE_ITEM && gBattleStruct->chosenItem[source] != ITEM_NONE)
+        {
+            BattleAiTrace_InitAction(&plan->predictedPlayerActions[actionIndex++], source, B_ACTION_USE_ITEM, gBattleStruct->chosenItem[source], MAX_BATTLERS_COUNT, MAX_MON_MOVES, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_CONFIRMED_COMMAND);
+        }
+        else
+        {
+            move = GetPredictedMove(battler, source, gAiLogicData);
+            moveIndex = GetMoveIndex(source, move);
+            if (move != MOVE_NONE && move != MOVE_UNAVAILABLE && moveIndex < MAX_MON_MOVES)
+            {
+                target = GetOppositeBattler(source);
+                BattleAiTrace_InitAction(&plan->predictedPlayerActions[actionIndex++], source, B_ACTION_USE_MOVE, move, target, moveIndex, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_NORMAL);
+            }
+        }
+    }
+}
+
+static bool32 AI_InitLegacyFinalNonMoveTraceCandidate(enum BattlerId battler,
+                                                       u32 finalAction,
+                                                       struct BattleAiTraceCandidate *candidate)
+{
+    if (candidate == NULL || gBattleStruct == NULL)
+        return FALSE;
+
+    memset(candidate, 0, sizeof(*candidate));
+    switch (finalAction)
+    {
+    case B_ACTION_SWITCH:
+        if (gBattleStruct->monToSwitchIntoId[battler] >= PARTY_SIZE)
+            return FALSE;
+        BattleAiTrace_InitAction(&candidate->actions[0], battler, B_ACTION_SWITCH,
+                                 gBattleStruct->monToSwitchIntoId[battler], MAX_BATTLERS_COUNT,
+                                 MAX_MON_MOVES, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_NONE);
+        break;
+    case B_ACTION_USE_ITEM:
+        if (gBattleStruct->chosenItem[battler] == ITEM_NONE)
+            return FALSE;
+        BattleAiTrace_InitAction(&candidate->actions[0], battler, B_ACTION_USE_ITEM,
+                                 gBattleStruct->chosenItem[battler], MAX_BATTLERS_COUNT,
+                                 MAX_MON_MOVES, GIMMICK_NONE, BATTLE_AI_TRACE_PREDICTION_NONE);
+        break;
+    default:
+        return FALSE;
+    }
+
+    candidate->completedDepth = 1;
+    candidate->flags = BATTLE_AI_TRACE_CANDIDATE_COMPLETE
+                     | BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE
+                     | BATTLE_AI_TRACE_CANDIDATE_COMPONENTS_PARTIAL;
+    return TRUE;
+}
+
+static void AI_RecordLegacyPlanTrace(enum BattlerId battler, u32 finalAction)
+{
+    struct AiLegacyTraceCandidate candidates[AI_LEGACY_TRACE_MAX_CANDIDATES];
+    struct BattleAiTraceCandidate topCandidates[BATTLE_AI_TRACE_TOP_CANDIDATES];
+    struct BattleAiTracePlan plan = {0};
+    enum Gimmick gimmick = GIMMICK_NONE;
+    u32 candidateCount = 0;
+    u32 topCount;
+    u32 retainedMoveCount;
+    u32 chosenRank = BATTLE_AI_TRACE_CANDIDATE_RANK_NONE;
+    bool32 finalNonMoveChosen = FALSE;
+    bool32 traceTruncated;
+    u16 planId;
+
+    if (gAiBattleData == NULL || battler >= gBattlersCount || !BattlerHasAi(battler))
+        return;
+
+    if (IsAIUsingGimmick(battler))
+        gimmick = gBattleStruct->gimmick.usableGimmick[battler];
+
+    for (enum BattlerId scoreTarget = 0; scoreTarget < gBattlersCount; scoreTarget++)
+    {
+        if (!IsBattlerAlive(scoreTarget))
+            continue;
+        if (!IsDoubleBattle() && scoreTarget != GetOppositeBattler(battler))
+            continue;
+
+        for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
+        {
+            struct AiLegacyTraceCandidate *candidate;
+            enum Move move = gBattleMons[battler].moves[moveIndex];
+            enum BattlerId actionTarget;
+            s32 score;
+            bool32 clamped = FALSE;
+
+            if (move == MOVE_NONE || move == MOVE_UNAVAILABLE)
+                continue;
+            if (IsDoubleBattle()
+             && (!CanTargetBattler(battler, scoreTarget, move)
+              || AI_ShouldAvoidCommanderTatsugiriTarget(scoreTarget, move)))
+                continue;
+            if (candidateCount >= ARRAY_COUNT(candidates))
+                break;
+
+            candidate = &candidates[candidateCount++];
+            memset(candidate, 0, sizeof(*candidate));
+            score = gAiBattleData->finalScore[battler][scoreTarget][moveIndex];
+            actionTarget = AI_GetLegacyTraceActionTarget(battler, scoreTarget, move);
+            BattleAiTrace_InitAction(&candidate->trace.actions[0], battler, B_ACTION_USE_MOVE, move, actionTarget, moveIndex, gimmick, BATTLE_AI_TRACE_PREDICTION_NONE);
+            candidate->trace.totalScore = AI_ClampLegacyTraceScore(score, &clamped);
+            candidate->trace.immediateScore = AI_ClampLegacyTraceScore(score - AI_SCORE_DEFAULT, &clamped);
+            candidate->trace.rejectionFlags[0] = gAiBattleData->candidateRejectionFlags[battler][scoreTarget][moveIndex];
+            candidate->trace.readInteractionFlags[0] = gAiBattleData->candidateReadInteractionFlags[battler][scoreTarget][moveIndex];
+            candidate->trace.allyInteractionKinds[0] = gAiBattleData->candidateAllyInteractionKinds[battler][scoreTarget][moveIndex];
+            candidate->trace.completedDepth = 1;
+            candidate->trace.flags = BATTLE_AI_TRACE_CANDIDATE_COMPLETE | BATTLE_AI_TRACE_CANDIDATE_COMPONENTS_PARTIAL;
+            if (candidate->trace.rejectionFlags[0] != AI_CANDIDATE_REJECTION_NONE)
+                candidate->trace.flags |= BATTLE_AI_TRACE_CANDIDATE_PRUNED;
+            if (clamped)
+                candidate->trace.flags |= BATTLE_AI_TRACE_CANDIDATE_SCORE_CLAMPED;
+            candidate->moveIndex = moveIndex;
+            candidate->scoreTarget = scoreTarget;
+            candidate->chosen = finalAction == B_ACTION_USE_MOVE
+                             && moveIndex == gAiBattleData->chosenMoveIndex[battler]
+                             && scoreTarget == gAiBattleData->chosenTarget[battler];
+        }
+    }
+
+    AI_SortLegacyTraceCandidates(candidates, candidateCount);
+    topCount = min(candidateCount, (u32)BATTLE_AI_TRACE_TOP_CANDIDATES);
+    for (u32 rank = 0; rank < topCount; rank++)
+    {
+        topCandidates[rank] = candidates[rank].trace;
+        if (candidates[rank].chosen)
+            chosenRank = rank;
+    }
+
+    if (finalAction == B_ACTION_USE_MOVE
+     && chosenRank == BATTLE_AI_TRACE_CANDIDATE_RANK_NONE)
+    {
+        for (u32 i = topCount; i < candidateCount; i++)
+        {
+            if (!candidates[i].chosen)
+                continue;
+            chosenRank = topCount - 1;
+            topCandidates[chosenRank] = candidates[i].trace;
+            topCandidates[chosenRank].flags |= BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE;
+            break;
+        }
+    }
+
+    {
+        struct BattleAiTraceCandidate nonMoveCandidate;
+
+        if (AI_InitLegacyFinalNonMoveTraceCandidate(battler, finalAction, &nonMoveCandidate))
+        {
+            finalNonMoveChosen = TRUE;
+            if (topCount < BATTLE_AI_TRACE_TOP_CANDIDATES)
+                chosenRank = topCount++;
+            else
+                chosenRank = BATTLE_AI_TRACE_TOP_CANDIDATES - 1;
+            topCandidates[chosenRank] = nonMoveCandidate;
+        }
+    }
+
+    if (topCount == 0 || chosenRank == BATTLE_AI_TRACE_CANDIDATE_RANK_NONE)
+        return;
+
+    retainedMoveCount = topCount - (finalNonMoveChosen ? 1 : 0);
+    traceTruncated = candidateCount > retainedMoveCount;
+
+    {
+        bool32 hasRejectedCandidate = FALSE;
+        u32 rejectedIndex = candidateCount;
+
+        for (u32 rank = 0; rank < topCount; rank++)
+        {
+            if (topCandidates[rank].rejectionFlags[0] != AI_CANDIDATE_REJECTION_NONE)
+                hasRejectedCandidate = TRUE;
+        }
+        if (!hasRejectedCandidate)
+        {
+            for (u32 i = 0; i < candidateCount; i++)
+            {
+                if (candidates[i].trace.rejectionFlags[0] != AI_CANDIDATE_REJECTION_NONE)
+                {
+                    rejectedIndex = i;
+                    break;
+                }
+            }
+        }
+        // A one-candidate trace cannot preserve both the selected action and a
+        // forced rejected alternative.  Keep the selected action so the plan
+        // link always describes what the controller actually emits.
+        if (rejectedIndex < candidateCount && !(topCount == 1 && chosenRank == 0))
+        {
+            u32 replaceRank = topCount - 1;
+
+            if (replaceRank == chosenRank && replaceRank > 0)
+                replaceRank--;
+            topCandidates[replaceRank] = candidates[rejectedIndex].trace;
+            topCandidates[replaceRank].flags |= BATTLE_AI_TRACE_CANDIDATE_FORCED_TRACE;
+        }
+    }
+
+    plan.actorMask = 1u << battler;
+    plan.chosenRank = chosenRank;
+    plan.nodesVisited = candidateCount;
+    plan.nodeBudget = AI_LEGACY_TRACE_MAX_CANDIDATES;
+    plan.requestedDepth = 1;
+    plan.completedDepth = 1;
+    plan.terminationReason = BATTLE_AI_TRACE_TERMINATION_COMPLETE;
+    plan.flags = BATTLE_AI_TRACE_PLAN_LEGACY_EVALUATOR | BATTLE_AI_TRACE_PLAN_COMPONENTS_PARTIAL;
+    if (traceTruncated)
+        plan.flags |= BATTLE_AI_TRACE_PLAN_TRUNCATED;
+    AI_RecordLegacyPredictedPlayerActions(battler, &plan);
+    planId = BattleAiTrace_RecordPlan(&plan, topCandidates, topCount);
+    if (planId != BATTLE_AI_TRACE_ID_NONE && chosenRank != BATTLE_AI_TRACE_CANDIDATE_RANK_NONE)
+        BattleAiTrace_SetBattlerDecision(battler, planId, chosenRank);
+}
+
+void BattleAI_RecordLegacyPlanTrace(enum BattlerId battler, u32 finalAction)
+{
+    AI_RecordLegacyPlanTrace(battler, finalAction);
 }
 
 static u32 AI_GetDecisionReasonPriority(enum AiDecisionReason reason)
@@ -2001,6 +3187,35 @@ static bool32 AI_MoveIsBoardControl(enum BattlerId battlerAtk, enum BattlerId ba
         || MoveHasChanceEffect(battlerAtk, move, MOVE_EFFECT_THROAT_CHOP);
 }
 
+static bool32 AI_ChosenCandidateHasCommittedReadInteraction(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
+{
+    bool32 hasCommittedMove = FALSE;
+
+    if (gAiBattleData == NULL
+     || battlerAtk >= MAX_BATTLERS_COUNT
+     || battlerDef >= MAX_BATTLERS_COUNT
+     || moveIndex >= MAX_MON_MOVES
+     || gAiBattleData->candidateReadInteractionFlags[battlerAtk][battlerDef][moveIndex] == AI_READ_INTERACTION_NONE)
+        return FALSE;
+
+    for (enum BattlerId source = 0; source < gBattlersCount; source++)
+    {
+        if (BattlerHasAi(source) || !IsBattlerAlive(source) || IsBattlerAlly(battlerAtk, source))
+            continue;
+
+        if (gChosenActionByBattler[source] == B_ACTION_NONE)
+            return FALSE;
+        if (gChosenActionByBattler[source] == B_ACTION_USE_MOVE)
+        {
+            if (!TryGetReadPlayerCommittedMoveCommand(source, NULL, NULL, NULL))
+                return FALSE;
+            hasCommittedMove = TRUE;
+        }
+    }
+
+    return hasCommittedMove;
+}
+
 static enum AiDecisionReason AI_GetMoveDecisionReason(enum BattlerId battlerAtk, enum BattlerId battlerDef, u32 moveIndex)
 {
     enum Move move;
@@ -2045,7 +3260,8 @@ static enum AiDecisionReason AI_GetMoveDecisionReason(enum BattlerId battlerAtk,
         return AI_DECISION_REASON_DESPERATION_COMEBACK;
     }
 
-    if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+    if ((gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+     && AI_ChosenCandidateHasCommittedReadInteraction(battlerAtk, battlerDef, moveIndex))
         return AI_DECISION_REASON_KNOWN_COMMAND_ANSWER;
 
     return AI_DECISION_REASON_NONE;
@@ -2131,7 +3347,7 @@ static s32 FindFallbackAISwitchIn(enum BattlerId battler, struct Pokemon *party,
     return PARTY_SIZE;
 }
 
-void AI_TrySwitchOrUseItem(enum BattlerId battler)
+u32 AI_TrySwitchOrUseItem(enum BattlerId battler)
 {
     struct Pokemon *party;
     enum BattlerId battlerIn1, battlerIn2;
@@ -2167,21 +3383,29 @@ void AI_TrySwitchOrUseItem(enum BattlerId battler)
             {
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_SWITCH, 0);
                 SetAIUsingGimmick(battler, NO_GIMMICK);
+                AI_ClearDecisionReason(battler);
                 AI_SetSwitchDecisionReason(battler);
+                if (AI_GetDecisionReasonPriority(sPendingSwitchDecisionReason[battler])
+                 >= AI_GetDecisionReasonPriority(gAiBattleData->decisionReason[battler]))
+                    gAiBattleData->decisionReason[battler] = sPendingSwitchDecisionReason[battler];
+                sPendingSwitchDecisionReason[battler] = AI_DECISION_REASON_NONE;
                 gBattleStruct->AI_monToSwitchIntoId[battler] = monToSwitchId;
                 gBattleStruct->monToSwitchIntoId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
                 gAiLogicData->monToSwitchInId[battler] = gBattleStruct->AI_monToSwitchIntoId[battler];
-                return;
+                return B_ACTION_SWITCH;
             }
         }
         else if (ShouldUseItem(battler))
         {
             SetAIUsingGimmick(battler, NO_GIMMICK);
-            return;
+            AI_ClearDecisionReason(battler);
+            sPendingSwitchDecisionReason[battler] = AI_DECISION_REASON_NONE;
+            return B_ACTION_USE_ITEM;
         }
     }
 
     BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_USE_MOVE, BATTLE_OPPOSITE(battler) << 8);
+    return B_ACTION_USE_MOVE;
 }
 
 u32 BattleAI_ChooseMoveIndex(enum BattlerId battler)
@@ -2919,16 +4143,49 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
         RETURN_SCORE_MINUS(20);
 
     if (ShouldAvoidReadPlayerProtectTarget(battlerAtk, battlerDef, move))
+    {
+        AI_MarkCandidateReadInteraction(battlerAtk, battlerDef, AI_READ_INTERACTION_PROTECT);
         RETURN_SCORE_MINUS(READ_PLAYER_PROTECT_TARGET_PENALTY);
+    }
 
     if (ShouldAvoidReadPlayerRedirectionTarget(battlerAtk, battlerDef, move, aiData))
+    {
+        AI_MarkCandidateReadInteraction(battlerAtk, battlerDef, AI_READ_INTERACTION_REDIRECTION);
         RETURN_SCORE_MINUS(READ_PLAYER_REDIRECTION_TARGET_PENALTY);
+    }
+
+    if (GetMoveEffect(move) == EFFECT_PROTECT)
+    {
+        enum BattlerId fakeOutBattler;
+        enum Move fakeOutMove;
+        enum Gimmick candidateGimmick = IsAIUsingGimmick(battlerAtk)
+                                          ? gBattleStruct->gimmick.usableGimmick[battlerAtk]
+                                          : GIMMICK_NONE;
+
+        if (GetReadPlayerConfirmedFakeOutCommand(battlerAtk, candidateGimmick, &fakeOutBattler, &fakeOutMove)
+         && IsAllyProtectingFromMove(fakeOutBattler, fakeOutMove, move))
+            AI_MarkCandidateReadInteraction(battlerAtk, battlerDef, AI_READ_INTERACTION_PROTECT | AI_READ_INTERACTION_FAKE_OUT);
+    }
+
+    if (ShouldRejectMoveIntoConfirmedFakeOut(battlerAtk, move))
+    {
+        AI_MarkCandidateReadInteraction(battlerAtk, battlerDef, AI_READ_INTERACTION_FAKE_OUT);
+        AI_MarkCandidateRejection(battlerAtk, battlerDef, AI_CANDIDATE_REJECTION_CONFIRMED_FLINCH);
+        return 0;
+    }
 
     if (ShouldAvoidMoveIntoReadPlayerFakeOut(battlerAtk, move))
+    {
+        AI_MarkCandidateReadInteraction(battlerAtk, battlerDef, AI_READ_INTERACTION_FAKE_OUT);
         RETURN_SCORE_MINUS(READ_PLAYER_FAKE_OUT_DISRUPTION_PENALTY);
+    }
 
     if (ShouldAvoidActionIntoKnownFasterKO(battlerAtk, move, aiData))
+    {
+        if (GetCommittedReadPlayerEarlierDamageToBattler(battlerAtk, battlerAtk, move, aiData) > 0)
+            AI_MarkCandidateReadInteraction(battlerAtk, battlerDef, AI_READ_INTERACTION_KNOWN_KO);
         RETURN_SCORE_MINUS(READ_PLAYER_KNOWN_KO_ACTION_PENALTY);
+    }
 
     {
         s32 hpDependentPowerPenalty = GetHpDependentPowerRiskPenalty(battlerAtk, battlerDef, move, aiData);
@@ -4724,6 +5981,22 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     return score;
 }
 
+#if TESTING
+s32 Test_AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Move move, u32 moveIndex, s32 score)
+{
+    u32 savedMoveIndex = gAiThinkingStruct->movesetIndex;
+    enum BattlerId savedTarget = gBattlerTarget;
+    s32 result;
+
+    gAiThinkingStruct->movesetIndex = moveIndex;
+    gBattlerTarget = battlerDef;
+    result = AI_CheckBadMove(battlerAtk, battlerDef, move, score);
+    gBattlerTarget = savedTarget;
+    gAiThinkingStruct->movesetIndex = savedMoveIndex;
+    return result;
+}
+#endif
+
 static s32 AI_GetWhichBattlerFasterOrTies(enum BattlerId battlerAtk, enum BattlerId battlerDef, bool32 ignoreChosenMoves)
 {
     struct BattleCalcValues calcValues = {0};
@@ -5172,6 +6445,9 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     {
         s32 partnerTargetBaseScore = score;
         bool32 isMoveAffectedByPartnerAbility = FALSE;
+
+        if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_ATTACKS_PARTNER)
+            AI_MarkCandidateAllyInteraction(battlerAtk, battlerDef, AI_ALLY_INTERACTION_EXPLICIT_HOSTILITY);
 
         if (wouldPartnerFaint)
         {
@@ -5689,12 +6965,43 @@ static s32 AI_DoubleBattle(enum BattlerId battlerAtk, enum BattlerId battlerDef,
             }
         } // check partner protecting
 
+        if (isMoveAffectedByPartnerAbility)
+        {
+            if (atkPartnerHoldEffect == HOLD_EFFECT_WEAKNESS_POLICY)
+                AI_MarkCandidateAllyInteraction(battlerAtk, battlerDef, AI_ALLY_INTERACTION_ITEM_TRIGGER);
+            else
+                AI_MarkCandidateAllyInteraction(battlerAtk, battlerDef, AI_ALLY_INTERACTION_ABILITY_TRIGGER);
+        }
+        else if (score > partnerTargetBaseScore)
+        {
+            if (effect == EFFECT_HEAL_PULSE || effect == EFFECT_HIT_ENEMY_HEAL_ALLY || effect == EFFECT_PURIFY)
+                AI_MarkCandidateAllyInteraction(battlerAtk, battlerDef, AI_ALLY_INTERACTION_HEAL_OR_CURE);
+            else
+                AI_MarkCandidateAllyInteraction(battlerAtk, battlerDef, AI_ALLY_INTERACTION_SUPPORT);
+        }
+
         if (!(gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_ATTACKS_PARTNER)
          && moveTarget != TARGET_FOES_AND_ALLY
          && moveTarget != TARGET_BOTH
          && !isMoveAffectedByPartnerAbility
          && score <= partnerTargetBaseScore)
         {
+            // A scoring pass over the partner is also used for self/field
+            // support such as Heal Bell, weather, and setup. Preserve the
+            // legacy discouragement for every such pass so invalid status
+            // moves cannot tie after all ordinary ally attacks are zeroed.
+            // Read-player battles use the stricter zero-score contract that
+            // feeds the joint planner trace; legacy battles keep their
+            // historical score ordering below the ally-selection threshold.
+            if (!IsBattleMoveStatus(move)
+             && !IsSpreadMove(moveTarget)
+             && moveTarget != TARGET_ALL_BATTLERS)
+            {
+                AI_MarkCandidateRejection(battlerAtk, battlerDef,
+                                          AI_CANDIDATE_REJECTION_UNAPPROVED_ALLY_TARGET);
+                if (gAiThinkingStruct->aiFlags[battlerAtk] & AI_FLAG_READ_PLAYER_MOVE)
+                    return 0;
+            }
             RETURN_SCORE_MINUS(50);
         }
 
@@ -6671,6 +7978,7 @@ static s32 AI_CalcMoveEffectScore(enum BattlerId battlerAtk, enum BattlerId batt
         if (aiData->holdEffects[battlerAtk] != HOLD_EFFECT_POWER_HERB)
             break; // Don't incrase stats if no Power Herb
         ADJUST_SCORE(GetStatChangeScore(battlerAtk, battlerDef, move));
+        ADJUST_SCORE(GetReadPlayerPowerHerbSetupLineScore(battlerAtk, move, aiData));
         break;
     case EFFECT_CURSE:
         if (IS_BATTLER_OF_TYPE(battlerAtk, TYPE_GHOST))
