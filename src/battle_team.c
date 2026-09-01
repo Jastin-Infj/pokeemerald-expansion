@@ -76,25 +76,40 @@ bool32 BattleTeam_TryGetMember(u8 teamId, u8 teamPosition, struct BattleTeamSlot
     return TRUE;
 }
 
+u8 BattleTeam_FindSourcePosition(u8 teamId, u8 boxId, u8 boxPosition)
+{
+    struct BattleTeamSlot slot;
+    u32 teamPosition;
+
+    if (teamId >= BATTLE_TEAM_COUNT)
+        return BATTLE_TEAM_SLOT_NONE;
+
+    for (teamPosition = 0; teamPosition < BATTLE_TEAM_MEMBER_COUNT; teamPosition++)
+    {
+        if (BattleTeam_TryGetMember(teamId, teamPosition, &slot)
+         && slot.boxId == boxId
+         && slot.boxPosition == boxPosition)
+            return teamPosition;
+    }
+
+    return BATTLE_TEAM_SLOT_NONE;
+}
+
 bool32 BattleTeam_TryRegister(u8 teamId, u8 teamPosition, u8 boxId, u8 boxPosition)
 {
     struct BattleTeamRegistry *registry;
-    u32 i;
+    u8 existingPosition;
 
     EnsureRegistryInitialized();
     if (!IsTeamAndPositionValid(teamId, teamPosition)
      || !BattleTeam_CanRegisterBoxSlot(boxId, boxPosition))
         return FALSE;
 
+    existingPosition = BattleTeam_FindSourcePosition(teamId, boxId, boxPosition);
+    if (existingPosition != BATTLE_TEAM_SLOT_NONE && existingPosition != teamPosition)
+        return FALSE;
+
     registry = GetRegistry();
-    for (i = 0; i < BATTLE_TEAM_MEMBER_COUNT; i++)
-    {
-        struct BattleTeamSlot *slot = &registry->teams[teamId][i];
-
-        if (i != teamPosition && slot->boxId == boxId && slot->boxPosition == boxPosition)
-            ClearSlot(slot);
-    }
-
     registry->teams[teamId][teamPosition].boxId = boxId;
     registry->teams[teamId][teamPosition].boxPosition = boxPosition;
     registry->lastViewedTeam = teamId;
@@ -139,6 +154,22 @@ bool32 BattleTeam_TryGetFullRoster(u8 teamId, struct BattleTeamSlot *slots)
             return FALSE;
     }
     return TRUE;
+}
+
+u8 BattleTeam_GetFirstInvalidPosition(u8 teamId)
+{
+    u32 teamPosition;
+
+    if (teamId >= BATTLE_TEAM_COUNT)
+        return BATTLE_TEAM_SLOT_NONE;
+
+    for (teamPosition = 0; teamPosition < BATTLE_TEAM_MEMBER_COUNT; teamPosition++)
+    {
+        if (!BattleTeam_TryGetMember(teamId, teamPosition, NULL))
+            return teamPosition;
+    }
+
+    return BATTLE_TEAM_SLOT_NONE;
 }
 
 u8 BattleTeam_GetRegisteredCount(u8 teamId)

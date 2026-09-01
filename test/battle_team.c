@@ -67,12 +67,15 @@ TEST("Battle Team slots reference Box Pokemon and reject team-local duplicates")
     EXPECT_EQ(slot.boxId, 0);
     EXPECT_EQ(slot.boxPosition, 0);
     EXPECT(BattleTeam_TryGetMember(1, 0, &slot));
+    EXPECT_EQ(BattleTeam_FindSourcePosition(0, 0, 0), 0);
+    EXPECT_EQ(BattleTeam_FindSourcePosition(1, 0, 0), 0);
 
-    EXPECT(BattleTeam_TryRegister(0, 1, 0, 0));
-    EXPECT(!BattleTeam_TryGetMember(0, 0, NULL));
-    EXPECT(BattleTeam_TryGetMember(0, 1, &slot));
+    EXPECT(!BattleTeam_TryRegister(0, 1, 0, 0));
+    EXPECT(BattleTeam_TryGetMember(0, 0, &slot));
+    EXPECT(!BattleTeam_TryGetMember(0, 1, NULL));
     EXPECT(BattleTeam_TryGetMember(1, 0, NULL));
     EXPECT_EQ(BattleTeam_GetRegisteredCount(0), 1);
+    EXPECT_EQ(BattleTeam_GetFirstInvalidPosition(0), 1);
     EXPECT(BattleTeam_IsBoxSlotRegistered(0, 0));
     EXPECT_EQ(BattleTeam_GetBoxSlotTeamMask(0, 0), (1 << 0) | (1 << 1));
     BattleTeam_BuildBoxSlotTeamMasks(0, teamMasks);
@@ -133,6 +136,7 @@ TEST("Battle Team registration rejects invalid sources and clears stale referenc
     EXPECT(BattleTeam_TryRegister(0, 0, 1, 4));
     ZeroBoxMonAt(1, 4);
     EXPECT(!BattleTeam_TryGetMember(0, 0, NULL));
+    EXPECT_EQ(BattleTeam_GetFirstInvalidPosition(0), 0);
     EXPECT(!BattleTeam_IsBoxSlotRegistered(1, 4));
 }
 

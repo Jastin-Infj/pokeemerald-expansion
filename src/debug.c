@@ -730,15 +730,6 @@ static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattleLegacy[] =
     { NULL }
 };
 
-static const struct DebugMenuOption sDebugMenu_Actions_BoxNpcBattle[] =
-{
-    { COMPOUND_STRING("Manage Battle Teams"), DebugAction_Party_BattleTeamManager },
-    { COMPOUND_STRING("Battle Team 1…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam1 },
-    { COMPOUND_STRING("Battle Team 2…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam2 },
-    { COMPOUND_STRING("Battle Team 3…"),       DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleTeam3 },
-    { COMPOUND_STRING("Legacy Box 1 pool…"),   DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
-    { NULL }
-};
 static const struct DebugMenuOption sDebugMenu_Actions_Gauntlet[] =
 {
     { COMPOUND_STRING("Mega Single"),   DebugAction_Party_BattleGauntletMegaSingles },
@@ -775,7 +766,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
     { COMPOUND_STRING("Clear Party"),        DebugAction_Party_ClearParty },
     { COMPOUND_STRING("Set Party"),          DebugAction_Party_SetParty },
     { COMPOUND_STRING("Start Debug Battle"), DebugAction_Party_BattleSingle },
-    { COMPOUND_STRING("Box NPC Battle…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattle },
+    { COMPOUND_STRING("Box NPC Legacy…"),    DebugAction_OpenSubMenu, sDebugMenu_Actions_BoxNpcBattleLegacy },
     { COMPOUND_STRING("Battle 3v3 Single"),  DebugAction_Party_BattleSingles3v3 },
     { COMPOUND_STRING("Battle 4v4 Double"),  DebugAction_Party_BattleDoubles4v4 },
     { COMPOUND_STRING("Battle Dmax/Z Single"), DebugAction_Party_BattleDmaxZSingles },
