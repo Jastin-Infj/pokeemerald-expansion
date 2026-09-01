@@ -21,9 +21,14 @@ Battle Lab behavior were preserved; the reconciliation is `404cbd192d`.
 The Smart AI source and handoff are `535f095fef` and `ca98c85ace`. The branch
 passes the focused simulator, snapshot, joint planner, joint evaluation, and
 joint runtime suites, plus debug/normal builds and the full test command. The
-project-local direct mGBA runner also passed boot, input, screenshot, and Lua
-bridge smoke checks. Live AI battle behavior still needs a progressed save or
-deterministic battle fixture; no master merge or external push was performed.
+project-local direct mGBA runner also reached a live `Read Double` gauntlet
+from a clean New Game: after both player commands were confirmed, the log
+captured an opponent preserve switch and a Dynamax `Knock Off` response.
+Evidence is `/tmp/smart-ai-route-20260902-final-battle-response.png`,
+`/tmp/smart-ai-read-double-20260902.json`, and Lua marker
+`smart_ai_read_double_runtime_20260902`; the exported v5 log contains five
+valid actions, two AI plans, 16 candidates, and trace schema 5. No master
+merge or external push was performed.
 
 ## Current Joint Board-Search Handoff - July 22, 2026
 

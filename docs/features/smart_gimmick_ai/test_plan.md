@@ -25,11 +25,16 @@ and menu conflicts were reconciled before applying the Smart AI slice.
 | `rtk make -j16 -O debug` / `all` | Passed; debug memory: EWRAM 251,532 B (95.95%), IWRAM 28,444 B (86.80%), ROM 26,691,140 B (79.55%) |
 | `rtk make -j16 -O check` | Exit 0; existing `KNOWN_FAILING`, expected-failure, and runner `CRASH` labels remain |
 | `rtk mdbook build docs` | Exit 0; existing missing `CHANGELOG.md`, `CREDITS.md` closing-tag, and large-index warnings remain |
-| Project-local mGBA smoke | Boot, screenshot/input, and Lua bridge passed in `smart-ai-runtime-20260901`; no progressed battle save was available, and final managed status was `[]`. |
+| Project-local mGBA runtime | Clean New Game reached field control, then `R+START -> Party -> Gauntlet Battles -> Read Double` in `smart-ai-route-20260902-final`; both player commands were confirmed, an opponent switch and Dynamax `Knock Off` response were observed, and the final managed status was `[]`. |
 
-The mGBA result is a bridge and boot smoke, not a claim that a live AI
-joint-battle response was observed. A progressed save or deterministic battle
-fixture is the remaining runtime gap for that route.
+The runtime evidence is `/tmp/smart-ai-route-20260902-final-battle-response.png`,
+`/tmp/smart-ai-read-double-20260902.json`, and the Lua marker
+`smart_ai_read_double_runtime_20260902`. The exported log is
+`pokeemerald.battle_action_log.v5` with five valid actions, two AI plans, 16
+AI candidates, and trace header schema 5 / magic `0xA15C`; it records player
+`Thunderbolt` and `Tailwind`, the opponent-left preserve switch, and the
+opponent-right Dynamax `Knock Off`. This is a direct live joint-battle route,
+not only a boot or bridge smoke test.
 
 ## Review-Fix Completion Gate - July 22, 2026
 
