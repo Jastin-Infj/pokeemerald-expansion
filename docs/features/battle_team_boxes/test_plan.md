@@ -1,5 +1,30 @@
 # Battle Team Boxes Test Plan
 
+## Integration Staging Gate - September 2, 2026
+
+This gate stages Team Box PR #84 on
+`integration/runtime-lab-current-1.16.1` at `4e960aecea`. The newer
+RH Hideout-side implementation in `fc3835f5db` is the source of truth for
+current Battle Team APIs, menu structure, and duplicate-registration behavior.
+The integration correction is recorded in `404cbd192d`; it does not retarget
+the work to `master`.
+
+| Check | Result |
+|---|---|
+| PR #84 source commits | `83e76f3e83` and `fc3835f5db`; `97d44ca4c8` was empty against the selected base and was skipped |
+| `rtk make -j16 -O debug` | Passed |
+| `rtk make -j16 -O check TESTS='Battle Team'` | Passed, 7/7 |
+| `rtk make -j16 -O check TESTS='Battle Team registered'` | Passed, 2/2 |
+| `rtk make -j16 -O check TESTS='SaveBlock3'` | Passed, 1/1 |
+| `rtk make -j16 -O all` | Passed; existing linker RWX warning only |
+| `rtk make -j16 -O check` | Exit 0; existing `KNOWN_FAILING` / expected labels remain |
+| `rtk mdbook build docs` | Exit 0; existing missing `CHANGELOG.md`, `CREDITS.md` closing-tag, and large-index warnings remain |
+| mGBA Live | Session `team-box-runtime-20260901` reached the current Battle Lab UI and rendered the six-slot Team 1 grid; no prepared save was available for registration or battle. Final managed status was `[]`. |
+
+This is staging evidence for the isolated integration branch. It does not
+claim a master merge or a complete registered-team battle run from a fresh
+save.
+
 ## Fresh Reapply Gate - July 16, 2026
 
 | Check | Result |

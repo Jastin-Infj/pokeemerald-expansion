@@ -9,6 +9,22 @@ supported-gimmick plan, simulate the realized board, and restore both commands
 from the same selected root. Unsupported boards fail closed to the preserved
 per-battler evaluator.
 
+## September 2, 2026 Integration Staging
+
+The implementation is staged in
+`integration/goal-team-box-smart-ai-20260901`, based on
+`integration/runtime-lab-current-1.16.1` at `4e960aecea`. Team Box PR #84 is
+applied before Smart AI. Where the integration shelf differed from the newer
+RH Hideout-side source, the newer source's APIs, command conventions, and
+Battle Lab behavior were preserved; the reconciliation is `404cbd192d`.
+
+The Smart AI source and handoff are `535f095fef` and `ca98c85ace`. The branch
+passes the focused simulator, snapshot, joint planner, joint evaluation, and
+joint runtime suites, plus debug/normal builds and the full test command. The
+project-local direct mGBA runner also passed boot, input, screenshot, and Lua
+bridge smoke checks. Live AI battle behavior still needs a progressed save or
+deterministic battle fixture; no master merge or external push was performed.
+
 ## Current Joint Board-Search Handoff - July 22, 2026
 
 This implementation is the local commit `fe68cd2d9c` on

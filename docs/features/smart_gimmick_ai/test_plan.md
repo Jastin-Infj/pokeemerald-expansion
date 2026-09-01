@@ -1,5 +1,36 @@
 # Smart Gimmick AI Test Plan
 
+## Integration Staging Gate - September 2, 2026
+
+The isolated branch
+`integration/goal-team-box-smart-ai-20260901` stages Team Box PR #84 first,
+then the bounded doubles joint-search commits, on
+`integration/runtime-lab-current-1.16.1` at `4e960aecea`. The newer RH
+Hideout-side source and conventions remain authoritative; the Team Box API
+and menu conflicts were reconciled before applying the Smart AI slice.
+
+| Check | Result |
+|---|---|
+| Team Box integration correction | `404cbd192d`; newer source behavior retained |
+| Smart AI source | `535f095fef` (from `fe68cd2d9c`) |
+| Smart AI handoff documentation | `ca98c85ace` |
+| Project-local mGBA runner | `e85637645c`, `e2b5ced1ad` |
+| `rtk make -j16 -O check TESTS='test/battle/ai/ai_board_sim.c'` | Exit 0; 44/44 simulator declarations covered |
+| `rtk make -j16 -O check TESTS='test/battle/ai/ai_board_snapshot.c'` | Passed, 7/7 |
+| `rtk make -j16 -O check TESTS='Joint runtime'` | Passed, 9/9 |
+| `rtk make -j16 -O check TESTS='AI joint planner'` | Passed, 18/18 |
+| `rtk make -j16 -O check TESTS='AI joint board evaluation'` | Passed, 5/5 |
+| `rtk make -j16 -O check TESTS='AI_FLAG_READ_PLAYER_MOVE'` | Passed, 70/70 |
+| Smart gimmick / switching focused suites | Exit 0; switching retains the existing `KNOWN_FAILING` case |
+| `rtk make -j16 -O debug` / `all` | Passed; debug memory: EWRAM 251,532 B (95.95%), IWRAM 28,444 B (86.80%), ROM 26,691,140 B (79.55%) |
+| `rtk make -j16 -O check` | Exit 0; existing `KNOWN_FAILING`, expected-failure, and runner `CRASH` labels remain |
+| `rtk mdbook build docs` | Exit 0; existing missing `CHANGELOG.md`, `CREDITS.md` closing-tag, and large-index warnings remain |
+| Project-local mGBA smoke | Boot, screenshot/input, and Lua bridge passed in `smart-ai-runtime-20260901`; no progressed battle save was available, and final managed status was `[]`. |
+
+The mGBA result is a bridge and boot smoke, not a claim that a live AI
+joint-battle response was observed. A progressed save or deterministic battle
+fixture is the remaining runtime gap for that route.
+
 ## Review-Fix Completion Gate - July 22, 2026
 
 This gate covers the uncommitted joint board-search slice on

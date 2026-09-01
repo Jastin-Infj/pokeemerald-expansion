@@ -6,6 +6,21 @@ The implementation adds a persistent three-by-six Box reference registry, a
 Pokemon Storage management UI, registered-source protection, and Box NPC debug
 battle routes for each team.
 
+## September 2, 2026 Integration Staging
+
+Team Box PR #84 is staged on `integration/runtime-lab-current-1.16.1` at
+`4e960aecea` in the isolated branch
+`integration/goal-team-box-smart-ai-20260901`. The newer RH Hideout-side
+implementation, `fc3835f5db`, is authoritative when the older integration and
+the newer source disagree. Its current Battle Team API, Battle Lab menu, and
+team-local duplicate policy were restored during integration and recorded in
+`404cbd192`. The empty handoff commit `97d44ca4c8` was intentionally skipped.
+
+The branch builds cleanly and passes the focused Battle Team, registered-team,
+and SaveBlock3 checks. A direct mGBA smoke reached the current Battle Lab and
+rendered Team 1's six-slot grid. A progressed save is still required to verify
+registration and a real registered-team battle in this staging pass.
+
 ## July 16, 2026 Runtime-Lab Reapply
 
 - Integration target before this slice: `17b67dfe98`, produced by merged Box
