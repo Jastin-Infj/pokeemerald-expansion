@@ -100,4 +100,3 @@ rtk mdbook build docs
 - mGBAの成功証拠と未確認項目が分離されている。
 - 元のdirty worktreeが変更されていない。
 - masterへのmerge、外部push、公開PR変更をしていない。
-
