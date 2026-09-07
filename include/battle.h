@@ -116,6 +116,16 @@ STATIC_ASSERT(BATTLE_AI_TRACE_BOARD_ENTRIES <= 0xFF, BattleAiTraceBoardCursorReq
 #define BATTLE_AI_TRACE_BOARD_TIMERS_CLAMPED    (1 << 6)
 #define BATTLE_AI_TRACE_BOARD_VALID             (1 << 15)
 
+#define BATTLE_AI_TRACE_BOARD_DIFF_NONE         0
+#define BATTLE_AI_TRACE_BOARD_DIFF_INVALID      (1 << 0)
+#define BATTLE_AI_TRACE_BOARD_DIFF_PLAN         (1 << 1)
+#define BATTLE_AI_TRACE_BOARD_DIFF_WEATHER      (1 << 2)
+#define BATTLE_AI_TRACE_BOARD_DIFF_FIELD        (1 << 3)
+#define BATTLE_AI_TRACE_BOARD_DIFF_SIDE         (1 << 4)
+#define BATTLE_AI_TRACE_BOARD_DIFF_TIMERS       (1 << 5)
+#define BATTLE_AI_TRACE_BOARD_DIFF_BATTLER_MASK (1 << 6)
+#define BATTLE_AI_TRACE_BOARD_DIFF_BATTLER      (1 << 7)
+
 enum AiDecisionReason
 {
     AI_DECISION_REASON_NONE,
@@ -1402,6 +1412,8 @@ void BattleAiTrace_SetBattlerDecision(enum BattlerId battler, u16 planId, u32 ca
 const struct BattleAiTracePlan *BattleAiTrace_GetPlan(u16 planId);
 const struct BattleAiTraceCandidate *BattleAiTrace_GetCandidate(u16 candidateSequence);
 const struct BattleAiTraceBoard *BattleAiTrace_GetBoard(u16 boardSequence);
+u32 BattleAiTrace_CompareBoards(const struct BattleAiTraceBoard *predicted, const struct BattleAiTraceBoard *actual);
+u32 BattleAiTrace_ComparePlanBoards(u16 planId);
 extern struct StartingStatuses gStartingStatuses;
 extern struct AiBattleData *gAiBattleData;
 extern struct AiThinkingStruct *gAiThinkingStruct;

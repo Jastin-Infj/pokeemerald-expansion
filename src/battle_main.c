@@ -582,6 +582,71 @@ const struct BattleAiTraceBoard *BattleAiTrace_GetBoard(u16 boardSequence)
     return NULL;
 }
 
+static const struct BattleAiTraceBoard *BattleAiTrace_GetBoardForPlan(u16 planId, enum BattleAiTraceBoardPhase phase)
+{
+    for (u32 i = 0; i < gBattleAiTraceLog.boardCount; i++)
+    {
+        u32 index = (gBattleAiTraceLog.boardCursor + BATTLE_AI_TRACE_BOARD_ENTRIES - 1 - i) % BATTLE_AI_TRACE_BOARD_ENTRIES;
+        const struct BattleAiTraceBoard *board = &gBattleAiTraceLog.boards[index];
+
+        if ((board->meta & BATTLE_AI_TRACE_BOARD_VALID)
+         && board->planId == planId
+         && (board->meta & BATTLE_AI_TRACE_BOARD_PHASE_MASK) == phase)
+            return board;
+    }
+    return NULL;
+}
+
+u32 BattleAiTrace_CompareBoards(const struct BattleAiTraceBoard *predicted, const struct BattleAiTraceBoard *actual)
+{
+    u32 differences = BATTLE_AI_TRACE_BOARD_DIFF_NONE;
+    u32 predictedBattlerMask;
+    u32 actualBattlerMask;
+
+    if (predicted == NULL || actual == NULL
+     || !(predicted->meta & BATTLE_AI_TRACE_BOARD_VALID)
+     || !(actual->meta & BATTLE_AI_TRACE_BOARD_VALID))
+        return BATTLE_AI_TRACE_BOARD_DIFF_INVALID;
+
+    if (predicted->planId != actual->planId)
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_PLAN;
+    if (predicted->weather != actual->weather)
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_WEATHER;
+    if (predicted->fieldStatuses != actual->fieldStatuses)
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_FIELD;
+
+    if (predicted->sideStatuses[0] != actual->sideStatuses[0]
+     || predicted->sideStatuses[1] != actual->sideStatuses[1])
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_SIDE;
+
+    if (memcmp(predicted->tailwindTimers, actual->tailwindTimers, sizeof(predicted->tailwindTimers)) != 0
+     || memcmp(predicted->reflectTimers, actual->reflectTimers, sizeof(predicted->reflectTimers)) != 0
+     || memcmp(predicted->lightScreenTimers, actual->lightScreenTimers, sizeof(predicted->lightScreenTimers)) != 0
+     || memcmp(predicted->auroraVeilTimers, actual->auroraVeilTimers, sizeof(predicted->auroraVeilTimers)) != 0
+     || predicted->trickRoomTimer != actual->trickRoomTimer
+     || predicted->terrainTimer != actual->terrainTimer
+     || predicted->gravityTimer != actual->gravityTimer
+     || predicted->magicRoomTimer != actual->magicRoomTimer)
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_TIMERS;
+
+    predictedBattlerMask = (predicted->meta & BATTLE_AI_TRACE_BOARD_BATTLER_MASK) >> BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT;
+    actualBattlerMask = (actual->meta & BATTLE_AI_TRACE_BOARD_BATTLER_MASK) >> BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT;
+    if (predictedBattlerMask != actualBattlerMask)
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_BATTLER_MASK;
+    if (memcmp(predicted->battlers, actual->battlers, sizeof(predicted->battlers)) != 0)
+        differences |= BATTLE_AI_TRACE_BOARD_DIFF_BATTLER;
+
+    return differences;
+}
+
+u32 BattleAiTrace_ComparePlanBoards(u16 planId)
+{
+    const struct BattleAiTraceBoard *predicted = BattleAiTrace_GetBoardForPlan(planId, BATTLE_AI_TRACE_BOARD_PHASE_PREDICTED_AFTER);
+    const struct BattleAiTraceBoard *actual = BattleAiTrace_GetBoardForPlan(planId, BATTLE_AI_TRACE_BOARD_PHASE_ACTUAL_AFTER);
+
+    return BattleAiTrace_CompareBoards(predicted, actual);
+}
+
 void BattleAiTrace_SetBattlerDecision(enum BattlerId battler, u16 planId, u32 candidateRank)
 {
     const struct BattleAiTracePlan *plan;

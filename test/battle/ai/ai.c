@@ -115,6 +115,44 @@ SINGLE_BATTLE_TEST("Battle AI trace stores a compact plan and links its selected
     }
 }
 
+TEST("Battle AI trace compares predicted and actual board snapshots")
+{
+    struct BattleAiTraceBoard predicted = {0};
+    struct BattleAiTraceBoard actual = {0};
+    u16 originalWeather = gBattleWeather;
+    u8 originalBattlersCount = gBattlersCount;
+
+    predicted.planId = 1;
+    predicted.meta = BATTLE_AI_TRACE_BOARD_VALID | (1 << BATTLE_AI_TRACE_BOARD_BATTLER_MASK_SHIFT);
+    actual = predicted;
+    EXPECT_EQ(BattleAiTrace_CompareBoards(&predicted, &actual), BATTLE_AI_TRACE_BOARD_DIFF_NONE);
+
+    actual.weather = 1;
+    EXPECT_EQ(BattleAiTrace_CompareBoards(&predicted, &actual), BATTLE_AI_TRACE_BOARD_DIFF_WEATHER);
+    actual = predicted;
+    actual.battlers[0].hp = 1;
+    EXPECT_EQ(BattleAiTrace_CompareBoards(&predicted, &actual), BATTLE_AI_TRACE_BOARD_DIFF_BATTLER);
+    actual = predicted;
+    actual.tailwindTimers[0] = 1;
+    EXPECT_EQ(BattleAiTrace_CompareBoards(&predicted, &actual), BATTLE_AI_TRACE_BOARD_DIFF_TIMERS);
+    actual = predicted;
+    actual.meta &= ~BATTLE_AI_TRACE_BOARD_BATTLER_MASK;
+    EXPECT_EQ(BattleAiTrace_CompareBoards(&predicted, &actual), BATTLE_AI_TRACE_BOARD_DIFF_BATTLER_MASK);
+    EXPECT(BattleAiTrace_CompareBoards(NULL, &actual) & BATTLE_AI_TRACE_BOARD_DIFF_INVALID);
+
+    BattleAiTrace_Clear();
+    gBattlersCount = 0;
+    gBattleWeather = 1;
+    BattleAiTrace_CaptureBoard(1, BATTLE_AI_TRACE_BOARD_PHASE_PREDICTED_AFTER);
+    gBattleWeather = 2;
+    BattleAiTrace_CaptureBoard(1, BATTLE_AI_TRACE_BOARD_PHASE_ACTUAL_AFTER);
+    EXPECT_EQ(BattleAiTrace_ComparePlanBoards(1), BATTLE_AI_TRACE_BOARD_DIFF_WEATHER);
+
+    BattleAiTrace_Clear();
+    gBattleWeather = originalWeather;
+    gBattlersCount = originalBattlersCount;
+}
+
 TEST("Battle AI trace rings preserve retained plans across cursor and sequence wrap")
 {
         struct BattleAiTracePlan tracePlan = {0};

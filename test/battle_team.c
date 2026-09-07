@@ -234,16 +234,22 @@ TEST("Battle Team registered roster builds four unique random members for a Doub
     };
     struct BoxNpcPartyPoolResult result;
     bool8 selected[BATTLE_TEAM_MEMBER_COUNT] = {FALSE};
+    static const u8 expectedCandidateIndices[BOX_NPC_DOUBLE_BATTLE_SIZE] = {5, 0, 1, 2};
     u32 i;
 
     ResetPokemonStorageSystem();
     RegisterBattleTeamTestRoster(1, BATTLE_TEAM_MEMBER_COUNT);
+    SET_RNG(RNG_BOX_NPC_PARTY_POOL_BATTLE_MEMBER, 5);
     EXPECT(BoxNpcPartyPool_TryBuildOpponentParty(&config, &result));
     EXPECT_EQ(result.battleCount, BOX_NPC_DOUBLE_BATTLE_SIZE);
     for (i = 0; i < result.battleCount; i++)
     {
         u32 candidate;
 
+        EXPECT_EQ(result.finalSources[i].boxId,
+                  result.candidateSources[expectedCandidateIndices[i]].boxId);
+        EXPECT_EQ(result.finalSources[i].boxPosition,
+                  result.candidateSources[expectedCandidateIndices[i]].boxPosition);
         for (candidate = 0; candidate < result.candidateCount; candidate++)
         {
             if (result.finalSources[i].boxId == result.candidateSources[candidate].boxId
@@ -257,6 +263,35 @@ TEST("Battle Team registered roster builds four unique random members for a Doub
                   GetBoxMonDataAt(result.finalSources[i].boxId, result.finalSources[i].boxPosition, MON_DATA_SPECIES));
     }
     EXPECT_EQ(GetMonData(&gParties[B_TRAINER_OPPONENT_A][BOX_NPC_DOUBLE_BATTLE_SIZE], MON_DATA_SPECIES), SPECIES_NONE);
+    BoxNpcPartyPool_ClearPendingBattleInitPolicy();
+}
+
+TEST("Battle Team NPC item consumption does not mutate the Box source")
+{
+    const struct BoxNpcPartyPoolConfig config =
+    {
+        .poolMode = BOX_NPC_POOL_REGISTERED_BATTLE_TEAM,
+        .battleFormat = BOX_NPC_BATTLE_SINGLE_3,
+        .memberMode = BOX_NPC_BATTLE_MEMBERS_FIRST_N,
+        .gimmickPolicy = BOX_NPC_GIMMICK_NATURAL,
+        .battleTeamId = 0,
+        .aiFlags = 0,
+    };
+    enum Item consumedItem = ITEM_NONE;
+
+    ResetPokemonStorageSystem();
+    RegisterBattleTeamTestRoster(0, BATTLE_TEAM_MEMBER_COUNT);
+    EXPECT(BoxNpcPartyPool_TryBuildOpponentParty(&config, NULL));
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_OPPONENT_A][0], MON_DATA_HELD_ITEM), ITEM_ORAN_BERRY);
+
+    // Battle scripts consume the live party copy. The referenced Box record is
+    // the source of truth and must retain its held item.
+    SetMonData(&gParties[B_TRAINER_OPPONENT_A][0], MON_DATA_HELD_ITEM, &consumedItem);
+    EXPECT_EQ(GetMonData(&gParties[B_TRAINER_OPPONENT_A][0], MON_DATA_HELD_ITEM), ITEM_NONE);
+    EXPECT_EQ(GetBoxMonDataAt(sBattleTeamTestSources[0].boxId,
+                              sBattleTeamTestSources[0].boxPosition,
+                              MON_DATA_HELD_ITEM),
+              ITEM_ORAN_BERRY);
     BoxNpcPartyPool_ClearPendingBattleInitPolicy();
 }
 

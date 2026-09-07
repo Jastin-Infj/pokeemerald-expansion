@@ -229,6 +229,7 @@ enum {
     SCREEN_CHANGE_NAME_BOX,
     SCREEN_CHANGE_ITEM_FROM_BAG,
     SCREEN_CHANGE_BATTLE_TEAM_BATTLE,
+    SCREEN_CHANGE_BATTLE_TEAM_PARTY_PREP,
 };
 
 enum {
@@ -640,6 +641,7 @@ enum BattleTeamUiState
     BATTLE_TEAM_UI_CHOOSE_REPLACEMENT_SLOT,
     BATTLE_TEAM_UI_REORDER,
     BATTLE_TEAM_UI_PREVIEW,
+    BATTLE_TEAM_UI_PREFLIGHT,
 };
 
 // States for Task_PokeStorageMain.
@@ -679,6 +681,9 @@ EWRAM_DATA static bool8 sAutoActionOn = 0;
 EWRAM_DATA static bool8 sJustOpenedBag = 0;
 EWRAM_DATA static bool8 sRefreshDisplayMonGfx = FALSE;
 EWRAM_DATA static bool8 sBattleTeamBattleLabMode = FALSE;
+EWRAM_DATA static bool8 sBattleTeamPartyPrepMode = FALSE;
+EWRAM_DATA static bool8 sBattleTeamResumePreview = FALSE;
+EWRAM_DATA static struct BoxNpcPartyPoolConfig sBattleTeamResumeConfig = {0};
 EWRAM_DATA static u8 sBattleTeamSavedBoxCursor = 0;
 EWRAM_DATA static u8 sBattleTeamSavedSlotCursor = 0;
 
@@ -720,6 +725,7 @@ static void Task_BattleTeamSlotActions(u8);
 static void Task_BattleTeamRegister(u8);
 static void Task_BattleTeamBattleMenu(u8);
 static void Task_BattleTeamStartBattle(u8);
+static void Task_BattleTeamPartyPrep(u8);
 
 // Input handlers
 static u8 InBoxInput_Normal(void);
@@ -967,6 +973,8 @@ static void CreateMarkingComboSprite(void);
 static void CreateWaveformSprites(void);
 static void ClearBottomWindow(void);
 static void PrintBattleTeamHelp(void);
+static void PrintBattleTeamPreflightMessage(u8, u8);
+static bool32 IsBattleTeamPreviewState(void);
 static void PrintBattleTeamMessage(const u8 *);
 static void PrintBattleTeamLockReason(u8, u8);
 static void InitSupplementalTilemaps(void);
@@ -983,7 +991,7 @@ static bool8 InitPokeStorageWindows(void);
 static bool8 DoShowPartyMenu(void);
 static bool8 HidePartyMenu(void);
 static bool8 IsDisplayMosaicActive(void);
-static void ShowYesNoWindow(s8);
+static void ShowYesNoWindow(void);
 static void UpdateCloseBoxButtonTilemap(bool8);
 static void PrintMessage(u8 id);
 static void LoadDisplayMonGfx(enum Species species, u32 pid, bool32 isEgg);
@@ -1975,7 +1983,7 @@ static void Task_BattleTeamRegister(u8 taskId)
                                        STR_CONV_MODE_LEFT_ALIGN, 1);
             StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("CHANGE SLOT {STR_VAR_2} to {STR_VAR_1}?"));
             PrintBattleTeamMessage(gStringVar4);
-            ShowYesNoWindow(1);
+            ShowYesNoWindow();
             sStorage->state++;
         }
         else
@@ -2009,12 +2017,19 @@ static void Task_BattleTeamSlotActions(u8 taskId)
     {
     case 0:
         InitMenu();
-        SetMenuText(occupied ? MENU_BATTLE_TEAM_CHANGE : MENU_BATTLE_TEAM_REGISTER);
+        // Keep the first action safe and informative, then put destructive
+        // actions after the reversible team-management actions.
         if (occupied)
-            SetMenuText(MENU_BATTLE_TEAM_REMOVE);
-        SetMenuText(MENU_BATTLE_TEAM_REORDER);
-        if (occupied)
+        {
             SetMenuText(MENU_SUMMARY);
+            SetMenuText(MENU_BATTLE_TEAM_CHANGE);
+            SetMenuText(MENU_BATTLE_TEAM_REORDER);
+            SetMenuText(MENU_BATTLE_TEAM_REMOVE);
+        }
+        else
+        {
+            SetMenuText(MENU_BATTLE_TEAM_REGISTER);
+        }
         SetMenuText(MENU_CANCEL);
         AddMenu();
         sStorage->state++;
@@ -2047,7 +2062,7 @@ static void Task_BattleTeamSlotActions(u8 taskId)
             ConvertIntToDecimalStringN(gStringVar1, sCursorPosition + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
             StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("Remove the POKéMON from SLOT {STR_VAR_1}?"));
             PrintBattleTeamMessage(gStringVar4);
-            ShowYesNoWindow(1);
+            ShowYesNoWindow();
             sStorage->state++;
             break;
         case MENU_BATTLE_TEAM_REORDER:
@@ -2141,7 +2156,6 @@ static void Task_BattleTeamBattleMenu(u8 taskId)
     case 2:
     {
         s16 input = HandleMenuInput();
-        u8 requiredMons;
         u8 invalidPosition;
 
         if (input == MENU_NOTHING_CHOSEN)
@@ -2183,20 +2197,6 @@ static void Task_BattleTeamBattleMenu(u8 taskId)
                                                   | AI_FLAG_ASSUMPTIONS
                                                   | AI_FLAG_RISKY;
 
-        requiredMons = sStorage->battleTeamPreviewConfig.battleFormat == BOX_NPC_BATTLE_DOUBLE_4
-                     ? BOX_NPC_DOUBLE_BATTLE_SIZE
-                     : BOX_NPC_SINGLE_BATTLE_SIZE;
-        if (CountPartyAliveNonEggMonsExcept(PARTY_SIZE) < requiredMons)
-        {
-            PlaySE(SE_FAILURE);
-            ConvertIntToDecimalStringN(gStringVar1, requiredMons, STR_CONV_MODE_LEFT_ALIGN, 1);
-            StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("{STR_VAR_1}v{STR_VAR_1}: need {STR_VAR_1} usable party mons."));
-            PrintBattleTeamMessage(gStringVar4);
-            SetPokeStorageTask(Task_PokeStorageMain);
-            sStorage->state = MSTATE_WAIT_MSG;
-            break;
-        }
-
         PlaySE(SE_SELECT);
         if (BuildBattleTeamPreview())
             SetPokeStorageTask(Task_PokeStorageMain);
@@ -2223,14 +2223,12 @@ static void Task_BattleTeamStartBattle(u8 taskId)
         if (!BoxNpcPartyPool_TryStagePlayerParty(battleCount))
         {
             PlaySE(SE_FAILURE);
-            BoxNpcPartyPool_ClearPendingBattleInitPolicy();
-            PrintBattleTeamMessage(BoxNpcPartyPool_GetLastErrorText());
-            sStorage->battleTeamUiState = BATTLE_TEAM_UI_EDIT;
-            sStorage->cursorSprite->invisible = FALSE;
+            sStorage->battleTeamUiState = BATTLE_TEAM_UI_PREFLIGHT;
+            sStorage->cursorSprite->invisible = TRUE;
             RefreshBattleTeamSprites();
             RefreshBattleTeamPanel();
+            PrintBattleTeamPreflightMessage(battleCount, CountPartyAliveNonEggMonsExcept(PARTY_SIZE));
             SetPokeStorageTask(Task_PokeStorageMain);
-            sStorage->state = MSTATE_WAIT_MSG;
             break;
         }
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
@@ -2241,6 +2239,27 @@ static void Task_BattleTeamStartBattle(u8 taskId)
         if (!UpdatePaletteFade())
         {
             sStorage->screenChangeType = SCREEN_CHANGE_BATTLE_TEAM_BATTLE;
+            SetPokeStorageTask(Task_ChangeScreen);
+        }
+        break;
+    }
+}
+
+static void Task_BattleTeamPartyPrep(u8 taskId)
+{
+    switch (sStorage->state)
+    {
+    case 0:
+        sBattleTeamResumeConfig = sStorage->battleTeamPreviewConfig;
+        sBattleTeamResumePreview = TRUE;
+        sBattleTeamPartyPrepMode = TRUE;
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+        sStorage->state++;
+        break;
+    case 1:
+        if (!UpdatePaletteFade())
+        {
+            sStorage->screenChangeType = SCREEN_CHANGE_BATTLE_TEAM_PARTY_PREP;
             SetPokeStorageTask(Task_ChangeScreen);
         }
         break;
@@ -2260,10 +2279,24 @@ static void CreateMainMenu(u8 whichMenu, s16 *windowIdPtr)
     *windowIdPtr = windowId;
 }
 
+static void FieldTask_ReturnFromBattleTeamPartyPrep(void)
+{
+    sBattleTeamPartyPrepMode = FALSE;
+    sBattleTeamBattleLabMode = TRUE;
+    ShowPokemonStorageBattleTeamManager();
+}
+
 static void CB2_ExitPokeStorage(void)
 {
-    sPreviousBoxOption = GetCurrentBoxOption();
-    gFieldCallback = FieldTask_ReturnToPcMenu;
+    if (sBattleTeamPartyPrepMode)
+    {
+        gFieldCallback = FieldTask_ReturnFromBattleTeamPartyPrep;
+    }
+    else
+    {
+        sPreviousBoxOption = GetCurrentBoxOption();
+        gFieldCallback = FieldTask_ReturnToPcMenu;
+    }
     SetMainCallback2(CB2_ReturnToField);
 }
 
@@ -2840,7 +2873,20 @@ static void Task_ShowPokeStorage(u8 taskId)
         break;
     case 1:
         if (!IsComputerScreenOpenEffectActive())
+        {
+            if (sBattleTeamResumePreview && sStorage->boxOption == OPTION_BATTLE_TEAMS)
+            {
+                sStorage->battleTeamPreviewConfig = sBattleTeamResumeConfig;
+                sStorage->battleTeamId = sBattleTeamResumeConfig.battleTeamId;
+                sBattleTeamResumePreview = FALSE;
+                sStorage->battleTeamUiState = BATTLE_TEAM_UI_PREVIEW;
+                sStorage->cursorSprite->invisible = TRUE;
+                RefreshBattleTeamSprites();
+                RefreshBattleTeamPanel();
+                PrintBattleTeamHelp();
+            }
             SetPokeStorageTask(Task_PokeStorageMain);
+        }
         break;
     }
 }
@@ -2887,9 +2933,25 @@ static void Task_PokeStorageMain(u8 taskId)
     {
     case MSTATE_HANDLE_INPUT:
         if (sStorage->boxOption == OPTION_BATTLE_TEAMS
-         && sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW)
+         && IsBattleTeamPreviewState())
         {
-            if (JOY_NEW(A_BUTTON))
+            if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREFLIGHT)
+            {
+                if (JOY_NEW(A_BUTTON))
+                {
+                    PlaySE(SE_SELECT);
+                    SetPokeStorageTask(Task_BattleTeamPartyPrep);
+                }
+                else if (JOY_NEW(B_BUTTON))
+                {
+                    PlaySE(SE_SELECT);
+                    sStorage->battleTeamUiState = BATTLE_TEAM_UI_PREVIEW;
+                    RefreshBattleTeamSprites();
+                    RefreshBattleTeamPanel();
+                    PrintBattleTeamHelp();
+                }
+            }
+            else if (JOY_NEW(A_BUTTON))
             {
                 PlaySE(SE_SELECT);
                 SetPokeStorageTask(Task_BattleTeamStartBattle);
@@ -3685,7 +3747,7 @@ static void Task_ReleaseMon(u8 taskId)
     {
     case 0:
         PrintMessage(MSG_RELEASE_POKE);
-        ShowYesNoWindow(1);
+        ShowYesNoWindow();
         sStorage->state++;
         // fallthrough
     case 1:
@@ -4050,7 +4112,7 @@ static void Task_CloseBoxWhileHoldingItem(u8 taskId)
     case 0:
         PlaySE(SE_SELECT);
         PrintMessage(MSG_PUT_IN_BAG);
-        ShowYesNoWindow(0);
+        ShowYesNoWindow();
         sStorage->state = 1;
         break;
     case 1:
@@ -4404,7 +4466,7 @@ static void Task_OnCloseBoxPressed(u8 taskId)
         {
             PlaySE(SE_SELECT);
             PrintMessage(MSG_EXIT_BOX);
-            ShowYesNoWindow(0);
+            ShowYesNoWindow();
             sStorage->state = 2;
         }
         break;
@@ -4482,7 +4544,7 @@ static void Task_OnBPressed(u8 taskId)
         {
             PlaySE(SE_SELECT);
             PrintMessage(MSG_CONTINUE_BOX);
-            ShowYesNoWindow(0);
+            ShowYesNoWindow();
             sStorage->state = 2;
         }
         break;
@@ -4578,6 +4640,10 @@ static void Task_ChangeScreen(u8 taskId)
             SetMainCallback2(CB2_ExitBattleTeamStorage);
         }
         break;
+    case SCREEN_CHANGE_BATTLE_TEAM_PARTY_PREP:
+        FreePokeStorageData();
+        EnterPokeStorage(OPTION_MOVE_MONS);
+        return;
     }
 
     DestroyTask(taskId);
@@ -4879,7 +4945,7 @@ static void RefreshBattleTeamPanel(void)
     FillWindowPixelBuffer(WIN_DISPLAY_INFO, PIXEL_FILL(1));
     StringCopy(line, COMPOUND_STRING("TEAM "));
     ConvertIntToDecimalStringN(line + StringLength(line), sStorage->battleTeamId + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
-    if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW)
+    if (IsBattleTeamPreviewState())
     {
         StringAppend(line, COMPOUND_STRING("  TEST"));
     }
@@ -4891,7 +4957,7 @@ static void RefreshBattleTeamPanel(void)
     }
     AddTextPrinterParameterized(WIN_BATTLE_TEAM_HEADER, FONT_SMALL, line, 2, 0, TEXT_SKIP_DRAW, NULL);
 
-    if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW)
+    if (IsBattleTeamPreviewState())
     {
         StringCopy(line, sStorage->battleTeamPreviewConfig.battleFormat == BOX_NPC_BATTLE_DOUBLE_4
                        ? COMPOUND_STRING("DOUBLE 4v4")
@@ -5320,16 +5386,31 @@ static void PrintMessage(u8 id)
     ScheduleBgCopyTilemapToVram(0);
 }
 
-static void ShowYesNoWindow(s8 cursorPos)
+static void ShowYesNoWindow(void)
 {
+    // Storage confirmations are affirmative by default. A confirms the
+    // prompt immediately; B or the explicit NO entry remains the escape path.
     CreateYesNoMenu(&sYesNoWindowTemplate, 11, 14, 0);
-    Menu_MoveCursorNoWrapAround(cursorPos);
 }
 
 static void ClearBottomWindow(void)
 {
     ClearStdWindowAndFrameToTransparent(WIN_MESSAGE, FALSE);
     ScheduleBgCopyTilemapToVram(0);
+}
+
+static bool32 IsBattleTeamPreviewState(void)
+{
+    return sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW
+        || sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREFLIGHT;
+}
+
+static void PrintBattleTeamPreflightMessage(u8 requiredMons, u8 usableMons)
+{
+    ConvertIntToDecimalStringN(gStringVar1, usableMons, STR_CONV_MODE_LEFT_ALIGN, 1);
+    ConvertIntToDecimalStringN(gStringVar2, requiredMons, STR_CONV_MODE_LEFT_ALIGN, 1);
+    StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("{STR_VAR_1}/{STR_VAR_2} PARTY A:PREP B:BACK"));
+    PrintBattleTeamMessage(gStringVar4);
 }
 
 static void PrintBattleTeamMessage(const u8 *text)
@@ -5366,6 +5447,10 @@ static void PrintBattleTeamHelp(void)
     else if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_REORDER)
     {
         PrintBattleTeamMessage(COMPOUND_STRING("Pick target. A:MOVE B:CANCEL"));
+    }
+    else if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREFLIGHT)
+    {
+        PrintBattleTeamMessage(COMPOUND_STRING("A:PREP PARTY B:BACK"));
     }
     else if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW)
     {
@@ -6304,7 +6389,7 @@ static void DrawBattleTeamSlotFrames(void)
         u32 row;
         bool32 hasMon;
 
-        if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW)
+        if (IsBattleTeamPreviewState())
             hasMon = i < result->battleCount;
         else
             hasMon = BattleTeam_TryGetMember(sStorage->battleTeamId, i, NULL);
@@ -6341,7 +6426,7 @@ static void RefreshBattleTeamSprites(void)
               + (i / 2) * BATTLE_TEAM_TRAY_ROW_SPACING;
         bool32 hasMon;
 
-        if (sStorage->battleTeamUiState == BATTLE_TEAM_UI_PREVIEW)
+        if (IsBattleTeamPreviewState())
         {
             hasMon = i < result->battleCount;
             if (hasMon)
@@ -6361,7 +6446,7 @@ static void RefreshBattleTeamSprites(void)
             sStorage->battleTeamSprites[i] = CreateMonIconSprite(species, personality, x, y, 1, 12, isEgg);
             sStorage->battleTeamSpriteIsMon[i] = sStorage->battleTeamSprites[i] != NULL;
         }
-        else if (sStorage->battleTeamUiState != BATTLE_TEAM_UI_PREVIEW
+        else if (!IsBattleTeamPreviewState()
               && sStorage->battleTeamEmptyGfxLoaded)
         {
             u8 spriteId = CreateSprite(&sSpriteTemplate_BattleTeamEmpty, x, y, 12);
@@ -9292,9 +9377,9 @@ static bool8 SetMenuTexts_Mon(void)
         return FALSE;
     }
 
+    SetMenuText(MENU_SUMMARY);
     if (registeredBoxMon)
         SetMenuText(MENU_BATTLE_TEAM_LOCK);
-    SetMenuText(MENU_SUMMARY);
     if (sStorage->boxOption == OPTION_MOVE_MONS)
     {
         if (sCursorArea == CURSOR_AREA_IN_BOX)

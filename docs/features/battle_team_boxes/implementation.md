@@ -21,6 +21,103 @@ and SaveBlock3 checks. A direct mGBA smoke reached the current Battle Lab and
 rendered Team 1's six-slot grid. A progressed save is still required to verify
 registration and a real registered-team battle in this staging pass.
 
+## September 7, 2026 Preflight and Party Preparation
+
+The registered-team battle route now keeps the opponent preview visible even
+when the current player party is too small. Pressing `A:START` performs the
+player-party preflight; an insufficient party enters a dedicated preflight
+state showing the usable/required count and `A:PREP B:BACK` actions.
+
+`A:PREP` transitions through a screen-change handoff into the normal `MOVE
+POKéMON` storage mode, where the player can organize the party and Box. The
+route remembers the selected team battle configuration, keeps the prepared Box
+NPC result pending, and reopens the same Team Manager preview after the normal
+PC screen is closed. Registered Box sources remain protected by the existing
+storage mutation guards during preparation.
+
+This is intentionally a debug Battle Lab workflow; it does not add partial
+registered-team battles or change the saved Battle Team schema.
+
+Runtime validation on `team-box-preflight-restart-20260907` covered the full
+route after a clean save/restart: an empty party showed `0/3`, `A:PREP`
+opened normal storage, three unregistered Box sources were placed into the
+party, closing storage restored the same Team 1 preview, and `A` reached the
+actual opponent battle intro. A registered source exposed `TEAM LOCK` and
+remained immovable during the preparation step. Team 1 persistence was also
+confirmed after saving, stopping mGBA, starting a new process, and continuing
+the save.
+
+## September 7, 2026 AI, Random Selection, and Battle Item Completion
+
+The remaining Battle Team integration pieces are now implemented and covered by
+focused tests:
+
+- `BattleAiTrace_CompareBoards` compares predicted-after and actual-after
+  snapshots by plan, weather, field state, side state, timers, active-battler
+  mask, and battler state. `BattleAiTrace_ComparePlanBoards` pairs the retained
+  snapshots for a plan without changing the v5 trace buffer layout. Sequence
+  numbers and before/predicted/actual phase labels are intentionally treated as
+  linkage metadata, not board-state differences.
+- `tools/mgba_live/battle_action_log_export.lua` now emits
+  `ai_plans[].board_comparison` with `matches`, `difference_flags`, and readable
+  `difference_names`, so a live export can distinguish a complete match from a
+  deliberate simulator/runtime divergence.
+- Random-N Battle Team selection is pinned by a deterministic test of the
+  existing without-replacement shuffle. A rigged roll of `5` produces candidate
+  order `5, 0, 1, 2` for Double 4, proving that repeated draws cannot duplicate
+  a member.
+- A consumed held item on the live opponent copy is explicitly tested against
+  the referenced Box record. The battle copy may lose its Berry while the Box
+  source retains it.
+
+This completes the code/test slice without changing the saved Battle Team
+schema or the preflight/party-preparation route.
+
+## September 8, 2026 Interaction Order and Confirmation Defaults
+
+Storage confirmation dialogs now always open with `YES` selected. `A` accepts
+the affirmative action immediately, while `B` and the explicit `NO` entry keep
+their cancel behavior. The helper no longer accepts a per-call cursor
+position, which prevents different storage flows from drifting back to
+opposite defaults.
+
+The occupied Team slot menu now follows this semantic order:
+
+1. `SUMMARY` — safe, read-only inspection.
+2. `CHANGE` — replace the referenced source.
+3. `REORDER` — change the team's order.
+4. `REMOVE` — destructive team edit.
+5. `CANCEL` — leave the menu without an action.
+
+An empty slot exposes only `REGISTER` and `CANCEL`; `REORDER` has no meaningful
+target in that state. This keeps the initial cursor useful and places the
+destructive action after the reversible actions without changing the physical
+layout of the menu.
+
+## September 8, 2026 Continuation Runtime Gate
+
+The follow-up mGBA run `ux-remaining-20260908` validated the remaining
+interactive path on the rebuilt ROM. `START -> SINGLE FIRST 3` showed the
+opponent preview before preflight, `0/3 PARTY A:PREP B:BACK` appeared for an
+empty party, and `A:PREP` opened normal storage. Moving unregistered Box 2
+sources into the party and closing storage returned to the same Team 1
+preview. The native fixed tray displayed 32x32 icons, and a Box 2 source
+successfully replaced a slot in a full Team 1 (`6/6`, source `B02-01`). The
+cross-Box read-only Summary screen remains a separate unrecorded check.
+
+The same session reached `Party -> Joint Trace Double`, confirmed player-left
+`Tailwind` and player-right `Geomancy`, and exported the active battle to
+`/tmp/ux-remaining-20260908-live-export-turn0.json`. The export was
+`pokeemerald.battle_action_log.v5` with a valid trace signature, magic
+`0xA15C`, one plan, eight candidates, three boards, and four action entries.
+The plan and chosen candidate carried the expected `joint` / completed and
+`joint` / `chosen` flags; retained candidates included Mega and Xerneas-switch
+lines, and both opponent actions linked to plan 1 / rank 0. The before,
+predicted-after, and actual-after snapshots plus `board_comparison` were
+present. This runtime sample reported `matches: false` with `side`, `timers`,
+and `battler` differences, so exact board equality is not claimed. The mGBA
+session was stopped and its managed status returned to `[]`.
+
 ## July 16, 2026 Runtime-Lab Reapply
 
 - Integration target before this slice: `17b67dfe98`, produced by merged Box
@@ -79,7 +176,11 @@ Fresh validation passed:
 - The existing Lotad/Seedot size check now has a distinct non-destructive
   selection type instead of sharing the trade selection type, so registered
   sources remain eligible for that check.
-- Summary, marking, and held-item workflows are unchanged.
+- Summary, marking, and held-item workflows remain available. The Team slot
+  menu puts summary first so the initial cursor lands on the safe inspection
+  action; the normal PC context menu keeps its current-operation action first
+  when one is available, while a registered/locked source leads with summary
+  before `TEAM LOCK`, marking, and cancel.
 
 ### Box NPC Party Pool
 
@@ -89,6 +190,8 @@ Fresh validation passed:
 - `BOX_NPC_POOL_REGISTERED_BATTLE_TEAM` requires all six team slots to resolve.
 - Copy, healing, random member selection, AI flags, and pending gimmick policy
   reuse the existing Box NPC implementation.
+- Opponent copies are independent live party records: battle item consumption
+  affects the copy only and never writes back to the registered Box source.
 - Debug output logs candidate and final sources as `box:slot` pairs.
 
 ### Debug menu
@@ -170,10 +273,11 @@ to the repository's ignored `.cache/mgba-live-roms/` path and using the required
 - Team slots use Box coordinates, not immutable Pokemon identities. This matches
   the chosen save-efficient contract and UI lock policy.
 - The manager uses species names, not nicknames, in its compact grid.
-- Smart Gimmick AI and battle item restore are not part of this standalone
-  shelf. Smart is composed by the dedicated runtime-lab candidate at
-  `611933abf0`; battle item restore remains a separate previously implemented
-  feature shelf rather than being reimplemented here.
+- Smart Gimmick AI remains composed by the dedicated runtime-lab candidate at
+  `611933abf0`. The Battle Team slice now guarantees Box-source isolation for
+  consumed opponent held items; the broader configurable
+  `B_RESTORE_HELD_BATTLE_ITEMS` policy remains a separate battle-runtime
+  feature and is not implied by this copy-isolation guarantee.
 
 ## Merge Handoff
 

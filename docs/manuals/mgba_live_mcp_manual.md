@@ -170,7 +170,11 @@ switch-ins. Its entries include named moves / items / gimmicks, targets, switch-
 party indexes, selected-gimmick markers, corrected-switch markers, AI plan / rank
 links, reason tags, threat flags, and risk kinds. `gBattleAiTraceLog` schema version
 5 uses header magic `0xA15C` and records plans, their retained candidates, and board
-snapshots for the before, predicted-after, and actual-after phases.
+snapshots for the before, predicted-after, and actual-after phases. Each exported
+plan also includes `board_comparison`, which pairs the predicted-after and
+actual-after snapshots by plan ID and reports `matches`, a difference bitmask,
+and readable difference names for weather, field, side, timers, active-battler
+mask, and battler state.
 
 When both the trace version and magic match, the exporter writes schema
 `pokeemerald.battle_action_log.v5`. The top-level trace keys are

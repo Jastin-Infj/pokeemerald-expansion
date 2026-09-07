@@ -199,6 +199,17 @@ local AI_TRACE_BOARD_PHASE_NAMES = {
   [3] = "actual_after",
 }
 
+local AI_TRACE_BOARD_DIFF_NAMES = {
+  { mask = 1, name = "invalid" },
+  { mask = 2, name = "plan" },
+  { mask = 4, name = "weather" },
+  { mask = 8, name = "field" },
+  { mask = 16, name = "side" },
+  { mask = 32, name = "timers" },
+  { mask = 64, name = "battler_mask" },
+  { mask = 128, name = "battler" },
+}
+
 local function join_path(root, leaf)
   if root == "" or root == "." then
     return "./" .. leaf
@@ -728,6 +739,76 @@ local function read_trace_board(base, ring_index, species_names, item_names)
   }
 end
 
+local function compare_trace_boards(predicted, actual)
+  if predicted == nil or actual == nil or not predicted.valid or not actual.valid then
+    return {
+      available = false,
+      matches = false,
+      difference_flags = 1,
+      difference_names = { "invalid" },
+    }
+  end
+
+  local difference_flags = 0
+  local function add_difference(mask, condition)
+    if condition then
+      difference_flags = difference_flags + mask
+    end
+  end
+
+  add_difference(2, predicted.plan_id ~= actual.plan_id)
+  add_difference(4, predicted.weather ~= actual.weather)
+  add_difference(8, predicted.field_statuses ~= actual.field_statuses)
+  add_difference(16, predicted.side_statuses[1] ~= actual.side_statuses[1]
+                      or predicted.side_statuses[2] ~= actual.side_statuses[2])
+  add_difference(64, predicted.battler_mask ~= actual.battler_mask)
+
+  local timer_names = {
+    "tailwind",
+    "reflect",
+    "light_screen",
+    "aurora_veil",
+  }
+  local timers_differ = predicted.timers.trick_room ~= actual.timers.trick_room
+                     or predicted.timers.terrain ~= actual.timers.terrain
+                     or predicted.timers.gravity ~= actual.timers.gravity
+                     or predicted.timers.magic_room ~= actual.timers.magic_room
+  for _, timer_name in ipairs(timer_names) do
+    for side = 1, 2 do
+      if predicted.timers[timer_name][side] ~= actual.timers[timer_name][side] then
+        timers_differ = true
+      end
+    end
+  end
+  add_difference(32, timers_differ)
+
+  local battlers_differ = false
+  for battler = 1, #predicted.battlers do
+    local predicted_battler = predicted.battlers[battler]
+    local actual_battler = actual.battlers[battler]
+    if predicted_battler.species ~= actual_battler.species
+     or predicted_battler.hp ~= actual_battler.hp
+     or predicted_battler.max_hp ~= actual_battler.max_hp
+     or predicted_battler.item ~= actual_battler.item
+     or predicted_battler.status1 ~= actual_battler.status1 then
+      battlers_differ = true
+    end
+    for _, stat_name in ipairs(STAT_STAGE_NAMES) do
+      if predicted_battler.stat_stages[stat_name].raw ~= actual_battler.stat_stages[stat_name].raw then
+        battlers_differ = true
+      end
+    end
+  end
+  add_difference(128, battlers_differ)
+
+  return {
+    available = true,
+    matches = difference_flags == 0,
+    difference_flags = difference_flags,
+    difference_names = mask_name_list(difference_flags, AI_TRACE_BOARD_DIFF_NAMES),
+  }
+end
+
 local function read_trace_plan(base, ring_index, move_names, item_names, gimmick_names, battler_positions)
   local offset = base + AI_PLAN_OFFSET + ring_index * AI_PLAN_SIZE
   local flags = u8(offset + 30)
@@ -983,6 +1064,7 @@ if ai_trace_addr ~= nil then
         predicted_sequence = plan.board_predicted_after ~= nil and plan.board_predicted_after.sequence or nil,
         actual_sequence = plan.board_actual_after ~= nil and plan.board_actual_after.sequence or nil,
       }
+      plan.board_comparison = compare_trace_boards(plan.board_predicted_after, plan.board_actual_after)
 
       local prediction_results = {}
       for _, predicted in ipairs(plan.predicted_player_actions) do
