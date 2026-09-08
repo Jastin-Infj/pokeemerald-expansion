@@ -60,8 +60,12 @@ focused tests:
   linkage metadata, not board-state differences.
 - `tools/mgba_live/battle_action_log_export.lua` now emits
   `ai_plans[].board_comparison` with `matches`, `difference_flags`, and readable
-  `difference_names`, so a live export can distinguish a complete match from a
-  deliberate simulator/runtime divergence.
+  `difference_names`, plus field-level `difference_details` and a `diagnosis`
+  object. A live export can therefore distinguish a complete match, a command
+  linkage mismatch, and a simulator/runtime state divergence.
+- Trace battler status values now include `status1_names`, `sleep_turns`, and
+  `toxic_turns` so raw status changes remain directly inspectable without
+  guessing from a bit mask.
 - Random-N Battle Team selection is pinned by a deterministic test of the
   existing without-replacement shuffle. A rigged roll of `5` produces candidate
   order `5, 0, 1, 2` for Double 4, proving that repeated draws cannot duplicate
@@ -117,6 +121,16 @@ predicted-after, and actual-after snapshots plus `board_comparison` were
 present. This runtime sample reported `matches: false` with `side`, `timers`,
 and `battler` differences, so exact board equality is not claimed. The mGBA
 session was stopped and its managed status returned to `[]`.
+
+The `matches: false` result is now treated as a diagnostic fixture rather than
+an unexplained failure. In that sample, both predicted player action links and
+chosen AI action links were exact matches. The divergence is in post-turn
+state: predicted player-side Tailwind and the Skarmory Power Herb / +2 stages
+were not present on the actual board, while actual battler `status1` values were
+`3` and `4`, which decode to sleep counters. The compact v5 trace records the
+confirmed commands and the post-cleanup board, but not the event that caused an
+actual status change; the exporter therefore reports `runtime_state_divergence`
+without attributing that status to a specific move.
 
 ## July 16, 2026 Runtime-Lab Reapply
 

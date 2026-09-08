@@ -210,6 +210,18 @@ local AI_TRACE_BOARD_DIFF_NAMES = {
   { mask = 128, name = "battler" },
 }
 
+local STATUS1_SLEEP_MASK = 7
+local STATUS1_TOXIC_TURN_SHIFT = 8
+local STATUS1_TOXIC_TURN_MASK = 15
+local STATUS1_NAMES = {
+  { mask = 8, name = "poison" },
+  { mask = 16, name = "burn" },
+  { mask = 32, name = "freeze" },
+  { mask = 64, name = "paralysis" },
+  { mask = 128, name = "toxic_poison" },
+  { mask = 4096, name = "frostbite" },
+}
+
 local function join_path(root, leaf)
   if root == "" or root == "." then
     return "./" .. leaf
@@ -461,6 +473,34 @@ local function mask_name_list(value, definitions)
   return names
 end
 
+local function status1_summary(value)
+  local sleep_turns = value % (STATUS1_SLEEP_MASK + 1)
+  local toxic_turns = math.floor(value / (2 ^ STATUS1_TOXIC_TURN_SHIFT)) % (STATUS1_TOXIC_TURN_MASK + 1)
+  local names = {}
+
+  if sleep_turns ~= 0 then
+    names[#names + 1] = "sleep"
+  end
+  for _, info in ipairs(STATUS1_NAMES) do
+    if has_mask(value, info.mask) then
+      names[#names + 1] = info.name
+    end
+  end
+  if toxic_turns ~= 0 then
+    names[#names + 1] = "toxic_counter"
+  end
+  if #names == 0 then
+    names[#names + 1] = "none"
+  end
+
+  return {
+    raw = value,
+    names = names,
+    sleep_turns = sleep_turns,
+    toxic_turns = toxic_turns,
+  }
+end
+
 local function ai_threat_name_list(flags)
   local names = {}
   if flags == 0 then
@@ -693,6 +733,8 @@ local function read_trace_battler_state(offset, species_names, item_names)
 
   local species = u16(offset + 0)
   local item = u16(offset + 6)
+  local status1 = u32(offset + 8)
+  local status_info = status1_summary(status1)
   return {
     species = species,
     species_name = species_names[species] or ("SPECIES_" .. tostring(species)),
@@ -700,7 +742,10 @@ local function read_trace_battler_state(offset, species_names, item_names)
     max_hp = u16(offset + 4),
     item = item,
     item_name = item_names[item] or ("ITEM_" .. tostring(item)),
-    status1 = u32(offset + 8),
+    status1 = status1,
+    status1_names = status_info.names,
+    sleep_turns = status_info.sleep_turns,
+    toxic_turns = status_info.toxic_turns,
     stat_stages = stages,
   }
 end
@@ -746,10 +791,28 @@ local function compare_trace_boards(predicted, actual)
       matches = false,
       difference_flags = 1,
       difference_names = { "invalid" },
+      difference_details = {},
     }
   end
 
   local difference_flags = 0
+  local difference_details = {}
+  local function add_detail(scope, path, field, predicted_value, actual_value, extra)
+    local detail = {
+      scope = scope,
+      path = path,
+      field = field,
+      predicted = predicted_value,
+      actual = actual_value,
+    }
+    if extra ~= nil then
+      for key, value in pairs(extra) do
+        detail[key] = value
+      end
+    end
+    difference_details[#difference_details + 1] = detail
+  end
+
   local function add_difference(mask, condition)
     if condition then
       difference_flags = difference_flags + mask
@@ -757,11 +820,31 @@ local function compare_trace_boards(predicted, actual)
   end
 
   add_difference(2, predicted.plan_id ~= actual.plan_id)
+  if predicted.plan_id ~= actual.plan_id then
+    add_detail("plan", "plan_id", "plan_id", predicted.plan_id, actual.plan_id)
+  end
   add_difference(4, predicted.weather ~= actual.weather)
+  if predicted.weather ~= actual.weather then
+    add_detail("weather", "weather", "weather", predicted.weather, actual.weather)
+  end
   add_difference(8, predicted.field_statuses ~= actual.field_statuses)
+  if predicted.field_statuses ~= actual.field_statuses then
+    add_detail("field", "field.statuses", "field_statuses", predicted.field_statuses, actual.field_statuses)
+  end
   add_difference(16, predicted.side_statuses[1] ~= actual.side_statuses[1]
                       or predicted.side_statuses[2] ~= actual.side_statuses[2])
+  for side = 1, 2 do
+    if predicted.side_statuses[side] ~= actual.side_statuses[side] then
+      add_detail("side", "side[" .. tostring(side - 1) .. "].status", "side_status",
+        predicted.side_statuses[side], actual.side_statuses[side], {
+          side = side - 1,
+        })
+    end
+  end
   add_difference(64, predicted.battler_mask ~= actual.battler_mask)
+  if predicted.battler_mask ~= actual.battler_mask then
+    add_detail("battler_mask", "battler_mask", "battler_mask", predicted.battler_mask, actual.battler_mask)
+  end
 
   local timer_names = {
     "tailwind",
@@ -769,14 +852,28 @@ local function compare_trace_boards(predicted, actual)
     "light_screen",
     "aurora_veil",
   }
-  local timers_differ = predicted.timers.trick_room ~= actual.timers.trick_room
-                     or predicted.timers.terrain ~= actual.timers.terrain
-                     or predicted.timers.gravity ~= actual.timers.gravity
-                     or predicted.timers.magic_room ~= actual.timers.magic_room
+  local scalar_timer_names = {
+    "trick_room",
+    "terrain",
+    "gravity",
+    "magic_room",
+  }
+  local timers_differ = false
+  for _, timer_name in ipairs(scalar_timer_names) do
+    if predicted.timers[timer_name] ~= actual.timers[timer_name] then
+      timers_differ = true
+      add_detail("timers", "timers." .. timer_name, timer_name,
+        predicted.timers[timer_name], actual.timers[timer_name])
+    end
+  end
   for _, timer_name in ipairs(timer_names) do
     for side = 1, 2 do
       if predicted.timers[timer_name][side] ~= actual.timers[timer_name][side] then
         timers_differ = true
+        add_detail("timers", "timers." .. timer_name .. "[" .. tostring(side - 1) .. "]", timer_name,
+          predicted.timers[timer_name][side], actual.timers[timer_name][side], {
+            side = side - 1,
+          })
       end
     end
   end
@@ -786,16 +883,63 @@ local function compare_trace_boards(predicted, actual)
   for battler = 1, #predicted.battlers do
     local predicted_battler = predicted.battlers[battler]
     local actual_battler = actual.battlers[battler]
-    if predicted_battler.species ~= actual_battler.species
-     or predicted_battler.hp ~= actual_battler.hp
-     or predicted_battler.max_hp ~= actual_battler.max_hp
-     or predicted_battler.item ~= actual_battler.item
-     or predicted_battler.status1 ~= actual_battler.status1 then
+    local battler_index = battler - 1
+    if predicted_battler.species ~= actual_battler.species then
       battlers_differ = true
+      add_detail("battler", "battler[" .. tostring(battler_index) .. "].species", "species",
+        predicted_battler.species, actual_battler.species, {
+          battler = battler_index,
+          predicted_name = predicted_battler.species_name,
+          actual_name = actual_battler.species_name,
+        })
+    end
+    if predicted_battler.hp ~= actual_battler.hp then
+      battlers_differ = true
+      add_detail("battler", "battler[" .. tostring(battler_index) .. "].hp", "hp",
+        predicted_battler.hp, actual_battler.hp, {
+          battler = battler_index,
+        })
+    end
+    if predicted_battler.max_hp ~= actual_battler.max_hp then
+      battlers_differ = true
+      add_detail("battler", "battler[" .. tostring(battler_index) .. "].max_hp", "max_hp",
+        predicted_battler.max_hp, actual_battler.max_hp, {
+          battler = battler_index,
+        })
+    end
+    if predicted_battler.item ~= actual_battler.item then
+      battlers_differ = true
+      add_detail("battler", "battler[" .. tostring(battler_index) .. "].item", "item",
+        predicted_battler.item, actual_battler.item, {
+          battler = battler_index,
+          predicted_name = predicted_battler.item_name,
+          actual_name = actual_battler.item_name,
+        })
+    end
+    if predicted_battler.status1 ~= actual_battler.status1 then
+      battlers_differ = true
+      add_detail("battler", "battler[" .. tostring(battler_index) .. "].status1", "status1",
+        predicted_battler.status1, actual_battler.status1, {
+          battler = battler_index,
+          predicted_names = predicted_battler.status1_names,
+          actual_names = actual_battler.status1_names,
+          predicted_sleep_turns = predicted_battler.sleep_turns,
+          actual_sleep_turns = actual_battler.sleep_turns,
+          predicted_toxic_turns = predicted_battler.toxic_turns,
+          actual_toxic_turns = actual_battler.toxic_turns,
+        })
     end
     for _, stat_name in ipairs(STAT_STAGE_NAMES) do
       if predicted_battler.stat_stages[stat_name].raw ~= actual_battler.stat_stages[stat_name].raw then
         battlers_differ = true
+        add_detail("battler", "battler[" .. tostring(battler_index) .. "].stat_stages." .. stat_name,
+          "stat_stage", predicted_battler.stat_stages[stat_name].raw,
+          actual_battler.stat_stages[stat_name].raw, {
+            battler = battler_index,
+            stat = stat_name,
+            predicted_delta = predicted_battler.stat_stages[stat_name].delta,
+            actual_delta = actual_battler.stat_stages[stat_name].delta,
+          })
       end
     end
   end
@@ -806,7 +950,145 @@ local function compare_trace_boards(predicted, actual)
     matches = difference_flags == 0,
     difference_flags = difference_flags,
     difference_names = mask_name_list(difference_flags, AI_TRACE_BOARD_DIFF_NAMES),
+    difference_details = difference_details,
   }
+end
+
+local function summarize_action_results(results)
+  local count = results == nil and 0 or #results
+  local all_match = count > 0
+  if results ~= nil then
+    for _, result in ipairs(results) do
+      if not result.available or not result.full_match then
+        all_match = false
+      end
+    end
+  end
+  return {
+    available = count > 0,
+    count = count,
+    all_match = all_match,
+  }
+end
+
+local function index_details_by_path(details)
+  local indexed = {}
+  for _, detail in ipairs(details or {}) do
+    indexed[detail.path] = detail
+  end
+  return indexed
+end
+
+local function transition_detail(detail, actual_detail)
+  local result = {
+    scope = detail.scope,
+    path = detail.path,
+    field = detail.field,
+    before = detail.predicted,
+    predicted_after = detail.actual,
+    actual_after = actual_detail == nil and detail.predicted or actual_detail.actual,
+  }
+  if detail.side ~= nil then result.side = detail.side end
+  if detail.battler ~= nil then result.battler = detail.battler end
+  if detail.stat ~= nil then result.stat = detail.stat end
+  if detail.predicted_name ~= nil then result.before_name = detail.predicted_name end
+  if detail.actual_name ~= nil then
+    result.predicted_after_name = detail.actual_name
+    result.actual_after_name = actual_detail == nil and detail.predicted_name or actual_detail.actual_name
+  end
+  if detail.predicted_names ~= nil then result.before_names = detail.predicted_names end
+  if detail.actual_names ~= nil then
+    result.predicted_after_names = detail.actual_names
+    result.actual_after_names = actual_detail == nil and detail.predicted_names or actual_detail.actual_names
+  end
+  if detail.predicted_sleep_turns ~= nil then
+    result.before_sleep_turns = detail.predicted_sleep_turns
+    result.predicted_after_sleep_turns = detail.actual_sleep_turns
+    result.actual_after_sleep_turns = actual_detail == nil and detail.predicted_sleep_turns or actual_detail.actual_sleep_turns
+  end
+  if detail.predicted_toxic_turns ~= nil then
+    result.before_toxic_turns = detail.predicted_toxic_turns
+    result.predicted_after_toxic_turns = detail.actual_toxic_turns
+    result.actual_after_toxic_turns = actual_detail == nil and detail.predicted_toxic_turns or actual_detail.actual_toxic_turns
+  end
+  if detail.predicted_delta ~= nil then
+    result.before_delta = detail.predicted_delta
+    result.predicted_after_delta = detail.actual_delta
+    result.actual_after_delta = actual_detail == nil and detail.predicted_delta or actual_detail.actual_delta
+  end
+  return result
+end
+
+local function diagnose_trace_board(before, predicted, actual, comparison, prediction_results, chosen_actual_results)
+  local predicted_player_actions = summarize_action_results(prediction_results)
+  local chosen_ai_actions = summarize_action_results(chosen_actual_results)
+  local links_match = predicted_player_actions.available
+                    and predicted_player_actions.all_match
+                    and chosen_ai_actions.available
+                    and chosen_ai_actions.all_match
+  local diagnosis = {
+    available = comparison ~= nil and comparison.available or false,
+    code = "missing_snapshot",
+    confidence = "none",
+    summary = "predicted-after and actual-after snapshots are not both available",
+    action_links = {
+      predicted_player = predicted_player_actions,
+      chosen_ai = chosen_ai_actions,
+      match = links_match,
+    },
+    predicted_effects_missing = {},
+    actual_state_changes = {},
+    notes = {
+      "Action-log entries represent confirmed commands, not successful move execution.",
+      "predicted_after is the simulator result; actual_after is captured after live end-turn cleanup.",
+      "The compact trace does not identify the event that caused an actual status change.",
+    },
+  }
+
+  if comparison == nil or not comparison.available then
+    return diagnosis
+  end
+  if before == nil or not before.valid then
+    diagnosis.code = "missing_before_snapshot"
+    diagnosis.summary = "predicted-after and actual-after are available, but the before snapshot is missing"
+    return diagnosis
+  end
+
+  local predicted_transition = compare_trace_boards(before, predicted)
+  local actual_transition = compare_trace_boards(before, actual)
+  local actual_details = index_details_by_path(actual_transition.difference_details)
+  for _, detail in ipairs(actual_transition.difference_details) do
+    diagnosis.actual_state_changes[#diagnosis.actual_state_changes + 1] = transition_detail(detail, detail)
+  end
+  for _, detail in ipairs(predicted_transition.difference_details) do
+    local actual_detail = actual_details[detail.path]
+    if actual_detail == nil or actual_detail.actual ~= detail.actual then
+      diagnosis.predicted_effects_missing[#diagnosis.predicted_effects_missing + 1] = transition_detail(detail, actual_detail)
+    end
+  end
+
+  if not links_match then
+    diagnosis.code = "action_command_mismatch"
+    diagnosis.confidence = "observed"
+    diagnosis.summary = "predicted and confirmed action links differ or are incomplete"
+  elseif #diagnosis.predicted_effects_missing > 0 and #diagnosis.actual_state_changes > 0 then
+    diagnosis.code = "runtime_state_divergence"
+    diagnosis.confidence = "observed"
+    diagnosis.summary = "confirmed action links match, but simulated effects are absent from the actual post-turn board while actual state changed"
+  elseif #diagnosis.predicted_effects_missing > 0 then
+    diagnosis.code = "predicted_effect_not_observed"
+    diagnosis.confidence = "observed"
+    diagnosis.summary = "confirmed action links match, but one or more simulated effects are absent from the actual post-turn board"
+  elseif comparison.matches then
+    diagnosis.code = "none"
+    diagnosis.confidence = "high"
+    diagnosis.summary = "predicted and actual post-turn board states match"
+  else
+    diagnosis.code = "unclassified_state_divergence"
+    diagnosis.confidence = "observed"
+    diagnosis.summary = "board states differ, but the difference is not attributable to a predicted effect in this trace"
+  end
+  return diagnosis
 end
 
 local function read_trace_plan(base, ring_index, move_names, item_names, gimmick_names, battler_positions)
@@ -1095,6 +1377,13 @@ if ai_trace_addr ~= nil then
           end
         end
       end
+      plan.board_comparison.diagnosis = diagnose_trace_board(
+        plan.board_before,
+        plan.board_predicted_after,
+        plan.board_actual_after,
+        plan.board_comparison,
+        plan.prediction_results,
+        plan.chosen_actual_results)
       ai_plans[#ai_plans + 1] = plan
     end
   end

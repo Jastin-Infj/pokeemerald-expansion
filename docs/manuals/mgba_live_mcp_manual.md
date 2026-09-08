@@ -174,7 +174,19 @@ snapshots for the before, predicted-after, and actual-after phases. Each exporte
 plan also includes `board_comparison`, which pairs the predicted-after and
 actual-after snapshots by plan ID and reports `matches`, a difference bitmask,
 and readable difference names for weather, field, side, timers, active-battler
-mask, and battler state.
+mask, and battler state. When a pair is available, `difference_details` lists
+the exact differing paths and values. `board_comparison.diagnosis` separately
+reports command-link status and classifies a mismatch as, for example,
+`action_command_mismatch` or `runtime_state_divergence`; battler snapshots also
+include status names plus `sleep_turns` / `toxic_turns` decoded from `status1`.
+
+The action log is a confirmed-command log, not a move-success log. The
+`predicted_after` board is the AI simulator result, while `actual_after` is
+captured after live end-turn cleanup. Therefore `matches: false` does not by
+itself mean that command selection was wrong: inspect `diagnosis`, then the
+field-level details. The compact v5 trace does not identify the event that
+caused an actual status change, so the exporter does not infer a specific move
+from a raw status value.
 
 When both the trace version and magic match, the exporter writes schema
 `pokeemerald.battle_action_log.v5`. The top-level trace keys are
@@ -229,6 +241,9 @@ A successful joint-path sample must satisfy all of the following:
   rank.
 - the before, predicted-after, and actual-after boards are present, and prediction /
   actual action links agree.
+- `board_comparison.diagnosis` is present. If strict board equality is false,
+  record its classification and inspect `difference_details`; do not treat the
+  mismatch as an action-link failure unless the diagnosis reports one.
 
 The fixture proves shared-plan arbitration, prospective Mega and reserve-switch
 visibility, command linkage, and v5 export. It does not export the raw stochastic

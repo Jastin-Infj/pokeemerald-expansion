@@ -50,9 +50,15 @@ Branch: `integration/team-box-ai-validation-20260907`, starting at
   verifies that the registered Box source still holds its Oran Berry.
 - The mGBA session was stopped cleanly; final managed status was `[]`.
 
-The new live-export field `ai_plans[].board_comparison` reports whether the
+The live-export field `ai_plans[].board_comparison` reports whether the
 predicted-after and actual-after snapshots match and names any differences
-(`weather`, `field`, `side`, `timers`, `battler_mask`, or `battler`).
+(`weather`, `field`, `side`, `timers`, `battler_mask`, or `battler`). It now also
+contains field-level `difference_details` and `diagnosis`. The diagnosis checks
+the predicted-player and chosen-AI command links separately from board state;
+it reports `runtime_state_divergence` when those links match but simulated
+effects are absent from the actual post-turn board while the actual board
+changed. Battler `status1` differences expose state names and sleep / toxic
+counters.
 
 ## September 8, 2026 interaction-order checks
 
@@ -123,9 +129,13 @@ was `[]`.
   Xerneas reserve, both opponent entries link to plan 1 / rank 0, and
   before/predicted-after/actual-after snapshots are present.
 - `ai_plans[0].board_comparison` was available, but this run reported
-  `matches: false` with `side`, `timers`, and `battler` differences. The live
-  export gate is therefore closed for obtaining a v5 comparison sample, while
-  exact predicted-board = actual-board equality remains an open follow-up.
+  `matches: false` with `side`, `timers`, and `battler` differences. The
+  predicted-player and chosen-AI action links both matched exactly, so the
+  mismatch is a runtime-state divergence: predicted Tailwind and the Skarmory
+  Power Herb / +2 stages were absent from the actual board, while actual
+  `status1` values `3` and `4` decode to sleep counters. The compact trace does
+  not identify the event that caused that status change. Exact
+  predicted-board = actual-board equality remains a separate follow-up.
 - The temporary ROM and save were moved to `/tmp` after shutdown; no mGBA
   session or process remained.
 
@@ -262,8 +272,8 @@ Setup failures retained as evidence:
 ## Manual Follow-Up
 
 - Repeat the live AI export with a board-comparison-matching fixture if exact
-  predicted-after = actual-after equality is required. The v5 export and
-  `ai_plans[].board_comparison` sample are now recorded above.
+  predicted-after = actual-after equality is required. The v5 export and the
+  field-level mismatch diagnosis are now recorded above.
 - Confirm first-N lead order and random-N rerolls in repeated visible runs.
 - Consume an opponent Berry in a visible battle and confirm the Box source item
   is unchanged after battle.
