@@ -181,6 +181,10 @@ Fresh validation passed:
   action; the normal PC context menu keeps its current-operation action first
   when one is available, while a registered/locked source leads with summary
   before `TEAM LOCK`, marking, and cancel.
+- Team-slot Summary resolves the registered `{boxId, boxPosition}` through the
+  normal Box-mon list path, but passes `SUMMARY_MODE_BOX_READ_ONLY` with a
+  one-record range. This keeps cross-Box references on their actual source
+  coordinate while disabling source navigation and all Summary mutations.
 
 ### Box NPC Party Pool
 

@@ -8214,9 +8214,15 @@ static void InitSummaryScreenData(void)
 
         if (BattleTeam_TryGetMember(sStorage->battleTeamId, sCursorPosition, &slot))
         {
-            sStorage->summaryMon.box = GetBoxedMonPtr(slot.boxId, slot.boxPosition);
-            sStorage->summaryStartPos = 0;
-            sStorage->summaryMaxPos = 0;
+            // Keep the normal Box summary representation: the pointer is the
+            // start of the referenced Box and the position identifies the
+            // registered source inside that Box. This is important when a
+            // Team slot points outside the currently displayed Box; passing a
+            // pointer to the individual record would hide that coordinate
+            // from the Summary screen's Box-mon path.
+            sStorage->summaryMon.box = GetBoxedMonPtr(slot.boxId, 0);
+            sStorage->summaryStartPos = slot.boxPosition;
+            sStorage->summaryMaxPos = slot.boxPosition;
             sStorage->summaryScreenMode = SUMMARY_MODE_BOX_READ_ONLY;
         }
     }
