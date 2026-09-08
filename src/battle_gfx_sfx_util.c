@@ -79,7 +79,7 @@ static const struct CompressedSpriteSheet sSpriteSheets_HealthBar[MAX_BATTLERS_C
 const struct SpritePalette sSpritePalettes_HealthBoxHealthBar[2] =
 {
     {gBattleInterface_BallStatusBarPal, TAG_HEALTHBOX_PAL},
-    {gBattleInterface_BallDisplayPal, TAG_HEALTHBAR_PAL}
+    {gBattleInterface_HealthbarXYPal, TAG_HEALTHBAR_PAL}
 };
 
 const struct CompressedSpriteSheet gSpriteSheet_EnemyShadow =
