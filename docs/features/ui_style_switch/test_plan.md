@@ -67,3 +67,50 @@ Cleanup: ui-style-normal, ui-style-debug (modal-blocked launch), and
 ui-style-runtime explicitly stopped; final project CLI status --all returned [].
 
 Final normal ROM SHA256: `85b74df9be21c51a434c1c3eb23f036976ed77732e722940859a4df8e40f6f38`.
+
+## Background contrast and outline
+
+Follow-up verified 2026-09-09:
+
+- Final debug and normal builds passed (`/tmp/ui-contrast-outline-debug.log`,
+  `/tmp/ui-contrast-all.log`). First compile exposed an include-order dependency
+  on battle.h; corrected before successful builds.
+- Real emulator screenshots of all 23 implemented backgrounds, with four distinct
+  statuses and a 10-character partner name: `evidence/contrast/00-*.png` through
+  `22-*.png`, and `all-backgrounds.png`. Native images were visually inspected
+  together. This verifies the loaded graphics and selected text colors, not
+  natural travel to every map or every battle-entry animation.
+- The final outline crosses the healthbox sprite seam. Repeated redraws retain
+  a one-pixel outline. A long partner name was changed to A and redrawn:
+  `nickname-short.png` shows no previous name or outline left behind.
+- DEFAULT was selected in the disposable in-memory options and a fresh single
+  battle entered: `default-regression.png` retains the original panels/colors.
+- UI-style save regression passed before the outline addition (1/1); the outline
+  does not touch the save layout. Final focused battle regression is recorded
+  below after completion.
+
+The controlled environment probe is reproducible with
+`tools/mgba_live/ui_contrast_fixture.py`. After `make debug`, run it with devkitARM
+on PATH. It reads matching ELF symbols, asserts that a small reserved tail of the
+32MB ROM is unused, and writes a separate `.cache/ui-contrast/contrast.gba`.
+The inserted Thumb probe calls the unmodified production background loader and
+four production healthbox redraw functions. It does not change the normal ROM.
+Enter the existing full doubles fixture, then use `--capture SESSION`; each
+background is selected in memory, drawn, and normal main callback restored.
+The existing double fixture addresses were resolved against this ELF (EWRAM
+shifted eight bytes because of the new cached choices). All saves used here were
+copies of the prior disposable UI-style test save.
+
+The contact sheet is a labeled assembly of native screenshots, not generated
+artwork. HP/EXP arithmetic, animated weather overlays and all languages were not
+retested by this color correction. Palette choice deliberately remains stable
+during transient animation backgrounds; the outline provides contrast there.
+
+Final normal ROM SHA256: `ce20a192363133c52fe02c9931d807a046f192ec68b27664179243b51338a62c`.
+Probe ROM SHA256: `9b0938ea3f33a2baacbe7f45cfa63f9d3d82120c9f33e60627aa13b1307ed875`.
+
+Final focused regression: `rtk make -j16 -O check TESTS="Paralyze Heal heals a
+battler from being paralyzed"` passed 1/1 (`/tmp/ui-contrast-regression.log`).
+This is a battle regression check, not a pixel comparison assertion.
+Cleanup: ui-contrast and ui-contrast-final stopped; final CLI `status --all` = [].
+No push/merge or long GitHub Actions wait was performed.

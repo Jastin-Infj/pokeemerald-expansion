@@ -37,3 +37,24 @@ no master merge or remote publish has been performed.
 | ![Default doubles](evidence/double-default-bars.png) | ![XY doubles](evidence/double-xy-bars.png) |
 
 ![Option selector](evidence/option-xy.png)
+
+## Background-aware XY text (2026-09-09)
+
+XY names previously used cream text on every arena, making them difficult to
+read on bright backgrounds. The palette now provides RGB555(3,4,6), displayed
+approximately as **#182131**, and RGB555(31,31,31), **#FFFFFF**. Each healthbox
+chooses the dark or light foreground from the brightness of its actual name and
+level background region. The opposite color provides the shadow. Names also
+receive a full 1px outline, including colored gender marks; the 57x13 clear area
+removes the old outline when a long nickname becomes a short one.
+
+The loader samples the decoded BG3 tilemap and RGB555 palette after environment
+selection, including per-tile palette banks and horizontal/vertical flips. It
+caches results for both single and double resting positions; transient move
+animations do not make the text color oscillate. The same selection is used for
+name, level and HP text. DEFAULT retains its original palette and rendering.
+
+[All 23 implemented background comparisons](evidence/contrast/all-backgrounds.png)
+show the production loader and HUD renderer in a controlled 2v2 probe. The extra
+Nature Power environments without dedicated artwork are not counted as new
+backgrounds. [Validation details](test_plan.md#background-contrast-and-outline).

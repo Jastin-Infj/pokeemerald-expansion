@@ -567,14 +567,10 @@ static const struct WindowTemplate sHealthboxWindowTemplate = {
     .baseBlock = 0
 };
 
-// XY battle text floats over the arena; unrelated popup/Safari text keeps its palette.
-static const union TextColor sXYHealthBoxTextColor =
-{
-    .background = 0,
-    .foreground = 2,
-    .shadow = 1,
-    .accent = 0
-};
+// Keep the choice stable while move animations temporarily replace the arena.
+EWRAM_DATA static bool8 sXYHealthboxDarkText[BATTLE_COORDS_COUNT][MAX_BATTLERS_COUNT] = {0};
+
+static union TextColor GetHealthboxTextColor(enum BattlerId battler);
 
 static const union TextColor sHealthBoxTextColor =
 {
@@ -861,6 +857,65 @@ void GetBattlerHealthboxCoords(enum BattlerId battler, s16 *x, s16 *y)
     *y = sBattlerHealthboxCoords[index][position][1];
 }
 
+// Called immediately after the real arena tiles, map and palette are loaded.
+// Sample each name/level band in its resting position, not the sliding sprites.
+void RefreshHealthboxTextColors(void)
+{
+    const u16 *tilemap = (const u16 *)BG_SCREEN_ADDR(26);
+    const u8 *tiles = (const u8 *)BG_CHAR_ADDR(2);
+    u32 coords, position;
+
+    for (coords = 0; coords < BATTLE_COORDS_COUNT; coords++)
+    {
+        for (position = 0; position < MAX_BATTLERS_COUNT; position++)
+        {
+            s16 left = sBattlerHealthboxCoords[coords][position][0] - 32;
+            s16 top = sBattlerHealthboxCoords[coords][position][1] - 16;
+            u32 brightness = 0, samples = 0;
+            s16 x, y;
+
+            // Name and level share one legible color; sample every other pixel.
+            for (y = top + 5; y < top + 16; y += 2)
+            {
+                for (x = left + 8; x < left + 96; x += 2)
+                {
+                    u16 entry, color;
+                    u32 tx, ty, pixel;
+                    if (x < 0 || x >= DISPLAY_WIDTH || y < 0 || y >= DISPLAY_HEIGHT)
+                        continue;
+                    entry = tilemap[(y / 8) * 32 + x / 8];
+                    tx = x & 7;
+                    ty = y & 7;
+                    if (entry & (1 << 10))
+                        tx = 7 - tx;
+                    if (entry & (1 << 11))
+                        ty = 7 - ty;
+                    pixel = tiles[(entry & 0x3FF) * 32 + ty * 4 + tx / 2];
+                    pixel = (pixel >> ((tx & 1) * 4)) & 15;
+                    color = gPlttBufferUnfaded[pixel == 0 ? 0 : (entry >> 12) * 16 + pixel];
+                    // RGB555 luma, weighted towards green. Threshold at 14/31.
+                    brightness += (color & 31) * 54 + ((color >> 5) & 31) * 183 + ((color >> 10) & 31) * 19;
+                    samples++;
+                }
+            }
+            sXYHealthboxDarkText[coords][position] = brightness >= samples * 14 * 256;
+        }
+    }
+}
+
+static union TextColor GetHealthboxTextColor(enum BattlerId battler)
+{
+    union TextColor color = sHealthBoxTextColor;
+
+    if (IsUiStyleXY())
+    {
+        bool32 dark = sXYHealthboxDarkText[GetBattlerCoordsIndex(battler)][GetBattlerPosition(battler)];
+        color.foreground = dark ? 1 : 2;
+        color.shadow = dark ? 2 : 1;
+    }
+    return color;
+}
+
 void InitBattlerHealthboxCoords(enum BattlerId battler)
 {
     s16 x, y;
@@ -896,12 +951,12 @@ static void UpdateLvlInHealthbox(u8 healthboxSpriteId, u8 lvl)
     if (IsOnPlayerSide(battler))
     {
         FillSpriteRectColor(spriteId, 8, 5, 24, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(spriteId, FONT_SMALL, 32 - width, 3, 0, 0, (IsUiStyleXY() ? sXYHealthBoxTextColor : sHealthBoxTextColor), 0, text);
+        AddSpriteTextPrinterParameterized6(spriteId, FONT_SMALL, 32 - width, 3, 0, 0, GetHealthboxTextColor(gSprites[healthboxSpriteId].hMain_Battler), 0, text);
     }
     else
     {
         FillSpriteRectColor(spriteId, 0, 5, 24, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(spriteId, FONT_SMALL, 24 - width, 3, 0, 0, (IsUiStyleXY() ? sXYHealthBoxTextColor : sHealthBoxTextColor), 0, text);
+        AddSpriteTextPrinterParameterized6(spriteId, FONT_SMALL, 24 - width, 3, 0, 0, GetHealthboxTextColor(gSprites[healthboxSpriteId].hMain_Battler), 0, text);
     }
 }
 
@@ -934,9 +989,9 @@ static void PrintHpOnHealthbox(u32 spriteId, s16 currHp, s16 maxHp, u32 bgColor,
 
     width = GetStringWidth(HP_FONT, text, -1) + GetFontAttribute(HP_FONT, FONTATTR_LETTER_SPACING);
     if (width < 32)
-        AddSpriteTextPrinterParameterized6(spriteId2, HP_FONT, 32 - width, yOffset + 5, 0, 0, (IsUiStyleXY() ? sXYHealthBoxTextColor : sHealthBoxTextColor), 0, text);
+        AddSpriteTextPrinterParameterized6(spriteId2, HP_FONT, 32 - width, yOffset + 5, 0, 0, GetHealthboxTextColor(gSprites[spriteId].hMain_Battler), 0, text);
     else
-        AddSpriteTextPrinterParameterized6(spriteId, HP_FONT, 64 - (width - 32), yOffset + 5, 0, 0, (IsUiStyleXY() ? sXYHealthBoxTextColor : sHealthBoxTextColor), 0, text);
+        AddSpriteTextPrinterParameterized6(spriteId, HP_FONT, 64 - (width - 32), yOffset + 5, 0, 0, GetHealthboxTextColor(gSprites[spriteId].hMain_Battler), 0, text);
 
     gSprites[spriteId].data[1] = savedValue1;
     gSprites[spriteId2].data[1] = savedValue2;
@@ -1691,6 +1746,56 @@ static void SpriteCB_StatusSummaryBalls_OnSwitchout(struct Sprite *sprite)
     sprite->y2 = gSprites[barSpriteId].y2;
 }
 
+// The nickname can cross the seam between the two 64-pixel healthbox sprites.
+static u32 *GetHealthboxPixelRow(u8 spriteId, u32 x, u32 y)
+{
+    if (x >= 64)
+    {
+        spriteId = gSprites[spriteId].oam.affineParam;
+        x -= 64;
+    }
+    return (u32 *)(OBJ_VRAM0 + gSprites[spriteId].oam.tileNum * TILE_SIZE_4BPP
+                   + (y / 8) * 256 + (x / 8) * 32 + (y & 7) * 4);
+}
+
+static void OutlineHealthboxNickname(u8 spriteId, u32 left)
+{
+    u8 pixels[13][57];
+    union TextColor color = GetHealthboxTextColor(gSprites[spriteId].hMain_Battler);
+    s32 x, y, dx, dy;
+
+    // Snapshot first: newly written outline pixels must never grow another rim.
+    for (y = 0; y < 13; y++)
+        for (x = 0; x < 57; x++)
+            pixels[y][x] = (*GetHealthboxPixelRow(spriteId, left + x, 4 + y) >> (((left + x) & 7) * 4)) & 15;
+
+    for (y = 0; y < 13; y++)
+    {
+        for (x = 0; x < 57; x++)
+        {
+            bool32 edge = FALSE;
+            if (pixels[y][x] != 0 && pixels[y][x] != color.shadow)
+                continue;
+            for (dy = -1; dy <= 1; dy++)
+            {
+                for (dx = -1; dx <= 1; dx++)
+                {
+                    s32 nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < 57 && ny >= 0 && ny < 13
+                     && pixels[ny][nx] != 0 && pixels[ny][nx] != color.shadow)
+                        edge = TRUE;
+                }
+            }
+            if (edge)
+            {
+                u32 shift = ((left + x) & 7) * 4;
+                u32 *row = GetHealthboxPixelRow(spriteId, left + x, 4 + y);
+                *row = (*row & ~(15u << shift)) | (color.shadow << shift);
+            }
+        }
+    }
+}
+
 void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
 {
     u32 healthboxSpriteId2 = gSprites[healthboxSpriteId].oam.affineParam;
@@ -1739,14 +1844,23 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
 
     if (IsOnPlayerSide(gSprites[healthboxSpriteId].data[6]))
     {
-        FillSpriteRectColor(healthboxSpriteId, 16, 5, 55, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 16, 3, 0, 0, (IsUiStyleXY() ? sXYHealthBoxTextColor : sHealthBoxTextColor), 0, gDisplayedStringBattle);
+        if (IsUiStyleXY())
+            FillSpriteRectColor(healthboxSpriteId, 15, 4, 57, 13, 0);
+        else
+            FillSpriteRectColor(healthboxSpriteId, 16, 5, 55, 11, HEALTHBOX_BG_INDEX);
+        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 16, 3, 0, 0, GetHealthboxTextColor(gSprites[healthboxSpriteId].hMain_Battler), 0, gDisplayedStringBattle);
     }
     else
     {
-        FillSpriteRectColor(healthboxSpriteId, 8, 5, 55, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 8, 3, 0, 0, (IsUiStyleXY() ? sXYHealthBoxTextColor : sHealthBoxTextColor), 0, gDisplayedStringBattle);
+        if (IsUiStyleXY())
+            FillSpriteRectColor(healthboxSpriteId, 7, 4, 57, 13, 0);
+        else
+            FillSpriteRectColor(healthboxSpriteId, 8, 5, 55, 11, HEALTHBOX_BG_INDEX);
+        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 8, 3, 0, 0, GetHealthboxTextColor(gSprites[healthboxSpriteId].hMain_Battler), 0, gDisplayedStringBattle);
     }
+
+    if (IsUiStyleXY())
+        OutlineHealthboxNickname(healthboxSpriteId, IsOnPlayerSide(gSprites[healthboxSpriteId].hMain_Battler) ? 15 : 7);
 
     gSprites[healthboxSpriteId].data[1] = savedValue1;
     gSprites[healthboxSpriteId2].data[1] = savedValue2;

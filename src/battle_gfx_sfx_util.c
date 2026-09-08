@@ -722,6 +722,15 @@ static void LoadHealthboxSheet(const struct CompressedSpriteSheet *sheet)
     LoadCompressedSpriteSheet(&styled);
 }
 
+static void LoadHealthboxPalette(void)
+{
+    static const u16 sXYTextColors[] = {RGB(3, 4, 6), RGB(31, 31, 31)};
+
+    LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[0]);
+    if (IsUiStyleXY())
+        LoadPalette(sXYTextColors, OBJ_PLTT_ID(IndexOfSpritePaletteTag(TAG_HEALTHBOX_PAL)) + 1, sizeof(sXYTextColors));
+}
+
 static void LoadHealthbarPalette(void)
 {
     struct SpritePalette palette = sSpritePalettes_HealthBoxHealthBar[1];
@@ -736,7 +745,7 @@ void BattleLoadAllHealthBoxesGfxAtOnce(void)
     u8 numberOfBattlers = 0;
     u8 i;
 
-    LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[0]);
+    LoadHealthboxPalette();
     LoadHealthbarPalette();
     if (!IsDoubleBattle())
     {
@@ -764,7 +773,7 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
     {
         if (state == 1)
         {
-            LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[0]);
+            LoadHealthboxPalette();
             LoadHealthbarPalette();
             CategoryIcons_LoadSpritesGfx();
         }
