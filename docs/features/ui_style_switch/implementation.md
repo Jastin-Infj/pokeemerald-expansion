@@ -1,5 +1,20 @@
 # Runtime UI style selection
 
+## Rounded HP endpoint (2026-09-09)
+
+The XY HP strip previously ended with the same open, straight tile used in its
+middle, making the right edge look cut off. After copying the six HP tiles,
+`src/battle_interface.c` now closes the final tile with palette-index-1 ink and
+transparent, two-pixel rounded corners. Word writes respect OBJ VRAM access
+requirements. Applying the cap after every redraw preserves it during HP updates
+and restoration from the doubles numeric display, at every fill color and value.
+The logical 48-pixel HP scale, thresholds, sprite allocation and default style
+are unchanged. The rounded edge covers the outermost fill pixels; source tile
+sheets remain reusable straight segments, with the endpoint composed at runtime.
+See `test_plan.md` and `evidence/hp-cap/` for matching-ROM verification.
+
+## Style selection
+
 Work branch: `feature/ui-style-switch-20260909`, extending the existing
 `feature/xy-status-hud-20260908` implementation at `2c51798fe1`.
 

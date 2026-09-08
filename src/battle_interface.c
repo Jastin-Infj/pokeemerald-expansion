@@ -2280,6 +2280,19 @@ static void MoveBattleBarGraphically(enum BattlerId battler, u8 whichBar)
                 CpuCopy32(GetHealthboxElementGfxPtr(barElementId) + array[i] * 32,
                           (void *)(OBJ_VRAM0 + 64 + (i + gSprites[healthbarSpriteId].oam.tileNum) * TILE_SIZE_4BPP), 32);
         }
+        if (IsUiStyleXY())
+        {
+            // Round only the final tile; all six tiles keep their HP fill width.
+            // OBJ VRAM requires halfword/word writes, including transparent corners.
+            u8 healthbarSpriteId = gSprites[gBattleSpritesDataPtr->battleBars[battler].healthboxSpriteId].hMain_HealthBarSpriteId;
+            volatile u32 *end = (volatile u32 *)(OBJ_VRAM0 + (gSprites[healthbarSpriteId].oam.tileNum + 7) * TILE_SIZE_4BPP);
+            end[1] &= 0x00FFFFFF;
+            end[2] = (end[2] & 0x00FFFFFF) | 0x01000000;
+            end[3] = (end[3] & 0x0FFFFFFF) | 0x10000000;
+            end[4] = (end[4] & 0x0FFFFFFF) | 0x10000000;
+            end[5] = (end[5] & 0x00FFFFFF) | 0x01000000;
+            end[6] &= 0x00FFFFFF;
+        }
         break;
     case EXP_BAR:
         CalcBarFilledPixels(gBattleSpritesDataPtr->battleBars[battler].maxValue,

@@ -2,6 +2,27 @@
 
 Verified 2026-09-09 on the local feature worktree.
 
+## Rounded HP endpoint follow-up
+
+- `rtk make -j16 -O debug` and `rtk make -j16 -O all`: exit 0;
+  existing RWX linker warning only. `git diff --check` passed.
+- Matching debug ROM in script-capable mGBA: single player/opponent and all four
+  doubles endpoints visually inspected. Evidence: `evidence/hp-cap/single.png`
+  and `full.png`, `yellow.png`, `red.png`, `empty.png`, `almost-full.png`.
+- Doubles samples set party HP/max HP to 100/100, 40/100, 10/100, 0/100 and
+  98/100, then called the production HUD redraw using the existing
+  `ui_contrast_fixture.py` probe. Corners stay transparent and the dark endpoint
+  stays closed in all samples. These are display fixtures, not damage simulation.
+- Real B/START/START input restored the bars after numeric display;
+  `evidence/hp-cap/toggle-restored.png` retains the rounded ends.
+- MCP tools were unavailable; used the project mGBA Live CLI. Both sessions
+  stopped successfully; `status --all` returned `[]`.
+- HP arithmetic and source graphics are unchanged. Default rendering is excluded
+  by `IsUiStyleXY()`; this follow-up did not repeat default/Safari playthroughs
+  or damage/EXP logic tests. Long GitHub Actions runs were not awaited.
+- Final normal ROM SHA256:
+  `7620e249261d8d0edb5458ce51bd79860d5a22acba34b8800502492e04cce700`.
+
 | Requirement | Result / evidence |
 |---|---|
 | Original and XY assets coexist | All 15 default PNGs match `2c51798fe1^` byte-for-byte, and all 15 `xy_` PNGs match the corresponding original XY commit sheets. |
