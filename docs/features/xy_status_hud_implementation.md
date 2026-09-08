@@ -1,5 +1,10 @@
 # XY status HUD implementation
 
+This page records the original XY-only implementation. The current branch
+supports [DEFAULT / XY selection](ui_style_switch/implementation.md). Runtime
+XY sheets now retain their `xy_` prefix; never overwrite the restored unprefixed
+DEFAULT sheets when regenerating assets.
+
 The battle status area now uses floating light text with dark shadows, a lime HP
 label, slim HP/EXP strips, and compact status capsules. The large Emerald panel
 background is transparent. Opponent upper-left and player lower-right positions,
@@ -65,9 +70,9 @@ rtk '/mnt/c/Program Files/Aseprite v1.3.18.2 (x64)/aseprite.exe' -b \
   --script '\\wsl.localhost\Ubuntu\home\jastin\Documents\Codex\2026-09-08\kb-inbox-sol-astra-mediam\pokeemerald-expansion-aseprite\tools\xy_status_hud.lua'
 ```
 
-Generated runtime PNGs have the `xy_` prefix; install those under the corresponding
-unprefixed production names, except `xy_healthbar_palette.png`, whose name is
-consumed directly by `src/graphics.c`. Do not install the design boards as tiles.
+Generated runtime PNGs have the `xy_` prefix; on the current switchable branch,
+install them with those prefixed names. `src/graphics.c` consumes both sets.
+Do not install the design boards as tiles or overwrite the unprefixed defaults.
 
 The original XY screenshots are reference-only and not redistributed. Pokemon
 images and font input are the repository's existing assets. No runtime source

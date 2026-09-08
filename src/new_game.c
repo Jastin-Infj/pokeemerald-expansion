@@ -1,4 +1,5 @@
 #include "global.h"
+#include "ui_style.h"
 #include "clock.h"
 #include "new_game.h"
 #include "random.h"
@@ -101,6 +102,7 @@ static void SetDefaultOptions(void)
 {
     gSaveBlock2Ptr->optionsTextSpeed = OPTIONS_TEXT_SPEED_MID;
     gSaveBlock2Ptr->optionsWindowFrameType = 0;
+    gSaveBlock2Ptr->optionsUiStyle = OPTIONS_UI_STYLE_DEFAULT;
     gSaveBlock2Ptr->optionsSound = OPTIONS_SOUND_MONO;
     gSaveBlock2Ptr->optionsBattleStyle = OPTIONS_BATTLE_STYLE_SHIFT;
     gSaveBlock2Ptr->optionsBattleSceneOff = FALSE;

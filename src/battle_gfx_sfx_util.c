@@ -1,4 +1,5 @@
 #include "global.h"
+#include "ui_style.h"
 #include "battle.h"
 #include "battle_controllers.h"
 #include "battle_ai_main.h"
@@ -79,7 +80,7 @@ static const struct CompressedSpriteSheet sSpriteSheets_HealthBar[MAX_BATTLERS_C
 const struct SpritePalette sSpritePalettes_HealthBoxHealthBar[2] =
 {
     {gBattleInterface_BallStatusBarPal, TAG_HEALTHBOX_PAL},
-    {gBattleInterface_HealthbarXYPal, TAG_HEALTHBAR_PAL}
+    {gBattleInterface_BallDisplayPal, TAG_HEALTHBAR_PAL}
 };
 
 const struct CompressedSpriteSheet gSpriteSheet_EnemyShadow =
@@ -703,25 +704,52 @@ void FreeTrainerFrontPicPalette(enum TrainerPicID trainerPicId)
 }
 
 // Unused.
+static void LoadHealthboxSheet(const struct CompressedSpriteSheet *sheet)
+{
+    struct CompressedSpriteSheet styled = *sheet;
+
+    if (IsUiStyleXY())
+    {
+        if (styled.data == gHealthboxSinglesPlayerGfx)
+            styled.data = gHealthboxSinglesPlayerXYGfx;
+        else if (styled.data == gHealthboxSinglesOpponentGfx)
+            styled.data = gHealthboxSinglesOpponentXYGfx;
+        else if (styled.data == gHealthboxDoublesPlayerGfx)
+            styled.data = gHealthboxDoublesPlayerXYGfx;
+        else if (styled.data == gHealthboxDoublesOpponentGfx)
+            styled.data = gHealthboxDoublesOpponentXYGfx;
+    }
+    LoadCompressedSpriteSheet(&styled);
+}
+
+static void LoadHealthbarPalette(void)
+{
+    struct SpritePalette palette = sSpritePalettes_HealthBoxHealthBar[1];
+
+    if (IsUiStyleXY())
+        palette.data = gBattleInterface_HealthbarXYPal;
+    LoadSpritePalette(&palette);
+}
+
 void BattleLoadAllHealthBoxesGfxAtOnce(void)
 {
     u8 numberOfBattlers = 0;
     u8 i;
 
     LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[0]);
-    LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[1]);
+    LoadHealthbarPalette();
     if (!IsDoubleBattle())
     {
-        LoadCompressedSpriteSheet(&sSpriteSheet_SinglesPlayerHealthbox);
-        LoadCompressedSpriteSheet(&sSpriteSheet_SinglesOpponentHealthbox);
+        LoadHealthboxSheet(&sSpriteSheet_SinglesPlayerHealthbox);
+        LoadHealthboxSheet(&sSpriteSheet_SinglesOpponentHealthbox);
         numberOfBattlers = 2;
     }
     else
     {
-        LoadCompressedSpriteSheet(&sSpriteSheets_DoublesPlayerHealthbox[0]);
-        LoadCompressedSpriteSheet(&sSpriteSheets_DoublesPlayerHealthbox[1]);
-        LoadCompressedSpriteSheet(&sSpriteSheets_DoublesOpponentHealthbox[0]);
-        LoadCompressedSpriteSheet(&sSpriteSheets_DoublesOpponentHealthbox[1]);
+        LoadHealthboxSheet(&sSpriteSheets_DoublesPlayerHealthbox[0]);
+        LoadHealthboxSheet(&sSpriteSheets_DoublesPlayerHealthbox[1]);
+        LoadHealthboxSheet(&sSpriteSheets_DoublesOpponentHealthbox[0]);
+        LoadHealthboxSheet(&sSpriteSheets_DoublesOpponentHealthbox[1]);
         numberOfBattlers = MAX_BATTLERS_COUNT;
     }
     for (i = 0; i < numberOfBattlers; i++)
@@ -737,7 +765,7 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
         if (state == 1)
         {
             LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[0]);
-            LoadSpritePalette(&sSpritePalettes_HealthBoxHealthBar[1]);
+            LoadHealthbarPalette();
             CategoryIcons_LoadSpritesGfx();
         }
         else if (!IsDoubleBattle())
@@ -745,13 +773,13 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
             if (state == 2)
             {
                 if (gBattleTypeFlags & BATTLE_TYPE_SAFARI)
-                    LoadCompressedSpriteSheet(&sSpriteSheet_SafariHealthbox);
+                    LoadHealthboxSheet(&sSpriteSheet_SafariHealthbox);
                 else
-                    LoadCompressedSpriteSheet(&sSpriteSheet_SinglesPlayerHealthbox);
+                    LoadHealthboxSheet(&sSpriteSheet_SinglesPlayerHealthbox);
             }
             else if (state == 3)
             {
-                LoadCompressedSpriteSheet(&sSpriteSheet_SinglesOpponentHealthbox);
+                LoadHealthboxSheet(&sSpriteSheet_SinglesOpponentHealthbox);
             }
             else if (state == 4)
             {
@@ -773,19 +801,19 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
                 switch (GetBattlerCoordsIndex(GetBattlerAtPosition(B_POSITION_PLAYER_LEFT)))
                 {
                 default:
-                    LoadCompressedSpriteSheet(&sSpriteSheets_DoublesPlayerHealthbox[0]);
+                    LoadHealthboxSheet(&sSpriteSheets_DoublesPlayerHealthbox[0]);
                     break;
                 case BATTLE_COORDS_SINGLES:
-                    LoadCompressedSpriteSheet(&sSpriteSheet_SinglesPlayerHealthbox);
+                    LoadHealthboxSheet(&sSpriteSheet_SinglesPlayerHealthbox);
                     break;
                 }
             }
             else if (state == 3)
-                LoadCompressedSpriteSheet(&sSpriteSheets_DoublesPlayerHealthbox[1]);
+                LoadHealthboxSheet(&sSpriteSheets_DoublesPlayerHealthbox[1]);
             else if (state == 4)
-                LoadCompressedSpriteSheet(&sSpriteSheets_DoublesOpponentHealthbox[0]);
+                LoadHealthboxSheet(&sSpriteSheets_DoublesOpponentHealthbox[0]);
             else if (state == 5)
-                LoadCompressedSpriteSheet(&sSpriteSheets_DoublesOpponentHealthbox[1]);
+                LoadHealthboxSheet(&sSpriteSheets_DoublesOpponentHealthbox[1]);
             else if (state == 6)
                 LoadCompressedSpriteSheet(&sSpriteSheets_HealthBar[GetBattlerPosition(B_BATTLER_0)]);
             else if (state == 7)

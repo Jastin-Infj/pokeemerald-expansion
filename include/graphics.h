@@ -3439,4 +3439,11 @@ extern const u16 gBattleIcons_Pal2[];
 extern const u32 gGhostFrontPic[];
 extern const u16 gGhostPalette[];
 
+
+extern const u8 gHealthboxElementsXYGfxTable[][32];
+extern const u32 gHealthboxSinglesPlayerXYGfx[];
+extern const u32 gHealthboxSinglesOpponentXYGfx[];
+extern const u32 gHealthboxDoublesPlayerXYGfx[];
+extern const u32 gHealthboxDoublesOpponentXYGfx[];
+
 #endif //GUARD_GRAPHICS_H
