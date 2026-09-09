@@ -517,7 +517,7 @@ static const u8 sText_CannotSendMonToBoxPartner[] = _("Cannot send a mon that do
 
 static bool32 UseSmPartyMenu(void)
 {
-    return IsUiStyleXY() && gMain.inBattle
+    return IsBattleMenuSM() && gMain.inBattle
         && (gPartyMenu.layout == PARTY_LAYOUT_SINGLE || gPartyMenu.layout == PARTY_LAYOUT_DOUBLE);
 }
 
@@ -986,7 +986,7 @@ static bool8 AllocPartyMenuBgGfx(void)
         LoadPalette(gPartyMenuBg_Pal, BG_PLTT_ID(0), 11 * PLTT_SIZE_4BPP);
         if (UseSmPartyMenu())
         {
-            static const u16 green[] = {RGB(5,15,8), RGB(7,18,10)};
+            static const u16 green[] = {RGB(17,25,15), RGB(21,28,18)};
             LoadPalette(green, BG_PLTT_ID(0) + 1, sizeof(green));
         }
         CpuCopy16(gPlttBufferUnfaded, sPartyMenuInternal->palBuffer, 11 * PLTT_SIZE_4BPP);
@@ -2621,7 +2621,7 @@ static void LoadPartyBoxPalette(struct PartyMenuBox *menuBox, u8 palFlags)
     {
         u16 pal[16];
         memcpy(pal, &gPlttBufferUnfaded[palOffset], sizeof(pal));
-        pal[0] = RGB(5, 15, 8);
+        pal[0] = RGB(17, 25, 15);
         pal[1] = RGB(30, 31, 29);
         pal[2] = RGB(2, 5, 5);
         pal[3] = RGB(24, 28, 23);

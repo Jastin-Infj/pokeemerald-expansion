@@ -57,8 +57,8 @@ Its separate GBA menu may use the whole 240x160 screen.
 
 ### Current implementation checkpoint
 
-`src/sm_battle_menu.c` owns the XY lower UI. `BattleInitBgsAndWindows` clones
-the normal templates for XY; standard styles keep the original templates.
+`src/sm_battle_menu.c` owns the SM lower UI. `BattleInitBgsAndWindows` clones
+the normal templates for `BATTLE MENU: SM`; DEFAULT keeps the original templates.
 Action is a 30x6 canvas at (0,34), base 0x190, palette 12. The four moves are
 15x3 windows at (0/15,54/57), bases 0x300 + slot*45, palettes 12..15.
 The message window is 30x6 at (0,14), base 0x90, palette 13. All full lower
@@ -116,12 +116,42 @@ Do not write an EOS at box offset 18: it is the language/nature byte.
 
 ## Handoff
 
-Select `OPTION > UI STYLE > XY` to enable the upper XY HUD and these lower
-menus together. DEFAULT uses the original battle and party layouts. The new
-menus do not introduce save fields or change combat rules. Original reference
-photos are not included; editable Aseprite studies and original icons are.
+Select `OPTION > BATTLE MENU > SM` for the new action, move, message, detail and
+in-battle party menus. Select DEFAULT to return those screens to the original
+layout. `UI STYLE: DEFAULT / XY` now independently controls the upper HUD.
+New games and unknown battle-menu values default to the original menus.
 
-The normal ROM is `pokeemerald.gba`. `evidence/review/final-*.png` shows the
-matching final debug build; `design/` preserves early layout studies and is not
+The saved `optionsBattleMenu` field uses the former 16-bit alignment padding at
+SaveBlock2 +0x16. The existing options word at +0x14, Pokedex at +0x18 and later
+data keep their offsets. Option scrolling exposes all nine rows without reducing
+font size; B and CANCEL apply changes through the existing options save path.
+Normal in-game SAVE persists the selection. Combat rules are unchanged.
+Original reference photos are not included; editable Aseprite studies and
+original icons are.
+
+## Palette and interaction refinement — 2026-09-09
+
+The original dark move rows have been replaced with a white name row, pale
+type-tinted metadata row and opaque mint surround. Type badges retain a dark
+type color and white lettering; PP uses navy, with dark red for zero. Focus uses
+emerald teal, and Z pages use cream with gold rules. Action panels retain their
+asymmetric placement, with layered borders, diagonal color sweeps, top highlights,
+gold focus corners and a separate FIGHT nameplate/flame-ray decoration. The
+center includes the actor and CHOOSE ACTION or the partner move preview.
+
+Key RGB555 colors are: opaque mint `(24,30,26)`, name row `(29,31,28)`, ink
+`(3,8,9)`, teal focus `(3,19,17)`, gold `(31,26,12)`, and party background
+`(17,25,15)` with lighter `(21,28,18)` diagonal details. Palette index 0 remains
+transparent on GBA BGs regardless of its RGB value; canvases use index 11 to
+avoid black holes in the action center and between move cards.
+
+Z selection previously relied only on `zmove.viewing`, which the controller
+clears before target selection. Effectiveness updates could then repaint an
+ordinary move card over part of the Z page. `sZDisplay` now retains the displayed
+page until the controller redraws normal move names or actions. It does not
+change the controller's selected gimmick, target, PP or emitted command.
+
+The normal ROM is `pokeemerald.gba`. `evidence/polish/` shows this refinement;
+`evidence/review/` is the earlier implementation. `design/` preserves early layout studies and is not
 a screenshot of final runtime output. See the test plan before extending this
 layout to additional special battle/party modes or translated fonts.

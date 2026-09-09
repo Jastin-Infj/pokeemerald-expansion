@@ -1,5 +1,11 @@
 # Runtime UI style selection
 
+Later menu refinement adds a separate `BATTLE MENU: DEFAULT / SM` option.
+`UI STYLE` now controls only the upper HUD; the lower battle and in-battle party
+menus can independently use the original layout. See
+[battle menu implementation](../sm_battle_menu/implementation.md) for the saved
+padding field, scrolling option list and current verification.
+
 ## Rounded HP endpoint (2026-09-09)
 
 The XY HP strip previously ended with the same open, straight tile used in its

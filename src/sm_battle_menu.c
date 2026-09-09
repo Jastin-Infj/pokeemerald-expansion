@@ -20,6 +20,9 @@
 static EWRAM_DATA u32 sBattler = 0;
 static EWRAM_DATA u8 sEffectiveness[8] = {0};
 static EWRAM_DATA u8 sPartnerPrompt[96] = {0};
+// The controller clears zmove.viewing before entering target selection. Keep
+// the displayed page until ordinary move names or actions are requested again.
+static EWRAM_DATA bool32 sZDisplay = FALSE;
 static const u8 sFightIcon[] = INCGFX_U8("graphics/battle_interface/sm_icon_fight.png", ".4bpp");
 static const u8 sPokemonIcon[] = INCGFX_U8("graphics/battle_interface/sm_icon_pokemon.png", ".4bpp");
 static const u8 sBagIcon[] = INCGFX_U8("graphics/battle_interface/sm_icon_bag.png", ".4bpp");
@@ -27,15 +30,15 @@ static const u8 sRunIcon[] = INCGFX_U8("graphics/battle_interface/sm_icon_run.pn
 
 // Palette indices are shared by the hand-drawn geometry and the text renderer.
 static const u16 sColors[16] = {
-    RGB(2, 7, 8), RGB(2, 4, 5), RGB(30, 31, 31), RGB(3, 12, 13),
-    RGB(7, 25, 24), RGB(7, 9, 11), RGB(19, 22, 24), RGB(26, 28, 29),
-    RGB(20, 14, 6), RGB(29, 24, 13), RGB(10, 8, 14), RGB(21, 20, 27),
-    RGB(18, 7, 7), RGB(29, 14, 14), RGB(8, 16, 8), RGB(20, 26, 13),
+    RGB(21, 29, 26), RGB(3, 8, 9), RGB(31, 31, 29), RGB(13, 25, 22),
+    RGB(3, 19, 17), RGB(7, 16, 22), RGB(17, 27, 29), RGB(28, 31, 28),
+    RGB(23, 15, 4), RGB(31, 26, 12), RGB(11, 19, 18), RGB(24, 30, 26),
+    RGB(22, 5, 8), RGB(31, 15, 14), RGB(7, 21, 11), RGB(22, 30, 15),
 };
 
 bool32 SmBattleMenuEnabled(void)
 {
-    return IsUiStyleXY() && gBattleScripting.windowsType == B_WIN_TYPE_NORMAL
+    return IsBattleMenuSM() && gBattleScripting.windowsType == B_WIN_TYPE_NORMAL
         && !(gBattleTypeFlags & (BATTLE_TYPE_SAFARI | BATTLE_TYPE_CATCH_TUTORIAL | BATTLE_TYPE_POKEDUDE));
 }
 
@@ -44,6 +47,7 @@ void SmBattleMenuSetBattler(u32 battler)
     sBattler = battler;
     sEffectiveness[0] = EOS;
     sPartnerPrompt[0] = EOS;
+    sZDisplay = FALSE;
 }
 
 void SmBattleMenuTemplates(struct WindowTemplate *t)
@@ -82,9 +86,23 @@ static void Button(u32 win, u32 x, u32 y, u32 w, u32 h, u32 dark, u32 light, con
     for (row = 1; row < h - 1; row++)
     {
         u32 inset = row < 4 ? 4 - row : row > h - 5 ? row - (h - 5) : 0;
-        Rect(win, x + inset, y + row, w - inset * 2, 1, selected ? 2 : 4);
+        Rect(win, x + inset, y + row, w - inset * 2, 1, 1);
+        if (row > 1 && row < h - 2)
+            Rect(win, x + 1 + inset, y + row, w - 2 - inset * 2, 1, selected ? 2 : light);
         if (row > 2 && row < h - 3)
-            Rect(win, x + 2 + inset, y + row, w - 4 - inset * 2, 1, row < h / 2 ? light : dark);
+        {
+            u32 sweep = min(w - 8 - inset * 2, w / 3 + row / 2);
+            Rect(win, x + 3 + inset, y + row, w - 6 - inset * 2, 1, dark);
+            Rect(win, x + 3 + inset, y + row, sweep, 1, light);
+            if (row == 3)
+                Rect(win, x + 4 + inset, y + row, w - 8 - inset * 2, 1, 2);
+        }
+    }
+    // Small illuminated corners make focus visible on every button color.
+    if (selected)
+    {
+        Rect(win, x + 5, y + 1, 9, 1, 9);
+        Rect(win, x + w - 14, y + h - 2, 9, 1, 9);
     }
     Text(win, x + (w - GetStringWidth(FONT_SMALL, label, 0)) / 2, y + h / 2 - 6, label, 1, w - 8);
 }
@@ -108,15 +126,17 @@ static void DrawActions(u32 selected)
     u8 name[POKEMON_NAME_LENGTH + 1];
     u32 win = B_WIN_ACTION_MENU;
     LoadPalette(sColors, BG_PLTT_ID(12), sizeof(sColors));
-    FillWindowPixelBuffer(win, PIXEL_FILL(4));
+    FillWindowPixelBuffer(win, PIXEL_FILL(11));
     for (y = 0; y < 48; y++)
         for (x = 0; x < 240; x++)
         {
             s32 dx = (s32)x - 120, dy = (s32)y - 14;
             s32 r = dx * dx + dy * dy * 3;
-            if ((r > 225 && r < 289) || (r > 1764 && r < 1936) || (x + y) % 40 == 0)
+            if ((r > 225 && r < 289) || (r > 1764 && r < 1936) || (x + y) % 40 < 2)
                 Rect(win, x, y, 1, 1, 3);
         }
+    Rect(win, 0, 0, 240, 1, 2);
+    Rect(win, 0, 47, 240, 1, 4);
     Button(win, 0, 0, 72, 24, 14, 15, gText_EmptyString2, selected == B_ACTION_SWITCH);
     Button(win, 0, 24, 72, 24, 8, 9, gText_EmptyString2, selected == B_ACTION_USE_ITEM);
     Button(win, 178, 0, 62, 48, 12, 13, gText_EmptyString2, selected == B_ACTION_USE_MOVE);
@@ -125,13 +145,22 @@ static void DrawActions(u32 selected)
     Icon(win, sBagIcon, 5, 28);
     Icon(win, sFightIcon, 201, 6);
     Icon(win, sRunIcon, 94, 30);
+    // Layered flame rays and a lower nameplate give the large FIGHT panel
+    // depth at native resolution without covering the neighboring commands.
+    for (y = 7; y < 25; y++)
+    {
+        Rect(win, 187 + (y / 4), y, 2, 1, 13);
+        Rect(win, 226 - (y / 4), y, 2, 1, 9);
+    }
+    Rect(win, 188, 27, 43, 14, 12);
+    Rect(win, 191, 40, 36, 1, 13);
     Text(win, 24, 6, COMPOUND_STRING("POKEMON"), 1, 44);
     Text(win, 31, 30, COMPOUND_STRING("BAG"), 1, 35);
     Text(win, 196, 28, COMPOUND_STRING("FIGHT"), 2, 39);
     Text(win, 114, 32, COMPOUND_STRING("RUN"), 2, 43);
     GetMonData(GetBattlerMon(sBattler), MON_DATA_NICKNAME, name);
     Text(win, 80, 4, name, 1, 90);
-    Text(win, 80, 15, sPartnerPrompt, 1, 90);
+    Text(win, 80, 15, sPartnerPrompt[0] == EOS ? COMPOUND_STRING("CHOOSE ACTION") : sPartnerPrompt, 4, 90);
     Copy(win);
 }
 
@@ -139,7 +168,7 @@ void SmBattleMenuMessageBackground(u32 win)
 {
     u32 y;
     LoadPalette(sColors, BG_PLTT_ID(13), sizeof(sColors));
-    FillWindowPixelBuffer(win, PIXEL_FILL(0));
+    FillWindowPixelBuffer(win, PIXEL_FILL(11));
     for (y = 2; y < 46; y++)
     {
         u32 inset = y < 7 ? 7 - y : y > 40 ? y - 40 : 0;
@@ -162,10 +191,11 @@ static void DrawMove(u32 index, const u8 *name, bool32 selected)
     u8 *end;
     // Each card owns a palette, allowing four different move types at once.
     memcpy(colors, sColors, sizeof(colors));
-    colors[5] = RGB(r / 3, g / 3, b / 3);
-    colors[7] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
+    colors[5] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
+    colors[7] = RGB(29, 31, 28);
+    colors[8] = RGB(r / 3, g / 3, b / 3);
     LoadPalette(colors, BG_PLTT_ID(12 + index), sizeof(colors));
-    FillWindowPixelBuffer(win, PIXEL_FILL(0));
+    FillWindowPixelBuffer(win, PIXEL_FILL(11));
     for (y = 1; y <= 22; y++)
     {
         u32 inset = y < 5 ? 5 - y : y > 18 ? y - 18 : 0;
@@ -176,7 +206,7 @@ static void DrawMove(u32 index, const u8 *name, bool32 selected)
     Text(win, 10, 0, name, 1, 100);
     if (info->moves[index] != MOVE_NONE)
     {
-        Rect(win, 9, 12, 43, 9, 1);
+        Rect(win, 9, 12, 43, 9, 8);
         Text(win, 11, 9, gTypesInfo[type].name, 2, 39);
         end = StringCopy(pp, COMPOUND_STRING("PP "));
         end = ConvertIntToDecimalStringN(end, info->currentPp[index], STR_CONV_MODE_LEFT_ALIGN, 2);
@@ -184,9 +214,9 @@ static void DrawMove(u32 index, const u8 *name, bool32 selected)
         ConvertIntToDecimalStringN(end, info->maxPp[index], STR_CONV_MODE_LEFT_ALIGN, 2);
         // Gold identifies the source card while the cyan cursor picks a target.
         if (selected == 2)
-            Text(win, 57, 9, COMPOUND_STRING("SWAP"), 9, 54);
+            Text(win, 57, 9, COMPOUND_STRING("SWAP"), 8, 54);
         else if (!gBattleResources->bufferA[sBattler][2])
-            Text(win, 57, 9, pp, info->currentPp[index] == 0 ? 13 : 2, 54);
+            Text(win, 57, 9, pp, info->currentPp[index] == 0 ? 12 : 1, 54);
         if (selected)
             Text(win, 111, 0, sEffectiveness, 1, 9);
     }
@@ -227,7 +257,9 @@ bool32 SmBattleMenuPrint(const u8 *text, u32 windowId)
         Copy(windowId);
         return TRUE;
     }
-    if (gBattleStruct->zmove.viewing && windowId >= B_WIN_MOVE_NAME_1 && windowId <= B_WIN_MOVE_TYPE)
+    if (gBattleStruct->zmove.viewing)
+        sZDisplay = TRUE;
+    if (sZDisplay && windowId >= B_WIN_MOVE_NAME_1 && windowId <= B_WIN_MOVE_TYPE)
     {
         // Z selection uses two title/effect cells and two metadata cells.
         // Do not redraw ordinary move names over the Z title when its cursor moves.
@@ -239,10 +271,10 @@ bool32 SmBattleMenuPrint(const u8 *text, u32 windowId)
         if (windowId == B_WIN_MOVE_TYPE)
             win = B_WIN_MOVE_NAME_4;
         LoadPalette(sColors, BG_PLTT_ID(12 + win - B_WIN_MOVE_NAME_1), sizeof(sColors));
-        FillWindowPixelBuffer(win, PIXEL_FILL(1));
-        Rect(win, 2, 1, 116, 1, 4);
-        Rect(win, 2, 22, 116, 1, 4);
-        Text(win, 8, 5, text, 2, 104);
+        FillWindowPixelBuffer(win, PIXEL_FILL(7));
+        Rect(win, 2, 1, 116, 1, 8);
+        Rect(win, 2, 22, 116, 1, 9);
+        Text(win, 8, 5, text, 1, 104);
         Copy(win);
         return TRUE;
     }
@@ -290,7 +322,7 @@ bool32 SmBattleMenuCursor(u32 position, bool32 move, bool32 selected)
         return FALSE;
     if (move)
     {
-        if (gBattleStruct->zmove.viewing)
+        if (gBattleStruct->zmove.viewing || sZDisplay)
             return TRUE;
         DrawMove(position, MoveName(position), selected);
     }

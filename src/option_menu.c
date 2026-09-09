@@ -25,8 +25,10 @@
 #define tButtonMode data[5]
 #define tWindowFrameType data[6]
 #define tUiStyle data[7]
+#define tBattleMenu data[8]
 
 #define OPTION_ROW_HEIGHT 14
+#define OPTION_VISIBLE_ROWS 8
 
 enum
 {
@@ -37,6 +39,7 @@ enum
     MENUITEM_BUTTONMODE,
     MENUITEM_FRAMETYPE,
     MENUITEM_UISTYLE,
+    MENUITEM_BATTLEMENU,
     MENUITEM_CANCEL,
     MENUITEM_COUNT,
 };
@@ -72,11 +75,15 @@ static void FrameType_DrawChoices(u8 selection);
 static u8 ButtonMode_ProcessInput(u8 selection);
 static void ButtonMode_DrawChoices(u8 selection);
 static void UiStyle_DrawChoices(u8 selection);
+static void BattleMenu_DrawChoices(u8 selection);
+static void DrawOptionSettings(u8 taskId);
+static void ScrollOptionMenu(u8 taskId);
 static void DrawHeaderText(void);
 static void DrawOptionMenuTexts(void);
 static void DrawBgWindowFrames(void);
 
 EWRAM_DATA static bool8 sArrowPressed = FALSE;
+EWRAM_DATA static u8 sTopRow = 0;
 
 static const u8 gText_Option[]             = _("OPTION");
 static const u8 gText_TextSpeedSlow[]      = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}SLOW");
@@ -107,6 +114,7 @@ static const u8 *const sOptionMenuItemsNames[MENUITEM_COUNT] =
     [MENUITEM_BUTTONMODE]  = COMPOUND_STRING("BUTTON MODE"),
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("FRAME"),
     [MENUITEM_UISTYLE]    = COMPOUND_STRING("UI STYLE"),
+    [MENUITEM_BATTLEMENU] = COMPOUND_STRING("BATTLE MENU"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("CANCEL"),
 };
 
@@ -178,6 +186,7 @@ void CB2_InitOptionMenu(void)
     {
     default:
     case 0:
+        sTopRow = 0;
         SetVBlankCallback(NULL);
         gMain.state++;
         break;
@@ -258,6 +267,7 @@ void CB2_InitOptionMenu(void)
         gTasks[taskId].tButtonMode = gSaveBlock2Ptr->optionsButtonMode;
         gTasks[taskId].tWindowFrameType = gSaveBlock2Ptr->optionsWindowFrameType;
         gTasks[taskId].tUiStyle = IsUiStyleXY();
+        gTasks[taskId].tBattleMenu = IsBattleMenuSM();
 
         TextSpeed_DrawChoices(gTasks[taskId].tTextSpeed);
         BattleScene_DrawChoices(gTasks[taskId].tBattleSceneOff);
@@ -266,6 +276,7 @@ void CB2_InitOptionMenu(void)
         ButtonMode_DrawChoices(gTasks[taskId].tButtonMode);
         FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
         UiStyle_DrawChoices(gTasks[taskId].tUiStyle);
+        BattleMenu_DrawChoices(gTasks[taskId].tBattleMenu);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
 
         CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
@@ -303,6 +314,7 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             gTasks[taskId].tMenuSelection--;
         else
             gTasks[taskId].tMenuSelection = MENUITEM_CANCEL;
+        ScrollOptionMenu(taskId);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
     }
     else if (JOY_NEW(DPAD_DOWN))
@@ -311,6 +323,7 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             gTasks[taskId].tMenuSelection++;
         else
             gTasks[taskId].tMenuSelection = 0;
+        ScrollOptionMenu(taskId);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
     }
     else
@@ -360,6 +373,12 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             if (previousOption != gTasks[taskId].tUiStyle)
                 UiStyle_DrawChoices(gTasks[taskId].tUiStyle);
             break;
+        case MENUITEM_BATTLEMENU:
+            previousOption = gTasks[taskId].tBattleMenu;
+            gTasks[taskId].tBattleMenu = BattleScene_ProcessInput(previousOption);
+            if (previousOption != gTasks[taskId].tBattleMenu)
+                BattleMenu_DrawChoices(gTasks[taskId].tBattleMenu);
+            break;
         case MENUITEM_FRAMETYPE:
             previousOption = gTasks[taskId].tWindowFrameType;
             gTasks[taskId].tWindowFrameType = FrameType_ProcessInput(gTasks[taskId].tWindowFrameType);
@@ -388,6 +407,7 @@ static void Task_OptionMenuSave(u8 taskId)
     gSaveBlock2Ptr->optionsButtonMode = gTasks[taskId].tButtonMode;
     gSaveBlock2Ptr->optionsWindowFrameType = gTasks[taskId].tWindowFrameType;
     gSaveBlock2Ptr->optionsUiStyle = gTasks[taskId].tUiStyle;
+    gSaveBlock2Ptr->optionsBattleMenu = gTasks[taskId].tBattleMenu;
 
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
     gTasks[taskId].func = Task_OptionMenuFadeOut;
@@ -405,6 +425,7 @@ static void Task_OptionMenuFadeOut(u8 taskId)
 
 static void HighlightOptionMenuItem(u8 index)
 {
+    index -= sTopRow;
     SetGpuReg(REG_OFFSET_WIN0H, WIN_RANGE(16, DISPLAY_WIDTH - 16));
     SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * OPTION_ROW_HEIGHT + 40, (index + 1) * OPTION_ROW_HEIGHT + 40));
 }
@@ -413,6 +434,10 @@ static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
 {
     u8 dst[16];
     u16 i;
+
+    if (y < sTopRow * OPTION_ROW_HEIGHT || y >= (sTopRow + OPTION_VISIBLE_ROWS) * OPTION_ROW_HEIGHT)
+        return;
+    y -= sTopRow * OPTION_ROW_HEIGHT;
 
     for (i = 0; *text != EOS && i < ARRAY_COUNT(dst) - 1; i++)
         dst[i] = *(text++);
@@ -663,13 +688,49 @@ static void DrawHeaderText(void)
     CopyWindowToVram(WIN_HEADER, COPYWIN_FULL);
 }
 
+static void BattleMenu_DrawChoices(u8 selection)
+{
+    static const u8 sDefault[] = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}DEFAULT");
+    static const u8 sSM[] = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}SM");
+    DrawOptionMenuChoice(sDefault, 104, MENUITEM_BATTLEMENU * OPTION_ROW_HEIGHT, selection == OPTIONS_BATTLE_MENU_DEFAULT);
+    DrawOptionMenuChoice(sSM, 176, MENUITEM_BATTLEMENU * OPTION_ROW_HEIGHT, selection == OPTIONS_BATTLE_MENU_SM);
+}
+
+static void DrawOptionSettings(u8 taskId)
+{
+    TextSpeed_DrawChoices(gTasks[taskId].tTextSpeed);
+    BattleScene_DrawChoices(gTasks[taskId].tBattleSceneOff);
+    BattleStyle_DrawChoices(gTasks[taskId].tBattleStyle);
+    Sound_DrawChoices(gTasks[taskId].tSound);
+    ButtonMode_DrawChoices(gTasks[taskId].tButtonMode);
+    FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
+    UiStyle_DrawChoices(gTasks[taskId].tUiStyle);
+    BattleMenu_DrawChoices(gTasks[taskId].tBattleMenu);
+}
+
+static void ScrollOptionMenu(u8 taskId)
+{
+    u32 selection = gTasks[taskId].tMenuSelection;
+    u32 previous = sTopRow;
+    if (selection < sTopRow)
+        sTopRow = selection;
+    else if (selection >= sTopRow + OPTION_VISIBLE_ROWS)
+        sTopRow = selection - OPTION_VISIBLE_ROWS + 1;
+    if (previous != sTopRow)
+    {
+        DrawOptionMenuTexts();
+        DrawOptionSettings(taskId);
+        CopyWindowToVram(WIN_OPTIONS, COPYWIN_GFX);
+    }
+}
+
 static void DrawOptionMenuTexts(void)
 {
     u8 i;
 
     FillWindowPixelBuffer(WIN_OPTIONS, PIXEL_FILL(1));
-    for (i = 0; i < MENUITEM_COUNT; i++)
-        AddTextPrinterParameterized(WIN_OPTIONS, FONT_NORMAL, sOptionMenuItemsNames[i], 8, (i * OPTION_ROW_HEIGHT) + 1, TEXT_SKIP_DRAW, NULL);
+    for (i = sTopRow; i < min(MENUITEM_COUNT, sTopRow + OPTION_VISIBLE_ROWS); i++)
+        AddTextPrinterParameterized(WIN_OPTIONS, FONT_NORMAL, sOptionMenuItemsNames[i], 8, ((i - sTopRow) * OPTION_ROW_HEIGHT) + 1, TEXT_SKIP_DRAW, NULL);
     CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
 }
 

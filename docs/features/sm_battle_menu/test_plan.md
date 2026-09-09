@@ -133,3 +133,64 @@ These are coverage limits; the captured menu flows and default fallback passed.
 
 Final `git diff --check` passed. All Live sessions, including both call-probe
 sessions, were stopped; `status --all` returned `[]`.
+
+## Palette, gimmick and independent-option refinement — 2026-09-09
+
+The earlier build hashes and coupled UI STYLE behavior above are historical.
+The current controls are independent: UI STYLE selects the upper HUD and
+BATTLE MENU selects DEFAULT / SM for battle controls and in-battle party.
+
+- Normal `make -j16 -O all` and debug `make -j16 -O debug` passed (existing
+  RWX warnings). Final normal SHA256:
+  `fea5e2f0916ef129917a41b64afb3b4b93bb7a5a5394272660e03d2605f75ccc`.
+  Final debug SHA256:
+  `99bdb6faaf0f00846a5199ac88ac111f375a55265971310c8484059f757272af`.
+- `make -j16 -O check TESTS='UI style'`: 2 passed / 2 total. Tests cover the
+  original option word, all four HUD/menu combinations, unknown-value fallback,
+  menu field at +0x16 and unchanged Pokedex at +0x18.
+- Actual OPTION inputs selected BATTLE MENU: SM, scrolled to CANCEL and back,
+  and exited with B. After normal in-game SAVE, reset and CONTINUE, RAM contained
+  option words `0x1001 0x0001`: XY HUD and SM menu persisted independently.
+  `option-sm`, `option-scroll-cancel` and `option-scroll-up` capture the UI.
+- `evidence/polish/actions`, `moves`, `party`, `party-submenu`, `bag`,
+  `bag-return`, `details`, and `details-close` were inspected. POKEMON opens the
+  six-card menu and its SHIFT/SUMMARY/CANCEL submenu; BAG opens the original bag
+  and B returns to battle. The footer reads “Choose a POKéMON.”, followed by the
+  selected-mon prompt in its submenu. Party backgrounds are brighter green.
+- Initial new mint canvases used palette index 0 and appeared black because BG
+  color 0 is transparent. Source changed them to index 11, then rebuilt and
+  re-took the menu captures. Every ELF symbol address was compared and identical
+  between these two debug builds; only drawing constants changed, so matching
+  checkpoints could be reused with a full menu redraw. Normal ROMs contain no
+  call trampoline; diagnostic probes only modify unused tail bytes.
+- `max-available/selected/guard/off` and `tera-available/selected/off` used real
+  START and D-pad input with controlled usable-gimmick state. Max names persist
+  when moving to Max Guard; Tera Blast switches Normal/Fire correctly. B returns
+  to actions. The project currently has Dynamax and Tera activation flags set
+  to 0, so this fixture supplies availability without changing project config.
+- For Z input tests the fixture supplies a real Z-Power Ring and matching held
+  crystal, then calls the ordinary viability assignment. Real START opens the
+  damaging or status Z page; A enters targets; D-pad changes targets; B restores
+  normal moves/actions. `z-target` and `z-target-right` retain the complete Z
+  title/PP/type page, confirming the `sZDisplay` fix; `z-status` shows Z-Celebrate
+  and its + All Stats description.
+- `activate-4-return` and `activate-5-return` follow actual move confirmations
+  and a completed double-battle turn. Live function checks reported active
+  gimmick 4/5 and used=1, respectively, with the controller back at action input.
+- Z activation initially returned used=0 because the Lv100 debug Pokemon
+  disobeyed on the zero-badge disposable save; the existing obedience routine
+  clears Z use in that case and can make the Pokemon fall asleep. Clearing only
+  sleep did not resolve it. A fixture with the Rain Badge set obeyed, executed
+  the Z attack, fainted Metang, and returned to action input after A advanced
+  the faint message. `activate-3-return` and `z-activation-message` capture this;
+  `HasTrainerUsedGimmick(0, GIMMICK_Z_MOVE)` returned 1. No obedience or badge
+  rules were changed in production.
+- Real OPTION input switched BATTLE MENU back to DEFAULT while retaining XY:
+  `option-original`, `xy-original-actions/moves/party` show the original menus
+  under the transparent XY HUD. The reverse combination was selected through
+  OPTION too: `option-default-hud-sm`, `default-hud-sm-actions/moves` show the
+  original upper health boxes with the SM controls. This verifies independent
+  routing beyond the save-field unit test.
+- Final Live cleanup returned `status --all = []`. `git diff --check` passed.
+  Long GitHub Actions waits were skipped; these results are local builds/tests
+  and the inspected script-capable mGBA session.

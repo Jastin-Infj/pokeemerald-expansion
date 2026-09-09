@@ -602,7 +602,7 @@ struct SaveBlock2
              u16 optionsBattleSceneOff:1; // whether battle animations are disabled
              u16 regionMapZoom:1; // whether the map is zoomed in
              u16 optionsUiStyle:4; // OPTIONS_UI_STYLE_*; uses the existing padding nibble
-             //u16 padding2;
+    /*0x16*/ u16 optionsBattleMenu; // OPTIONS_BATTLE_MENU_*; former alignment padding
     /*0x18*/ struct Pokedex pokedex;
     /*0x90*/ u8 filler_90[0x8];
     /*0x98*/ struct Time localTimeOffset;
