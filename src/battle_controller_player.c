@@ -1804,40 +1804,44 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
         acc = 0;
     }
 
-    u8 pwr_num[3], acc_num[3];
-    u8 cat_desc[7] = _("CAT: ");
-    u8 pwr_desc[7] = _("PWR: ");
-    u8 acc_desc[7] = _("ACC: ");
-    u8 cat_start[] = _("{CLEAR_TO 0x03}");
-    u8 pwr_start[] = _("{CLEAR_TO 0x38}");
-    u8 acc_start[] = _("{CLEAR_TO 0x6C}");
-    if (!SmBattleMenuEnabled())
+    if (SmBattleMenuEnabled())
     {
+        SmBattleMenuDetails(battler, move, pwr, acc);
+    }
+    else
+    {
+        u8 pwr_num[4], acc_num[4];
+        u8 cat_desc[7] = _("CAT: ");
+        u8 pwr_desc[7] = _("PWR: ");
+        u8 acc_desc[7] = _("ACC: ");
+        u8 cat_start[] = _("{CLEAR_TO 0x03}");
+        u8 pwr_start[] = _("{CLEAR_TO 0x38}");
+        u8 acc_start[] = _("{CLEAR_TO 0x6C}");
         LoadMessageBoxAndBorderGfx();
         DrawStdWindowFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
+        if (pwr < 2)
+            StringCopy(pwr_num, gText_BattleSwitchWhich5);
+        else
+            ConvertIntToDecimalStringN(pwr_num, pwr, STR_CONV_MODE_LEFT_ALIGN, 3);
+        if (acc < 2)
+            StringCopy(acc_num, gText_BattleSwitchWhich5);
+        else
+            ConvertIntToDecimalStringN(acc_num, acc, STR_CONV_MODE_LEFT_ALIGN, 3);
+        StringCopy(gDisplayedStringBattle, cat_start);
+        StringAppend(gDisplayedStringBattle, cat_desc);
+        StringAppend(gDisplayedStringBattle, pwr_start);
+        StringAppend(gDisplayedStringBattle, pwr_desc);
+        StringAppend(gDisplayedStringBattle, pwr_num);
+        StringAppend(gDisplayedStringBattle, acc_start);
+        StringAppend(gDisplayedStringBattle, acc_desc);
+        StringAppend(gDisplayedStringBattle, acc_num);
+        StringAppend(gDisplayedStringBattle, gText_NewLine);
+        StringAppend(gDisplayedStringBattle, GetMoveDescription(move));
+        BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_DESCRIPTION);
     }
-    if (pwr < 2)
-        StringCopy(pwr_num, gText_BattleSwitchWhich5);
-    else
-        ConvertIntToDecimalStringN(pwr_num, pwr, STR_CONV_MODE_LEFT_ALIGN, 3);
-    if (acc < 2)
-        StringCopy(acc_num, gText_BattleSwitchWhich5);
-    else
-        ConvertIntToDecimalStringN(acc_num, acc, STR_CONV_MODE_LEFT_ALIGN, 3);
-    StringCopy(gDisplayedStringBattle, cat_start);
-    StringAppend(gDisplayedStringBattle, cat_desc);
-    StringAppend(gDisplayedStringBattle, pwr_start);
-    StringAppend(gDisplayedStringBattle, pwr_desc);
-    StringAppend(gDisplayedStringBattle, pwr_num);
-    StringAppend(gDisplayedStringBattle, acc_start);
-    StringAppend(gDisplayedStringBattle, acc_desc);
-    StringAppend(gDisplayedStringBattle, acc_num);
-    StringAppend(gDisplayedStringBattle, gText_NewLine);
-    StringAppend(gDisplayedStringBattle, GetMoveDescription(move));
-    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_DESCRIPTION);
 
     if (gCategoryIconSpriteId == 0xFF)
-        gCategoryIconSpriteId = CreateSprite(&gSpriteTemplate_CategoryIcons, 38, SmBattleMenuEnabled() ? 40 : 64, 1);
+        gCategoryIconSpriteId = CreateSprite(&gSpriteTemplate_CategoryIcons, SmBattleMenuEnabled() ? 216 : 38, SmBattleMenuEnabled() ? 43 : 64, 1);
 
     StartSpriteAnim(&gSprites[gCategoryIconSpriteId], cat);
 

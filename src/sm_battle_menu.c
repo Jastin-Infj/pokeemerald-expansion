@@ -236,6 +236,68 @@ static const u8 *MoveName(u32 index)
     return GetMoveName(move);
 }
 
+// The SM information sheet separates identity, battle stats and description.
+// Dark type-tinted surfaces keep white text legible and match the selected card.
+void SmBattleMenuDetails(u32 battler, u32 move, u32 power, u32 accuracy)
+{
+    u16 colors[16] = {
+        RGB(0, 0, 0), RGB(5, 6, 6), RGB(31, 31, 29), RGB(20, 22, 21),
+        RGB(12, 14, 14), RGB(9, 10, 10), RGB(16, 18, 17), RGB(11, 12, 12),
+        RGB(6, 7, 7), RGB(25, 27, 25), RGB(14, 16, 15), RGB(8, 9, 9),
+        RGB(31, 19, 17), RGB(31, 15, 14), RGB(7, 21, 11), RGB(22, 30, 15),
+    };
+    struct ChooseMoveStruct *info = (struct ChooseMoveStruct *)&gBattleResources->bufferA[battler][4];
+    u32 index = gMoveSelectionCursor[battler];
+    u32 win = B_WIN_MOVE_DESCRIPTION;
+    u32 tint = gTypesInfo[SmBattleMoveType(battler, index)].teraTypeRGBValue;
+    u32 r = tint & 31, g = (tint >> 5) & 31, b = (tint >> 10) & 31;
+    u32 x, y;
+    u8 value[16];
+    u8 *end;
+    colors[3] = RGB((r + 31) / 2, (g + 31) / 2, (b + 31) / 2);
+    colors[4] = RGB((r + 5) / 3, (g + 5) / 3, (b + 5) / 3);
+    colors[5] = RGB((r + 3) / 4, (g + 3) / 4, (b + 3) / 4);
+    colors[6] = RGB((r + 10) / 2, (g + 10) / 2, (b + 10) / 2);
+    colors[9] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
+    LoadPalette(colors, BG_PLTT_ID(6), sizeof(colors));
+    FillWindowPixelBuffer(win, PIXEL_FILL(0));
+    // Shallow swept edges suggest the reference's curved sheet at GBA scale.
+    for (x = 0; x < 240; x++)
+    {
+        u32 edge = x < 80 ? x / 40 : x < 160 ? 2 : (239 - x) / 40;
+        Rect(win, x, edge, 1, 80 - edge * 2, 6);
+        Rect(win, x, edge + 1, 1, 78 - edge * 2, 3);
+        Rect(win, x, edge + 2, 1, 76 - edge * 2, 5);
+    }
+    for (y = 5; y < 38; y++)
+        Rect(win, 4, y, 232, 1, ((y - 5) / 11) & 1 ? 5 : 4);
+    Rect(win, 128, 6, 1, 30, 6);
+    Rect(win, 6, 39, 228, 1, 6);
+    Text(win, 8, 4, GetMoveName(move), 2, 116);
+    end = StringCopy(value, COMPOUND_STRING("PP "));
+    end = ConvertIntToDecimalStringN(end, info->currentPp[index], STR_CONV_MODE_LEFT_ALIGN, 2);
+    *end++ = CHAR_SLASH;
+    ConvertIntToDecimalStringN(end, info->maxPp[index], STR_CONV_MODE_LEFT_ALIGN, 2);
+    Text(win, 8, 15, value, info->currentPp[index] ? 2 : 12, 116);
+    Rect(win, 8, 28, 65, 9, 9);
+    Text(win, 11, 26, gTypesInfo[SmBattleMoveType(battler, index)].name, 1, 60);
+    Text(win, 135, 4, COMPOUND_STRING("Category"), 2, 65);
+    Text(win, 135, 15, COMPOUND_STRING("Power"), 2, 65);
+    Text(win, 135, 26, COMPOUND_STRING("Accuracy"), 2, 65);
+    if (power < 2)
+        StringCopy(value, gText_BattleSwitchWhich5);
+    else
+        ConvertIntToDecimalStringN(value, power, STR_CONV_MODE_LEFT_ALIGN, 3);
+    Text(win, 207, 15, value, 2, 25);
+    if (accuracy < 2)
+        StringCopy(value, gText_BattleSwitchWhich5);
+    else
+        ConvertIntToDecimalStringN(value, accuracy, STR_CONV_MODE_LEFT_ALIGN, 3);
+    Text(win, 207, 26, value, 2, 25);
+    Text(win, 8, 41, GetMoveDescription(move), 2, 224);
+    Copy(win);
+}
+
 bool32 SmBattleMenuPrint(const u8 *text, u32 windowId)
 {
     if (!SmBattleMenuEnabled())
@@ -245,22 +307,6 @@ bool32 SmBattleMenuPrint(const u8 *text, u32 windowId)
     // occupies the old PP pane, which overlaps our right-hand move cards.
     if (windowId == B_WIN_SWITCH_PROMPT)
         return TRUE;
-    if (windowId == B_WIN_MOVE_DESCRIPTION)
-    {
-        u32 y;
-        LoadPalette(sColors, BG_PLTT_ID(6), sizeof(sColors));
-        FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-        for (y = 2; y < 78; y++)
-        {
-            u32 inset = y < 7 ? 7 - y : y > 72 ? y - 72 : 0;
-            Rect(windowId, 2 + inset, y, 236 - 2 * inset, 1, 6);
-            if (y > 3 && y < 76)
-                Rect(windowId, 4 + inset, y, 232 - 2 * inset, 1, 5);
-        }
-        Text(windowId, 8, 4, text, 2, 224);
-        Copy(windowId);
-        return TRUE;
-    }
     if (gBattleStruct->zmove.viewing)
         sZDisplay = TRUE;
     if (sZDisplay && windowId >= B_WIN_MOVE_NAME_1 && windowId <= B_WIN_MOVE_TYPE)

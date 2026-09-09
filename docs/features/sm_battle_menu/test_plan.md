@@ -216,3 +216,44 @@ BATTLE MENU selects DEFAULT / SM for battle controls and in-battle party.
   gimmick checks were not repeated. This run verifies rendering, not all moves
   or all languages.
 - The sm-types Live session was stopped after inspection.
+
+## Type-colored SM move details — 2026-09-09
+
+- `make -j16 -O debug` and `make -j16 -O all` passed with the existing RWX
+  warning. Debug SHA256:
+  `36595d14965af4b09395c377aab449ead07884afc733ec7ca7ebb675e55ba5e9`.
+  Normal SHA256:
+  `94a8194a53b0d08f05935d9227ebf32b92c090ffeea48d22c1e3c170b97817b6`.
+- Focused `make -j16 -O check TESTS='UI style'` passed 2/2. These tests cover
+  option/save isolation, not visual layout.
+- No mGBA MCP tool was exposed. Used the script-capable direct Live CLI,
+  DISPLAY=:0, 120fps target, videoSync=1. Fresh boot and debug single battle
+  use the matching debug ELF/ROM; only the disposable probe's unused tail
+  contains a function-call trampoline. No old-build state was loaded.
+- `evidence/details/natural.png` shows Earthquake opened through L.
+  `type-01` through `type-18` cover the 18 ordinary type colors via controlled
+  move fields and the production detail renderer; PP fields deliberately
+  retain fixture values, so they do not claim each move's natural base PP.
+- Real D-pad input while details are open updates Metal Claw, Magnitude,
+  Bulldoze and Astonish (`steel`, `ground-variable`, `ground`, `ghost`).
+  Verified type-colored surfaces, name, PP, badge, category icon, power and
+  accuracy, including variable-power `-`. `closed` and `back-actions` show
+  L close and B return without a residual sheet/category icon.
+- `status`, `pp-zero`, `max`, `max-guard`, `tera` and `stellar` cover status
+  category, pale-red zero PP, Max names/power/descriptions, Max Guard's
+  category and dashes, and dynamic Tera Blast type/palette. Gimmick availability
+  and Stellar type were provided by RAM fixtures; this is display validation,
+  not another complete gimmick battle simulation.
+- Rebooted and set BATTLE MENU DEFAULT in disposable save RAM before entering
+  a new battle. `default-details` preserves the original panel and category
+  position; `default-close` shows return to original actions after L/B.
+- Initial one-frame automated taps could be missed while menu DMA settled.
+  Repeated the reference traversal with four-frame taps and longer settling
+  intervals; only the verified captures are retained as evidence.
+- The source descriptions use two lines (conditional branches initially
+  appeared to add extra lines in a textual count). The body has room for
+  three small-font lines; future longer/translatable descriptions still need
+  runtime review. Double/special battle replays and all translations were not
+  repeated for this detail-only change. Long GitHub Actions were not awaited.
+- Stopped sm-details; final `status --all` returned `[]`. Diff whitespace
+  validation passed before commit.

@@ -9,6 +9,7 @@ void SmBattleMenuTemplates(struct WindowTemplate *templates);
 void SmBattleMenuSetBattler(u32 battler);
 bool32 SmBattleMenuPrint(const u8 *text, u32 windowId);
 bool32 SmBattleMenuCursor(u32 position, bool32 move, bool32 selected);
+void SmBattleMenuDetails(u32 battler, u32 move, u32 power, u32 accuracy);
 void SmBattleMenuMessageBackground(u32 windowId);
 u32 SmBattleMoveType(u32 battler, u32 moveIndex);
 

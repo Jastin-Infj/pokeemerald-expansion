@@ -167,3 +167,28 @@ The shared mint surround, 2x2 layout, type badge, zero-PP red, empty slots,
 Z page treatment and independent BATTLE MENU option remain unchanged.
 `evidence/type-colors/` captures all 18 ordinary types and Stellar Tera Blast,
 plus the reference's Metal Claw/Magnitude/Astonish/Bulldoze combination.
+
+## SM move information sheet with type colors — 2026-09-09
+
+The move-detail reference IMG_2963 uses a swept sheet with move identity on
+the left, category/power/accuracy on the right and description below. The
+previous blue panel with one compressed CAT/PWR/ACC line is replaced by that
+information hierarchy inside the existing 240x80 overlay. The left column
+shows the resolved move name, current/max PP and dynamic type badge. The right
+column retains the existing category sprite and power/accuracy producers.
+Max move names/descriptions and power still come from the controller.
+
+Following the requested final adjustment, the sheet uses the selected type's
+hue rather than a shared gray or blue. For RGB555 type component `c`, the
+body is `(c+3)/4`, alternating stats band `(c+5)/3`, rim `(c+10)/2`, edge
+highlight `(c+31)/2` and badge `(c+62)/3`. White text and pale red zero PP
+remain readable on these dark surfaces. The shallow swept upper/lower edges,
+row bands and column divider evoke the reference without consuming more tiles.
+
+The renderer owns palette 6; the four move cards retain palettes 12..15.
+No new assets, save fields, battle rules or inputs are introduced. L or B
+closes details through the existing controller; D-pad refreshes the selected
+move and its palette. BATTLE MENU DEFAULT retains the original detail layout.
+Its numeric buffers now reserve four bytes for three digits plus EOS.
+`evidence/details/` contains matching-ROM captures and the test plan records
+the fixture limits.
