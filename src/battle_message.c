@@ -1,4 +1,5 @@
 #include "global.h"
+#include "sm_battle_menu.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_ai_record.h"
@@ -3812,6 +3813,9 @@ void BattlePutTextOnWindow(const u8 *text, u8 windowId)
     struct TextPrinterTemplate printerTemplate;
     u8 speed;
 
+    if (SmBattleMenuPrint(text, windowId))
+        return;
+
     if (windowId & B_WIN_COPYTOVRAM)
     {
         windowId &= ~B_WIN_COPYTOVRAM;
@@ -3819,7 +3823,10 @@ void BattlePutTextOnWindow(const u8 *text, u8 windowId)
     }
     else
     {
-        FillWindowPixelBuffer(windowId, textInfo[windowId].fillValue);
+        if (SmBattleMenuEnabled() && windowId == B_WIN_MSG)
+            SmBattleMenuMessageBackground(windowId);
+        else
+            FillWindowPixelBuffer(windowId, textInfo[windowId].fillValue);
         copyToVram = TRUE;
     }
 
@@ -3834,6 +3841,16 @@ void BattlePutTextOnWindow(const u8 *text, u8 windowId)
     printerTemplate.letterSpacing = textInfo[windowId].letterSpacing;
     printerTemplate.lineSpacing = textInfo[windowId].lineSpacing;
     printerTemplate.color = textInfo[windowId].color;
+
+    if (SmBattleMenuEnabled() && windowId == B_WIN_MSG)
+    {
+        printerTemplate.x = printerTemplate.currentX = 12;
+        printerTemplate.y = printerTemplate.currentY = 4;
+        printerTemplate.color.foreground = 2;
+        printerTemplate.color.background = 1;
+        printerTemplate.color.accent = 1;
+        printerTemplate.color.shadow = 1;
+    }
 
     if (B_WIN_MOVE_NAME_1 <= windowId && windowId <= B_WIN_MOVE_NAME_4)
     {

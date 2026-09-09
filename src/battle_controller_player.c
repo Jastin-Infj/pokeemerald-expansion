@@ -1,4 +1,5 @@
 #include "global.h"
+#include "sm_battle_menu.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_arena.h"
@@ -321,6 +322,26 @@ static void HandleInputChooseAction(enum BattlerId battler)
             break;
         }
         BtlController_Complete(battler);
+    }
+    else if (SmBattleMenuEnabled() && JOY_NEW(DPAD_ANY))
+    {
+        u32 old = gActionSelectionCursor[battler];
+        u32 next = old;
+        if (JOY_NEW(DPAD_LEFT))
+            next = old == B_ACTION_USE_MOVE ? B_ACTION_SWITCH : old == B_ACTION_RUN ? B_ACTION_USE_ITEM : old;
+        else if (JOY_NEW(DPAD_RIGHT))
+            next = old == B_ACTION_USE_ITEM ? B_ACTION_RUN : B_ACTION_USE_MOVE;
+        else if (JOY_NEW(DPAD_UP))
+            next = old == B_ACTION_USE_ITEM ? B_ACTION_SWITCH : old == B_ACTION_RUN ? B_ACTION_USE_MOVE : old;
+        else if (JOY_NEW(DPAD_DOWN))
+            next = old == B_ACTION_SWITCH ? B_ACTION_USE_ITEM : B_ACTION_RUN;
+        if (next != old)
+        {
+            PlaySE(SE_SELECT);
+            ActionSelectionDestroyCursorAt(old);
+            gActionSelectionCursor[battler] = next;
+            ActionSelectionCreateCursorAt(next, 0);
+        }
     }
     else if (JOY_NEW(DPAD_LEFT))
     {
@@ -906,7 +927,10 @@ void HandleInputChooseMove(enum BattlerId battler)
             }
 
             FillWindowPixelBuffer(B_WIN_MOVE_DESCRIPTION, PIXEL_FILL(0));
-            ClearStdWindowAndFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
+            if (SmBattleMenuEnabled())
+                ClearWindowTilemap(B_WIN_MOVE_DESCRIPTION);
+            else
+                ClearStdWindowAndFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
             CopyWindowToVram(B_WIN_MOVE_DESCRIPTION, COPYWIN_GFX);
             PlaySE(SE_SELECT);
             if (B_SHOW_EFFECTIVENESS)
@@ -1669,6 +1693,7 @@ static void MoveSelectionDisplayMoveNames(enum BattlerId battler)
     s32 i;
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
     gNumberOfMovesToChoose = 0;
+    SmBattleMenuSetBattler(battler);
 
     for (i = 0; i < MAX_MON_MOVES; i++)
     {
@@ -1707,13 +1732,11 @@ static void MoveSelectionDisplayPpNumber(enum BattlerId battler)
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP_REMAINING);
 }
 
-static void MoveSelectionDisplayMoveType(enum BattlerId battler)
+u32 SmBattleMoveType(u32 battler, u32 moveIndex)
 {
-    u8 *txtPtr, *end;
     enum Species speciesId = gBattleMons[battler].species;
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
-    txtPtr = StringCopy(gDisplayedStringBattle, gText_MoveInterfaceType);
-    enum Move move = moveInfo->moves[gMoveSelectionCursor[battler]];
+    enum Move move = moveInfo->moves[moveIndex];
     enum Type type = GetMoveType(move);
     enum BattleMoveEffects effect = GetMoveEffect(move);
 
@@ -1745,7 +1768,13 @@ static void MoveSelectionDisplayMoveType(enum BattlerId battler)
         struct Pokemon *mon = GetBattlerMon(battler);
         type = CheckDynamicMoveType(mon, move, battler, MON_IN_BATTLE);
     }
-    end = StringCopy(txtPtr, gTypesInfo[type].name);
+    return type;
+}
+
+static void MoveSelectionDisplayMoveType(enum BattlerId battler)
+{
+    u8 *txtPtr = StringCopy(gDisplayedStringBattle, gText_MoveInterfaceType);
+    u8 *end = StringCopy(txtPtr, gTypesInfo[SmBattleMoveType(battler, gMoveSelectionCursor[battler])].name);
 
     PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
@@ -1782,8 +1811,11 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     u8 cat_start[] = _("{CLEAR_TO 0x03}");
     u8 pwr_start[] = _("{CLEAR_TO 0x38}");
     u8 acc_start[] = _("{CLEAR_TO 0x6C}");
-    LoadMessageBoxAndBorderGfx();
-    DrawStdWindowFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
+    if (!SmBattleMenuEnabled())
+    {
+        LoadMessageBoxAndBorderGfx();
+        DrawStdWindowFrame(B_WIN_MOVE_DESCRIPTION, FALSE);
+    }
     if (pwr < 2)
         StringCopy(pwr_num, gText_BattleSwitchWhich5);
     else
@@ -1805,7 +1837,7 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_DESCRIPTION);
 
     if (gCategoryIconSpriteId == 0xFF)
-        gCategoryIconSpriteId = CreateSprite(&gSpriteTemplate_CategoryIcons, 38, 64, 1);
+        gCategoryIconSpriteId = CreateSprite(&gSpriteTemplate_CategoryIcons, 38, SmBattleMenuEnabled() ? 40 : 64, 1);
 
     StartSpriteAnim(&gSprites[gCategoryIconSpriteId], cat);
 
@@ -1815,6 +1847,8 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
 void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
 {
     u16 src[2];
+    if (SmBattleMenuCursor(cursorPosition, TRUE, baseTileNum == 29 ? 2 : 1))
+        return;
     src[0] = baseTileNum + 1;
     src[1] = baseTileNum + 2;
 
@@ -1825,6 +1859,8 @@ void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
 void MoveSelectionDestroyCursorAt(u8 cursorPosition)
 {
     u16 src[2];
+    if (SmBattleMenuCursor(cursorPosition, TRUE, FALSE))
+        return;
     src[0] = 0x1016;
     src[1] = 0x1016;
 
@@ -1835,6 +1871,8 @@ void MoveSelectionDestroyCursorAt(u8 cursorPosition)
 void ActionSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
 {
     u16 src[2];
+    if (SmBattleMenuCursor(cursorPosition, FALSE, TRUE))
+        return;
     src[0] = 1;
     src[1] = 2;
 
@@ -1845,6 +1883,8 @@ void ActionSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
 void ActionSelectionDestroyCursorAt(u8 cursorPosition)
 {
     u16 src[2];
+    if (SmBattleMenuCursor(cursorPosition, FALSE, FALSE))
+        return;
     src[0] = 0x1016;
     src[1] = 0x1016;
 
@@ -2016,6 +2056,7 @@ static void HandleChooseActionAfterDma3(enum BattlerId battler)
 static void PlayerHandleChooseAction(enum BattlerId battler)
 {
     s32 i;
+    SmBattleMenuSetBattler(battler);
 
     gBattlerControllerFuncs[battler] = HandleChooseActionAfterDma3;
     BattleTv_ClearExplosionFaintCause();

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "sm_battle_menu.h"
 #include "battle.h"
 #include "battle_interface.h"
 #include "battle_anim.h"
@@ -946,7 +947,15 @@ void BattleInitBgsAndWindows(void)
         gBattleScripting.windowsType = B_WIN_TYPE_NORMAL;
     }
 
-    InitWindows(gBattleWindowTemplates[gBattleScripting.windowsType]);
+    if (SmBattleMenuEnabled())
+    {
+        struct WindowTemplate templates[ARRAY_COUNT(sStandardBattleWindowTemplates)];
+        memcpy(templates, sStandardBattleWindowTemplates, sizeof(templates));
+        SmBattleMenuTemplates(templates);
+        InitWindows(templates);
+    }
+    else
+        InitWindows(gBattleWindowTemplates[gBattleScripting.windowsType]);
     DeactivateAllTextPrinters();
 }
 
@@ -1372,4 +1381,3 @@ void DrawTerrainTypeBattleBackground(void)
         break;
     }
 }
-

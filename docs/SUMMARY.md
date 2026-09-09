@@ -368,3 +368,4 @@
     - [Scope Guidelines](team_procedures/scope.md)
 
 - [Runtime UI style selection](features/ui_style_switch/implementation.md)
+- [Generation VII-inspired battle menus](features/sm_battle_menu/implementation.md)

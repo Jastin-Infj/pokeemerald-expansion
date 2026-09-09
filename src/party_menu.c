@@ -1,4 +1,5 @@
 #include "global.h"
+#include "ui_style.h"
 #include "malloc.h"
 #include "battle.h"
 #include "battle_anim.h"
@@ -514,6 +515,54 @@ static const u8 sText_CannotSendMonToBoxPartner[] = _("Cannot send a mon that do
 // static const data
 #include "data/party_menu.h"
 
+static bool32 UseSmPartyMenu(void)
+{
+    return IsUiStyleXY() && gMain.inBattle
+        && (gPartyMenu.layout == PARTY_LAYOUT_SINGLE || gPartyMenu.layout == PARTY_LAYOUT_DOUBLE);
+}
+
+static u32 AddSmPartyWindow(const struct WindowTemplate *original)
+{
+    struct WindowTemplate t = *original;
+    if (UseSmPartyMenu() && t.baseBlock >= 0x1C7)
+        t.baseBlock += 0x20;
+    return AddWindow(&t);
+}
+
+static void BlitSmPartyCard(u8 win, u8 x, u8 y, u8 width, u8 height, bool8 hideHP)
+{
+    u32 px, py;
+    if (width == 0 && height == 0)
+    {
+        width = 15;
+        height = 4;
+    }
+    for (py = y * 8; py < min((y + height) * 8, 32); py++)
+        for (px = x * 8; px < min((x + width) * 8, 120); px++)
+        {
+            u32 inset = py < 7 ? 7 - py : py > 24 ? py - 24 : 0;
+            u32 color = 0;
+            if (py > 0 && py < 31 && px >= 2 + inset && px < 118 - inset)
+                color = (py < 3 || py > 28 || px < 4 + inset || px >= 116 - inset) ? 4 : py < 19 ? 1 : 8;
+            if (!hideHP && px >= 33 && px <= 62 && py >= 23 && py <= 27)
+                color = 2;
+            FillWindowPixelRect(win, PIXEL_FILL(color), px, py, 1, 1);
+        }
+}
+
+static const struct PartyMenuBoxInfoRects sSmPartyRects = {
+    BlitSmPartyCard,
+    {34, 9, 72, 12, 34, 0, 30, 8, 68, 0, 8, 8,
+     64, 18, 24, 8, 87, 18, 24, 8, 34, 24, 28, 3},
+    34, 15, 78, 16,
+};
+
+static const u8 sSmPartySpriteCoords[PARTY_SIZE][8] = {
+    {18,16,30,25,48,8,18,16}, {138,16,150,25,168,8,138,16},
+    {18,56,30,65,48,48,18,56}, {138,56,150,65,168,48,138,56},
+    {18,96,30,105,48,88,18,96}, {138,96,150,105,168,88,138,96},
+};
+
 // code
 static void InitPartyMenu(enum PartyMenuType menuType, enum PartyMenuLayout layout, u8 partyAction, bool8 keepCursorPos, u8 messageId, TaskFunc task, MainCallback callback)
 {
@@ -913,11 +962,33 @@ static bool8 AllocPartyMenuBgGfx(void)
         if (!IsDma3ManagerBusyWithBgCopy())
         {
             DecompressDataWithHeaderWram(gPartyMenuBg_Tilemap, sPartyBgTilemapBuffer);
+            if (UseSmPartyMenu())
+            {
+                static const u32 tiles[16] = {
+                    0x11111111,0x11111111,0x11111111,0x11111111,
+                    0x11111111,0x11111111,0x11111111,0x11111111,
+                    0x11111112,0x11111121,0x11111211,0x11112111,
+                    0x11121111,0x11211111,0x12111111,0x21111111,
+                };
+                u32 x, y;
+                // Tile zero must remain transparent: BG2's empty map also uses it.
+                LoadBgTiles(1, tiles, sizeof(tiles), 1);
+                FillBgTilemapBufferRect(1, 1, 0, 0, 32, 32, 0);
+                for (y = 0; y < 20; y++)
+                    for (x = 0; x < 30; x++)
+                        if ((x + y) % 7 == 0)
+                            FillBgTilemapBufferRect(1, 2, x, y, 1, 1, 0);
+            }
             sPartyMenuInternal->data[0]++;
         }
         break;
     case 2:
         LoadPalette(gPartyMenuBg_Pal, BG_PLTT_ID(0), 11 * PLTT_SIZE_4BPP);
+        if (UseSmPartyMenu())
+        {
+            static const u16 green[] = {RGB(5,15,8), RGB(7,18,10)};
+            LoadPalette(green, BG_PLTT_ID(0) + 1, sizeof(green));
+        }
         CpuCopy16(gPlttBufferUnfaded, sPartyMenuInternal->palBuffer, 11 * PLTT_SIZE_4BPP);
         sPartyMenuInternal->data[0]++;
         break;
@@ -989,6 +1060,15 @@ static void LoadPartyMenuBoxes(enum PartyMenuLayout layout)
     }
 
     // The first party mon goes in the left column
+    if (UseSmPartyMenu())
+    {
+        for (i = 0; i < PARTY_SIZE; i++)
+        {
+            sPartyMenuBoxes[i].infoRects = &sSmPartyRects;
+            sPartyMenuBoxes[i].spriteCoords = sSmPartySpriteCoords[i];
+        }
+        return;
+    }
     sPartyMenuBoxes[0].infoRects = &sPartyBoxInfoRects[PARTY_BOX_LEFT_COLUMN];
 
     if (layout == PARTY_LAYOUT_MULTI_SHOWCASE)
@@ -1811,7 +1891,21 @@ static void UpdateCurrentPartySelection(s8 *slotPtr, s8 movementDir)
     s8 newSlotId = *slotPtr;
     enum PartyMenuLayout layout = gPartyMenu.layout;
 
-    if (layout == PARTY_LAYOUT_SINGLE
+    if (UseSmPartyMenu())
+    {
+        s8 count = gPartiesCount[B_TRAINER_PLAYER];
+        if (*slotPtr >= PARTY_SIZE)
+            *slotPtr = movementDir == MENU_DIR_UP ? count - 1 : 0;
+        else if (movementDir == MENU_DIR_UP)
+            *slotPtr = *slotPtr >= 2 ? *slotPtr - 2 : PARTY_SIZE + 1;
+        else if (movementDir == MENU_DIR_DOWN)
+            *slotPtr = *slotPtr + 2 < count ? *slotPtr + 2 : PARTY_SIZE + 1;
+        else if (movementDir == MENU_DIR_LEFT && (*slotPtr & 1))
+            (*slotPtr)--;
+        else if (movementDir == MENU_DIR_RIGHT && !(*slotPtr & 1) && *slotPtr + 1 < count)
+            (*slotPtr)++;
+    }
+    else if (layout == PARTY_LAYOUT_SINGLE
      || layout == PARTY_LAYOUT_MULTI_FULL
      || layout == PARTY_LAYOUT_MULTI_FULL_PARTNER)
     {
@@ -2360,6 +2454,18 @@ static enum CanMoveBeLearned CanTeachMove(struct Pokemon *mon, enum Move move)
 
 static void InitPartyMenuWindows(enum PartyMenuLayout layout)
 {
+    if (UseSmPartyMenu())
+    {
+        struct WindowTemplate t[ARRAY_COUNT(sSinglePartyMenuWindowTemplate)];
+        u32 i;
+        memcpy(t, sSinglePartyMenuWindowTemplate, sizeof(t));
+        for (i = 0; i < PARTY_SIZE; i++)
+            t[i] = (struct WindowTemplate){0, (i & 1) * 15, (i / 2) * 5, 15, 4, 3 + i, 0x63 + i * 60};
+        t[WIN_MSG].baseBlock += 0x20;
+        InitWindows(t);
+        LoadPartyMenuWindows();
+        return;
+    }
     switch (layout)
     {
     case PARTY_LAYOUT_MULTI_SHOWCASE:
@@ -2387,6 +2493,14 @@ static void LoadPartyMenuWindows(void)
     LoadUserWindowBorderGfx(0, 0x4F, BG_PLTT_ID(13));
     LoadPalette(GetOverworldTextboxPalettePtr(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     LoadPalette(gStandardMenuPalette, BG_PLTT_ID(15), PLTT_SIZE_4BPP);
+    if (UseSmPartyMenu())
+    {
+        // Match the reference's dark footer and popup text, preserving semantic
+        // red/blue entries used by item and move messages in these palettes.
+        static const u16 textColors[] = {RGB(2,5,5), RGB(3,7,7), RGB(30,31,29)};
+        LoadPalette(textColors, BG_PLTT_ID(14) + 1, sizeof(textColors));
+        LoadPalette(textColors, BG_PLTT_ID(15) + 1, sizeof(textColors));
+    }
 }
 
 static void CreateCancelConfirmWindows(bool8 chooseHalf)
@@ -2401,18 +2515,18 @@ static void CreateCancelConfirmWindows(bool8 chooseHalf)
     {
         if (chooseHalf == TRUE)
         {
-            confirmWindowId = AddWindow(&sConfirmButtonWindowTemplate);
+            confirmWindowId = AddSmPartyWindow(&sConfirmButtonWindowTemplate);
             FillWindowPixelBuffer(confirmWindowId, PIXEL_FILL(0));
             mainOffset = GetStringCenterAlignXOffset(FONT_SMALL, gMenuText_Confirm, 48);
             AddTextPrinterParameterized4(confirmWindowId, FONT_SMALL, mainOffset, 1, 0, 0, sFontColorTable[0], TEXT_SKIP_DRAW, gMenuText_Confirm);
             PutWindowTilemap(confirmWindowId);
             CopyWindowToVram(confirmWindowId, COPYWIN_GFX);
-            cancelWindowId = AddWindow(&sMultiCancelButtonWindowTemplate);
+            cancelWindowId = AddSmPartyWindow(&sMultiCancelButtonWindowTemplate);
             offset = 0;
         }
         else
         {
-            cancelWindowId = AddWindow(&sCancelButtonWindowTemplate);
+            cancelWindowId = AddSmPartyWindow(&sCancelButtonWindowTemplate);
             offset = 3;
         }
         FillWindowPixelBuffer(cancelWindowId, PIXEL_FILL(0));
@@ -2484,6 +2598,11 @@ static void BlitBitmapToPartyWindow_RightColumn(u8 windowId, u8 x, u8 y, u8 widt
 
 static void DrawEmptySlot(u8 windowId)
 {
+    if (UseSmPartyMenu())
+    {
+        FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+        return;
+    }
     BlitBitmapToPartyWindow(windowId, sSlotTilemap_WideEmpty, 18, 0, 0, 18, 3);
 }
 
@@ -2497,6 +2616,21 @@ static void DrawEmptySlot(u8 windowId)
 static void LoadPartyBoxPalette(struct PartyMenuBox *menuBox, u8 palFlags)
 {
     u8 palOffset = BG_PLTT_ID(GetWindowAttribute(menuBox->windowId, WINDOW_PALETTE_NUM));
+
+    if (UseSmPartyMenu())
+    {
+        u16 pal[16];
+        memcpy(pal, &gPlttBufferUnfaded[palOffset], sizeof(pal));
+        pal[0] = RGB(5, 15, 8);
+        pal[1] = RGB(30, 31, 29);
+        pal[2] = RGB(2, 5, 5);
+        pal[3] = RGB(24, 28, 23);
+        pal[4] = palFlags & PARTY_PAL_SELECTED ? RGB(5, 29, 25) : RGB(2, 8, 5);
+        pal[8] = palFlags & PARTY_PAL_FAINTED ? RGB(31, 20, 19) : RGB(23, 29, 18);
+        pal[13] = RGB(5, 8, 9);
+        LoadPalette(pal, palOffset, sizeof(pal));
+        return;
+    }
 
     if (palFlags & PARTY_PAL_NO_MON)
     {
@@ -2590,7 +2724,7 @@ static void DisplayPartyPokemonNickname(struct Pokemon *mon, struct PartyMenuBox
         if (c == 1)
             menuBox->infoRects->blitFunc(menuBox->windowId, menuBox->infoRects->dimensions[0] >> 3, menuBox->infoRects->dimensions[1] >> 3, menuBox->infoRects->dimensions[2] >> 3, menuBox->infoRects->dimensions[3] >> 3, FALSE);
         GetMonNickname(mon, nickname);
-        DisplayPartyPokemonBarDetailToFit(menuBox->windowId, nickname, 0, menuBox->infoRects->dimensions, 50);
+        DisplayPartyPokemonBarDetailToFit(menuBox->windowId, nickname, 0, menuBox->infoRects->dimensions, UseSmPartyMenu() ? 76 : 50);
     }
 }
 
@@ -2784,26 +2918,26 @@ void DisplayPartyMenuStdMessage(u32 stringId)
         switch (stringId)
         {
         case PARTY_MSG_DO_WHAT_WITH_MON:
-            *windowPtr = AddWindow(&sDoWhatWithMonMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sDoWhatWithMonMsgWindowTemplate);
             break;
         case PARTY_MSG_DO_WHAT_WITH_ITEM:
-            *windowPtr = AddWindow(&sDoWhatWithItemMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sDoWhatWithItemMsgWindowTemplate);
             break;
         case PARTY_MSG_DO_WHAT_WITH_MAIL:
-            *windowPtr = AddWindow(&sDoWhatWithMailMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sDoWhatWithMailMsgWindowTemplate);
             break;
         case PARTY_MSG_RESTORE_WHICH_MOVE:
         case PARTY_MSG_BOOST_PP_WHICH_MOVE:
-            *windowPtr = AddWindow(&sWhichMoveMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sWhichMoveMsgWindowTemplate);
             break;
         case PARTY_MSG_ALREADY_HOLDING_ONE:
-            *windowPtr = AddWindow(&sAlreadyHoldingOneMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sAlreadyHoldingOneMsgWindowTemplate);
             break;
         case PARTY_MSG_WHICH_APPLIANCE:
-            *windowPtr = AddWindow(&sOrderWhichApplianceMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sOrderWhichApplianceMsgWindowTemplate);
             break;
         default:
-            *windowPtr = AddWindow(&sDefaultPartyMsgWindowTemplate);
+            *windowPtr = AddSmPartyWindow(&sDefaultPartyMsgWindowTemplate);
             break;
         }
 
@@ -2872,7 +3006,7 @@ static u8 DisplaySelectionWindow(u8 windowType)
         break;
     }
 
-    sPartyMenuInternal->windowId[0] = AddWindow(&window);
+    sPartyMenuInternal->windowId[0] = AddSmPartyWindow(&window);
     DrawStdFrameWithCustomTileAndPalette(sPartyMenuInternal->windowId[0], FALSE, 0x4F, 13);
     if (windowType == SELECTWINDOW_MOVES)
         return sPartyMenuInternal->windowId[0];
@@ -2910,12 +3044,19 @@ static void PrintMessage(const u8 *text)
 
 static void PartyMenuDisplayYesNoMenu(void)
 {
-    CreateYesNoMenu(&sPartyMenuYesNoWindowTemplate, 0x4F, 13, 0);
+    if (UseSmPartyMenu())
+    {
+        struct WindowTemplate t = sPartyMenuYesNoWindowTemplate;
+        t.baseBlock += 0x20;
+        CreateYesNoMenu(&t, 0x4F, 13, 0);
+    }
+    else
+        CreateYesNoMenu(&sPartyMenuYesNoWindowTemplate, 0x4F, 13, 0);
 }
 
 static u8 CreateLevelUpStatsWindow(void)
 {
-    sPartyMenuInternal->windowId[0] = AddWindow(&sLevelUpStatsWindowTemplate);
+    sPartyMenuInternal->windowId[0] = AddSmPartyWindow(&sLevelUpStatsWindowTemplate);
     DrawStdFrameWithCustomTileAndPalette(sPartyMenuInternal->windowId[0], FALSE, 0x4F, 13);
     return sPartyMenuInternal->windowId[0];
 }
@@ -8480,7 +8621,7 @@ static void PartyMenu_Oak_PrintText(u8 windowId, const u8 *str)
 
 static bool8 FirstBattleEnterParty_CreateWindowAndMsg1Printer(void)
 {
-    u8 windowId = AddWindow(&sWindowTemplate_FirstBattleOakVoiceover);
+    u8 windowId = AddSmPartyWindow(&sWindowTemplate_FirstBattleOakVoiceover);
 
     LoadMessageBoxGfx(windowId, 0x4F, BG_PLTT_ID(14));
     DrawDialogFrameWithCustomTileAndPalette(windowId, 1, 0x4F, 0xE);
