@@ -26,6 +26,7 @@
 #define tWindowFrameType data[6]
 #define tUiStyle data[7]
 #define tBattleMenu data[8]
+#define tSmDetailsTone data[9]
 
 #define OPTION_ROW_HEIGHT 14
 #define OPTION_VISIBLE_ROWS 8
@@ -40,6 +41,7 @@ enum
     MENUITEM_FRAMETYPE,
     MENUITEM_UISTYLE,
     MENUITEM_BATTLEMENU,
+    MENUITEM_SMDETAILS,
     MENUITEM_CANCEL,
     MENUITEM_COUNT,
 };
@@ -76,6 +78,7 @@ static u8 ButtonMode_ProcessInput(u8 selection);
 static void ButtonMode_DrawChoices(u8 selection);
 static void UiStyle_DrawChoices(u8 selection);
 static void BattleMenu_DrawChoices(u8 selection);
+static void SmDetails_DrawChoices(u8 selection);
 static void DrawOptionSettings(u8 taskId);
 static void ScrollOptionMenu(u8 taskId);
 static void DrawHeaderText(void);
@@ -115,6 +118,7 @@ static const u8 *const sOptionMenuItemsNames[MENUITEM_COUNT] =
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("FRAME"),
     [MENUITEM_UISTYLE]    = COMPOUND_STRING("UI STYLE"),
     [MENUITEM_BATTLEMENU] = COMPOUND_STRING("BATTLE MENU"),
+    [MENUITEM_SMDETAILS] = COMPOUND_STRING("SM DETAILS"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("CANCEL"),
 };
 
@@ -268,6 +272,7 @@ void CB2_InitOptionMenu(void)
         gTasks[taskId].tWindowFrameType = gSaveBlock2Ptr->optionsWindowFrameType;
         gTasks[taskId].tUiStyle = IsUiStyleXY();
         gTasks[taskId].tBattleMenu = IsBattleMenuSM();
+        gTasks[taskId].tSmDetailsTone = IsSmDetailsRich();
 
         TextSpeed_DrawChoices(gTasks[taskId].tTextSpeed);
         BattleScene_DrawChoices(gTasks[taskId].tBattleSceneOff);
@@ -277,6 +282,7 @@ void CB2_InitOptionMenu(void)
         FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
         UiStyle_DrawChoices(gTasks[taskId].tUiStyle);
         BattleMenu_DrawChoices(gTasks[taskId].tBattleMenu);
+        SmDetails_DrawChoices(gTasks[taskId].tSmDetailsTone);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
 
         CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
@@ -379,6 +385,12 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             if (previousOption != gTasks[taskId].tBattleMenu)
                 BattleMenu_DrawChoices(gTasks[taskId].tBattleMenu);
             break;
+        case MENUITEM_SMDETAILS:
+            previousOption = gTasks[taskId].tSmDetailsTone;
+            gTasks[taskId].tSmDetailsTone = BattleScene_ProcessInput(previousOption);
+            if (previousOption != gTasks[taskId].tSmDetailsTone)
+                SmDetails_DrawChoices(gTasks[taskId].tSmDetailsTone);
+            break;
         case MENUITEM_FRAMETYPE:
             previousOption = gTasks[taskId].tWindowFrameType;
             gTasks[taskId].tWindowFrameType = FrameType_ProcessInput(gTasks[taskId].tWindowFrameType);
@@ -408,6 +420,7 @@ static void Task_OptionMenuSave(u8 taskId)
     gSaveBlock2Ptr->optionsWindowFrameType = gTasks[taskId].tWindowFrameType;
     gSaveBlock2Ptr->optionsUiStyle = gTasks[taskId].tUiStyle;
     gSaveBlock2Ptr->optionsBattleMenu = gTasks[taskId].tBattleMenu;
+    gSaveBlock2Ptr->optionsSmDetailsTone = gTasks[taskId].tSmDetailsTone;
 
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
     gTasks[taskId].func = Task_OptionMenuFadeOut;
@@ -696,6 +709,14 @@ static void BattleMenu_DrawChoices(u8 selection)
     DrawOptionMenuChoice(sSM, 176, MENUITEM_BATTLEMENU * OPTION_ROW_HEIGHT, selection == OPTIONS_BATTLE_MENU_SM);
 }
 
+static void SmDetails_DrawChoices(u8 selection)
+{
+    static const u8 sSoft[] = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}SOFT");
+    static const u8 sRich[] = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}RICH");
+    DrawOptionMenuChoice(sSoft, 104, MENUITEM_SMDETAILS * OPTION_ROW_HEIGHT, selection == OPTIONS_SM_DETAILS_SOFT);
+    DrawOptionMenuChoice(sRich, 176, MENUITEM_SMDETAILS * OPTION_ROW_HEIGHT, selection == OPTIONS_SM_DETAILS_RICH);
+}
+
 static void DrawOptionSettings(u8 taskId)
 {
     TextSpeed_DrawChoices(gTasks[taskId].tTextSpeed);
@@ -706,6 +727,7 @@ static void DrawOptionSettings(u8 taskId)
     FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
     UiStyle_DrawChoices(gTasks[taskId].tUiStyle);
     BattleMenu_DrawChoices(gTasks[taskId].tBattleMenu);
+    SmDetails_DrawChoices(gTasks[taskId].tSmDetailsTone);
 }
 
 static void ScrollOptionMenu(u8 taskId)

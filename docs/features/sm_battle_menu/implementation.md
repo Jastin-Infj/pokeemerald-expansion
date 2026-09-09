@@ -120,10 +120,12 @@ Select `OPTION > BATTLE MENU > SM` for the new action, move, message, detail and
 in-battle party menus. Select DEFAULT to return those screens to the original
 layout. `UI STYLE: DEFAULT / XY` now independently controls the upper HUD.
 New games and unknown battle-menu values default to the original menus.
+`SM DETAILS: SOFT / RICH` independently selects the detail-sheet interior;
+SOFT is the default, while both choices retain the SM layout and type rim.
 
 The saved `optionsBattleMenu` field uses the former 16-bit alignment padding at
 SaveBlock2 +0x16. The existing options word at +0x14, Pokedex at +0x18 and later
-data keep their offsets. Option scrolling exposes all nine rows without reducing
+data keep their offsets. Option scrolling exposes all ten rows without reducing
 font size; B and CANCEL apply changes through the existing options save path.
 Normal in-game SAVE persists the selection. Combat rules are unchanged.
 Original reference photos are not included; editable Aseprite studies and
@@ -192,3 +194,26 @@ move and its palette. BATTLE MENU DEFAULT retains the original detail layout.
 Its numeric buffers now reserve four bytes for three digits plus EOS.
 `evidence/details/` contains matching-ROM captures and the test plan records
 the fixture limits.
+
+## Softer interiors and a saved tone choice — 2026-09-09
+
+The strongly colored detail body competed with the pastel cards. The final
+direction keeps the existing SM layout and the exact swept rim geometry and
+colors, while reducing the interior accent strength. `OPTION > SM DETAILS`
+selects SOFT / RICH independently of UI STYLE and BATTLE MENU. It applies only
+to the SM detail sheet; original menus and move-card palettes are unchanged.
+
+SOFT uses `(c+155)/6` for the body, `(c+124)/5` for the heading and `(c+93)/4`
+for the badge, for each RGB555 type component `c`. The text is dark `(4,5,6)`
+and zero PP dark red `(23,4,6)`. Only the heading has a colored band; the
+alternating metadata stripes are removed in this preset. RICH retains the
+previous dark type surfaces, striped information rows and white text. Both
+use the original rim `(c+10)/2` and highlight `(c+31)/2`.
+
+`SaveBlock2.optionsSmDetailsTone` consumes one previously unused filler byte
+at +0x90. The original option word +0x14, 16-bit battle-menu field +0x16,
+Pokedex +0x18 and local time +0x98 retain their positions. The remaining
+filler occupies +0x91..+0x97. Old zero-filled saves, new games and unknown
+tone values use SOFT; only the explicit RICH value selects dark interiors.
+Normal in-game SAVE persists the setting. B/CANCEL apply changes through
+the existing option path, with ten rows shown through the eight-row viewport.

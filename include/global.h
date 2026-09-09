@@ -604,7 +604,8 @@ struct SaveBlock2
              u16 optionsUiStyle:4; // OPTIONS_UI_STYLE_*; uses the existing padding nibble
     /*0x16*/ u16 optionsBattleMenu; // OPTIONS_BATTLE_MENU_*; former alignment padding
     /*0x18*/ struct Pokedex pokedex;
-    /*0x90*/ u8 filler_90[0x8];
+    /*0x90*/ u8 optionsSmDetailsTone; // OPTIONS_SM_DETAILS_*; former filler byte
+    /*0x91*/ u8 filler_91[0x7];
     /*0x98*/ struct Time localTimeOffset;
     /*0xA0*/ struct Time lastBerryTreeUpdate;
     /*0xA8*/ u32 gcnLinkFlags; // Read by Pokémon Colosseum/XD

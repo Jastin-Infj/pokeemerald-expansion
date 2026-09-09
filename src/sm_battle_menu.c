@@ -237,31 +237,41 @@ static const u8 *MoveName(u32 index)
 }
 
 // The SM information sheet separates identity, battle stats and description.
-// Dark type-tinted surfaces keep white text legible and match the selected card.
+// A light reading surface links the sheet to the pastel move cards below.
+// Retain the original type-colored rim while softening the interior accents.
 void SmBattleMenuDetails(u32 battler, u32 move, u32 power, u32 accuracy)
 {
     u16 colors[16] = {
-        RGB(0, 0, 0), RGB(5, 6, 6), RGB(31, 31, 29), RGB(20, 22, 21),
+        RGB(0, 0, 0), RGB(4, 5, 6), RGB(4, 5, 6), RGB(31, 31, 29),
         RGB(12, 14, 14), RGB(9, 10, 10), RGB(16, 18, 17), RGB(11, 12, 12),
         RGB(6, 7, 7), RGB(25, 27, 25), RGB(14, 16, 15), RGB(8, 9, 9),
-        RGB(31, 19, 17), RGB(31, 15, 14), RGB(7, 21, 11), RGB(22, 30, 15),
+        RGB(23, 4, 6), RGB(31, 15, 14), RGB(7, 21, 11), RGB(22, 30, 15),
     };
     struct ChooseMoveStruct *info = (struct ChooseMoveStruct *)&gBattleResources->bufferA[battler][4];
     u32 index = gMoveSelectionCursor[battler];
     u32 win = B_WIN_MOVE_DESCRIPTION;
     u32 tint = gTypesInfo[SmBattleMoveType(battler, index)].teraTypeRGBValue;
     u32 r = tint & 31, g = (tint >> 5) & 31, b = (tint >> 10) & 31;
+    bool32 rich = IsSmDetailsRich();
     u32 x, y;
     u8 value[16];
     u8 *end;
     colors[3] = RGB((r + 31) / 2, (g + 31) / 2, (b + 31) / 2);
-    colors[4] = RGB((r + 5) / 3, (g + 5) / 3, (b + 5) / 3);
-    colors[5] = RGB((r + 3) / 4, (g + 3) / 4, (b + 3) / 4);
+    colors[4] = RGB((r + 124) / 5, (g + 124) / 5, (b + 124) / 5);
+    colors[5] = RGB((r + 155) / 6, (g + 155) / 6, (b + 155) / 6);
     colors[6] = RGB((r + 10) / 2, (g + 10) / 2, (b + 10) / 2);
-    colors[9] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
+    colors[9] = RGB((r + 93) / 4, (g + 93) / 4, (b + 93) / 4);
+    if (rich)
+    {
+        colors[2] = RGB(31, 31, 29);
+        colors[4] = RGB((r + 5) / 3, (g + 5) / 3, (b + 5) / 3);
+        colors[5] = RGB((r + 3) / 4, (g + 3) / 4, (b + 3) / 4);
+        colors[9] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
+        colors[12] = RGB(31, 19, 17);
+    }
     LoadPalette(colors, BG_PLTT_ID(6), sizeof(colors));
     FillWindowPixelBuffer(win, PIXEL_FILL(0));
-    // Shallow swept edges suggest the reference's curved sheet at GBA scale.
+    // Preserve the original swept outline and rim colors.
     for (x = 0; x < 240; x++)
     {
         u32 edge = x < 80 ? x / 40 : x < 160 ? 2 : (239 - x) / 40;
@@ -269,10 +279,17 @@ void SmBattleMenuDetails(u32 battler, u32 move, u32 power, u32 accuracy)
         Rect(win, x, edge + 1, 1, 78 - edge * 2, 3);
         Rect(win, x, edge + 2, 1, 76 - edge * 2, 5);
     }
-    for (y = 5; y < 38; y++)
-        Rect(win, 4, y, 232, 1, ((y - 5) / 11) & 1 ? 5 : 4);
-    Rect(win, 128, 6, 1, 30, 6);
-    Rect(win, 6, 39, 228, 1, 6);
+    if (rich)
+    {
+        for (y = 5; y < 38; y++)
+            Rect(win, 4, y, 232, 1, ((y - 5) / 11) & 1 ? 5 : 4);
+    }
+    else
+    {
+        Rect(win, 4, 5, 232, 10, 4);
+    }
+    Rect(win, 128, 6, 1, 30, rich ? 6 : 4);
+    Rect(win, 8, 39, 224, 1, rich ? 6 : 4);
     Text(win, 8, 4, GetMoveName(move), 2, 116);
     end = StringCopy(value, COMPOUND_STRING("PP "));
     end = ConvertIntToDecimalStringN(end, info->currentPp[index], STR_CONV_MODE_LEFT_ALIGN, 2);

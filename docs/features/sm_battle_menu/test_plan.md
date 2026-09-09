@@ -257,3 +257,40 @@ BATTLE MENU selects DEFAULT / SM for battle controls and in-battle party.
   repeated for this detail-only change. Long GitHub Actions were not awaited.
 - Stopped sm-details; final `status --all` returned `[]`. Diff whitespace
   validation passed before commit.
+
+## Soft interior and saved SM DETAILS option — 2026-09-09
+
+- Normal and debug builds passed (existing RWX linker warning). Normal SHA256:
+  `4e4a68fe7d128be83d6b88502348498ebed89b642b5a5adb5c26b3a3721d894b`.
+  Debug SHA256:
+  `18bbc2b962bcd683ca35020c384bde3b96e9c543219d584c9bbe68885e978d76`.
+- `make -j16 -O check TESTS='UI style'` passed. Re-ran the cached headless
+  test binary to obtain untruncated output: 3/3 passed. The new test covers
+  tone default/unknown fallback, independent flags, and +0x90/+0x98 offsets.
+- No Live MCP tools were exposed; used direct script-capable mGBA Live at
+  DISPLAY=:0, 120fps target and videoSync=1. Booted the final matching debug
+  build afresh. The comparison-only cream study and intermediate build were
+  discarded; final evidence uses the requested unchanged rim.
+- Actual OPTION input scrolled to SM DETAILS, selected RICH, reached CANCEL
+  and exited. Normal in-game SAVE displayed success. After reset/CONTINUE,
+  the existing option word, battle-menu field and tone byte read
+  `0x1001 / 0x0001 / 0x01`; the option screen still selected RICH.
+  Actual OPTION input then selected SOFT and exited with B. A fresh debug
+  battle opened SOFT details through L (`soft-natural`).
+- `evidence/light-details/soft-01..18` and `rich-01..18` exercise all 18 type
+  palettes through the production renderer with controlled move/PP RAM.
+  PP values belong to the fixture rather than each move's natural base PP.
+  Visually inspected SOFT names, numbers, badges, category and description.
+  `soft-pp-zero`, `soft-status`, `soft-closed` and `soft-actions` verify red
+  zero PP, status dashes, L close and B return without leftover panel pixels.
+- `rim-verification.json` records a pixel comparison for every type case:
+  240 columns x four upper/lower rim pixels x 18 cases = 17,280 pixels.
+  SOFT and RICH match each other and the previous `evidence/details/type-*`
+  rim exactly. Body samples differ for all types.
+- The implementation changes palette/geometry inside the sheet plus one
+  saved preference. Default-menu, Max/Tera/Z and double-battle playthroughs
+  from the preceding validation were not repeated; their routing/data
+  producers are unchanged. New option independence is covered by the three
+  tests and actual save/reload. All languages/descriptions remain unexhausted.
+- Stopped the study and final sessions. Final `status --all` returned `[]`;
+  `git diff --check` passed. Long GitHub Actions were not awaited.

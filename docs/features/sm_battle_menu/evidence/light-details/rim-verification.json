@@ -1,0 +1,272 @@
+[
+  {
+    "type_case": 1,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      255,
+      255,
+      255
+    ],
+    "rich_body_rgb": [
+      66,
+      66,
+      66
+    ]
+  },
+  {
+    "type_case": 2,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      255,
+      239,
+      222
+    ],
+    "rich_body_rgb": [
+      66,
+      41,
+      24
+    ]
+  },
+  {
+    "type_case": 3,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      222,
+      231,
+      247
+    ],
+    "rich_body_rgb": [
+      24,
+      41,
+      57
+    ]
+  },
+  {
+    "type_case": 4,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      247,
+      247,
+      222
+    ],
+    "rich_body_rgb": [
+      66,
+      57,
+      16
+    ]
+  },
+  {
+    "type_case": 5,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      231,
+      247,
+      247
+    ],
+    "rich_body_rgb": [
+      33,
+      57,
+      57
+    ]
+  },
+  {
+    "type_case": 6,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      222,
+      239,
+      222
+    ],
+    "rich_body_rgb": [
+      24,
+      49,
+      24
+    ]
+  },
+  {
+    "type_case": 7,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      247,
+      222,
+      231
+    ],
+    "rich_body_rgb": [
+      57,
+      16,
+      33
+    ]
+  },
+  {
+    "type_case": 8,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      247,
+      222,
+      247
+    ],
+    "rich_body_rgb": [
+      57,
+      24,
+      57
+    ]
+  },
+  {
+    "type_case": 9,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      247,
+      239,
+      231
+    ],
+    "rich_body_rgb": [
+      57,
+      49,
+      41
+    ]
+  },
+  {
+    "type_case": 10,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      255,
+      247,
+      222
+    ],
+    "rich_body_rgb": [
+      66,
+      57,
+      16
+    ]
+  },
+  {
+    "type_case": 11,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      255,
+      231,
+      231
+    ],
+    "rich_body_rgb": [
+      66,
+      33,
+      33
+    ]
+  },
+  {
+    "type_case": 12,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      231,
+      239,
+      214
+    ],
+    "rich_body_rgb": [
+      41,
+      49,
+      16
+    ]
+  },
+  {
+    "type_case": 13,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      231,
+      231,
+      222
+    ],
+    "rich_body_rgb": [
+      41,
+      33,
+      16
+    ]
+  },
+  {
+    "type_case": 14,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      222,
+      222,
+      231
+    ],
+    "rich_body_rgb": [
+      24,
+      24,
+      33
+    ]
+  },
+  {
+    "type_case": 15,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      222,
+      231,
+      247
+    ],
+    "rich_body_rgb": [
+      24,
+      41,
+      57
+    ]
+  },
+  {
+    "type_case": 16,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      214,
+      214,
+      222
+    ],
+    "rich_body_rgb": [
+      16,
+      16,
+      16
+    ]
+  },
+  {
+    "type_case": 17,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      239,
+      239,
+      239
+    ],
+    "rich_body_rgb": [
+      41,
+      41,
+      41
+    ]
+  },
+  {
+    "type_case": 18,
+    "rim_pixels_compared": 960,
+    "rim_matches_previous_and_rich": true,
+    "soft_body_rgb": [
+      255,
+      231,
+      239
+    ],
+    "rich_body_rgb": [
+      66,
+      33,
+      49
+    ]
+  }
+]
