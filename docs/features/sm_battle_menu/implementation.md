@@ -131,16 +131,17 @@ original icons are.
 
 ## Palette and interaction refinement — 2026-09-09
 
-The original dark move rows have been replaced with a white name row, pale
-type-tinted metadata row and opaque mint surround. Type badges retain a dark
+The original dark move rows initially became a white name row and pale
+type-tinted metadata row. Both rows now use the move type color, surrounded
+by opaque mint. Type badges retain a dark
 type color and white lettering; PP uses navy, with dark red for zero. Focus uses
 emerald teal, and Z pages use cream with gold rules. Action panels retain their
 asymmetric placement, with layered borders, diagonal color sweeps, top highlights,
 gold focus corners and a separate FIGHT nameplate/flame-ray decoration. The
 center includes the actor and CHOOSE ACTION or the partner move preview.
 
-Key RGB555 colors are: opaque mint `(24,30,26)`, name row `(29,31,28)`, ink
-`(3,8,9)`, teal focus `(3,19,17)`, gold `(31,26,12)`, and party background
+Key RGB555 colors are: opaque mint `(24,30,26)`, move ink `(1,3,5)`,
+general ink `(3,8,9)`, teal focus `(3,19,17)`, gold `(31,26,12)`, and party background
 `(17,25,15)` with lighter `(21,28,18)` diagonal details. Palette index 0 remains
 transparent on GBA BGs regardless of its RGB value; canvases use index 11 to
 avoid black holes in the action center and between move cards.
@@ -155,3 +156,14 @@ The normal ROM is `pokeemerald.gba`. `evidence/polish/` shows this refinement;
 `evidence/review/` is the earlier implementation. `design/` preserves early layout studies and is not
 a screenshot of final runtime output. See the test plan before extending this
 layout to additional special battle/party modes or translated fonts.
+
+## Full-card type colors — 2026-09-09
+
+The move reference images IMG_2961/IMG_2962 use the type hue across each
+card, including the move name. For each RGB555 type component `c`, the title
+now uses `(c + 62) / 3` and the metadata surface uses `(c + 31) / 2`.
+The title is a lighter highlight of the same hue; small text uses darker ink.
+The shared mint surround, 2x2 layout, type badge, zero-PP red, empty slots,
+Z page treatment and independent BATTLE MENU option remain unchanged.
+`evidence/type-colors/` captures all 18 ordinary types and Stellar Tera Blast,
+plus the reference's Metal Claw/Magnitude/Astonish/Bulldoze combination.

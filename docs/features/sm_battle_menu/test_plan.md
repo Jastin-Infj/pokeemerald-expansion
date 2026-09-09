@@ -194,3 +194,25 @@ BATTLE MENU selects DEFAULT / SM for battle controls and in-battle party.
 - Final Live cleanup returned `status --all = []`. `git diff --check` passed.
   Long GitHub Actions waits were skipped; these results are local builds/tests
   and the inspected script-capable mGBA session.
+
+## Full-card type colors — 2026-09-09
+
+- Normal and debug builds passed with the existing RWX warning. Normal SHA256:
+  `ccfa388ac14843365dcebf280edaeba9debf13179f7ca700d509da6a981938c9`.
+  Debug SHA256:
+  `d1d86ca014b519586af3ea1b924f360f59902c8e6153ede2bd55a583909c4c89`.
+- A fresh single battle on that debug build was inspected in mGBA. The
+  disposable probe adds its call trampoline only in unused ROM tail space;
+  RAM move/PP/type fixtures call the production menu redraw functions.
+- Inspected `evidence/type-colors/types-1` through `types-6`: all 18 ordinary
+  type hues cover both title and metadata surfaces. The sixth capture matches
+  the reference moves Metal Claw, Magnitude, Astonish and Bulldoze.
+- `stellar` verifies the selected Stellar Tera Blast type color; `types-5`
+  includes an empty move slot; `pp-zero` retains distinct red PP 0/10.
+  `reference-cursor`, `reference-details` and `reference-details-close` verify
+  D-pad focus and L detail open/close retain the card colors.
+- This change only adjusts draw palette constants. Save/routing logic and
+  battle mechanics are unchanged; the earlier 2/2 option tests and full-turn
+  gimmick checks were not repeated. This run verifies rendering, not all moves
+  or all languages.
+- The sm-types Live session was stopped after inspection.

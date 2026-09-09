@@ -191,8 +191,12 @@ static void DrawMove(u32 index, const u8 *name, bool32 selected)
     u8 *end;
     // Each card owns a palette, allowing four different move types at once.
     memcpy(colors, sColors, sizeof(colors));
-    colors[5] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
-    colors[7] = RGB(29, 31, 28);
+    // The reference colors the entire card, including the move-name row.
+    // Keep both surfaces light enough for small text, with a stronger type
+    // tint below and a highlight above instead of a shared white title strip.
+    colors[1] = RGB(1, 3, 5);
+    colors[5] = RGB((r + 31) / 2, (g + 31) / 2, (b + 31) / 2);
+    colors[7] = RGB((r + 62) / 3, (g + 62) / 3, (b + 62) / 3);
     colors[8] = RGB(r / 3, g / 3, b / 3);
     LoadPalette(colors, BG_PLTT_ID(12 + index), sizeof(colors));
     FillWindowPixelBuffer(win, PIXEL_FILL(11));
